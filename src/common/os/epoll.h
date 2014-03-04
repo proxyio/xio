@@ -31,6 +31,7 @@ typedef struct epollevent {
 typedef struct epoll {
     int stopping;
     int efd, max_io_events, event_size;
+    int64_t max_to;
     skrb_t tr_tree;
     mutex_t mutex;
     struct epoll_event *ev_buf;
@@ -46,7 +47,7 @@ static inline epoll_t *epoll_new() {
     return el;
 }
 
-static inline int epoll_init(epoll_t *el, int size, int max_io_events) {
+static inline int epoll_init(epoll_t *el, int size, int max_io_events, int max_to) {
     if ((el->efd = epoll_create(size)) < 0)
 	return -1;
     if (!(el->ev_buf =
@@ -54,6 +55,7 @@ static inline int epoll_init(epoll_t *el, int size, int max_io_events) {
 	close(el->efd);
 	return -1;
     }
+    el->max_to = max_to;
     skrb_init(&el->tr_tree);
     mutex_init(&el->mutex);
     el->max_io_events = max_io_events;
@@ -77,7 +79,7 @@ static inline int epoll_destroy(epoll_t *el) {
 int epoll_add(epoll_t *el, epollevent_t *ev);
 int epoll_del(epoll_t *el, epollevent_t *ev);
 int epoll_mod(epoll_t *el, epollevent_t *ev);
-int epoll_oneloop(epoll_t *el, int size, int64_t to);
+int epoll_oneloop(epoll_t *el);
 int epoll_startloop(epoll_t *el);
 void epoll_stoploop(epoll_t *el);
 

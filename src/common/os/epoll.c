@@ -82,14 +82,14 @@ static int64_t epoll_find_timer(epoll_t *el, int64_t to) {
     return to;
 }
 
-int epoll_oneloop(epoll_t *el, int size, int64_t max_to) {
-    int n = 0;
+static int __epoll_wait(epoll_t *el) {
+    int n = 0, size = el->max_io_events;
+    int64_t max_to = el->max_to;
     epollevent_t *ev = NULL;
     struct epoll_event *ev_buf = el->ev_buf;
     skrb_node_t *node = NULL;
     int64_t to = 0, _cur_nsec = rt_nstime();
     
-    size = size > el->max_io_events ? el->max_io_events : size;
     to = _cur_nsec + max_to * 1000000;
     max_to = epoll_find_timer(el, to);
     max_to = max_to > _cur_nsec ? max_to - _cur_nsec : 0;
@@ -98,7 +98,7 @@ int epoll_oneloop(epoll_t *el, int size, int64_t max_to) {
     else if ((n = epoll_wait(el->efd, ev_buf, size, max_to/1000000)) < 0)
 	n = 0;
 
-    while (ev_buf < el->ev_buf + size) {
+    while (ev_buf < el->ev_buf + n) {
 	epoll_update_timer(el, (epollevent_t *)ev_buf->data.ptr, _cur_nsec);
 	ev_buf++;
     }
@@ -119,22 +119,26 @@ int epoll_oneloop(epoll_t *el, int size, int64_t max_to) {
 }
 
 
-int epoll_startloop(epoll_t *el) {
-    int n;
+int epoll_oneloop(epoll_t *el) {
+    int n = 0;
     epollevent_t *ev;
-    struct epoll_event *ev_buf;
-
-    el->stopping = false;
-    while (!el->stopping) {
-	ev_buf = el->ev_buf;
-	if ((n = epoll_oneloop(el, el->max_io_events, 1)) < 0)
-	    continue;
-	while (ev_buf < el->ev_buf + n) {
-	    ev = (epollevent_t *)ev_buf->data.ptr;
-	    ev->f(el, ev, ev_buf->events);
-	    ev_buf++;
-	}
+    struct epoll_event *ev_buf = el->ev_buf;
+    
+    if ((n = __epoll_wait(el)) < 0)
+	return -1;
+    while (ev_buf < el->ev_buf + n) {
+	ev = (epollevent_t *)ev_buf->data.ptr;
+	ev->f(el, ev, ev_buf->events);
+	ev_buf++;
     }
+    return 0;
+}
+
+
+int epoll_startloop(epoll_t *el) {
+    el->stopping = false;
+    while (!el->stopping)
+	epoll_oneloop(el);
     return 0;
 }
 
