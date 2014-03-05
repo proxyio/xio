@@ -12,8 +12,15 @@
 #define ERROR (-1 & __LINE__)
 #define STREQ(a, b) (strlen(a) == strlen(b) && memcmp(a, b , strlen(a)) == 0)
 
+// Get offset of a member
+#define __offsetof(TYPE, MEMBER) ((long) &(((TYPE *)0)->MEMBER))
 
-
+// Casts a member of a structure out to the containning structure
+// @param ptr             the pointer to the member
+// @param type            the type of the container struct this is embeded in.
+// @param member          the field name of the member within the struct
+#define container_of(ptr, type, member) ({				\
+	    (type *)((char *)ptr - __offsetof(type, member)); })
 
 
 #endif

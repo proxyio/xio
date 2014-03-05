@@ -16,5 +16,10 @@ int sk_connect(const char *net, const char *sock, const char *peer);
 int sk_reconnect(int *sfd);
 int sk_setopt(int sfd, int optname, ...);
 
+typedef struct conn {
+    int64_t (*read)(struct conn *c, char *buf, int64_t size);
+    int64_t (*write)(struct conn *c, char *buf, int64_t size);
+} conn_t;
+
 
 #endif

@@ -8,16 +8,7 @@
 #ifndef _LIST_H_
 #define _LIST_H_
 
-
-// Get offset of a member
-#define __offsetof(TYPE, MEMBER) ((long) &(((TYPE *)0)->MEMBER))
-
-// Casts a member of a structure out to the containning structure
-// @param ptr             the pointer to the member
-// @param type            the type of the container struct this is embeded in.
-// @param member          the field name of the member within the struct
-#define container_of(ptr, type, member) ({				\
-	    (type *)((char *)ptr - __offsetof(type, member)); })
+#include "base.h"
 
 //
 // These are non-NULL pointers that will result in page faults
