@@ -16,4 +16,7 @@ add_library( common STATIC ${COMMON} )
 ## compile common_test
 aux_source_directory( common/test COMMON_TEST )
 add_executable( common_test ${COMMON_TEST} )
-target_link_libraries( common_test common gtest pthread gcov )
+target_link_libraries( common_test common gtest pthread)
+if (DEBUG_mode)
+   target_link_libraries( common_test gcov )
+endif()

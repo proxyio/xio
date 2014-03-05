@@ -18,6 +18,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 ## debug setting
 set(DEBUG_mode on)
 if (DEBUG_mode)
+   add_definitions(-fprofile-arcs -ftest-coverage)
    message(STATUS "Debug version")
 elseif (NOT DEBUG_mode)
    message(STATUS "Release version")
