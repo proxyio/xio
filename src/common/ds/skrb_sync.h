@@ -9,7 +9,7 @@
 #include "sync/mutex.h"
 
 #define skrb_mutex_empty(tree, mutex) ({	\
-	    int __empty = false;			\
+	    int __empty = false;		\
 	    mutex_lock(mutex);			\
 	    __empty = skrb_empty(tree);		\
 	    mutex_unlock(mutex);		\
