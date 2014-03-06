@@ -3,9 +3,8 @@
 #include <errno.h>
 #include "ds/slice.h"
 #include "parser.h"
-#include "net/socket.h"
 
-static int __pp_drop(struct pio_parser *pp, conn_t *c, uint32_t size) {
+static int __pp_drop(struct pio_parser *pp, io_t *c, uint32_t size) {
     int ret = 0;
     uint32_t idx = 0, s = 0;
     char dropbuf[4096] = {};
@@ -24,7 +23,7 @@ static int __pp_drop(struct pio_parser *pp, conn_t *c, uint32_t size) {
     return -1;
 }    
 
-static int __pp_recv_hdr(struct pio_parser *pp, conn_t *c, struct pio_hdr *hdr) {
+static int __pp_recv_hdr(struct pio_parser *pp, io_t *c, struct pio_hdr *hdr) {
     int64_t nbytes = 0;
     uint32_t size = PIOHDRLEN;
 
@@ -41,7 +40,7 @@ static int __pp_recv_hdr(struct pio_parser *pp, conn_t *c, struct pio_hdr *hdr) 
     return 0;
 }
 
-static int __pp_recv_data(struct pio_parser *pp, conn_t *c, int n, struct slice *s) {
+static int __pp_recv_data(struct pio_parser *pp, io_t *c, int n, struct slice *s) {
     int64_t nbytes = 0;
     char *buffer = NULL;
     uint32_t cap = 0, size = 0;
@@ -56,7 +55,7 @@ static int __pp_recv_data(struct pio_parser *pp, conn_t *c, int n, struct slice 
     return 0;
 }
 
-static int __pp_send_hdr(struct pio_parser *pp, conn_t *c, const struct pio_hdr *hdr) {
+static int __pp_send_hdr(struct pio_parser *pp, io_t *c, const struct pio_hdr *hdr) {
     int64_t nbytes = 0;
     uint32_t size = PIOHDRLEN;
     struct pio_hdr copyh = *hdr;
@@ -71,7 +70,7 @@ static int __pp_send_hdr(struct pio_parser *pp, conn_t *c, const struct pio_hdr 
     return 0;
 }
 
-static int __pp_send_data(struct pio_parser *pp, conn_t *c, int n, struct slice *s) {
+static int __pp_send_data(struct pio_parser *pp, io_t *c, int n, struct slice *s) {
     int64_t nbytes = 0;
     char *buffer = NULL;
     uint32_t cap = 0, size = 0;
@@ -87,7 +86,7 @@ static int __pp_send_data(struct pio_parser *pp, conn_t *c, int n, struct slice 
 }
 
 
-int pp_send_async(struct pio_parser *pp, conn_t *c, pio_msg_t *msg) {
+int pp_send_async(struct pio_parser *pp, io_t *c, pio_msg_t *msg) {
     struct slice s = {};
 
     if (__pp_send_hdr(pp, c, &msg->hdr) < 0)
@@ -100,7 +99,7 @@ int pp_send_async(struct pio_parser *pp, conn_t *c, pio_msg_t *msg) {
     return 0;
 }
 
-int pp_send(struct pio_parser *pp, conn_t *c, pio_msg_t *msg) {
+int pp_send(struct pio_parser *pp, io_t *c, pio_msg_t *msg) {
     int ret = 0;
 
     do {
@@ -111,7 +110,7 @@ int pp_send(struct pio_parser *pp, conn_t *c, pio_msg_t *msg) {
 }
 
 
-int pp_recv(struct pio_parser *pp, conn_t *c, pio_msg_t **msg, int reserve) {
+int pp_recv(struct pio_parser *pp, io_t *c, pio_msg_t **msg, int reserve) {
     struct slice s = {};
     pio_msg_t *tmp = &pp->msg;
 

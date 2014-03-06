@@ -10,12 +10,12 @@ using namespace std;
 static char buf[1024] = {};
 
 typedef struct testconn {
-    conn_t c;
+    io_t c;
     char buf[2048];
     int send_idx, recv_idx;
 } testconn_t;
 
-int64_t test_read(conn_t *c, char *buf, int64_t size) {
+int64_t test_read(io_t *c, char *buf, int64_t size) {
     testconn_t *tc = container_of(c, testconn_t, c);
     if (rand() % 2 == 0) {
 	errno = EAGAIN;
@@ -26,7 +26,7 @@ int64_t test_read(conn_t *c, char *buf, int64_t size) {
     return 1;
 }
 
-int64_t test_write(conn_t *c, char *buf, int64_t size) {
+int64_t test_write(io_t *c, char *buf, int64_t size) {
     testconn_t *tc = container_of(c, testconn_t, c);
     if (rand() % 2 == 0) {
 	errno = EAGAIN;
