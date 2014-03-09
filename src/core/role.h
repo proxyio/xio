@@ -6,7 +6,7 @@
 #define IS_RCVER(r) r->type == PIO_RCVER
 #define IS_SNDER(r) r->type == PIO_SNDER
 
-int role_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
+int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
 
 static inline struct role *r_new() {
     struct role *r = (struct role *)mem_zalloc(sizeof(*r));
@@ -26,7 +26,7 @@ static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
 #define r_init(r) do {				\
 	epollevent_t *__et = &r->et;		\
 	spin_init(&r->lock);			\
-	__et->f = role_event_handler;		\
+	__et->f = r_event_handler;		\
 	__et->data = r;				\
 	INIT_LIST_HEAD(&r->mq_link);		\
 	INIT_LIST_HEAD(&r->grp_link);		\

@@ -5,24 +5,24 @@
 #include "grp.h"
 #include "accepter.h"
 
-static int role_rgs(struct role *r, uint32_t happened);
-static int role_recv(struct role *r);
-static int role_send(struct role *r);
-static int role_error(struct role *r);
+static int r_rgs(struct role *r, uint32_t happened);
+static int r_recv(struct role *r);
+static int r_send(struct role *r);
+static int r_error(struct role *r);
 
-int role_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
+int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     struct role *r = container_of(et, struct role, et);
 
     if (!(r->status & ST_REGISTED))
-	return role_rgs(r, happened);
+	return r_rgs(r, happened);
     if (!(r->status & ST_REGISTED))
 	return -1;
     if ((r->status & ST_OK) && (happened & EPOLLIN))
-	role_recv(r);
+	r_recv(r);
     if ((r->status & ST_OK) && (happened & EPOLLOUT))
-	role_send(r);
+	r_send(r);
     if (!(r->status & ST_OK))
-	role_error(r);
+	r_error(r);
     return 0;
 }
 
@@ -93,17 +93,17 @@ static inline int r_register_rgs(struct role *r, uint32_t happened) {
     return 0;
 }
 
-static int role_rgs(struct role *r, uint32_t happened) {
+static int r_rgs(struct role *r, uint32_t happened) {
     if ((r->status & ST_REGISTER))
 	return r_register_rgs(r, happened);
     return r_connector_rgs(r, happened);
 }
 
-static int role_recv(struct role *r) {
+static int r_recv(struct role *r) {
     return 0;
 }
 
-static int role_send(struct role *r) {
+static int r_send(struct role *r) {
     epoll_t *el = r->el;
     epollevent_t *et = &r->et;
 
@@ -112,6 +112,6 @@ static int role_send(struct role *r) {
     return 0;
 }
 
-static int role_error(struct role *r) {
+static int r_error(struct role *r) {
     return 0;
 }
