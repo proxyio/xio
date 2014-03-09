@@ -12,6 +12,7 @@ static int role_error(struct role *r);
 
 int role_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     struct role *r = container_of(et, struct role, et);
+
     if (!(r->status & ST_REGISTED))
 	return role_rgs(r, happened);
     if (!(r->status & ST_REGISTED))
@@ -32,7 +33,7 @@ static inline int r_connector_rgs(struct role *r, uint32_t happened) {
     struct pio_rgh *h = &r->pp.rgh;
     grp_t *grp;
     accepter_t *acp = container_of(el, struct accepter, el);
-    
+
     if (!(happened & EPOLLOUT))
 	return -1;
     ret = pp_send_rgh_async(&r->pp, &r->conn_ops);
@@ -103,6 +104,11 @@ static int role_recv(struct role *r) {
 }
 
 static int role_send(struct role *r) {
+    epoll_t *el = r->el;
+    epollevent_t *et = &r->et;
+
+    et->events &= ~EPOLLOUT;
+    epoll_mod(el, et);
     return 0;
 }
 

@@ -105,12 +105,11 @@ int pp_recv_rgh(struct pio_parser *pp, io_t *c) {
     pio_rgh_t *h = &pp->rgh;
 
     while (pp->recv_rgh_idx < size) {
-	nbytes = c->read(c, (char *)&pp->rgh + pp->recv_rgh_idx, size - pp->recv_rgh_idx);
+	nbytes = c->read(c, (char *)h + pp->recv_rgh_idx, size - pp->recv_rgh_idx);
 	if (nbytes < 0)
 	    return -1;
 	pp->recv_rgh_idx += nbytes;
     }
-    memcpy(h, &pp->rgh, size);
     return 0;
 }
 

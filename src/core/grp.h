@@ -17,14 +17,25 @@ static inline grp_t *grp_new() {
 }
 
 #define grp_init(grp) do {			\
-	spin_init(&grp->lock);			\
-	ssmap_init(&grp->roles);		\
-	ssmap_init(&grp->tw_roles);		\
-	INIT_LIST_HEAD(&grp->rcver_head);	\
-	INIT_LIST_HEAD(&grp->snder_head);	\
+	spin_init(&(grp)->lock);		\
+	ssmap_init(&(grp)->roles);		\
+	ssmap_init(&(grp)->tw_roles);		\
+	INIT_LIST_HEAD(&(grp)->rcver_head);	\
+	INIT_LIST_HEAD(&(grp)->snder_head);	\
     } while (0)
 
-#define grp_destroy(grp) spin_destroy(&grp->lock)
+#define grp_destroy(grp) do {					\
+	struct role *__r, *__n;					\
+	spin_destroy(&(grp)->lock);				\
+	list_for_each_role_safe(__r, __n, &(grp)->rcver_head) {	\
+	    r_destroy(__r);					\
+	    mem_free(__r, sizeof(*__r));			\
+	}							\
+	list_for_each_role_safe(__r, __n, &(grp)->snder_head) {	\
+	    r_destroy(__r);					\
+	    mem_free(__r, sizeof(*__r));			\
+	}							\
+    } while (0)
 
 #define grp_add(grp, r) do {						\
 	struct list_head *__head = NULL;				\

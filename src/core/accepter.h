@@ -49,7 +49,27 @@ static inline void accepter_stop(accepter_t *acp) {
 static inline int accepter_listen(accepter_t *acp, const char *addr) {
     if (acp->et.fd > 0 || (acp->et.fd = act_listen("tcp", addr, 1024)) < 0)
 	return -1;
+    acp->et.events = EPOLLIN;
     return epoll_add(&acp->el, &acp->et);
+}
+
+static inline int accepter_proxyto(accepter_t *acp, char *grpname,
+				   const char *addr) {
+    int nfd;
+    pio_rgh_t *h;
+    struct role *r = r_new();
+    
+    if (!r || (nfd = sk_connect("tcp", "", addr)) < 0)
+	return -1;
+    r_init(r);
+    h = &r->pp.rgh;
+    h->type = PIO_SNDER;
+    uuid_generate(h->id);
+    strcpy(h->grpname, grpname);
+    r->el = &acp->el;
+    r->et.fd = nfd;
+    r->et.events = EPOLLOUT;
+    return epoll_add(&acp->el, &r->et);
 }
 
 

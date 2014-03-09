@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "net/accepter.h"
 #include "role.h"
 #include "grp.h"
@@ -16,7 +17,6 @@ int accepter_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     r->status = ST_REGISTER;
     r->el = el;
     r->et.fd = nfd;
-    r->et.to_nsec = 0;
     r->et.events = EPOLLIN;
     return epoll_add(el, &r->et);
 }

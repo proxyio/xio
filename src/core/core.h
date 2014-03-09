@@ -52,4 +52,8 @@ struct role {
     struct pio_parser pp;
 };
 
+#define list_for_each_role_safe(pos, n, head)				\
+    list_for_each_entry_safe(pos, n, head, struct role, grp_link)
+
+
 #endif
