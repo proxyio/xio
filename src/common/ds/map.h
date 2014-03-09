@@ -2,6 +2,7 @@
 #define _HPIO_MAP_
 
 #include "krb.h"
+#include <string.h>
 
 typedef struct ssmap_node {
     struct rb_node  rb;
@@ -47,6 +48,26 @@ static inline ssmap_node_t *ssmap_max(ssmap_t *map) {
 	_max = rb_entry(parent, ssmap_node_t, rb);
     }
     return _max;
+}
+
+static inline ssmap_node_t *ssmap_find(ssmap_t *map, char *key, int size) {
+    ssmap_node_t *cur;
+    struct rb_root *root = &map->root;
+    struct rb_node **np = &root->rb_node, *parent = NULL;
+    int keylen = size, ret;
+
+    while (*np) {
+	parent = *np;
+	cur = rb_entry(parent, ssmap_node_t, rb);
+	keylen = cur->keylen > size ? size : cur->keylen;
+	if ((ret = memcmp(cur->key, key, keylen)) == 0 && size == cur->keylen)
+	    return cur;
+	if ((!ret && size < cur->keylen) || ret > 0)
+	    np = &parent->rb_left;
+	else if ((!ret && size > cur->keylen) || ret < 0)
+	    np = &parent->rb_right;
+    }
+    return NULL;
 }
 
 static inline int ssmap_insert(ssmap_t *map, ssmap_node_t *node) {

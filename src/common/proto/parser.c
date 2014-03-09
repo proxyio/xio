@@ -9,29 +9,29 @@ static int __pp_drop(struct pio_parser *pp, io_t *c, uint32_t size) {
     uint32_t idx = 0, s = 0;
     char dropbuf[4096] = {};
     
-    while (pp->recv_data_index < size) {
-	idx = pp->recv_data_index % sizeof(dropbuf);
-	if ((s = sizeof(dropbuf) - idx) > size - pp->recv_data_index)
-	    s = size - pp->recv_data_index;
+    while (pp->recv_data_idx < size) {
+	idx = pp->recv_data_idx % sizeof(dropbuf);
+	if ((s = sizeof(dropbuf) - idx) > size - pp->recv_data_idx)
+	    s = size - pp->recv_data_idx;
 	if ((ret = c->read(c, dropbuf + idx, s)) < 0)
 	    return -1;
-	pp->recv_data_index += ret;
+	pp->recv_data_idx += ret;
     }
     pp->dropped_cnt++;
     errno = EAGAIN;
     pp_reset_recv(pp);
     return -1;
-}    
+}
 
 static int __pp_recv_hdr(struct pio_parser *pp, io_t *c, struct pio_hdr *hdr) {
     int64_t nbytes = 0;
     uint32_t size = PIOHDRLEN;
 
-    while (pp->recv_hdr_index < size) {
-	nbytes = c->read(c, (char *)hdr + pp->recv_hdr_index, size - pp->recv_hdr_index);
+    while (pp->recv_hdr_idx < size) {
+	nbytes = c->read(c, (char *)hdr + pp->recv_hdr_idx, size - pp->recv_hdr_idx);
 	if (nbytes < 0)
 	    return -1;
-	pp->recv_hdr_index += nbytes;
+	pp->recv_hdr_idx += nbytes;
     }
     if (ph_validate(hdr) != true) {
 	errno = EPIPE;
@@ -46,11 +46,11 @@ static int __pp_recv_data(struct pio_parser *pp, io_t *c, int n, struct slice *s
     uint32_t cap = 0, size = 0;
 
     slice_bufcap(n, s, cap);
-    while (pp->recv_data_index < cap) {
-	locate_slice_buffer(pp->recv_data_index, s, buffer, size);
+    while (pp->recv_data_idx < cap) {
+	locate_slice_buffer(pp->recv_data_idx, s, buffer, size);
 	if ((nbytes = c->read(c, buffer, size)) < 0)
 	    return -1;
-	pp->recv_data_index += nbytes;
+	pp->recv_data_idx += nbytes;
     }
     return 0;
 }
@@ -61,11 +61,11 @@ static int __pp_send_hdr(struct pio_parser *pp, io_t *c, const struct pio_hdr *h
     struct pio_hdr copyh = *hdr;
 
     ph_makechksum(&copyh);
-    while (pp->send_hdr_index < size) {
-	nbytes = c->write(c, (char *)&copyh + pp->send_hdr_index, size - pp->send_hdr_index);
+    while (pp->send_hdr_idx < size) {
+	nbytes = c->write(c, (char *)&copyh + pp->send_hdr_idx, size - pp->send_hdr_idx);
 	if (nbytes < 0)
 	    return -1;
-	pp->send_hdr_index += nbytes;
+	pp->send_hdr_idx += nbytes;
     }
     return 0;
 }
@@ -76,12 +76,41 @@ static int __pp_send_data(struct pio_parser *pp, io_t *c, int n, struct slice *s
     uint32_t cap = 0, size = 0;
 
     slice_bufcap(n, s, cap);
-    while (pp->send_data_index < cap) {
-	locate_slice_buffer(pp->send_data_index, s, buffer, size);
+    while (pp->send_data_idx < cap) {
+	locate_slice_buffer(pp->send_data_idx, s, buffer, size);
 	if ((nbytes = c->write(c, buffer, size)) < 0)
 	    return -1;
-	pp->send_data_index += nbytes;
+	pp->send_data_idx += nbytes;
     }
+    return 0;
+}
+
+int pp_send_rgh_async(struct pio_parser *pp, io_t *c) {
+    int64_t nbytes = 0;
+    uint32_t size = PIORGHLEN;
+    pio_rgh_t *h = &pp->rgh;
+
+    while (pp->send_rgh_idx < size) {
+	nbytes = c->write(c, (char *)h + pp->send_rgh_idx, size - pp->send_rgh_idx);
+	if (nbytes < 0)
+	    return -1;
+	pp->send_rgh_idx += nbytes;
+    }
+    return 0;
+}
+
+int pp_recv_rgh(struct pio_parser *pp, io_t *c) {
+    int64_t nbytes = 0;
+    uint32_t size = PIORGHLEN;
+    pio_rgh_t *h = &pp->rgh;
+
+    while (pp->recv_rgh_idx < size) {
+	nbytes = c->read(c, (char *)&pp->rgh + pp->recv_rgh_idx, size - pp->recv_rgh_idx);
+	if (nbytes < 0)
+	    return -1;
+	pp->recv_rgh_idx += nbytes;
+    }
+    memcpy(h, &pp->rgh, size);
     return 0;
 }
 

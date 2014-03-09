@@ -75,12 +75,18 @@ static inline pio_msg_t *pio_msg_clone(pio_msg_t *msg) {
 
 
 #define GRPNAME_MAX 128
-struct pio_rgh {
-    uint32_t role;
-    uuid_t id;
-    char grpname[GRPNAME_MAX];
+
+enum {
+    PIO_RCVER = 1,
+    PIO_SNDER,
 };
 
+typedef struct pio_rgh {
+    uint32_t type;
+    uuid_t id;
+    char grpname[GRPNAME_MAX];
+} pio_rgh_t;
+#define PIORGHLEN sizeof(struct pio_rgh)
 
 
 

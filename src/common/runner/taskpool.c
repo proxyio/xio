@@ -1,4 +1,5 @@
 #define __STDC_FORMAT_MACROS
+#include <stdio.h>
 #include <inttypes.h>
 #include "os/malloc.h"
 #include "taskpool.h"

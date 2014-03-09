@@ -47,6 +47,7 @@ static int skrb_test_single() {
 static int map_test_single() {
     struct ssmap_node n[5];
     ssmap_t map;
+    string key;
 
     ssmap_init(&map);
     n[0].key = "11111";
@@ -68,6 +69,13 @@ static int map_test_single() {
 
     EXPECT_TRUE(ssmap_min(&map) == &n[2]);
     EXPECT_TRUE(ssmap_max(&map) == &n[1]);
+
+    EXPECT_TRUE(ssmap_find(&map, n[0].key, n[0].keylen) == &n[0]);
+    EXPECT_TRUE(ssmap_find(&map, n[1].key, n[1].keylen) == &n[1]);    
+    EXPECT_TRUE(ssmap_find(&map, n[2].key, n[2].keylen) == &n[2]);
+    EXPECT_TRUE(ssmap_find(&map, n[3].key, n[3].keylen) == &n[3]);
+    EXPECT_TRUE(ssmap_find(&map, n[4].key, n[4].keylen) == &n[4]);
+
     return 0;
 }
 

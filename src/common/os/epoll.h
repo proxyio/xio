@@ -1,7 +1,7 @@
 #ifndef _H_EPOLLER_
 #define _H_EPOLLER_
 
-
+#include <unistd.h>
 #include <sys/epoll.h>
 #include "malloc.h"
 #include "ds/list.h"
@@ -16,7 +16,8 @@
 
 struct epollevent;
 struct epoll;
-typedef int (*event_handler) (struct epoll *el, struct epollevent *ev, uint32_t happened);
+typedef int (*event_handler) (struct epoll *el, struct epollevent *ev,
+			      uint32_t happened);
 
 typedef struct epollevent {
     event_handler f;

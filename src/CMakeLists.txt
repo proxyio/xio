@@ -20,3 +20,17 @@ target_link_libraries( common_test common gtest pthread)
 if (DEBUG_mode)
    target_link_libraries( common_test gcov )
 endif()
+
+
+## compile core
+aux_source_directory( core CORE )
+add_library( core STATIC ${CORE} )
+target_link_libraries( core common gtest uuid pthread)
+
+## compile core_test
+aux_source_directory( core/test CORE_TEST )
+add_executable( core_test ${CORE_TEST} )
+target_link_libraries( core_test core)
+if (DEBUG_mode)
+   target_link_libraries( core_test gcov )
+endif()

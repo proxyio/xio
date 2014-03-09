@@ -30,10 +30,10 @@ static inline int taskpool_init(taskpool_t *tp, int w) {
     int i;
     thread_t *tt = NULL, **tpos = NULL;
 
-    tp->stopping = false;
+    tp->stopping = true;
     tp->tasks = 0;
     tp->workers = w;
-    if (!(tp->threads = mem_zalloc(sizeof(thread_t *) * w)))
+    if (!(tp->threads = (thread_t **)mem_zalloc(sizeof(thread_t *) * w)))
 	return -1;
     mutex_init(&tp->mutex);
     condition_init(&tp->cond);
