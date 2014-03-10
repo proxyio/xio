@@ -73,9 +73,9 @@ static inline pio_msg_t *pio_msg_clone(pio_msg_t *msg) {
 
 #define pio_cur_rt(msg) ((msg)->rt[(msg)->hdr.ttl - 1])
 
-#define pio_msg_appendrt(msg, rt) do {				\
+#define pio_msg_appendrt(msg, __rt) do {				\
 	msg->hdr.ttl++;						\
-	memcpy(&msg->rt[msg->hdr.ttl - 1], rt, PIORTLEN);	\
+	memcpy(&msg->rt[msg->hdr.ttl - 1], __rt, PIORTLEN);	\
     } while (0)
 
 #define pio_msg_shrinkrt(msg) do {		\

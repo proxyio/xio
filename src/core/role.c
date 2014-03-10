@@ -101,6 +101,14 @@ static int r_dispatcher_send(struct role *r) {
     
     if (!(msg = r_pop(r)))
 	return -1;
+    uuid_copy(rt.uuid, r->uuid);
+    rt.cost = 0;
+    rt.stay = 0;
+    rt.begin = 0;
+    pio_msg_appendrt(msg, &rt);
+    if (pp_send(&r->pp, &r->conn_ops, msg) < 0)
+	r->status &= ~ST_OK;
+    pio_msg_free(msg);
     return 0;
 }
 
