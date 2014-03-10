@@ -8,10 +8,11 @@
 int accepter_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
 
 
-#define accepter_init(acp) do {			\
+#define accepter_init(acp, w) do {		\
 	epollevent_t *__et = &(acp)->et;	\
 	spin_init(&(acp)->lock);		\
 	epoll_init(&(acp)->el, 1024, 100, 1);	\
+	taskpool_init(&(acp)->tp, w);		\
 	__et->f = accepter_event_handler;	\
 	__et->data = (acp);			\
 	INIT_LIST_HEAD(&(acp)->grp_head);	\
@@ -20,6 +21,7 @@ int accepter_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
 #define accepter_destroy(acp) do {		\
 	epoll_destroy(&(acp)->el);		\
 	spin_destroy(&(acp)->lock);		\
+	taskpool_destroy(&(acp)->tp);		\
     } while (0)
 
 static inline grp_t *accepter_find(accepter_t *acp, char grpname[GRPNAME_MAX]) {
@@ -38,12 +40,14 @@ static inline int accepter_worker(void *args) {
     return epoll_startloop(&acp->el);
 }
 
-static inline void accepter_start(accepter_t *acp, taskpool_t *tp) {
-    taskpool_run(tp, accepter_worker, acp);
+static inline void accepter_start(accepter_t *acp) {
+    taskpool_start(&acp->tp);
+    taskpool_run(&acp->tp, accepter_worker, acp);
 }
 
 static inline void accepter_stop(accepter_t *acp) {
     epoll_stoploop(&acp->el);
+    taskpool_stop(&acp->tp);
 }
 
 static inline int accepter_listen(accepter_t *acp, const char *addr) {

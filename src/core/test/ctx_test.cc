@@ -9,28 +9,22 @@ extern "C" {
 
 static void accepter_test() {
     accepter_t acp = {};
-    taskpool_t tp = {};
     grp_t grp = {};
     char grpname[GRPNAME_MAX] = "testapp";
 
     grp_init(&grp);
     strcpy(grp.grpname, grpname);
-    taskpool_init(&tp, 10);
-    accepter_init(&acp);
+    accepter_init(&acp, 10);
     list_add(&grp.acp_link, &acp.grp_head);
 
-    taskpool_start(&tp);
-    accepter_start(&acp, &tp);
+    accepter_start(&acp);
     EXPECT_EQ(0, accepter_listen(&acp, PIOHOST));
     EXPECT_EQ(0, accepter_proxyto(&acp, grpname, PIOHOST));
     while (grp.rsize != 2) {
     }
-    
     accepter_stop(&acp);
-    taskpool_stop(&tp);
     grp_destroy(&grp);
     accepter_destroy(&acp);
-    taskpool_destroy(&tp);
 }
 
 

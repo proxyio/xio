@@ -9,10 +9,11 @@
 #include "sync/spin.h"
 #include "stats/modstat.h"
 #include "proto/parser.h"
-
+#include "runner/taskpool.h"
 
 typedef struct accepter {
     spin_t lock;
+    taskpool_t tp;
     epoll_t el;
     epollevent_t et;
     struct list_head grp_head;

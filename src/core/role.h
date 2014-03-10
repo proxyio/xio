@@ -46,11 +46,30 @@ static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
 	spin_unlock(&r->lock);			\
     } while (0)
 
+
+static inline int __r_disable_eventout(struct role *r) {
+    if (r->et.events & EPOLLOUT) {
+	r->et.events &= ~EPOLLOUT;
+	return epoll_mod(r->el, &r->et);
+    }
+    return -1;
+}
+
+static inline int __r_enable_eventout(struct role *r) {
+    if (!(r->et.events & EPOLLOUT)) {
+	r->et.events |= EPOLLOUT;
+	return epoll_mod(r->el, &r->et);
+    }
+    return -1;
+}
+
 static inline pio_msg_t *r_pop(struct role *r) {
     pio_msg_t *msg = NULL;
     r_lock(r);
     if (!list_empty(&r->mq))
 	msg = list_first(&r->mq, pio_msg_t, node);
+    if (list_empty(&r->mq))
+	__r_disable_eventout(r);
     r_unlock(r);
     return msg;
 }
@@ -59,25 +78,10 @@ static inline int r_push(struct role *r, pio_msg_t *msg) {
     r_lock(r);
     r->size++;
     list_add(&msg->node, &r->mq);
+    if (!list_empty(&r->mq))
+	__r_enable_eventout(r);
     r_unlock(r);
     return 0;
 }
-
-static inline int r_disable_eventout(struct role *r) {
-    if (r->et.events & EPOLLOUT) {
-	r->et.events &= ~EPOLLOUT;
-	return epoll_mod(r->el, &r->et);
-    }
-    return -1;
-}
-
-static inline int r_enable_eventout(struct role *r) {
-    if (!(r->et.events & EPOLLOUT)) {
-	r->et.events |= EPOLLOUT;
-	return epoll_mod(r->el, &r->et);
-    }
-    return -1;
-}
-
 
 #endif

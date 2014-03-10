@@ -66,7 +66,7 @@ static int r_send(struct role *r) {
     pio_msg_t *msg;
 
     if (!(msg = r_pop(r)))
-	return r_disable_eventout(r);
+	return -1;
     if (pp_send(&r->pp, &r->conn_ops, msg) < 0)
 	r->status &= ~ST_OK;
     pio_msg_free(msg);
