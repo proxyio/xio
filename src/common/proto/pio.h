@@ -71,6 +71,9 @@ static inline pio_msg_t *pio_msg_clone(pio_msg_t *msg) {
     return pio_msg_clone_reserve(msg, 0);
 }
 
+#define pio_msg_free(msg) do {			\
+	mem_free(msg, pio_msg_size(msg));	\
+    } while (0)
 
 
 

@@ -17,7 +17,7 @@ static void accepter_test() {
     strcpy(grp.grpname, grpname);
     taskpool_init(&tp, 10);
     accepter_init(&acp);
-    list_add(&grp.ctx_link, &acp.grp_head);
+    list_add(&grp.acp_link, &acp.grp_head);
 
     taskpool_start(&tp);
     accepter_start(&acp, &tp);

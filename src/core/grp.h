@@ -80,5 +80,9 @@ static inline struct role *__grp_find(grp_t *grp, uuid_t uuid, ssmap_t *map) {
 #define grp_find(grp, uuid) __grp_find(grp, uuid, &grp->roles)
 #define grp_find_tw(grp, uuid) __grp_find(grp, uuid, &grp->tw_roles)
 
+static inline struct role *grp_loadbalance_dest(grp_t *grp) {
+    return NULL;
+}
+
 
 #endif

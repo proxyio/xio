@@ -14,7 +14,7 @@ int accepter_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	mem_free(r, sizeof(*r));
 	return -1;
     }
-    r->status = ST_REGISTER;
+    r->type = ST_REGISTER;
     r->el = el;
     r->et.fd = nfd;
     r->et.events = EPOLLIN;

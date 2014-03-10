@@ -25,7 +25,7 @@ int accepter_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
 static inline grp_t *accepter_find(accepter_t *acp, char grpname[GRPNAME_MAX]) {
     grp_t *cur, *match = NULL;
 
-    list_for_each_entry(cur, &acp->grp_head, grp_t, ctx_link)
+    list_for_each_entry(cur, &acp->grp_head, grp_t, acp_link)
 	if (memcmp(grpname, cur->grpname, GRPNAME_MAX) == 0) {
 	    match = cur;
 	    break;

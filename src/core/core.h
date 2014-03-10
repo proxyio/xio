@@ -24,9 +24,9 @@ typedef struct grp {
     int rsize;
     ssmap_t roles;
     ssmap_t tw_roles;
+    struct list_head acp_link;
     struct list_head rcver_head;
     struct list_head snder_head;
-    struct list_head ctx_link;
 } grp_t;
 
 enum {
@@ -45,7 +45,7 @@ struct role {
     epoll_t *el;
     grp_t *grp;
     uint32_t size;
-    struct list_head mq_link;
+    struct list_head mq;
     ssmap_node_t sibling;
     struct list_head grp_link;
     struct io conn_ops;
