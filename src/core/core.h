@@ -20,8 +20,8 @@ typedef struct accepter {
 } acp_t;
 
 typedef struct grp {
-    char grpname[GRPNAME_MAX];
     spin_t lock;
+    char grpname[GRPNAME_MAX];
     int rsize;
     ssmap_t roles;
     ssmap_t tw_roles;
@@ -37,20 +37,21 @@ enum {
 };
 
 struct role {
+    spin_t lock;
     int status;
+    int ref;
     uuid_t uuid;
     uint32_t type;
-    spin_t lock;
     modstat_t st;
     epollevent_t et;
     epoll_t *el;
     grp_t *grp;
     uint32_t size;
     struct list_head mq;
-    ssmap_node_t sibling;
-    struct list_head grp_link;
     struct io conn_ops;
     struct pio_parser pp;
+    ssmap_node_t sibling;
+    struct list_head grp_link;
 };
 
 #define list_for_each_role_safe(pos, n, head)				\

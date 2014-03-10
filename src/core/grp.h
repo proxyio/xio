@@ -49,9 +49,9 @@ static inline grp_t *grp_new() {
 
 #define grp_del(grp, r) do {			\
 	grp_lock(grp);				\
+	grp->rsize--;				\
 	ssmap_delete(&grp->roles, &r->sibling);	\
 	list_del(&r->grp_link);			\
-	grp->rsize--;				\
 	grp_unlock(grp);			\
     } while (0)
 
@@ -63,8 +63,8 @@ static inline grp_t *grp_new() {
 	grp_unlock(grp);			\
     } while (0)
 
-#define grp_walkrcver(grp, f, args) __grp_walk(grp, f, args, &grp->rcver_head)
-#define grp_walksnder(grp, f, args) __grp_walk(grp, f, args, &grp->snder_head)
+#define grp_walkrcver(grp, f, args) __grp_walk((grp), (f), (args), (&grp->rcver_head))
+#define grp_walksnder(grp, f, args) __grp_walk((grp), (f), (args), (&grp->snder_head))
 
 
 static inline struct role *__grp_find(grp_t *grp, uuid_t uuid, ssmap_t *map) {
@@ -80,7 +80,7 @@ static inline struct role *__grp_find(grp_t *grp, uuid_t uuid, ssmap_t *map) {
 #define grp_find(grp, uuid) __grp_find(grp, uuid, &grp->roles)
 #define grp_find_tw(grp, uuid) __grp_find(grp, uuid, &grp->tw_roles)
 
-static inline struct role *grp_loadbalance_dest(grp_t *grp) {
+static inline struct role *grp_loadbalance_dispatch(grp_t *grp) {
     return NULL;
 }
 

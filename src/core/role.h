@@ -13,6 +13,15 @@ static inline struct role *r_new() {
     return r;
 }
 
+#define r_lock(r) do {				\
+	spin_lock(&r->lock);			\
+    } while (0)
+
+#define r_unlock(r) do {			\
+	spin_unlock(&r->lock);			\
+    } while (0)
+
+
 static inline int64_t __sock_read(io_t *c, char *buf, int64_t size) {
     struct role *r = container_of(c, struct role, conn_ops);
     return sk_read(r->et.fd, buf, size);
@@ -24,8 +33,9 @@ static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
 }
 
 #define r_init(r) do {				\
-	r->status = ST_OK;			\
 	spin_init(&r->lock);			\
+	r->status = ST_OK;			\
+	r->ref = 1;				\
 	r->et.f = r_event_handler;		\
 	r->et.data = r;				\
 	INIT_LIST_HEAD(&r->mq);			\
@@ -34,17 +44,22 @@ static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
 	r->conn_ops.write = __sock_write;	\
     } while (0)
 
+static inline struct role *r_new_inited() {
+    struct role *r = r_new();
+    if (r)
+	r_init(r);
+    return r;
+}
+
 #define r_destroy(r) do {			\
 	spin_destroy(&r->lock);			\
+	pp_destroy(&r->pp);			\
     } while (0)
 
-#define r_lock(r) do {				\
-	spin_lock(&r->lock);			\
-    } while (0)
-
-#define r_unlock(r) do {			\
-	spin_unlock(&r->lock);			\
-    } while (0)
+static inline void r_free_destroy(struct role *r) {
+    r_destroy(r);
+    mem_free(r, sizeof(*r));
+}
 
 
 static inline int __r_disable_eventout(struct role *r) {

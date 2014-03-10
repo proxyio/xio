@@ -57,7 +57,7 @@ static int r_receiver_recv(struct role *r) {
     if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, PIORTLEN)) == 0) {
 	crt = pio_msg_currt(msg);
 	crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->begin);
-	if ((dest = grp_loadbalance_dest(r->grp)))
+	if ((dest = grp_loadbalance_dispatch(r->grp)))
 	    r_push(dest, msg);
 	else
 	    pio_msg_free(msg);
@@ -127,9 +127,9 @@ static int r_send(struct role *r) {
 
 
 static int r_error(struct role *r) {
-    r_destroy(r);
     epoll_del(r->el, &r->et);
+    grp_del(r->grp, r);
     close(r->et.fd);
-    mem_free(r, sizeof(*r));
+    r_free_destroy(r);
     return 0;
 }
