@@ -47,7 +47,7 @@ static int r_rgs(struct role *r, uint32_t happened) {
     return 0;
 }
 
-static int r_recv(struct role *r) {
+static int r_receiver_recv(struct role *r) {
     int ret;
     pio_msg_t *msg = NULL;
     struct role *dest;
@@ -62,7 +62,29 @@ static int r_recv(struct role *r) {
     return 0;
 }
 
-static int r_send(struct role *r) {
+static int r_dispatcher_recv(struct role *r) {
+    int ret;
+    pio_msg_t *msg = NULL;
+    struct role *src;
+
+    if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, 0)) == 0) {
+	pio_msg_shrinkrt(msg);
+	if ((src = grp_find(r->grp, pio_cur_rt(msg).uuid)))
+	    r_push(src, msg);
+	else
+	    pio_msg_free(msg);
+    } else if (ret < 0 && errno != EAGAIN)
+	r->status &= ~ST_OK;
+    return 0;
+}
+
+static int r_recv(struct role *r) {
+    if (IS_RCVER(r))
+	return r_receiver_recv(r);
+    return r_dispatcher_recv(r);
+}
+
+static int r_receiver_send(struct role *r) {
     pio_msg_t *msg;
 
     if (!(msg = r_pop(r)))
@@ -72,6 +94,22 @@ static int r_send(struct role *r) {
     pio_msg_free(msg);
     return 0;
 }
+
+static int r_dispatcher_send(struct role *r) {
+    pio_msg_t *msg;
+    struct pio_rt rt = {};
+    
+    if (!(msg = r_pop(r)))
+	return -1;
+    return 0;
+}
+
+static int r_send(struct role *r) {
+    if (IS_RCVER(r))
+	return r_receiver_send(r);
+    return r_dispatcher_send(r);
+}
+
 
 static int r_error(struct role *r) {
     r_destroy(r);

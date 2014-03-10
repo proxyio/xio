@@ -71,6 +71,17 @@ static inline pio_msg_t *pio_msg_clone(pio_msg_t *msg) {
     return pio_msg_clone_reserve(msg, 0);
 }
 
+#define pio_cur_rt(msg) ((msg)->rt[(msg)->hdr.ttl - 1])
+
+#define pio_msg_appendrt(msg, rt) do {				\
+	msg->hdr.ttl++;						\
+	memcpy(&msg->rt[msg->hdr.ttl - 1], rt, PIORTLEN);	\
+    } while (0)
+
+#define pio_msg_shrinkrt(msg) do {		\
+	msg->hdr.ttl--;				\
+    } while (0)
+
 #define pio_msg_free(msg) do {			\
 	mem_free(msg, pio_msg_size(msg));	\
     } while (0)
