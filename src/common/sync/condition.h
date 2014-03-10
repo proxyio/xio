@@ -1,5 +1,5 @@
-#ifndef _CONDITION_H_
-#define _CONDITION_H_
+#ifndef _HPIO_CONDITION_
+#define _HPIO_CONDITION_
 
 #include <pthread.h>
 #include "mutex.h"

@@ -1,5 +1,5 @@
-#ifndef _H_PIO_PROTO_PARSER_
-#define _H_PIO_PROTO_PARSER_
+#ifndef _HPIO_PROTO_PARSER_
+#define _HPIO_PROTO_PARSER_
 
 #include "base.h"
 #include "pio.h"

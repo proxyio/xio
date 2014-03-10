@@ -1,5 +1,5 @@
-#ifndef _LINUX_H_
-#define _LINUX_H_
+#ifndef _HPIO_LINUX_
+#define _HPIO_LINUX_
 
 #include <unistd.h>
 #include <sys/types.h>

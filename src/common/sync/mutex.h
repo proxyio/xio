@@ -1,5 +1,5 @@
-#ifndef _MUTEX_H_
-#define _MUTEX_H_
+#ifndef _HPIO_MUTEX_
+#define _HPIO_MUTEX_
 
 #include <pthread.h>
 

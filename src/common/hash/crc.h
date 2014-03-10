@@ -1,5 +1,5 @@
-#ifndef _CRC_H_
-#define _CRC_H_
+#ifndef _HPIO_CRC_
+#define _HPIO_CRC_
 
 #include <inttypes.h>
 

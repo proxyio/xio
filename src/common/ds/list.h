@@ -5,8 +5,8 @@
   as typeof()/prefetch()... and so on.
 */
 
-#ifndef _LIST_H_
-#define _LIST_H_
+#ifndef _HPIO_LIST_
+#define _HPIO_LIST_
 
 #include "base.h"
 

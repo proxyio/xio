@@ -1,5 +1,5 @@
-#ifndef _H_TASKPOOL_
-#define _H_TASKPOOL_
+#ifndef _HPIO_TASKPOOL_
+#define _HPIO_TASKPOOL_
 
 #include "base.h"
 #include "ds/list.h"

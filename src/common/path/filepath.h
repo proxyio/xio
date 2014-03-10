@@ -1,5 +1,5 @@
-#ifndef _FILEPATH_H_
-#define _FILEPATH_H_
+#ifndef _HPIO_FILEPATH_
+#define _HPIO_FILEPATH_
 
 #include "os/malloc.h"
 

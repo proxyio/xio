@@ -1,5 +1,5 @@
-#ifndef _H_SOCKET_
-#define _H_SOCKET_
+#ifndef _HPIO_SOCKET_
+#define _HPIO_SOCKET_
 
 #include <inttypes.h>
 #include <sys/types.h>

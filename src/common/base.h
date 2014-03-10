@@ -1,5 +1,5 @@
-#ifndef _BASE_H_
-#define _BASE_H_
+#ifndef _HPIO_BASE_
+#define _HPIO_BASE_
 
 #include <stdlib.h>
 #include <string.h>

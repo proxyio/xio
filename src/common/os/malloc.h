@@ -1,5 +1,5 @@
-#ifndef _ZMALLOC_H_
-#define _ZMALLOC_H_
+#ifndef _HPIO_ZMALLOC_
+#define _HPIO_ZMALLOC_
 
 #include <inttypes.h>
 

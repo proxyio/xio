@@ -1,5 +1,5 @@
-#ifndef _H_ACCEPTER_
-#define _H_ACCEPTER_
+#ifndef _HPIO_ACT_
+#define _HPIO_ACT_
 
 enum {
     ACT_BLOCK = 1,

@@ -1,5 +1,5 @@
-#ifndef _PID_H_
-#define _PID_H_
+#ifndef _HPIO_PID_
+#define _HPIO_PID_
 
 #include <string.h>
 #include "os/malloc.h"

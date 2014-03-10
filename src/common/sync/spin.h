@@ -1,5 +1,5 @@
-#ifndef _SPINLOCK_H_
-#define _SPINLOCK_H_
+#ifndef _HPIO_SPINLOCK_
+#define _HPIO_SPINLOCK_
 
 #include <pthread.h>
 

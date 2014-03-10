@@ -1,5 +1,5 @@
-#ifndef _H_PIOHDR_
-#define _H_PIOHDR_
+#ifndef _HPIO_HDR_
+#define _HPIO_HDR_
 
 #include <uuid/uuid.h>
 #include "ds/list.h"

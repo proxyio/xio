@@ -1,5 +1,5 @@
-#ifndef _H_TIMESTAMP_
-#define _H_TIMESTAMP_
+#ifndef _HPIO_TIMESTAMP_
+#define _HPIO_TIMESTAMP_
 
 #include <inttypes.h>
 

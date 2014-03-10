@@ -1,5 +1,5 @@
-#ifndef _H_SKRB_
-#define _H_SKRB_
+#ifndef _HPIO_SKRB_
+#define _HPIO_SKRB_
 
 #include <stdint.h>
 #include <inttypes.h>

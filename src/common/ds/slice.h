@@ -1,5 +1,5 @@
-#ifndef _SLICE_H_
-#define _SLICE_H_
+#ifndef _HPIO_SLICE_
+#define _HPIO_SLICE_
 
 struct slice {
     uint32_t len;

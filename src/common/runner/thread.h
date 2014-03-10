@@ -1,5 +1,5 @@
-#ifndef _H_THREAD_
-#define _H_THREAD_
+#ifndef _HPIO_THREAD_
+#define _HPIO_THREAD_
 
 #include <pthread.h>
 #include <sys/syscall.h>

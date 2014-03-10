@@ -1,5 +1,5 @@
-#ifndef _WAITGROUP_H_
-#define _WAITGROUP_H_
+#ifndef _HPIO_WAITGROUP_
+#define _HPIO_WAITGROUP_
 
 #include "mutex.h"
 #include "condition.h"

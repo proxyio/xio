@@ -1,5 +1,5 @@
-#ifndef _H_MODULESTAT_
-#define _H_MODULESTAT_
+#ifndef _HPIO_MODULESTAT_
+#define _HPIO_MODULESTAT_
 
 #include "base.h"
 #include "os/timestamp.h"
