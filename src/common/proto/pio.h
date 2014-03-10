@@ -71,7 +71,7 @@ static inline pio_msg_t *pio_msg_clone(pio_msg_t *msg) {
     return pio_msg_clone_reserve(msg, 0);
 }
 
-#define pio_cur_rt(msg) ((msg)->rt[(msg)->hdr.ttl - 1])
+#define pio_msg_currt(msg) (&(msg)->rt[(msg)->hdr.ttl - 1])
 
 #define pio_msg_appendrt(msg, __rt) do {				\
 	msg->hdr.ttl++;						\

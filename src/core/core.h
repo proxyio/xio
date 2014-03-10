@@ -17,7 +17,7 @@ typedef struct accepter {
     epoll_t el;
     epollevent_t et;
     struct list_head grp_head;
-} accepter_t;
+} acp_t;
 
 typedef struct grp {
     char grpname[GRPNAME_MAX];

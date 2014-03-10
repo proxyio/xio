@@ -3,7 +3,7 @@
 #include "role.h"
 #include "grp.h"
 
-int accepter_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
+int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     int nfd;
     struct role *r = r_new();
 
