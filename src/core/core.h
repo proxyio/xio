@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <uuid/uuid.h>
+#include "atomic/atomic.h"
 #include "ds/map.h"
 #include "os/epoll.h"
 #include "os/malloc.h"
@@ -39,7 +40,7 @@ enum {
 struct role {
     spin_t lock;
     int status;
-    int ref;
+    atomic_t ref;
     uuid_t uuid;
     uint32_t type;
     modstat_t st;

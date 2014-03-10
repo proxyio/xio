@@ -35,7 +35,8 @@ static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
 #define r_init(r) do {				\
 	spin_init(&r->lock);			\
 	r->status = ST_OK;			\
-	r->ref = 1;				\
+	atomic_init(&r->ref);			\
+	atomic_set(&r->ref, 1);			\
 	r->et.f = r_event_handler;		\
 	r->et.data = r;				\
 	INIT_LIST_HEAD(&r->mq);			\
@@ -54,6 +55,7 @@ static inline struct role *r_new_inited() {
 #define r_destroy(r) do {			\
 	spin_destroy(&r->lock);			\
 	pp_destroy(&r->pp);			\
+	atomic_destroy(&r->ref);		\
     } while (0)
 
 static inline void r_free_destroy(struct role *r) {

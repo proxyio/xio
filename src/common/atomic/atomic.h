@@ -10,37 +10,37 @@ typedef struct atomic {
 } atomic_t;
 
 #define atomic_init(at) do {			\
-	spin_init(&at->lock);			\
-	at->val = 0;				\
+	spin_init(&(at)->lock);			\
+	(at)->val = 0;				\
     } while (0)
 
 #define atomic_destroy(at) do {			\
-	spin_destroy(&at->lock);		\
+	spin_destroy(&(at)->lock);		\
     } while (0)
 
 #define atomic_add(at, nval) do {		\
-	spin_lock(&at->lock);			\
-	at->val += nval;			\
-	spin_unlock(&at->lock);			\
+	spin_lock(&(at)->lock);			\
+	(at)->val += nval;			\
+	spin_unlock(&(at)->lock);		\
     } while (0)
 
 #define atomic_read(at) ({ int64_t __old;	\
-	    spin_lock(&at->lock);		\
-	    __old = at->val;			\
-	    spin_unlock(&at->lock);		\
+	    spin_lock(&(at)->lock);		\
+	    __old = (at)->val;			\
+	    spin_unlock(&(at)->lock);		\
 	    __old;})
 
-#define atomic_set(at, val) do {		\
-	spin_lock(&at->lock);			\
-	at->val = val;				\
-	spin_unlock(&at->lock);			\
+#define atomic_set(at, nval) do {		\
+	spin_lock(&(at)->lock);			\
+	(at)->val = nval;			\
+	spin_unlock(&(at)->lock);		\
     } while (0)
 
 #define atomic_dec_and_lock(at, ops, lock) do {	\
 	int64_t __old;				\
-	spin_lock(&at->lock);			\
-	__old = at->val--;			\
-	spin_unlock(&at->lock);			\
+	spin_lock(&(at)->lock);			\
+	__old = (at)->val--;			\
+	spin_unlock(&(at)->lock);		\
 	if (__old == 1)				\
 	    ops->lock(&lock);			\
     } while (0)
