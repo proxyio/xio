@@ -20,8 +20,8 @@ static void acp_test() {
     acp_start(&acp);
     EXPECT_EQ(0, acp_listen(&acp, PIOHOST));
     EXPECT_EQ(0, acp_proxyto(&acp, grpname, PIOHOST));
-    while (grp.rsize != 2) {
-    }
+    while (grp.rsize != 2)
+	usleep(1000);
     acp_stop(&acp);
     grp_destroy(&grp);
     acp_destroy(&acp);
