@@ -82,7 +82,7 @@ static inline int __r_enable_eventout(struct role *r) {
     return -1;
 }
 
-static inline pio_msg_t *r_pop(struct role *r) {
+static inline pio_msg_t *r_pop_massage(struct role *r) {
     pio_msg_t *msg = NULL;
     r_lock(r);
     if (!list_empty(&r->mq))
@@ -93,7 +93,7 @@ static inline pio_msg_t *r_pop(struct role *r) {
     return msg;
 }
 
-static inline int r_push(struct role *r, pio_msg_t *msg) {
+static inline int r_push_massage(struct role *r, pio_msg_t *msg) {
     r_lock(r);
     r->size++;
     list_add(&msg->node, &r->mq);

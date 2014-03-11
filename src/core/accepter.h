@@ -57,8 +57,7 @@ static inline int acp_listen(acp_t *acp, const char *addr) {
     return epoll_add(&acp->el, &acp->et);
 }
 
-static inline int acp_proxyto(acp_t *acp, char *grpname,
-			      const char *addr) {
+static inline int acp_proxyto(acp_t *acp, char *grpname, const char *addr) {
     int nfd;
     pio_rgh_t *h;
     struct role *r;

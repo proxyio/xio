@@ -58,7 +58,7 @@ static int r_receiver_recv(struct role *r) {
 	crt = pio_msg_currt(msg);
 	crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->begin);
 	if ((dest = grp_loadbalance_dispatch(r->grp)))
-	    r_push(dest, msg);
+	    r_push_massage(dest, msg);
 	else
 	    pio_msg_free(msg);
     } else if (ret < 0 && errno != EAGAIN)
@@ -76,7 +76,7 @@ static int r_dispatcher_recv(struct role *r) {
 	pio_msg_shrinkrt(msg);
 	crt = pio_msg_currt(msg);
 	if ((src = grp_find_at(r->grp, crt->uuid)))
-	    r_push(src, msg);
+	    r_push_massage(src, msg);
 	else
 	    pio_msg_free(msg);
     } else if (ret < 0 && errno != EAGAIN)
@@ -93,7 +93,7 @@ static int r_recv(struct role *r) {
 static int r_receiver_send(struct role *r) {
     pio_msg_t *msg;
 
-    if (!(msg = r_pop(r)))
+    if (!(msg = r_pop_massage(r)))
 	return -1;
     if (pp_send(&r->pp, &r->conn_ops, msg) < 0)
 	r->status &= ~ST_OK;
@@ -106,7 +106,7 @@ static int r_dispatcher_send(struct role *r) {
     int64_t now = rt_mstime();
     struct pio_rt rt = {}, *crt;
     
-    if (!(msg = r_pop(r)))
+    if (!(msg = r_pop_massage(r)))
 	return -1;
     crt = pio_msg_currt(msg);
     uuid_copy(rt.uuid, r->uuid);
