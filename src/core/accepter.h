@@ -61,19 +61,25 @@ static inline int acp_proxyto(acp_t *acp, char *grpname,
 				   const char *addr) {
     int nfd;
     pio_rgh_t *h;
-    struct role *r = r_new();
+    struct role *r;
     
-    if (!r || (nfd = sk_connect("tcp", "", addr)) < 0)
+    if ((nfd = sk_connect("tcp", "", addr)) < 0)
 	return -1;
-    r_init(r);
-    h = &r->pp.rgh;
-    h->type = PIO_SNDER;
-    uuid_generate(h->id);
-    strcpy(h->grpname, grpname);
-    r->el = &acp->el;
-    r->et.fd = nfd;
-    r->et.events = EPOLLOUT;
-    return epoll_add(&acp->el, &r->et);
+    if ((r = r_new_inited())) {
+	h = &r->pp.rgh;
+	h->type = PIO_SNDER;
+	uuid_generate(h->id);
+	strcpy(h->grpname, grpname);
+	r->el = &acp->el;
+	r->et.fd = nfd;
+	r->et.events = EPOLLOUT;
+	if (epoll_add(&acp->el, &r->et) < 0) {
+	    close(nfd);
+	    r_free_destroy(r);
+	} else
+	    return 0;
+    }
+    return -1;
 }
 
 
