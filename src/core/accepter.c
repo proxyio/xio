@@ -16,7 +16,7 @@ int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	r->et.events = EPOLLIN;
 	if (epoll_add(el, &r->et) < 0) {
 	    close(nfd);
-	    r_free_destroy(r);
+	    r_put(r);
 	} else
 	    return 0;
     }

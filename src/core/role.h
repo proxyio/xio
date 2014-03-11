@@ -58,9 +58,11 @@ static inline void r_destroy(struct role *r) {
     atomic_destroy(&r->ref);		
 }
 
-static inline void r_free_destroy(struct role *r) {
-    r_destroy(r);
-    mem_free(r, sizeof(*r));
+static inline void r_put(struct role *r) {
+    if (atomic_dec(&r->ref, 1) == 1) {
+	r_destroy(r);
+	mem_free(r, sizeof(*r));
+    }
 }
 
 

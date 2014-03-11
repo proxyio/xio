@@ -70,19 +70,29 @@ static inline void __grp_walk(grp_t *grp, walkfn f, void *args,
 #define grp_walkrcver(grp, f, args) __grp_walk((grp), (f), (args), (&grp->rcver_head))
 #define grp_walksnder(grp, f, args) __grp_walk((grp), (f), (args), (&grp->snder_head))
 
-
 static inline struct role *__grp_find(grp_t *grp, uuid_t uuid, ssmap_t *map) {
     ssmap_node_t *node;
     struct role *r = NULL;
-
-    grp_lock(grp);
     if (!(node = ssmap_find(map, (char *)uuid, sizeof(uuid))))
 	r = container_of(node, struct role, sibling);
+    return r;
+}
+
+static inline struct role *grp_find_at(grp_t *grp, uuid_t uuid) {
+    struct role *r;
+    grp_lock(grp);
+    r = __grp_find(grp, uuid, &grp->roles);
     grp_unlock(grp);
     return r;
 }
-#define grp_find(grp, uuid) __grp_find(grp, uuid, &grp->roles)
-#define grp_find_tw(grp, uuid) __grp_find(grp, uuid, &grp->tw_roles)
+
+static inline struct role *grp_find_tw(grp_t *grp, uuid_t uuid) {
+    struct role *r;
+    grp_lock(grp);
+    r = __grp_find(grp, uuid, &grp->tw_roles);
+    grp_unlock(grp);
+    return r;
+}
 
 static inline struct role *grp_loadbalance_dispatch(grp_t *grp) {
     return NULL;

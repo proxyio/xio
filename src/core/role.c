@@ -75,7 +75,7 @@ static int r_dispatcher_recv(struct role *r) {
     if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, 0)) == 0) {
 	pio_msg_shrinkrt(msg);
 	crt = pio_msg_currt(msg);
-	if ((src = grp_find(r->grp, crt->uuid)))
+	if ((src = grp_find_at(r->grp, crt->uuid)))
 	    r_push(src, msg);
 	else
 	    pio_msg_free(msg);
@@ -128,8 +128,8 @@ static int r_send(struct role *r) {
 
 static int r_error(struct role *r) {
     epoll_del(r->el, &r->et);
-    grp_del(r->grp, r);
     close(r->et.fd);
-    r_free_destroy(r);
+    grp_del(r->grp, r);
+    r_put(r);
     return 0;
 }

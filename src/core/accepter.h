@@ -75,7 +75,7 @@ static inline int acp_proxyto(acp_t *acp, char *grpname,
 	r->et.events = EPOLLOUT;
 	if (epoll_add(&acp->el, &r->et) < 0) {
 	    close(nfd);
-	    r_free_destroy(r);
+	    r_put(r);
 	} else
 	    return 0;
     }
