@@ -3,6 +3,7 @@ project( proxyio )
 
 ## compile common
 aux_source_directory( common/atomic COMMON )
+aux_source_directory( common/bufio COMMON )
 aux_source_directory( common/ds COMMON )
 aux_source_directory( common/hash COMMON )
 aux_source_directory( common/net COMMON )

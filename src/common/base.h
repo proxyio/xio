@@ -8,6 +8,7 @@
 #define false 0
 
 #define PATH_MAX 4096
+#define PAGE_SIZE 4096
 #define ZERO(x) memset(&(x), 0, sizeof(x))
 #define ERROR (-1 & __LINE__)
 #define STREQ(a, b) (strlen(a) == strlen(b) && memcmp(a, b , strlen(a)) == 0)

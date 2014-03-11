@@ -61,6 +61,10 @@ struct list_link {
 #define list_first(head, type, member)		\
     container_of((head)->next, type, member)
 
+#define list_last(head, type, member)		\
+    container_of((head)->prev, type, member)
+
+
 
 // Insert a new entry between two known consecutive entries
 // this is only for internal list manipulation where we know
