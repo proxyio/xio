@@ -58,6 +58,20 @@ static inline int bio_shrink_one_page(struct bio *b) {
     return 0;
 }
 
+int bio_prefetch(struct bio *b) {
+    int64_t nbytes;
+    char page[PAGE_SIZE];
+    struct io *ops = &b->io_ops;
+    
+    while ((nbytes = ops->read(ops, page, PAGE_SIZE)) > 0)
+	BUG_ON(bio_write(b, page, nbytes) != nbytes);
+    return 0;
+}
+
+int64_t bio_fetch(struct bio *b, char *buff, int64_t sz) {
+    return -1;
+}
+
 int64_t bio_readfull(struct bio *b, char *buff, int64_t sz) {
     bio_page_t *bp, *tmp;
     int64_t pno = 0;
@@ -94,4 +108,9 @@ int64_t bio_write(struct bio *b, const char *buff, int64_t sz) {
 	b->bsize += nbytes;
     }
     return done;
+}
+
+
+int64_t bio_flush(struct bio *b) {
+    return -1;
 }

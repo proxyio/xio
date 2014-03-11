@@ -28,9 +28,12 @@ static inline void bio_init(struct bio *b, struct io *ops) {
 
 void bio_destroy(struct bio *b);
 
+int bio_prefetch(struct bio *b);
+int64_t bio_fetch(struct bio *b, char *buff, int64_t sz);
 int64_t bio_readfull(struct bio *b, char *buff, int64_t sz);
-int64_t bio_write(struct bio *b, const char *buff, int64_t sz);
 
+int64_t bio_write(struct bio *b, const char *buff, int64_t sz);
+int64_t bio_flush(struct bio *b);
 
 
 #endif

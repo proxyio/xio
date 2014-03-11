@@ -1,11 +1,19 @@
 #ifndef _HPIO_BASE_
 #define _HPIO_BASE_
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define true 1
 #define false 0
+
+#define BUG_ON(condition) do {					\
+	if (condition) {					\
+	    printf("%s:%d %s()", __FILE__, __LINE__, __func__);	\
+	    abort();						\
+	}							\
+    } while (0)
 
 #define PATH_MAX 4096
 #define PAGE_SIZE 4096
