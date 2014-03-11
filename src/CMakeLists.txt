@@ -35,3 +35,9 @@ target_link_libraries( core_test core)
 if (DEBUG_mode)
    target_link_libraries( core_test gcov )
 endif()
+
+
+## compile sdk for c/c++
+aux_source_directory( sdk/c CSDK )
+add_library( pioc ${CSDK} )
+target_link_libraries( common_test common)
