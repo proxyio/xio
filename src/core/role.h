@@ -32,18 +32,18 @@ static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
     return sk_write(r->et.fd, buf, size);
 }
 
-#define r_init(r) do {				\
-	spin_init(&r->lock);			\
-	r->status = ST_OK;			\
-	atomic_init(&r->ref);			\
-	atomic_set(&r->ref, 1);			\
-	r->et.f = r_event_handler;		\
-	r->et.data = r;				\
-	INIT_LIST_HEAD(&r->mq);			\
-	pp_init(&r->pp, 0);			\
-	r->conn_ops.read = __sock_read;		\
-	r->conn_ops.write = __sock_write;	\
-    } while (0)
+static inline void r_init(struct role *r) {
+    spin_init(&r->lock);			
+    r->status = ST_OK;			
+    atomic_init(&r->ref);			
+    atomic_set(&r->ref, 1);			
+    r->et.f = r_event_handler;		
+    r->et.data = r;				
+    INIT_LIST_HEAD(&r->mq);			
+    pp_init(&r->pp, 0);			
+    r->conn_ops.read = __sock_read;		
+    r->conn_ops.write = __sock_write;	
+}
 
 static inline struct role *r_new_inited() {
     struct role *r = r_new();
@@ -52,11 +52,11 @@ static inline struct role *r_new_inited() {
     return r;
 }
 
-#define r_destroy(r) do {			\
-	spin_destroy(&r->lock);			\
-	pp_destroy(&r->pp);			\
-	atomic_destroy(&r->ref);		\
-    } while (0)
+static inline void r_destroy(struct role *r) {
+    spin_destroy(&r->lock);			
+    pp_destroy(&r->pp);			
+    atomic_destroy(&r->ref);		
+}
 
 static inline void r_free_destroy(struct role *r) {
     r_destroy(r);

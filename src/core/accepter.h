@@ -8,21 +8,21 @@
 int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
 
 
-#define acp_init(acp, w) do {		\
-	epollevent_t *__et = &(acp)->et;	\
-	spin_init(&(acp)->lock);		\
-	epoll_init(&(acp)->el, 1024, 100, 1);	\
-	taskpool_init(&(acp)->tp, w);		\
-	__et->f = acp_event_handler;	\
-	__et->data = (acp);			\
-	INIT_LIST_HEAD(&(acp)->grp_head);	\
-    } while (0)
+static inline void acp_init(acp_t *acp, int w) {
+    epollevent_t *__et = &(acp)->et;
+    spin_init(&(acp)->lock);
+    epoll_init(&(acp)->el, 1024, 100, 1);
+    taskpool_init(&(acp)->tp, w);
+    __et->f = acp_event_handler;
+    __et->data = (acp);
+    INIT_LIST_HEAD(&(acp)->grp_head);
+}
 
-#define acp_destroy(acp) do {		\
-	epoll_destroy(&(acp)->el);		\
-	spin_destroy(&(acp)->lock);		\
-	taskpool_destroy(&(acp)->tp);		\
-    } while (0)
+static inline void acp_destroy(acp_t *acp) {
+    epoll_destroy(&(acp)->el);	
+    spin_destroy(&(acp)->lock);	
+    taskpool_destroy(&(acp)->tp);	
+}
 
 static inline grp_t *acp_find(acp_t *acp, char grpname[GRPNAME_MAX]) {
     grp_t *cur, *match = NULL;
@@ -58,7 +58,7 @@ static inline int acp_listen(acp_t *acp, const char *addr) {
 }
 
 static inline int acp_proxyto(acp_t *acp, char *grpname,
-				   const char *addr) {
+			      const char *addr) {
     int nfd;
     pio_rgh_t *h;
     struct role *r;
