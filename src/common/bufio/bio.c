@@ -4,7 +4,7 @@
 #define list_for_each_page_safe(bp, tmp, head)				\
     list_for_each_entry_safe(bp, tmp, head, bio_page_t, page_link)
 
-static inline int bio_empty(struct bio *b) {
+int bio_empty(struct bio *b) {
     if (b->bsize == 0)
 	return true;
     return false;
@@ -76,12 +76,16 @@ struct bio *bio_new() {
     return b;
 }
 
-void bio_destroy(struct bio *b) {
+void bio_reset(struct bio *b) {
     bio_page_t *bp, *tmp;
     list_for_each_page_safe(bp, tmp, &b->page_head) {
 	list_del(&bp->page_link);
 	mem_free(bp, sizeof(*bp));
     }
+}
+
+void bio_destroy(struct bio *b) {
+    bio_reset(b);
 }
 
 static inline int bio_expand_one_page(struct bio *b) {

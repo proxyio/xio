@@ -29,6 +29,15 @@ struct pio_hdr {
 };
 #define PIOHDRLEN sizeof(struct pio_hdr)
 
+static inline uint32_t pio_rt_size(struct pio_hdr *h) {
+    uint32_t ttl = h->go ? h->ttl : h->end_ttl;
+    return ttl * PIORTLEN;
+}
+
+static inline uint32_t pio_pkg_size(struct pio_hdr *h) {
+    return PIOHDRLEN + h->size + pio_rt_size(h);
+}
+
 static inline int ph_validate(struct pio_hdr *hdr) {
     struct pio_hdr copyheader = *hdr;
 
