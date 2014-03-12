@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 #include <uuid/uuid.h>
-#include "atomic/atomic.h"
+#include "sync/atomic.h"
 #include "ds/map.h"
 #include "os/epoll.h"
 #include "os/malloc.h"
