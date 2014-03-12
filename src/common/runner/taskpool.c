@@ -22,7 +22,8 @@ static int __taskpool_push(taskpool_t *tp, thread_func func, void *data) {
 	te->f = func;
 	te->data = data;
 	list_add_tail(&te->node, &tp->task_head);
-	return ++tp->tasks;
+	tp->tasks++;
+	return 0;
     }
     return -1;
 }

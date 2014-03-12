@@ -19,22 +19,47 @@ static inline bio_page_t *bio_last(struct bio *b) {
 }
 
 
-bio_page_t *bio_page_new() {
+static inline bio_page_t *bio_page_new() {
     bio_page_t *bp = (bio_page_t *)mem_zalloc(sizeof(*bp));
     return bp;
 }
+
+static inline int64_t
+bio_page_read(bio_page_t *bp, char *buff, int64_t sz) {
+    sz = (bp->end - bp->start) > sz ? sz : bp->end - bp->start;
+    memcpy(buff, bp->page + bp->start, sz);
+    bp->start += sz;
+    memmove(bp->page, bp->page + bp->start, bp->end - bp->start);
+    return sz;
+}
+
+static inline int64_t
+bio_page_write(bio_page_t *bp, const char *buff, int64_t sz) {
+    sz = (PAGE_SIZE - (bp->end - bp->start)) > sz ?
+	sz : (PAGE_SIZE - (bp->end - bp->start));
+    memcpy(bp->page + bp->end, buff, sz);
+    bp->end += sz;
+    return sz;
+}
+
+
 
 struct bio *bio_new() {
     struct bio *b = (struct bio *)mem_zalloc(sizeof(*b));
     return b;
 }
 
-void bio_destroy(struct bio *b) {
+static inline void __bio_cleanup_pages(struct bio *b) {
     bio_page_t *bp, *tmp;
     list_for_each_page_safe(bp, tmp, &b->page_head) {
 	list_del(&bp->page_link);
 	mem_free(bp, sizeof(*bp));
     }
+}
+
+
+void bio_destroy(struct bio *b) {
+    __bio_cleanup_pages(b);
 }
 
 static inline int bio_expand_one_page(struct bio *b) {
@@ -69,21 +94,27 @@ int bio_prefetch(struct bio *b) {
 }
 
 int64_t bio_fetch(struct bio *b, char *buff, int64_t sz) {
-    return -1;
-}
-
-int64_t bio_readfull(struct bio *b, char *buff, int64_t sz) {
     bio_page_t *bp, *tmp;
     int64_t pno = 0;
-    
-    if (sz < b->bsize)
-	return -1;
+
     list_for_each_page_safe(bp, tmp, &b->page_head) {
 	memcpy(buff + pno * PAGE_SIZE, bp->page,
 	       pno < b->pno ? PAGE_SIZE : b->bsize % PAGE_SIZE);
 	pno++;
     }
+    __bio_cleanup_pages(b);
     return b->bsize;
+}
+
+int64_t bio_readfull(struct bio *b, char *buff, int64_t sz) {
+    bio_page_t *bp, *tmp;
+    int64_t nbytes = 0;
+
+    list_for_each_page_safe(bp, tmp, &b->page_head) {
+	nbytes += bio_page_read(bp, buff + nbytes, sz);
+    }
+    __bio_cleanup_pages(b);
+    return nbytes;
 }
 
 static inline int is_time_to_expand(struct bio *b) {
@@ -95,19 +126,16 @@ static inline int is_time_to_expand(struct bio *b) {
 
 int64_t bio_write(struct bio *b, const char *buff, int64_t sz) {
     bio_page_t *bp;
-    int64_t done = 0, orr, nbytes;
+    int64_t nbytes = 0;
 
-    while (done < sz) {
+    while (nbytes < sz) {
 	if (is_time_to_expand(b) && bio_expand_one_page(b) < 0)
 	    break;
 	bp = bio_last(b);
-	orr = b->bsize % PAGE_SIZE;
-	nbytes = sz > PAGE_SIZE - orr ? PAGE_SIZE - orr : sz;
-	memcpy(bp->page + orr, buff + done, nbytes);
-	done += nbytes;
-	b->bsize += nbytes;
+	nbytes += bio_page_write(bp, buff + nbytes, sz);
     }
-    return done;
+    b->bsize += nbytes;
+    return nbytes;
 }
 
 

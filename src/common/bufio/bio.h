@@ -5,6 +5,8 @@
 #include "ds/list.h"
 
 typedef struct bio_page {
+    int64_t start;
+    int64_t end;
     char page[PAGE_SIZE];
     struct list_head page_link;
 } bio_page_t;
@@ -17,9 +19,7 @@ struct bio {
     struct list_head page_head;
 };
 
-bio_page_t *bio_page_new();
 struct bio *bio_new();
-
 static inline void bio_init(struct bio *b, struct io *ops) {
     b->io_ops.read = ops->read;
     b->io_ops.write = ops->write;
