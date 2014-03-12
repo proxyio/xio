@@ -24,6 +24,18 @@ static inline bio_page_t *bio_page_new() {
     return bp;
 }
 
+static inline int bio_page_empty(bio_page_t *bp) {
+    if (bp->end == bp->start)
+	return true;
+    return false;
+}
+
+static inline int bio_page_full(bio_page_t *bp) {
+    if (bp->end - bp->start == PAGE_SIZE)
+	return true;
+    return false;
+}
+
 static inline int64_t
 bio_page_read(bio_page_t *bp, char *buff, int64_t sz) {
     sz = (bp->end - bp->start) > sz ? sz : bp->end - bp->start;
@@ -49,17 +61,12 @@ struct bio *bio_new() {
     return b;
 }
 
-static inline void __bio_cleanup_pages(struct bio *b) {
+void bio_destroy(struct bio *b) {
     bio_page_t *bp, *tmp;
     list_for_each_page_safe(bp, tmp, &b->page_head) {
 	list_del(&bp->page_link);
 	mem_free(bp, sizeof(*bp));
     }
-}
-
-
-void bio_destroy(struct bio *b) {
-    __bio_cleanup_pages(b);
 }
 
 static inline int bio_expand_one_page(struct bio *b) {
@@ -93,32 +100,27 @@ int bio_prefetch(struct bio *b) {
     return 0;
 }
 
-int64_t bio_fetch(struct bio *b, char *buff, int64_t sz) {
-    bio_page_t *bp, *tmp;
-    int64_t pno = 0;
-
-    list_for_each_page_safe(bp, tmp, &b->page_head) {
-	memcpy(buff + pno * PAGE_SIZE, bp->page,
-	       pno < b->pno ? PAGE_SIZE : b->bsize % PAGE_SIZE);
-	pno++;
-    }
-    __bio_cleanup_pages(b);
-    return b->bsize;
-}
-
-int64_t bio_readfull(struct bio *b, char *buff, int64_t sz) {
-    bio_page_t *bp, *tmp;
+int64_t bio_read(struct bio *b, char *buff, int64_t sz) {
+    bio_page_t *bp;
     int64_t nbytes = 0;
 
-    list_for_each_page_safe(bp, tmp, &b->page_head) {
+    while (nbytes < sz) {
+	if (list_empty(&b->page_head))
+	    break;
+	bp = bio_first(b);
 	nbytes += bio_page_read(bp, buff + nbytes, sz);
+	if (bio_page_empty(bp)) {
+	    list_del(&bp->page_link);
+	    mem_free(bp, sizeof(*bp));
+	}
     }
-    __bio_cleanup_pages(b);
+    b->bsize -= nbytes;
     return nbytes;
 }
 
 static inline int is_time_to_expand(struct bio *b) {
-    if (list_empty(&b->page_head) || (b->bsize % PAGE_SIZE) == 0)
+    bio_page_t *bp = bio_last(b);
+    if (list_empty(&b->page_head) || bio_page_full(bp))
 	return true;
     return false;
 }

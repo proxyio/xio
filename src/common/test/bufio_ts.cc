@@ -18,7 +18,9 @@ static void bufio_test() {
     for (i = 0; i < rlen; i++)
 	EXPECT_EQ(1, bio_write(&b, buf1 + i, 1));
     EXPECT_EQ(b.bsize, rlen);
-    EXPECT_EQ(b.bsize, bio_readfull(&b, buf2, 4 * PAGE_SIZE));
+    EXPECT_EQ(rlen, bio_read(&b, buf2, 4 * PAGE_SIZE));
+    EXPECT_EQ(b.bsize, 0);
+    EXPECT_TRUE(list_empty(&b.page_head));
     EXPECT_TRUE(memcmp(buf1, buf2, rlen) == 0);
     bio_destroy(&b);
 }
