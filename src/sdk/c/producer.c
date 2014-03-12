@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
-#include <errno.h>
+#include "errno.h"
 #include "proxyio.h"
 #include "os/timestamp.h"
 
@@ -65,6 +65,10 @@ int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
 	if (!hready && b->bsize >= sizeof(h)) {
 	    hready = true;
 	    bio_copy(b, (char *)&h, sizeof(h));
+	    if (!ph_validate(&h)) {
+		errno = PIO_ECHKSUM;
+		return -1;
+	    }
 	}
     } while (ret < 0 && errno != EAGAIN &&
 	     (b->bsize < sizeof(h) || b->bsize < pio_pkg_size(&h)));

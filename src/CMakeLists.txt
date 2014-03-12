@@ -31,7 +31,7 @@ target_link_libraries( core common gtest uuid pthread)
 ## compile core_test
 aux_source_directory( core/test CORE_TEST )
 add_executable( core_test ${CORE_TEST} )
-target_link_libraries( core_test core)
+target_link_libraries( core_test core pioc)
 if (DEBUG_mode)
    target_link_libraries( core_test gcov )
 endif()
