@@ -4,6 +4,12 @@
 #define list_for_each_page_safe(bp, tmp, head)				\
     list_for_each_entry_safe(bp, tmp, head, bio_page_t, page_link)
 
+static inline int bio_empty(struct bio *b) {
+    if (b->bsize == 0)
+	return true;
+    return false;
+}
+
 static inline bio_page_t *bio_first(struct bio *b) {
     bio_page_t *bp = NULL;
     if (!list_empty(&b->page_head))
@@ -49,6 +55,8 @@ bio_page_read(bio_page_t *bp, char *buff, int64_t sz) {
     memcpy(buff, bp->page + bp->start, sz);
     bp->start += sz;
     memmove(bp->page, bp->page + bp->start, bp->end - bp->start);
+    bp->end = bp->end - bp->start;
+    bp->start = 0;
     return sz;
 }
 
@@ -148,6 +156,27 @@ int64_t bio_write(struct bio *b, const char *buff, int64_t sz) {
 }
 
 
-int64_t bio_flush(struct bio *b) {
-    return -1;
+int64_t bio_flush(struct bio *b, struct io *io_ops) {
+    char page[PAGE_SIZE];
+    int64_t nbytes = 0, ret;
+    
+    while (!list_empty(&b->page_head)) {
+	if ((ret = io_ops->write(io_ops, page,
+				 bio_copy(b, page, PAGE_SIZE))) < 0)
+	    break;
+	nbytes += ret;
+	BUG_ON(ret != bio_read(b, page, ret));
+    }
+    return nbytes;
 }
+
+int64_t bio_prefetch(struct bio *b, struct io *io_ops) {
+    int64_t nbytes;
+    char page[PAGE_SIZE];
+
+    if ((nbytes = io_ops->read(io_ops, page, PAGE_SIZE)) < 0)
+	return -1;
+    BUG_ON(bio_write(b, page, nbytes) != nbytes);
+    return nbytes;
+}
+
