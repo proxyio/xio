@@ -37,6 +37,13 @@ static inline int bio_page_full(bio_page_t *bp) {
 }
 
 static inline int64_t
+bio_page_copy(bio_page_t *bp, char *buff, int64_t sz) {
+    sz = (bp->end - bp->start) > sz ? sz : bp->end - bp->start;
+    memcpy(buff, bp->page + bp->start, sz);
+    return sz;
+}
+
+static inline int64_t
 bio_page_read(bio_page_t *bp, char *buff, int64_t sz) {
     sz = (bp->end - bp->start) > sz ? sz : bp->end - bp->start;
     memcpy(buff, bp->page + bp->start, sz);
@@ -90,25 +97,25 @@ static inline int bio_shrink_one_page(struct bio *b) {
     return 0;
 }
 
-int bio_prefetch(struct bio *b) {
-    int64_t nbytes;
-    char page[PAGE_SIZE];
-    struct io *ops = &b->io_ops;
-    
-    while ((nbytes = ops->read(ops, page, PAGE_SIZE)) > 0)
-	BUG_ON(bio_write(b, page, nbytes) != nbytes);
-    return 0;
+int64_t bio_copy(struct bio *b, char *buff, int64_t sz) {
+    bio_page_t *bp, *tmp;
+    int64_t nbytes = 0;
+
+    list_for_each_page_safe(bp, tmp, &b->page_head) {
+	nbytes += bio_page_copy(bp, buff + nbytes, sz - nbytes);
+	if (sz == nbytes)
+	    break;
+    }
+    return nbytes;
 }
 
 int64_t bio_read(struct bio *b, char *buff, int64_t sz) {
     bio_page_t *bp;
     int64_t nbytes = 0;
 
-    while (nbytes < sz) {
-	if (list_empty(&b->page_head))
-	    break;
+    while (!list_empty(&b->page_head) && nbytes < sz) {
 	bp = bio_first(b);
-	nbytes += bio_page_read(bp, buff + nbytes, sz);
+	nbytes += bio_page_read(bp, buff + nbytes, sz - nbytes);
 	if (bio_page_empty(bp)) {
 	    list_del(&bp->page_link);
 	    mem_free(bp, sizeof(*bp));
@@ -134,7 +141,7 @@ int64_t bio_write(struct bio *b, const char *buff, int64_t sz) {
 	if (is_time_to_expand(b) && bio_expand_one_page(b) < 0)
 	    break;
 	bp = bio_last(b);
-	nbytes += bio_page_write(bp, buff + nbytes, sz);
+	nbytes += bio_page_write(bp, buff + nbytes, sz - nbytes);
     }
     b->bsize += nbytes;
     return nbytes;
