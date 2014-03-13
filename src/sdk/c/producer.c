@@ -64,10 +64,10 @@ int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
     struct pio_hdr h = {};
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
 
-    if (proxyio_recv(io, &h, data, (char **)&rt) == 0) {
-	*size = h.size;
-	mem_free(rt, sizeof(*rt));
-	return 0;
-    }
-    return -1;
+    if ((proxyio_prefetch(io) < 0 && errno != EAGAIN)
+	|| proxyio_recv(io, &h, data, (char **)&rt) < 0)
+	return -1;
+    *size = h.size;
+    mem_free(rt, sizeof(*rt));
+    return 0;
 }

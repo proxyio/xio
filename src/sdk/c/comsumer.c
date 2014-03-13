@@ -42,20 +42,20 @@ int comsumer_recv_request(comsumer_t *pp, char **data, int64_t *size,
     struct pio_hdr h = {};
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
 
-    if (proxyio_recv(io, &h, data, rt) == 0) {
-	if (!(urt = mem_realloc(*rt, pio_rt_size(&h) + sizeof(h)))) {
-	    mem_free(*data, h.size);
-	    mem_free(*rt, pio_rt_size(&h));
-	    return -1;
-	}
-	*size = h.size;
-	*rt = urt;
-	*rt_size = pio_rt_size(&h) + sizeof(h);
-	memmove((*rt) + sizeof(h), *rt, pio_rt_size(&h));
-	memcpy(*rt, (char *)&h, sizeof(h));
-	return 0;
+    if ((proxyio_prefetch(io) < 0 && errno != EAGAIN)
+	|| proxyio_recv(io, &h, data, rt) < 0)
+	return -1;
+    if (!(urt = mem_realloc(*rt, pio_rt_size(&h) + sizeof(h)))) {
+	mem_free(*data, h.size);
+	mem_free(*rt, pio_rt_size(&h));
+	return -1;
     }
-    return -1;
+    *size = h.size;
+    *rt = urt;
+    *rt_size = pio_rt_size(&h) + sizeof(h);
+    memmove((*rt) + sizeof(h), *rt, pio_rt_size(&h));
+    memcpy(*rt, (char *)&h, sizeof(h));
+    return 0;
 }
 
 

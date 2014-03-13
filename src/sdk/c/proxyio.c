@@ -29,14 +29,14 @@ int proxyio_recv(proxyio_t *io,
 		 struct pio_hdr *h, char **data, char **rt) {
     struct bio *b = &io->in;
 
-    if ((b->bsize >= sizeof(*h)) && !({
-		bio_copy(b, (char *)h, sizeof(*h)); ph_validate(h);})) {
+    if (!proxyio_one_ready(io)) {
+	errno = EAGAIN;
+	return -1;
+    }
+    if (!({bio_copy(b, (char *)h, sizeof(*h)); ph_validate(h);})) {
 	errno = PIO_ECHKSUM;
 	return -1;
     }
-    while (b->bsize < sizeof(*h) || b->bsize < pio_pkg_size(h))
-	if (bio_prefetch(b, &io->sock_ops) < 0)
-	    return -1;
     if (!(*data = (char *)mem_zalloc(h->size)))
 	return -1;
     if (!(*rt = (char *)mem_zalloc(pio_rt_size(h)))) {

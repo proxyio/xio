@@ -20,14 +20,12 @@ typedef struct proxyio {
 static inline int64_t proxyio_sock_read(struct io *sock, char *buff, int64_t sz) {
     proxyio_t *io = container_of(sock, proxyio_t, sock_ops);
     sz = sk_read(io->sockfd, buff, sz);
-    //printf("pio read %d with sz %ld\n", io->sockfd, sz);
     return sz;
 }
 
 static inline int64_t proxyio_sock_write(struct io *sock, char *buff, int64_t sz) {
     proxyio_t *io = container_of(sock, proxyio_t, sock_ops);
     sz = sk_write(io->sockfd, buff, sz);
-    //printf("pio write %d with sz %ld\n", io->sockfd, sz);
     return sz;
 }
 
@@ -58,6 +56,20 @@ int proxyio_at_rgs(proxyio_t *io);
 int proxyio_recv(proxyio_t *io, struct pio_hdr *h, char **data, char **rt);
 int proxyio_send(proxyio_t *io,
 		 const struct pio_hdr *h, const char *data, const char *rt);
+
+static inline int proxyio_one_ready(proxyio_t *io) {
+    struct pio_hdr h = {};
+    struct bio *b = &io->in;
+
+    if ((b->bsize >= sizeof(h)) && ({ bio_copy(b, (char *)&h, sizeof(h));
+		b->bsize >= pio_pkg_size(&h);}))
+	return true;
+    return false;
+}
+
+static inline int proxyio_prefetch(proxyio_t *io) {
+    return bio_prefetch(&io->in, &io->sock_ops);
+}
 
 static inline int proxyio_flush(proxyio_t *io) {
     while (!bio_empty(&io->out))

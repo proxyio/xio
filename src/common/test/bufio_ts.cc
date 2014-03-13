@@ -59,7 +59,8 @@ static void bufio_fetch_flush_test() {
     struct bio b = {};
     int i;
     struct test_io tio = {};
-    int64_t nbytes = 0, ret, alen = 0;
+    uint64_t nbytes = 0;
+    int64_t ret, alen = 0;
 
     bio_init(&b);
     tio.io_ops.read = test_io_read;
