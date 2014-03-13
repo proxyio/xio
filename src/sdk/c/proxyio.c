@@ -32,9 +32,8 @@ int proxyio_register(proxyio_t *io, const char *addr,
     return 0;
 }
 
-int proxyio_recv(comsumer_t *pp,
+int proxyio_recv(proxyio_t *io,
 		 struct pio_hdr *h, char **data, char **rt) {
-    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
     struct bio *b = &io->b;
 
     if ((b->bsize >= sizeof(*h)) && !({
@@ -59,19 +58,19 @@ int proxyio_recv(comsumer_t *pp,
 }
 
 
-int proxyio_send(comsumer_t *pp, struct pio_hdr *h, char *data, char *rt) {
-    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+int proxyio_send(proxyio_t *io,
+		 const struct pio_hdr *h, const char *data, const char *rt) {
+    struct bio *b = &io->b;
 
     if (ph_validate(h)) {
 	errno = PIO_ECHKSUM;
 	return -1;
     }
-    ph_makechksum(h);
-    bio_write(&io->b, (char *)h, sizeof(h));
-    bio_write(&io->b, data, h->size);
-    bio_write(&io->b, rt, pio_rt_size(h));
-    while (!bio_empty(&io->b))
-	if (bio_flush(&io->b, &io->sock_ops) < 0 && errno != EAGAIN)
+    bio_write(b, (char *)h, sizeof(h));
+    bio_write(b, data, h->size);
+    bio_write(b, rt, pio_rt_size(h));
+    while (!bio_empty(b))
+	if (bio_flush(b, &io->sock_ops) < 0 && errno != EAGAIN)
 	    return -1;
     return 0;
 }

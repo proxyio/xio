@@ -44,35 +44,19 @@ int producer_send_request(producer_t *pp, const char *data, int64_t size) {
     };
     uuid_copy(rt.uuid, io->rgh.id);
     ph_makechksum(&h);
-    BUG_ON(bio_write(&io->b, (char *)&h, sizeof(h)) != sizeof(h));
-    BUG_ON(bio_write(&io->b, data, size) != size);
-    BUG_ON(bio_write(&io->b, (char *)&rt, sizeof(rt)) != sizeof(rt));
-    while (!bio_empty(&io->b))
-	if (bio_flush(&io->b, &io->sock_ops) < 0 && errno != EAGAIN)
-	    return -1;
-    return 0;
+    return proxyio_send(io, &h, data, (char *)&rt);
 }
 
 
 int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
-    struct pio_rt rt;
-    struct pio_hdr h = {};    
+    struct pio_rt *rt = NULL;
+    struct pio_hdr h = {};
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
-    struct bio *b = &io->b;
 
-    if ((b->bsize >= sizeof(h)) && !({
-		bio_copy(b, (char *)&h, sizeof(h)); ph_validate(&h);})) {
-	errno = PIO_ECHKSUM;
-	return -1;
+    if (proxyio_recv(io, &h, data, (char **)&rt) == 0) {
+	*size = h.size;
+	mem_free(rt, sizeof(*rt));
+	return 0;
     }
-    while (b->bsize < sizeof(h) || b->bsize < pio_pkg_size(&h))
-	if (bio_prefetch(b, &io->sock_ops) < 0 && errno != EAGAIN)
-	    return -1;
-    if (!(*data = (char *)mem_zalloc(h.size)))
-	return -1;
-    *size = h.size;
-    bio_read(b, (char *)&h, sizeof(h));
-    bio_read(b, *data, h.size);
-    bio_read(b, (char *)&rt, sizeof(rt));
-    return 0;
+    return -1;
 }
