@@ -6,25 +6,24 @@
 #include "net/socket.h"
 
 
-int proxyio_attach(proxyio_t *io, int sockfd, const pio_rgh_t *rgh) {
-    memcpy(&io->rgh, rgh, sizeof(*rgh));
-    io->sockfd = sockfd;
+int proxyio_ps_rgs(proxyio_t *io) {
+    struct bio *b = &io->b;
+
+    while ((b->bsize < sizeof(io->rgh)))
+	if (bio_prefetch(b, &io->sock_ops) < 0)
+	    return -1;
+    bio_read(b, (char *)&io->rgh, sizeof(io->rgh));
     return 0;
 }
 
-int proxyio_register(proxyio_t *io, const char *addr,
-		     const char py[PROXYNAME_MAX], int client_type) {
-    io->rgh.type = client_type;
-    uuid_generate(io->rgh.id);
-    memcpy(io->rgh.proxyname, py, sizeof(py));
-    if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
-	return -1;
-    bio_write(&io->b, (char *)&io->rgh, sizeof(io->rgh));
-    while (bio_flush(&io->b, &io->sock_ops) < 0)
-	if (errno != EAGAIN)
-	    return -1;
+int proxyio_at_rgs(proxyio_t *io) {
+    struct bio *b = &io->b;
+
+    bio_write(b, (char *)&io->rgh, sizeof(io->rgh));
+    bio_flush(&io->b, &io->sock_ops);
     return 0;
 }
+
 
 int proxyio_recv(proxyio_t *io,
 		 struct pio_hdr *h, char **data, char **rt) {

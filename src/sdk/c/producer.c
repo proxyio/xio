@@ -5,15 +5,25 @@
 #include "proxyio.h"
 #include "os/timestamp.h"
 
-producer_t *producer_new(const char *addr, const char grp[GRPNAME_MAX]) {
+producer_t *producer_new(const char *addr, const char py[PROXYNAME_MAX]) {
     proxyio_t *io = proxyio_new();
 
-    bio_init(&io->b);
-    if (proxyio_register(io, addr, grp, PIO_RCVER) < 0) {
-	mem_free(io, sizeof(*io));
-	return NULL;
-    }
+    proxyio_init(io);
+    if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
+	goto RGS_ERROR;
+    io->rgh.type = PIO_RCVER;
+    uuid_generate(io->rgh.id);
+    memcpy(io->rgh.proxyname, py, sizeof(py));
+    if (proxyio_at_rgs(io) < 0 && errno != EAGAIN)
+	goto RGS_ERROR;
+    while (!bio_empty(&io->b))
+	if (bio_flush(&io->b, &io->sock_ops) < 0)
+	    goto RGS_ERROR;
     return &io->sockfd;
+ RGS_ERROR:
+    proxyio_destroy(io);
+    mem_free(io, sizeof(*io));
+    return NULL;
 }
 
 
