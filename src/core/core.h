@@ -37,7 +37,7 @@ enum {
     ST_REGISTER = 4,
 };
 
-struct role {
+struct rio {
     spin_t lock;
     int status;
     atomic_t ref;
@@ -56,7 +56,7 @@ struct role {
 };
 
 #define list_for_each_role_safe(pos, n, head)				\
-    list_for_each_entry_safe(pos, n, head, struct role, py_link)
+    list_for_each_entry_safe(pos, n, head, struct rio, py_link)
 
 
 #endif

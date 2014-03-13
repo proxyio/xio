@@ -5,13 +5,13 @@
 #include "proxy.h"
 #include "accepter.h"
 
-static int r_rgs(struct role *r, uint32_t happened);
-static int r_recv(struct role *r);
-static int r_send(struct role *r);
-static int r_error(struct role *r);
+static int r_rgs(struct rio *r, uint32_t happened);
+static int r_recv(struct rio *r);
+static int r_send(struct rio *r);
+static int r_error(struct rio *r);
 
 int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
-    struct role *r = container_of(et, struct role, et);
+    struct rio *r = container_of(et, struct rio, et);
     
     if (!(r->status & ST_REGISTED))
 	r_rgs(r, happened);
@@ -26,7 +26,7 @@ int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     return 0;
 }
 
-static int r_rgs(struct role *r, uint32_t happened) {
+static int r_rgs(struct rio *r, uint32_t happened) {
     int ret;
     struct pio_rgh *h = &r->pp.rgh;
     proxy_t *py;
@@ -47,11 +47,11 @@ static int r_rgs(struct role *r, uint32_t happened) {
     return 0;
 }
 
-static int r_receiver_recv(struct role *r) {
+static int r_receiver_recv(struct rio *r) {
     int ret;
     int64_t now = rt_mstime();
     pio_msg_t *msg = NULL;
-    struct role *dest;
+    struct rio *dest;
     struct pio_rt *crt;
 
     if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, PIORTLEN)) == 0) {
@@ -66,10 +66,10 @@ static int r_receiver_recv(struct role *r) {
     return 0;
 }
 
-static int r_dispatcher_recv(struct role *r) {
+static int r_dispatcher_recv(struct rio *r) {
     int ret;
     pio_msg_t *msg = NULL;
-    struct role *src;
+    struct rio *src;
     struct pio_rt *crt;
 
     if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, 0)) == 0) {
@@ -84,13 +84,13 @@ static int r_dispatcher_recv(struct role *r) {
     return 0;
 }
 
-static int r_recv(struct role *r) {
+static int r_recv(struct rio *r) {
     if (IS_RCVER(r))
 	return r_receiver_recv(r);
     return r_dispatcher_recv(r);
 }
 
-static int r_receiver_send(struct role *r) {
+static int r_receiver_send(struct rio *r) {
     pio_msg_t *msg;
 
     if (!(msg = r_pop_massage(r)))
@@ -101,7 +101,7 @@ static int r_receiver_send(struct role *r) {
     return 0;
 }
 
-static int r_dispatcher_send(struct role *r) {
+static int r_dispatcher_send(struct rio *r) {
     pio_msg_t *msg;
     int64_t now = rt_mstime();
     struct pio_rt rt = {}, *crt;
@@ -119,14 +119,14 @@ static int r_dispatcher_send(struct role *r) {
     return 0;
 }
 
-static int r_send(struct role *r) {
+static int r_send(struct rio *r) {
     if (IS_RCVER(r))
 	return r_receiver_send(r);
     return r_dispatcher_send(r);
 }
 
 
-static int r_error(struct role *r) {
+static int r_error(struct rio *r) {
     epoll_del(r->el, &r->et);
     close(r->et.fd);
     proxy_del(r->py, r);

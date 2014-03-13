@@ -60,7 +60,7 @@ static inline int acp_listen(acp_t *acp, const char *addr) {
 static inline int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     int nfd;
     pio_rgh_t *h;
-    struct role *r;
+    struct rio *r;
     
     if ((nfd = sk_connect("tcp", "", addr)) < 0)
 	return -1;
