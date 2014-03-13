@@ -2,7 +2,7 @@
 #define _HPIO_PROXY_
 
 #include "core.h"
-#include "role.h"
+#include "rio.h"
 
 typedef int (*walkfn) (proxy_t *py, struct role *r, void *args);
 

@@ -1,5 +1,5 @@
-#ifndef _HPIO_ROLE_
-#define _HPIO_ROLE_
+#ifndef _HPIO_RIO_
+#define _HPIO_RIO_
 
 #include "core.h"
 
