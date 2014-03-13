@@ -31,3 +31,48 @@ int proxyio_register(proxyio_t *io, const char *addr,
     }
     return 0;
 }
+
+int proxyio_recv(comsumer_t *pp,
+		 struct pio_hdr *h, char **data, char **rt) {
+    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+    struct bio *b = &io->b;
+
+    if ((b->bsize >= sizeof(*h)) && !({
+		bio_copy(b, (char *)h, sizeof(*h)); ph_validate(h);})) {
+	errno = PIO_ECHKSUM;
+	return -1;
+    }
+    while (b->bsize < sizeof(*h) || b->bsize < pio_pkg_size(h))
+	if (bio_prefetch(b, &io->sock_ops) < 0 && errno != EAGAIN)
+	    return -1;
+    if (!(*data = (char *)mem_zalloc(h->size)))
+	return -1;
+    if (!(*rt = (char *)mem_zalloc(pio_rt_size(h)))) {
+	mem_free(*data, h->size);
+	*data = NULL;
+	return -1;
+    }
+    bio_read(b, (char *)h, sizeof(*h));
+    bio_read(b, *data, h->size);
+    bio_read(b, *rt, pio_rt_size(h));
+    return 0;
+}
+
+
+int proxyio_send(comsumer_t *pp, struct pio_hdr *h, char *data, char *rt) {
+    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+
+    if (ph_validate(h)) {
+	errno = PIO_ECHKSUM;
+	return -1;
+    }
+    ph_makechksum(h);
+    bio_write(&io->b, (char *)h, sizeof(h));
+    bio_write(&io->b, data, h->size);
+    bio_write(&io->b, rt, pio_rt_size(h));
+    while (!bio_empty(&io->b))
+	if (bio_flush(&io->b, &io->sock_ops) < 0 && errno != EAGAIN)
+	    return -1;
+    return 0;
+}
+

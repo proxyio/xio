@@ -43,6 +43,9 @@ static inline proxyio_t *proxyio_new() {
 int proxyio_attach(proxyio_t *io, int sockfd, const pio_rgh_t *rgh);
 int proxyio_register(proxyio_t *io, const char *addr,
 		     const char py[PROXYNAME_MAX], int client_type);
+int proxyio_recv(comsumer_t *pp, struct pio_hdr *h, char **data, char **rt);
+int proxyio_send(comsumer_t *pp, struct pio_hdr *h, char *data, char *rt);
+
 
 
 #endif
