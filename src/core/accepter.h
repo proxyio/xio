@@ -74,9 +74,9 @@ static inline int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     strcpy(h->proxyname, proxyname);
     r->is_register = false;
     r->el = &acp->el;
-    r->et.fd = nfd;
+    r->et.fd = r->io.sockfd = nfd;
     r->et.events = EPOLLOUT;
-    bio_write(&r->io.b, (char *)h, sizeof(*h));
+    bio_write(&r->io.out, (char *)h, sizeof(*h));
     h->type = PIO_SNDER;
     if (epoll_add(&acp->el, &r->et) < 0) {
 	close(nfd);

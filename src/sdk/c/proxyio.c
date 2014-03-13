@@ -7,7 +7,7 @@
 
 
 int proxyio_ps_rgs(proxyio_t *io) {
-    struct bio *b = &io->b;
+    struct bio *b = &io->in;
 
     while ((b->bsize < sizeof(io->rgh)))
 	if (bio_prefetch(b, &io->sock_ops) < 0)
@@ -17,17 +17,17 @@ int proxyio_ps_rgs(proxyio_t *io) {
 }
 
 int proxyio_at_rgs(proxyio_t *io) {
-    struct bio *b = &io->b;
+    struct bio *b = &io->out;
 
     bio_write(b, (char *)&io->rgh, sizeof(io->rgh));
-    bio_flush(&io->b, &io->sock_ops);
+    bio_flush(b, &io->sock_ops);
     return 0;
 }
 
 
 int proxyio_recv(proxyio_t *io,
 		 struct pio_hdr *h, char **data, char **rt) {
-    struct bio *b = &io->b;
+    struct bio *b = &io->in;
 
     if ((b->bsize >= sizeof(*h)) && !({
 		bio_copy(b, (char *)h, sizeof(*h)); ph_validate(h);})) {
@@ -53,9 +53,9 @@ int proxyio_recv(proxyio_t *io,
 
 int proxyio_send(proxyio_t *io,
 		 const struct pio_hdr *h, const char *data, const char *rt) {
-    struct bio *b = &io->b;
+    struct bio *b = &io->out;
 
-    if (ph_validate(h)) {
+    if (!ph_validate(h)) {
 	errno = PIO_ECHKSUM;
 	return -1;
     }

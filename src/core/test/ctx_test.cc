@@ -12,7 +12,7 @@ extern "C" {
 #define PROXYNAME "testapp"
 
 extern int randstr(char *buff, int sz);
-static int cnt = 0;
+static int cnt = 1;
 
 static int producer_worker(void *args) {
     char req[PAGE_SIZE], *resp;
@@ -26,7 +26,7 @@ static int producer_worker(void *args) {
 	reqlen = rand() % PAGE_SIZE;
 	EXPECT_EQ(0, producer_send_request(pt, req, reqlen));
 	EXPECT_EQ(0, producer_recv_response(pt, &resp, &resplen));
-	EXPECT_TRUE(reqlen == resplen);
+	EXPECT_EQ(reqlen, resplen);
 	EXPECT_TRUE(memcmp(req, resp, reqlen) == 0);
 	mem_free(resp, resplen);
     }
@@ -46,7 +46,7 @@ static int comsumer_worker(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	EXPECT_EQ(0, comsumer_recv_request(ct, &req, &sz, &rt, &rt_sz));
-	EXPECT_EQ(0, comsumer_send_response(ct, req, sz, rt, rt_sz));
+	//EXPECT_EQ(0, comsumer_send_response(ct, req, sz, rt, rt_sz));
 	mem_free(req, sz);
 	mem_free(rt, rt_sz);
     }

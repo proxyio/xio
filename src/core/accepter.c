@@ -12,7 +12,7 @@ int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     if ((r = r_new_inited())) {
 	r->is_register = true;
 	r->el = el;
-	r->et.fd = nfd;
+	r->et.fd = r->io.sockfd = nfd;
 	r->et.events = EPOLLIN;
 	if (epoll_add(el, &r->et) < 0) {
 	    close(nfd);
