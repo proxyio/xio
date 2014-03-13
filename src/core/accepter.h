@@ -15,7 +15,7 @@ static inline void acp_init(acp_t *acp, int w) {
     taskpool_init(&(acp)->tp, w);
     __et->f = acp_event_handler;
     __et->data = (acp);
-    INIT_LIST_HEAD(&(acp)->grp_head);
+    INIT_LIST_HEAD(&(acp)->py_head);
 }
 
 static inline void acp_destroy(acp_t *acp) {
@@ -24,11 +24,11 @@ static inline void acp_destroy(acp_t *acp) {
     taskpool_destroy(&(acp)->tp);	
 }
 
-static inline grp_t *acp_find(acp_t *acp, char grpname[GRPNAME_MAX]) {
-    grp_t *cur, *match = NULL;
+static inline proxy_t *acp_find(acp_t *acp, char proxyname[PROXYNAME_MAX]) {
+    proxy_t *cur, *match = NULL;
 
-    list_for_each_entry(cur, &acp->grp_head, grp_t, acp_link)
-	if (memcmp(grpname, cur->grpname, GRPNAME_MAX) == 0) {
+    list_for_each_entry(cur, &acp->py_head, proxy_t, acp_link)
+	if (memcmp(proxyname, cur->proxyname, PROXYNAME_MAX) == 0) {
 	    match = cur;
 	    break;
 	}
@@ -57,7 +57,7 @@ static inline int acp_listen(acp_t *acp, const char *addr) {
     return epoll_add(&acp->el, &acp->et);
 }
 
-static inline int acp_proxyto(acp_t *acp, char *grpname, const char *addr) {
+static inline int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     int nfd;
     pio_rgh_t *h;
     struct role *r;
@@ -68,7 +68,7 @@ static inline int acp_proxyto(acp_t *acp, char *grpname, const char *addr) {
 	h = &r->pp.rgh;
 	h->type = PIO_SNDER;
 	uuid_generate(h->id);
-	strcpy(h->grpname, grpname);
+	strcpy(h->proxyname, proxyname);
 	r->el = &acp->el;
 	r->et.fd = nfd;
 	r->et.events = EPOLLOUT;

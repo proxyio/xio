@@ -26,17 +26,23 @@ static inline int64_t proxyio_sock_write(struct io *sock, char *buff, int64_t sz
 }
 
 
+static inline void proxyio_init(proxyio_t *io) {
+    ZERO(*io);
+    bio_init(&io->b);
+    io->sock_ops.read = proxyio_sock_read;
+    io->sock_ops.write = proxyio_sock_write;
+}
+
 static inline proxyio_t *proxyio_new() {
     proxyio_t *io = (proxyio_t *)mem_zalloc(sizeof(*io));
-    if (io) {
-	io->sock_ops.read = proxyio_sock_read;
-	io->sock_ops.write = proxyio_sock_write;
-    }
+    if (io)
+	proxyio_init(io);
     return io;
 }
 
+int proxyio_attach(proxyio_t *io, int sockfd, const pio_rgh_t *rgh);
 int proxyio_register(proxyio_t *io, const char *addr,
-		     const char grp[GRPNAME_MAX], int client_type);
+		     const char py[PROXYNAME_MAX], int client_type);
 
 
 #endif

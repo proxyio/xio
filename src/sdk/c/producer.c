@@ -19,6 +19,8 @@ producer_t *producer_new(const char *addr, const char grp[GRPNAME_MAX]) {
 
 void producer_destroy(producer_t *pp) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+    bio_destroy(&io->b);
+    close(io->sockfd);
     mem_free(io, sizeof(*io));
 }
 
@@ -41,6 +43,7 @@ int producer_send_request(producer_t *pp, const char *data, int64_t size) {
 	.sendstamp = rt_mstime(),
     };
     uuid_copy(rt.uuid, io->rgh.id);
+    ph_makechksum(&h);
     BUG_ON(bio_write(&io->b, (char *)&h, sizeof(h)) != sizeof(h));
     BUG_ON(bio_write(&io->b, data, size) != size);
     BUG_ON(bio_write(&io->b, (char *)&rt, sizeof(rt)) != sizeof(rt));

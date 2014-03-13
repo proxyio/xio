@@ -17,19 +17,19 @@ typedef struct accepter {
     taskpool_t tp;
     epoll_t el;
     epollevent_t et;
-    struct list_head grp_head;
+    struct list_head py_head;
 } acp_t;
 
-typedef struct grp {
+typedef struct proxy {
     spin_t lock;
-    char grpname[GRPNAME_MAX];
+    char proxyname[PROXYNAME_MAX];
     int rsize;
     ssmap_t roles;
     ssmap_t tw_roles;
     struct list_head acp_link;
     struct list_head rcver_head;
     struct list_head snder_head;
-} grp_t;
+} proxy_t;
 
 enum {
     ST_REGISTED = 1,
@@ -46,17 +46,17 @@ struct role {
     modstat_t st;
     epollevent_t et;
     epoll_t *el;
-    grp_t *grp;
+    proxy_t *py;
     uint32_t size;
     struct list_head mq;
     struct io conn_ops;
     struct pio_parser pp;
     ssmap_node_t sibling;
-    struct list_head grp_link;
+    struct list_head py_link;
 };
 
 #define list_for_each_role_safe(pos, n, head)				\
-    list_for_each_entry_safe(pos, n, head, struct role, grp_link)
+    list_for_each_entry_safe(pos, n, head, struct role, py_link)
 
 
 #endif

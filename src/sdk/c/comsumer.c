@@ -19,6 +19,8 @@ comsumer_t *comsumer_new(const char *addr, const char grp[GRPNAME_MAX]) {
 
 void comsumer_destroy(comsumer_t *pp) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+    bio_destroy(&io->b);
+    close(io->sockfd);
     mem_free(io, sizeof(*io));
 }
 
@@ -41,8 +43,8 @@ int comsumer_recv_request(comsumer_t *pp, char **data, int64_t *size,
     if (!(*data = (char *)mem_zalloc(h.size)))
 	return -1;
     if (!(*rt = (char *)mem_zalloc(sizeof(h) + pio_rt_size(&h)))) {
-	*data = NULL;
 	mem_free(*data, h.size);
+	*data = NULL;
 	return -1;
     }
     *size = h.size;

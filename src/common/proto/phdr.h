@@ -97,7 +97,7 @@ static inline pio_msg_t *pio_msg_clone(pio_msg_t *msg) {
 
 
 
-#define GRPNAME_MAX 128
+#define PROXYNAME_MAX 128
 
 enum {
     PIO_RCVER = 1,
@@ -107,7 +107,7 @@ enum {
 typedef struct pio_rgh {
     uint32_t type;
     uuid_t id;
-    char grpname[GRPNAME_MAX];
+    char proxyname[PROXYNAME_MAX];
 } pio_rgh_t;
 #define PIORGHLEN sizeof(struct pio_rgh)
 
