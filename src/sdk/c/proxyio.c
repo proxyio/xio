@@ -14,21 +14,15 @@ int proxyio_attach(proxyio_t *io, int sockfd, const pio_rgh_t *rgh) {
 
 int proxyio_register(proxyio_t *io, const char *addr,
 		     const char py[PROXYNAME_MAX], int client_type) {
-    int64_t nbytes = 0, ret;
-
     io->rgh.type = client_type;
     uuid_generate(io->rgh.id);
     memcpy(io->rgh.proxyname, py, sizeof(py));
     if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
 	return -1;
-    while (nbytes < PIORGHLEN) {
-	if ((ret = sk_write(io->sockfd, ((char *)&io->rgh) + nbytes,
-			    PIORGHLEN - nbytes)) < 0 && errno != EAGAIN) {
-	    close(io->sockfd);
+    bio_write(&io->b, (char *)&io->rgh, sizeof(io->rgh));
+    while (bio_flush(&io->b, &io->sock_ops) < 0)
+	if (errno != EAGAIN)
 	    return -1;
-	}
-	nbytes += ret;
-    }
     return 0;
 }
 
@@ -42,7 +36,7 @@ int proxyio_recv(proxyio_t *io,
 	return -1;
     }
     while (b->bsize < sizeof(*h) || b->bsize < pio_pkg_size(h))
-	if (bio_prefetch(b, &io->sock_ops) < 0 && errno != EAGAIN)
+	if (bio_prefetch(b, &io->sock_ops) < 0)
 	    return -1;
     if (!(*data = (char *)mem_zalloc(h->size)))
 	return -1;
@@ -70,7 +64,7 @@ int proxyio_send(proxyio_t *io,
     bio_write(b, data, h->size);
     bio_write(b, rt, pio_rt_size(h));
     while (!bio_empty(b))
-	if (bio_flush(b, &io->sock_ops) < 0 && errno != EAGAIN)
+	if (bio_flush(b, &io->sock_ops) < 0)
 	    return -1;
     return 0;
 }
