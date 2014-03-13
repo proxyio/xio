@@ -2,7 +2,7 @@
 #define _HPIO_PID_
 
 #include <string.h>
-#include "os/malloc.h"
+#include "os/memory.h"
 
 
 typedef struct pctl {

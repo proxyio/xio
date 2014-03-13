@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <algorithm>
 extern "C" {
-#include "os/malloc.h"
 #include "ds/skrb.h"
 #include "ds/map.h"
+#include "os/memory.h"
 }
 
 using namespace std;

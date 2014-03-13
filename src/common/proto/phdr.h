@@ -4,7 +4,7 @@
 #include <uuid/uuid.h>
 #include "ds/list.h"
 #include "hash/crc.h"
-#include "os/malloc.h"
+#include "os/memory.h"
 
 struct pio_rt {
     uuid_t uuid;

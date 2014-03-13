@@ -1,7 +1,7 @@
 #ifndef _HPIO_PROXYIO_
 #define _HPIO_PROXYIO_
 
-#include "os/malloc.h"
+#include "os/memory.h"
 #include "io.h"
 #include "bufio/bio.h"
 #include "proto/phdr.h"

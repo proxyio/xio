@@ -1,7 +1,7 @@
 #define __STDC_FORMAT_MACROS
 #include <stdio.h>
 #include <inttypes.h>
-#include "os/malloc.h"
+#include "os/memory.h"
 #include "taskpool.h"
 
 struct __task {

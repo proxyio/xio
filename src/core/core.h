@@ -6,7 +6,7 @@
 #include "sync/atomic.h"
 #include "ds/map.h"
 #include "os/epoll.h"
-#include "os/malloc.h"
+#include "os/memory.h"
 #include "sync/spin.h"
 #include "stats/modstat.h"
 #include "proto/parser.h"
