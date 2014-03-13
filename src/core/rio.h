@@ -3,8 +3,8 @@
 
 #include "core.h"
 
-#define IS_RCVER(r) r->type == PIO_RCVER
-#define IS_SNDER(r) r->type == PIO_SNDER
+#define IS_RCVER(r) r->io.rgh.type == PIO_RCVER
+#define IS_SNDER(r) r->io.rgh.type == PIO_SNDER
 
 int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
 
@@ -21,28 +21,19 @@ static inline struct rio *r_new() {
 	spin_unlock(&r->lock);			\
     } while (0)
 
-
-static inline int64_t __sock_read(io_t *c, char *buf, int64_t size) {
-    struct rio *r = container_of(c, struct rio, conn_ops);
-    return sk_read(r->et.fd, buf, size);
-}
-
-static inline int64_t __sock_write(io_t *c, char *buf, int64_t size) {
-    struct rio *r = container_of(c, struct rio, conn_ops);
-    return sk_write(r->et.fd, buf, size);
-}
-
 static inline void r_init(struct rio *r) {
-    spin_init(&r->lock);			
-    r->status = ST_OK;			
-    atomic_init(&r->ref);			
-    atomic_set(&r->ref, 1);			
-    r->et.f = r_event_handler;		
-    r->et.data = r;				
-    INIT_LIST_HEAD(&r->mq);			
-    pp_init(&r->pp, 0);			
-    r->conn_ops.read = __sock_read;		
-    r->conn_ops.write = __sock_write;	
+    proxyio_init(&r->io);
+    spin_init(&r->lock);
+    r->registed = false;
+    r->status_ok = true;
+    r->is_register = false;
+    atomic_init(&r->ref);
+    atomic_set(&r->ref, 1);
+    r->et.f = r_event_handler;
+    r->et.data = r;
+    r->mqsize = 0;
+    INIT_LIST_HEAD(&r->mq);
+    mem_cache_init(&r->slabs, sizeof(pio_msg_t));
 }
 
 static inline struct rio *r_new_inited() {
@@ -53,9 +44,10 @@ static inline struct rio *r_new_inited() {
 }
 
 static inline void r_destroy(struct rio *r) {
+    proxyio_destroy(&r->io);
     spin_destroy(&r->lock);			
-    pp_destroy(&r->pp);			
     atomic_destroy(&r->ref);		
+    mem_cache_destroy(&r->slabs);
 }
 
 static inline void r_put(struct rio *r) {
@@ -85,8 +77,11 @@ static inline int __r_enable_eventout(struct rio *r) {
 static inline pio_msg_t *r_pop_massage(struct rio *r) {
     pio_msg_t *msg = NULL;
     r_lock(r);
-    if (!list_empty(&r->mq))
+    if (!list_empty(&r->mq)) {
+	r->mqsize--;
 	msg = list_first(&r->mq, pio_msg_t, node);
+	list_del(&msg->node);
+    }
     if (list_empty(&r->mq))
 	__r_disable_eventout(r);
     r_unlock(r);
@@ -95,7 +90,7 @@ static inline pio_msg_t *r_pop_massage(struct rio *r) {
 
 static inline int r_push_massage(struct rio *r, pio_msg_t *msg) {
     r_lock(r);
-    r->size++;
+    r->mqsize++;
     list_add(&msg->node, &r->mq);
     if (!list_empty(&r->mq))
 	__r_enable_eventout(r);

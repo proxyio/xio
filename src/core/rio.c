@@ -13,74 +13,89 @@ static int r_error(struct rio *r);
 int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     struct rio *r = container_of(et, struct rio, et);
     
-    if (!(r->status & ST_REGISTED))
+    if (!r->registed)
 	r_rgs(r, happened);
     else {
-	if ((r->status & ST_OK) && (happened & EPOLLIN))
+	if (r->status_ok && (happened & EPOLLIN))
 	    r_recv(r);
-	if ((r->status & ST_OK) && (happened & EPOLLOUT))
+	if (r->status_ok && (happened & EPOLLOUT))
 	    r_send(r);
     }
-    if (!(r->status & ST_OK))
+    if (!r->status_ok)
 	r_error(r);
     return 0;
 }
 
 static int r_rgs(struct rio *r, uint32_t happened) {
     int ret;
-    struct pio_rgh *h = &r->pp.rgh;
+    struct pio_rgh *h = &r->io.rgh;
     proxy_t *py;
     acp_t *acp = container_of(r->el, struct accepter, el);
 
-    if ((ret = (r->type & ST_REGISTER) ? pp_recv_rgh(&r->pp, &r->conn_ops) :
-	 pp_send_rgh_async(&r->pp, &r->conn_ops)) < 0 && errno == EAGAIN)
-	return -1;
-    if (ret < 0 || !(py = acp_find(acp, h->proxyname))) {
-	r->status &= ~ST_OK;
+    if ((ret = r->is_register ?
+	 proxyio_ps_rgs(&r->io) : proxyio_at_rgs(&r->io)) < 0) {
+	if (errno != EAGAIN)
+	    r->status_ok = false;
 	return -1;
     }
-    r->status |= ST_REGISTED;
-    r->type = h->type;
-    uuid_copy(r->uuid, h->id);
+    if (!(py = acp_find(acp, h->proxyname))) {
+	r->status_ok = false;
+	return -1;
+    }
+    r->registed = true;
     r->py = py;
     proxy_add(py, r);
     return 0;
 }
 
 static int r_receiver_recv(struct rio *r) {
+    pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     int ret;
     int64_t now = rt_mstime();
-    pio_msg_t *msg = NULL;
     struct rio *dest;
     struct pio_rt *crt;
 
-    if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, PIORTLEN)) == 0) {
-	crt = pio_msg_currt(msg);
-	crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->begin);
-	if ((dest = proxy_loadbalance_dispatch(r->py)))
-	    r_push_massage(dest, msg);
-	else
-	    pio_msg_free(msg);
-    } else if (ret < 0 && errno != EAGAIN)
-	r->status &= ~ST_OK;
+    if (!msg)
+	return -1;
+    if ((ret = proxyio_recv(&r->io, &msg->hdr,
+			    &msg->data, (char **)&msg->rt)) < 0) {
+	mem_cache_free(&r->slabs, msg);
+	if (errno != EAGAIN)
+	    r->status_ok = false;
+	return -1;
+    }
+    crt = pio_msg_currt(msg);
+    crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->begin);
+    if (!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
+	pio_msg_free(msg);
+	mem_cache_free(&r->slabs, msg);
+	return -1;
+    }
     return 0;
 }
 
 static int r_dispatcher_recv(struct rio *r) {
+    pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     int ret;
-    pio_msg_t *msg = NULL;
     struct rio *src;
     struct pio_rt *crt;
 
-    if ((ret = pp_recv(&r->pp, &r->conn_ops, &msg, 0)) == 0) {
-	pio_msg_shrinkrt(msg);
-	crt = pio_msg_currt(msg);
-	if ((src = proxy_find_at(r->py, crt->uuid)))
-	    r_push_massage(src, msg);
-	else
-	    pio_msg_free(msg);
-    } else if (ret < 0 && errno != EAGAIN)
-	r->status &= ~ST_OK;
+    if (!msg)
+	return -1;
+    if ((ret = proxyio_recv(&r->io, &msg->hdr,
+				&msg->data, (char **)&msg->rt)) < 0) {
+	mem_cache_free(&r->slabs, msg);
+	if (errno != EAGAIN)
+	    r->status_ok = false;
+	return -1;
+    }
+    msg->hdr.ttl--;
+    crt = pio_msg_currt(msg);
+    if (!(src = proxy_find_at(r->py, crt->uuid)) || r_push_massage(src, msg) < 0) {
+	pio_msg_free(msg);
+	mem_cache_free(&r->slabs, msg);
+	return -1;
+    }
     return 0;
 }
 
@@ -95,9 +110,11 @@ static int r_receiver_send(struct rio *r) {
 
     if (!(msg = r_pop_massage(r)))
 	return -1;
-    if (pp_send(&r->pp, &r->conn_ops, msg) < 0)
-	r->status &= ~ST_OK;
+    if (proxyio_send(&r->io, &msg->hdr, msg->data, (char *)msg->rt) < 0
+	&& errno != EAGAIN)
+	r->status_ok = false;
     pio_msg_free(msg);
+    mem_cache_free(&r->slabs, msg);
     return 0;
 }
 
@@ -109,13 +126,14 @@ static int r_dispatcher_send(struct rio *r) {
     if (!(msg = r_pop_massage(r)))
 	return -1;
     crt = pio_msg_currt(msg);
-    uuid_copy(rt.uuid, r->uuid);
+    uuid_copy(rt.uuid, r->io.rgh.id);
     rt.begin = (uint32_t)(now - msg->hdr.sendstamp);
     crt->stay = (uint16_t)(rt.begin - crt->begin - crt->cost);
-    pio_msg_appendrt(msg, &rt);
-    if (pp_send(&r->pp, &r->conn_ops, msg) < 0)
-	r->status &= ~ST_OK;
+    if (proxyio_send(&r->io, &msg->hdr, msg->data, (char *)msg->rt) < 0
+	&& errno != EAGAIN)
+	r->status_ok = false;
     pio_msg_free(msg);
+    mem_cache_free(&r->slabs, msg);
     return 0;
 }
 

@@ -6,7 +6,7 @@
 
 typedef int (*walkfn) (proxy_t *py, struct rio *r, void *args);
 
-#define list_for_each_role_safe(pos, n, head)				\
+#define list_for_each_role_safe(pos, n, head)			\
     list_for_each_entry_safe(pos, n, head, struct rio, py_link)
 
 #define proxy_lock(py) spin_lock(&py->lock)
@@ -94,7 +94,7 @@ static inline struct rio *proxy_find_tw(proxy_t *py, uuid_t uuid) {
     return r;
 }
 
-static inline struct rio *proxy_loadbalance_dispatch(proxy_t *py) {
+static inline struct rio *proxy_lb_dispatch(proxy_t *py) {
     struct rio *dest = NULL;
     if (!list_empty(&py->snder_head)) {
 	dest = list_first(&py->snder_head, struct rio, py_link);

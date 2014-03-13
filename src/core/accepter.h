@@ -64,21 +64,26 @@ static inline int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     
     if ((nfd = sk_connect("tcp", "", addr)) < 0)
 	return -1;
-    if ((r = r_new_inited())) {
-	h = &r->pp.rgh;
-	h->type = PIO_SNDER;
-	uuid_generate(h->id);
-	strcpy(h->proxyname, proxyname);
-	r->el = &acp->el;
-	r->et.fd = nfd;
-	r->et.events = EPOLLOUT;
-	if (epoll_add(&acp->el, &r->et) < 0) {
-	    close(nfd);
-	    r_put(r);
-	} else
-	    return 0;
+    if (!(r = r_new_inited())) {
+	close(nfd);
+	return -1;
     }
-    return -1;
+    h = &r->io.rgh;
+    h->type = PIO_RCVER;
+    uuid_generate(h->id);
+    strcpy(h->proxyname, proxyname);
+    r->is_register = false;
+    r->el = &acp->el;
+    r->et.fd = nfd;
+    r->et.events = EPOLLOUT;
+    bio_write(&r->io.b, (char *)h, sizeof(*h));
+    h->type = PIO_SNDER;
+    if (epoll_add(&acp->el, &r->et) < 0) {
+	close(nfd);
+	r_put(r);
+	return -1;
+    }
+    return 0;
 }
 
 

@@ -6,11 +6,12 @@
 #include "sync/atomic.h"
 #include "ds/map.h"
 #include "os/epoll.h"
-#include "os/memory.h"
+#include "os/slab.h"
 #include "sync/spin.h"
 #include "stats/modstat.h"
-#include "proto/parser.h"
+#include "proto/phdr.h"
 #include "runner/taskpool.h"
+#include "sdk/c/proxyio.h"
 
 typedef struct accepter {
     spin_t lock;
@@ -31,31 +32,27 @@ typedef struct proxy {
     struct list_head snder_head;
 } proxy_t;
 
-enum {
-    ST_REGISTED = 1,
-    ST_OK = 2,
-    ST_REGISTER = 4,
-};
 
 struct rio {
+    proxyio_t io;
     spin_t lock;
-    int status;
+    uint32_t registed:1;
+    uint32_t status_ok:1;
+    uint32_t is_register:1;
+    uint32_t flags:29;
     atomic_t ref;
-    uuid_t uuid;
-    uint32_t type;
     modstat_t st;
     epollevent_t et;
     epoll_t *el;
     proxy_t *py;
-    uint32_t size;
+    uint32_t mqsize;
     struct list_head mq;
-    struct io conn_ops;
-    struct pio_parser pp;
     ssmap_node_t sibling;
     struct list_head py_link;
+    mem_cache_t slabs;
 };
 
-#define list_for_each_role_safe(pos, n, head)				\
+#define list_for_each_role_safe(pos, n, head)			\
     list_for_each_entry_safe(pos, n, head, struct rio, py_link)
 
 
