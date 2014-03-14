@@ -93,7 +93,7 @@ static inline pio_msg_t *r_pop_massage(struct rio *r) {
 static inline int r_push_massage(struct rio *r, pio_msg_t *msg) {
     r_lock(r);
     r->mqsize++;
-    list_add(&msg->node, &r->mq);
+    list_add_tail(&msg->node, &r->mq);
     if (!list_empty(&r->mq))
 	__r_enable_eventout(r);
     r_unlock(r);

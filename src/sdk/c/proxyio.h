@@ -5,7 +5,7 @@
 #include "os/memory.h"
 #include "io.h"
 #include "bufio/bio.h"
-#include "proto/phdr.h"
+#include "proto.h"
 #include "net/socket.h"
 
 typedef struct proxyio {

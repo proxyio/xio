@@ -14,66 +14,69 @@ extern "C" {
 extern int randstr(char *buff, int sz);
 static int cnt = 10;
 
-static int producer_worker(void *args) {
-    char req[PAGE_SIZE], *resp;
-    int64_t reqlen, resplen;
-    int mycnt = cnt;
-    waitgroup_t *wg = (waitgroup_t *)args;
-    producer_t *pt = producer_new(PIOHOST, PROXYNAME);
-
-    randstr(req, PAGE_SIZE);
-    reqlen = rand() % PAGE_SIZE;
-    EXPECT_EQ(0, producer_send_request(pt, req, reqlen));
-    mycnt--;
-    while (mycnt) {
-	if (producer_recv_response(pt, &resp, &resplen) == 0) {
-	    EXPECT_EQ(reqlen, resplen);
-	    EXPECT_TRUE(memcmp(req, resp, reqlen) == 0);
-	    mem_free(resp, resplen);
-	    randstr(req, PAGE_SIZE);
-	    reqlen = rand() % PAGE_SIZE;
-	    EXPECT_EQ(0, producer_send_request(pt, req, reqlen));
-	    mycnt--;
-	}
-    }
-    producer_destroy(pt);
-    waitgroup_done(wg);
-    return 0;
-}
-
-static volatile int comsumer_ok = 0;
+static volatile int comsumer_ok = false;
 
 static int comsumer_worker(void *args) {
     char *req, *rt;
-    int mycnt = cnt;
     int64_t sz, rt_sz;
-    waitgroup_t *wg = (waitgroup_t *)args;
     comsumer_t *ct = comsumer_new(PIOHOST, PROXYNAME);
 
-    comsumer_ok = 1;
-    while (mycnt) {
+    comsumer_ok = true;
+    while (comsumer_ok) {
 	if (comsumer_recv_request(ct, &req, &sz, &rt, &rt_sz) == 0) {
-	    comsumer_send_response(ct, req, sz, rt, rt_sz);
+	    EXPECT_TRUE(comsumer_psend_response(ct, req, sz, rt, rt_sz) == 0);
 	    mem_free(req, sz);
 	    mem_free(rt, rt_sz);
-	    mycnt--;
 	}
     }
     comsumer_destroy(ct);
-    waitgroup_done(wg);    
     return 0;
 }
 
+static int test_producer1() {
+    char req[PAGE_SIZE], *resp;
+    int64_t reqlen, resplen;
+    int mycnt = cnt;
+    producer_t *pt = producer_new(PIOHOST, PROXYNAME);
 
+    randstr(req, PAGE_SIZE);
+    while (mycnt) {
+	reqlen = rand() % PAGE_SIZE;
+	EXPECT_TRUE(producer_psend_request(pt, req, reqlen) == 0);
+	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
+	EXPECT_EQ(reqlen, resplen);
+	EXPECT_TRUE(memcmp(req, resp, reqlen) == 0);
+	mem_free(resp, resplen);
+	mycnt--;
+    }
+    producer_destroy(pt);
+    return 0;
+}
+
+static int test_producer2() {
+    char req[PAGE_SIZE], *resp;
+    int64_t resplen;
+    producer_t *pt = producer_new(PIOHOST, PROXYNAME);
+
+    randstr(req, PAGE_SIZE);
+    for (int i = 1; i < cnt; i++)
+	EXPECT_TRUE(producer_psend_request(pt, req, i) == 0);
+    for (int i = 1; i < cnt; i++) {
+	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
+	EXPECT_EQ(resplen, i);
+	EXPECT_TRUE(memcmp(req, resp, resplen) == 0);
+	mem_free(resp, resplen);
+    }
+    producer_destroy(pt);
+    return 0;
+}
 
 static void acp_test() {
     thread_t t;
     acp_t acp = {};
     proxy_t py = {};
-    waitgroup_t wg = {};
 
     proxy_init(&py);
-    waitgroup_init(&wg);
     strcpy(py.proxyname, PROXYNAME);
     acp_init(&acp, 1);
     list_add(&py.acp_link, &acp.py_head);
@@ -81,12 +84,13 @@ static void acp_test() {
     acp_start(&acp);
     EXPECT_EQ(0, acp_listen(&acp, PIOHOST));
 
-    waitgroup_adds(&wg, 2);
-    thread_start(&t, comsumer_worker, &wg);
+    thread_start(&t, comsumer_worker, NULL);
     while (!comsumer_ok) {
     }
-    producer_worker(&wg);
-    waitgroup_wait(&wg);
+    test_producer1();
+    test_producer2();
+
+    comsumer_ok = false;
     thread_stop(&t);
 
     EXPECT_EQ(0, acp_proxyto(&acp, PROXYNAME, PIOHOST));
@@ -95,7 +99,6 @@ static void acp_test() {
     acp_stop(&acp);
     proxy_destroy(&py);
     acp_destroy(&acp);
-    waitgroup_destroy(&wg);
 }
 
 

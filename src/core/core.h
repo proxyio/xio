@@ -9,8 +9,8 @@
 #include "os/slab.h"
 #include "sync/spin.h"
 #include "stats/modstat.h"
-#include "proto/phdr.h"
 #include "runner/taskpool.h"
+#include "sdk/c/proto.h"
 #include "sdk/c/proxyio.h"
 
 typedef struct accepter {

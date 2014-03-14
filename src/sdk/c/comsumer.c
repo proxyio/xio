@@ -11,6 +11,7 @@ comsumer_t *comsumer_new(const char *addr, const char py[PROXYNAME_MAX]) {
     proxyio_init(io);
     if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
 	goto RGS_ERROR;
+    sk_setopt(io->sockfd, SK_NONBLOCK, true);
     io->rgh.type = PIO_SNDER;
     uuid_generate(io->rgh.id);
     memcpy(io->rgh.proxyname, py, sizeof(py));
@@ -33,6 +34,36 @@ void comsumer_destroy(comsumer_t *pp) {
     proxyio_destroy(io);
     mem_free(io, sizeof(*io));
 }
+
+
+
+int comsumer_send_response(comsumer_t *pp, const char *data, int64_t size,
+			   const char *urt, int64_t rt_size) {
+    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+    struct pio_hdr *h = (struct pio_hdr *)urt;
+
+    h->go = 0;
+    h->size = size;
+    h->ttl = h->end_ttl = (rt_size - sizeof(*h)) / PIORTLEN;
+    ph_makechksum(h);
+    proxyio_bwrite(io, h, data, urt + sizeof(*h));
+    if (proxyio_flush(io) < 0 && errno != EAGAIN)
+	return -1;
+    return 0;
+}
+
+
+int comsumer_psend_response(comsumer_t *pp, const char *data, int64_t size,
+			    const char *urt, int64_t rt_size) {
+    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+    if (comsumer_send_response(pp, data, size, urt, rt_size) < 0)
+	return -1;
+    while (proxyio_flush(io) < 0)
+	if (errno != EAGAIN)
+	    return -1;
+    return 0;
+}
+
 
 
 
@@ -64,20 +95,12 @@ int comsumer_recv_request(comsumer_t *pp, char **data, int64_t *size,
     return 0;
 }
 
-
-int comsumer_send_response(comsumer_t *pp, const char *data, int64_t size,
-			   const char *urt, int64_t rt_size) {
-    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
-    struct pio_hdr *h = (struct pio_hdr *)urt;
-
-    h->go = 0;
-    h->size = size;
-    h->ttl = h->end_ttl = (rt_size - sizeof(*h)) / PIORTLEN;
-    ph_makechksum(h);
-    proxyio_bwrite(io, h, data, urt + sizeof(*h));
-    while (proxyio_flush(io) < 0)
-	if (errno != EAGAIN)
-	    return -1;
-    return 0;
+int comsumer_precv_request(comsumer_t *pp, char **data, int64_t *size,
+			   char **rt, int64_t *rt_size) {
+    int ret;
+    while ((ret = comsumer_recv_request(pp, data, size, rt, rt_size)) < 0
+	   && errno == EAGAIN) {
+    }
+    return ret;
 }
 

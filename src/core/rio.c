@@ -16,10 +16,8 @@ int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     if (!r->registed)
 	r_rgs(r, happened);
     if (r->registed) {
-	if (r->status_ok && (happened & EPOLLIN)) {
-
+	if (r->status_ok && (happened & EPOLLIN))
 	    r_recv(r);
-	}
 	if (r->status_ok && (happened & EPOLLOUT))
 	    r_send(r);
     }

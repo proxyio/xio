@@ -11,7 +11,6 @@ aux_source_directory( common/path COMMON )
 aux_source_directory( common/runner COMMON )
 aux_source_directory( common/stats COMMON )
 aux_source_directory( common/sync COMMON )
-aux_source_directory( common/proto COMMON )
 add_library( common STATIC ${COMMON} )
 
 ## compile common_test

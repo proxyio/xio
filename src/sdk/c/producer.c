@@ -11,6 +11,7 @@ producer_t *producer_new(const char *addr, const char py[PROXYNAME_MAX]) {
     proxyio_init(io);
     if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
 	goto RGS_ERROR;
+    sk_setopt(io->sockfd, SK_NONBLOCK, true);
     io->rgh.type = PIO_RCVER;
     uuid_generate(io->rgh.id);
     memcpy(io->rgh.proxyname, py, sizeof(py));
@@ -55,6 +56,15 @@ int producer_send_request(producer_t *pp, const char *data, int64_t size) {
     uuid_copy(rt.uuid, io->rgh.id);
     ph_makechksum(&h);
     proxyio_bwrite(io, &h, data, (char *)&rt);
+    if (proxyio_flush(io) < 0 && errno != EAGAIN)
+	return -1;
+    return 0;
+}
+
+int producer_psend_request(producer_t *pp, const char *data, int64_t size) {
+    proxyio_t *io = container_of(pp, proxyio_t, sockfd);
+    if (producer_send_request(pp, data, size) < 0)
+	return -1;
     while (proxyio_flush(io) < 0)
 	if (errno != EAGAIN)
 	    return -1;
@@ -78,4 +88,11 @@ int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
     }
     *size = h.size;
     return 0;
+}
+
+int producer_precv_response(producer_t *pp, char **data, int64_t *size) {
+    int ret;
+    while ((ret = producer_recv_response(pp, data, size)) < 0 && errno == EAGAIN) {
+    }
+    return ret;
 }
