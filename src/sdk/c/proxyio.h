@@ -53,9 +53,9 @@ static inline proxyio_t *proxyio_new() {
 int proxyio_ps_rgs(proxyio_t *io);
 int proxyio_at_rgs(proxyio_t *io);
 
-int proxyio_recv(proxyio_t *io, struct pio_hdr *h, char **data, char **rt);
-int proxyio_send(proxyio_t *io,
-		 const struct pio_hdr *h, const char *data, const char *rt);
+int proxyio_bread(proxyio_t *io, struct pio_hdr *h, char **data, char **rt);
+int proxyio_bwrite(proxyio_t *io,
+		   const struct pio_hdr *h, const char *data, const char *rt);
 
 static inline int proxyio_one_ready(proxyio_t *io) {
     struct pio_hdr h = {};

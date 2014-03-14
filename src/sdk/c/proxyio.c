@@ -25,8 +25,8 @@ int proxyio_at_rgs(proxyio_t *io) {
 }
 
 
-int proxyio_recv(proxyio_t *io,
-		 struct pio_hdr *h, char **data, char **rt) {
+int proxyio_bread(proxyio_t *io,
+		  struct pio_hdr *h, char **data, char **rt) {
     struct bio *b = &io->in;
 
     if (!proxyio_one_ready(io)) {
@@ -48,8 +48,8 @@ int proxyio_recv(proxyio_t *io,
 }
 
 
-int proxyio_send(proxyio_t *io,
-		 const struct pio_hdr *h, const char *data, const char *rt) {
+int proxyio_bwrite(proxyio_t *io,
+		   const struct pio_hdr *h, const char *data, const char *rt) {
     bio_write(&io->out, (char *)h, sizeof(*h));
     bio_write(&io->out, data, h->size);
     bio_write(&io->out, rt, pio_rt_size(h));

@@ -54,7 +54,7 @@ int producer_send_request(producer_t *pp, const char *data, int64_t size) {
     };
     uuid_copy(rt.uuid, io->rgh.id);
     ph_makechksum(&h);
-    proxyio_send(io, &h, data, (char *)&rt);
+    proxyio_bwrite(io, &h, data, (char *)&rt);
     while (proxyio_flush(io) < 0)
 	if (errno != EAGAIN)
 	    return -1;
@@ -68,7 +68,7 @@ int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
 
     if ((proxyio_prefetch(io) < 0 && errno != EAGAIN)
-	|| proxyio_recv(io, &h, data, (char **)&rt) < 0)
+	|| proxyio_bread(io, &h, data, (char **)&rt) < 0)
 	return -1;
     mem_free(rt, pio_rt_size(&h));
     if (!ph_validate(&h)) {

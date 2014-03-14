@@ -56,7 +56,7 @@ static int __r_receiver_recv(struct rio *r) {
 
     if (!msg)
 	return -1;
-    if (proxyio_recv(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
+    if (proxyio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
 	|| !ph_validate(&msg->hdr)) {
 	mem_cache_free(&r->slabs, msg);
 	r->status_ok = (errno != EAGAIN) ? false : true;
@@ -89,7 +89,7 @@ static int __r_dispatcher_recv(struct rio *r) {
 
     if (!msg)
 	return -1;
-    if (proxyio_recv(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
+    if (proxyio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
 	|| !ph_validate(&msg->hdr)) {
 	mem_cache_free(&r->slabs, msg);
 	r->status_ok = (errno != EAGAIN) ? false : true;
@@ -127,7 +127,7 @@ static void r_receiver_send(struct rio *r) {
 
     if (!(msg = r_pop_massage(r)))
 	return;
-    proxyio_send(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
+    proxyio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
     while (proxyio_flush(&r->io) < 0)
 	if (errno != EAGAIN) {
 	    r->status_ok = false;
@@ -150,7 +150,7 @@ static void r_dispatcher_send(struct rio *r) {
     crt->stay = (uint16_t)(rt.begin - crt->begin - crt->cost);
     if (!pio_rt_append(msg, &rt))
 	goto EXIT;
-    proxyio_send(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
+    proxyio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
     while (proxyio_flush(&r->io) < 0) {
 	if (errno != EAGAIN) {
 	    r->status_ok = false;
