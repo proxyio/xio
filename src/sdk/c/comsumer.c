@@ -37,8 +37,8 @@ void comsumer_destroy(comsumer_t *pp) {
 
 
 
-int comsumer_send_response(comsumer_t *pp, const char *data, int64_t size,
-			   const char *urt, int64_t rt_size) {
+int comsumer_send_response(comsumer_t *pp, const char *data, uint32_t size,
+			   const char *urt, uint32_t rt_size) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
     struct pio_hdr *h = (struct pio_hdr *)urt;
 
@@ -53,8 +53,8 @@ int comsumer_send_response(comsumer_t *pp, const char *data, int64_t size,
 }
 
 
-int comsumer_psend_response(comsumer_t *pp, const char *data, int64_t size,
-			    const char *urt, int64_t rt_size) {
+int comsumer_psend_response(comsumer_t *pp, const char *data, uint32_t size,
+			    const char *urt, uint32_t rt_size) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
     if (comsumer_send_response(pp, data, size, urt, rt_size) < 0)
 	return -1;
@@ -67,8 +67,8 @@ int comsumer_psend_response(comsumer_t *pp, const char *data, int64_t size,
 
 
 
-int comsumer_recv_request(comsumer_t *pp, char **data, int64_t *size,
-			  char **rt, int64_t *rt_size) {
+int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
+			  char **rt, uint32_t *rt_size) {
     char *urt;
     struct pio_hdr h = {};
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
@@ -95,8 +95,8 @@ int comsumer_recv_request(comsumer_t *pp, char **data, int64_t *size,
     return 0;
 }
 
-int comsumer_precv_request(comsumer_t *pp, char **data, int64_t *size,
-			   char **rt, int64_t *rt_size) {
+int comsumer_precv_request(comsumer_t *pp, char **data, uint32_t *size,
+			   char **rt, uint32_t *rt_size) {
     int ret;
     while ((ret = comsumer_recv_request(pp, data, size, rt, rt_size)) < 0
 	   && errno == EAGAIN) {

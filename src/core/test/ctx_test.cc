@@ -18,7 +18,7 @@ static volatile int comsumer_ok = false;
 
 static int comsumer_worker(void *args) {
     char *req, *rt;
-    int64_t sz, rt_sz;
+    uint32_t sz, rt_sz;
     comsumer_t *ct = comsumer_new(PIOHOST, PROXYNAME);
 
     comsumer_ok = true;
@@ -35,7 +35,7 @@ static int comsumer_worker(void *args) {
 
 static int test_producer1() {
     char req[PAGE_SIZE], *resp;
-    int64_t reqlen, resplen;
+    uint32_t reqlen, resplen;
     int mycnt = cnt;
     producer_t *pt = producer_new(PIOHOST, PROXYNAME);
 
@@ -55,13 +55,13 @@ static int test_producer1() {
 
 static int test_producer2() {
     char req[PAGE_SIZE], *resp;
-    int64_t resplen;
+    uint32_t resplen;
     producer_t *pt = producer_new(PIOHOST, PROXYNAME);
 
     randstr(req, PAGE_SIZE);
-    for (int i = 1; i < cnt; i++)
+    for (int i = 0; i < cnt; i++)
 	EXPECT_TRUE(producer_psend_request(pt, req, i) == 0);
-    for (int i = 1; i < cnt; i++) {
+    for (int i = 0; i < cnt; i++) {
 	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
 	EXPECT_EQ(resplen, i);
 	EXPECT_TRUE(memcmp(req, resp, resplen) == 0);

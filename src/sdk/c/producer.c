@@ -36,7 +36,7 @@ void producer_destroy(producer_t *pp) {
 }
 
 
-int producer_send_request(producer_t *pp, const char *data, int64_t size) {
+int producer_send_request(producer_t *pp, const char *data, uint32_t size) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
     struct pio_rt rt = {
 	.cost = 0,
@@ -61,7 +61,7 @@ int producer_send_request(producer_t *pp, const char *data, int64_t size) {
     return 0;
 }
 
-int producer_psend_request(producer_t *pp, const char *data, int64_t size) {
+int producer_psend_request(producer_t *pp, const char *data, uint32_t size) {
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
     if (producer_send_request(pp, data, size) < 0)
 	return -1;
@@ -72,7 +72,7 @@ int producer_psend_request(producer_t *pp, const char *data, int64_t size) {
 }
 
 
-int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
+int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
     struct pio_rt *rt = NULL;
     struct pio_hdr h = {};
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
@@ -90,7 +90,7 @@ int producer_recv_response(producer_t *pp, char **data, int64_t *size) {
     return 0;
 }
 
-int producer_precv_response(producer_t *pp, char **data, int64_t *size) {
+int producer_precv_response(producer_t *pp, char **data, uint32_t *size) {
     int ret;
     while ((ret = producer_recv_response(pp, data, size)) < 0 && errno == EAGAIN) {
     }
