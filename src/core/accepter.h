@@ -68,6 +68,7 @@ static inline int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
 	close(nfd);
 	return -1;
     }
+    sk_setopt(nfd, SK_NONBLOCK, true);
     h = &r->io.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);

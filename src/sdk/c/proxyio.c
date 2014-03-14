@@ -33,10 +33,7 @@ int proxyio_recv(proxyio_t *io,
 	errno = EAGAIN;
 	return -1;
     }
-    if (!({bio_copy(b, (char *)h, sizeof(*h)); ph_validate(h);})) {
-	errno = PIO_ECHKSUM;
-	return -1;
-    }
+    bio_copy(b, (char *)h, sizeof(*h));
     if (!(*data = (char *)mem_zalloc(h->size)))
 	return -1;
     if (!(*rt = (char *)mem_zalloc(pio_rt_size(h)))) {
@@ -53,18 +50,9 @@ int proxyio_recv(proxyio_t *io,
 
 int proxyio_send(proxyio_t *io,
 		 const struct pio_hdr *h, const char *data, const char *rt) {
-    struct bio *b = &io->out;
-
-    if (!ph_validate(h)) {
-	errno = PIO_ECHKSUM;
-	return -1;
-    }
-    bio_write(b, (char *)h, sizeof(h));
-    bio_write(b, data, h->size);
-    bio_write(b, rt, pio_rt_size(h));
-    while (!bio_empty(b))
-	if (bio_flush(b, &io->sock_ops) < 0)
-	    return -1;
+    bio_write(&io->out, (char *)h, sizeof(*h));
+    bio_write(&io->out, data, h->size);
+    bio_write(&io->out, rt, pio_rt_size(h));
     return 0;
 }
 

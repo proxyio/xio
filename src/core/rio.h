@@ -33,6 +33,8 @@ static inline void r_init(struct rio *r) {
     r->et.data = r;
     r->mqsize = 0;
     INIT_LIST_HEAD(&r->mq);
+    r->sibling.key = (char *)r->io.rgh.id;
+    r->sibling.keylen = sizeof(r->io.rgh.id);
     mem_cache_init(&r->slabs, sizeof(pio_msg_t));
 }
 

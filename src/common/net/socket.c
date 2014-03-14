@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/socket.h>
@@ -149,4 +150,47 @@ int sk_reconnect(int *sfd) {
     close(*sfd);
     *sfd = nfd;
     return 0;
+}
+
+
+int sk_setopt(int sfd, int optname, ...) {
+    va_list ap;
+
+    switch (optname) {
+    case SK_SENDTIMEOUT:
+    case SK_RECVTIMEOUT:
+	{
+	    int to_msec;
+	    int ff = (optname == SK_SENDTIMEOUT) ? SO_SNDTIMEO : SO_RCVTIMEO;
+	    struct timeval to;
+	    va_start(ap, optname);
+	    to_msec = va_arg(ap, int) / 1000;
+	    va_end(ap);
+	    to.tv_sec = to_msec / 1000;
+	    to.tv_usec = (to_msec - to.tv_sec * 1000) * 1000;
+	    return setsockopt(sfd, SOL_SOCKET, ff, (char *)&to, sizeof(to));
+	}
+    case SK_NONBLOCK:
+	{
+	    int ff, block;
+	    va_start(ap, optname);
+	    block = va_arg(ap, int);
+	    va_end(ap);
+	    if ((ff = fcntl(sfd, F_GETFL, 0)) < 0)
+		ff = 0;
+	    ff = block ? (ff | O_NONBLOCK) : (ff & ~O_NONBLOCK);
+	    return fcntl(sfd, F_SETFL, ff);
+	}
+    case SK_NODELAY:
+	{
+	    int ff, delay;
+	    va_start(ap, optname);
+	    delay = va_arg(ap, int);
+	    va_end(ap);
+	    ff = delay ? true : false;
+	    return setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, (char *)&ff, sizeof(ff));
+	}
+    }
+    errno = EINVAL;
+    return -1;
 }

@@ -1,6 +1,7 @@
 #ifndef _HPIO_HDR_
 #define _HPIO_HDR_
 
+#include <errno.h>
 #include <uuid/uuid.h>
 #include "ds/list.h"
 #include "hash/crc.h"
@@ -38,16 +39,17 @@ static inline uint32_t pio_pkg_size(const struct pio_hdr *h) {
     return PIOHDRLEN + h->size + pio_rt_size(h);
 }
 
-static inline int ph_validate(const struct pio_hdr *hdr) {
-    struct pio_hdr copyheader = *hdr;
-
+static inline int ph_validate(const struct pio_hdr *h) {
+    struct pio_hdr copyheader = *h;
+    int ok;
     copyheader.hdrcheck = 0;
-    return (crc16((char *)&copyheader, PIOHDRLEN) == hdr->hdrcheck);
+    if (!(ok = (crc16((char *)&copyheader, PIOHDRLEN) == h->hdrcheck)))
+	errno = EPROTO;
+    return ok;
 }
 
 static inline void ph_makechksum(struct pio_hdr *hdr) {
     struct pio_hdr copyheader = *hdr;
-    
     copyheader.hdrcheck = 0;
     hdr->hdrcheck = crc16((char *)&copyheader, PIOHDRLEN);
 }
@@ -68,15 +70,22 @@ static inline uint32_t pio_msg_size(pio_msg_t *msg) {
 
 #define pio_msg_currt(msg) (&(msg)->rt[(msg)->hdr.ttl - 1])
 
-#define pio_msg_appendrt(msg, __rt) do {			\
-	msg->hdr.ttl++;						\
-	memcpy(&msg->rt[msg->hdr.ttl - 1], __rt, PIORTLEN);	\
-    } while (0)
+static inline int pio_rt_append(pio_msg_t *msg, struct pio_rt *rt) {
+    struct pio_rt *nrt;
+    uint32_t new_sz = pio_rt_size(&msg->hdr) + PIORTLEN;
+    if (!(nrt = (struct pio_rt *)mem_realloc(msg->rt, new_sz)))
+	return false;
+    msg->hdr.ttl++;
+    msg->rt = nrt;
+    memcpy(pio_msg_currt(msg), rt, PIORTLEN);
+    ph_makechksum(&msg->hdr);
+    return true;
+}
 
-#define pio_msg_free(msg) do {				\
-	mem_free(msg->data, msg->hdr.size);		\
-	mem_free(msg->rt, pio_rt_size(&msg->hdr));	\
-    } while (0)
+static inline void pio_msg_free_data_and_rt(pio_msg_t *msg) {
+    mem_free(msg->data, msg->hdr.size);
+    mem_free(msg->rt, pio_rt_size(&msg->hdr));
+}
 
 
 

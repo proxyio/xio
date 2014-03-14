@@ -9,6 +9,7 @@ int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 
     if (!(happened & EPOLLIN) || (nfd = act_accept(et->fd)) < 0)
 	return -1;
+    sk_setopt(nfd, SK_NONBLOCK, true);
     if ((r = r_new_inited())) {
 	r->is_register = true;
 	r->el = el;

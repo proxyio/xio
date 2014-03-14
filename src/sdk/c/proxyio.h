@@ -73,7 +73,7 @@ static inline int proxyio_prefetch(proxyio_t *io) {
 
 static inline int proxyio_flush(proxyio_t *io) {
     while (!bio_empty(&io->out))
-	if (bio_flush(&io->out, &io->sock_ops) < 0 && errno != EAGAIN)
+	if (bio_flush(&io->out, &io->sock_ops) < 0)
 	    return -1;
     return 0;
 }

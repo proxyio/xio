@@ -42,9 +42,18 @@ int comsumer_recv_request(comsumer_t *pp, char **data, int64_t *size,
     struct pio_hdr h = {};
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
 
-    if ((proxyio_prefetch(io) < 0 && errno != EAGAIN)
-	|| proxyio_recv(io, &h, data, rt) < 0)
+    if (proxyio_prefetch(io) < 0 && errno != EAGAIN) {
 	return -1;
+    }
+    if (proxyio_recv(io, &h, data, rt) < 0)
+	return -1;
+
+    if (!ph_validate(&h)) {
+	mem_free(data, h.size);
+	mem_free(rt, pio_rt_size(&h));
+	errno = PIO_ECHKSUM;
+	return -1;
+    }
     if (!(urt = mem_realloc(*rt, pio_rt_size(&h) + sizeof(h)))) {
 	mem_free(*data, h.size);
 	mem_free(*rt, pio_rt_size(&h));
@@ -66,9 +75,12 @@ int comsumer_send_response(comsumer_t *pp, const char *data, int64_t size,
 
     h->go = 0;
     h->size = size;
-    h->ttl = h->end_ttl = rt_size / PIORTLEN;
+    h->ttl = h->end_ttl = (rt_size - sizeof(*h)) / PIORTLEN;
     ph_makechksum(h);
-    proxyio_send(io, h, data, urt + sizeof(h));
-    return proxyio_flush(io);
+    proxyio_send(io, h, data, urt + sizeof(*h));
+    while (proxyio_flush(io) < 0)
+	if (errno != EAGAIN)
+	    return -1;
+    return 0;
 }
 

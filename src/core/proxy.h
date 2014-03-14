@@ -40,11 +40,10 @@ static inline void proxy_destroy(proxy_t *py) {
 }
 
 static inline void proxy_add(proxy_t *py, struct rio *r) {
-    struct list_head *__head =
-	IS_RCVER(r) ? &py->rcver_head : &py->snder_head;
-
-    proxy_lock(py);							
-    py->rsize++;							
+    struct list_head *__head;
+    __head = IS_RCVER(r) ? &py->rcver_head : &py->snder_head;
+    proxy_lock(py);
+    py->rsize++;
     ssmap_insert(&py->roles, &r->sibling);				
     list_add(&r->py_link, __head);					
     proxy_unlock(py);						
@@ -70,10 +69,10 @@ static inline void __proxy_walk(proxy_t *py, walkfn f, void *args,
 #define proxy_walkrcver(py, f, args) __proxy_walk((py), (f), (args), (&py->rcver_head))
 #define proxy_walksnder(py, f, args) __proxy_walk((py), (f), (args), (&py->snder_head))
 
-static inline struct rio *__proxy_find(proxy_t *py, uuid_t uuid, ssmap_t *map) {
+static inline struct rio *__proxy_find(ssmap_t *map, uuid_t uuid) {
     ssmap_node_t *node;
     struct rio *r = NULL;
-    if (!(node = ssmap_find(map, (char *)uuid, sizeof(uuid))))
+    if ((node = ssmap_find(map, (char *)uuid, sizeof(uuid_t))))
 	r = container_of(node, struct rio, sibling);
     return r;
 }
@@ -81,7 +80,7 @@ static inline struct rio *__proxy_find(proxy_t *py, uuid_t uuid, ssmap_t *map) {
 static inline struct rio *proxy_find_at(proxy_t *py, uuid_t uuid) {
     struct rio *r;
     proxy_lock(py);
-    r = __proxy_find(py, uuid, &py->roles);
+    r = __proxy_find(&py->roles, uuid);
     proxy_unlock(py);
     return r;
 }
@@ -89,7 +88,7 @@ static inline struct rio *proxy_find_at(proxy_t *py, uuid_t uuid) {
 static inline struct rio *proxy_find_tw(proxy_t *py, uuid_t uuid) {
     struct rio *r;
     proxy_lock(py);
-    r = __proxy_find(py, uuid, &py->tw_roles);
+    r = __proxy_find(&py->tw_roles, uuid);
     proxy_unlock(py);
     return r;
 }

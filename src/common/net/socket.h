@@ -8,6 +8,13 @@
 
 #define SOCKADDRLEN PATH_MAX
 
+enum {
+    SK_NONBLOCK = 1,
+    SK_NODELAY,
+    SK_RECVTIMEOUT,
+    SK_SENDTIMEOUT,
+};
+
 int64_t sk_read(int sfd, char *buf, int64_t size);
 int64_t sk_write(int sfd, const char *buf, int64_t size);
 int sk_sockname(int sfd, char *sock, int size);
