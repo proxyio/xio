@@ -75,10 +75,14 @@ static void acp_test() {
     thread_t t;
     acp_t acp = {};
     proxy_t py = {};
+    struct cf cf = {};
 
+    cf.tp_workers = 1;
+    cf.el_io_size = 100;
+    cf.el_wait_timeout = 1;
     proxy_init(&py);
     strcpy(py.proxyname, PROXYNAME);
-    acp_init(&acp, 1);
+    acp_init(&acp, &cf);
     list_add(&py.acp_link, &acp.py_head);
 
     acp_start(&acp);

@@ -2,9 +2,6 @@
 #define _HPIO_CF_
 
 
-struct cf {
-
-};
 
 
 

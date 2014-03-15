@@ -5,7 +5,7 @@
 
 
 
-void acp_init(acp_t *acp, int w);
+void acp_init(acp_t *acp, const struct cf *cf);
 void acp_destroy(acp_t *acp);
 proxy_t *acp_find(acp_t *acp, char proxyname[PROXYNAME_MAX]);
 int acp_worker(void *args);

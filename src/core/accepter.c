@@ -29,10 +29,11 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happ
 }
 
 
-void acp_init(acp_t *acp, int w) {
+void acp_init(acp_t *acp, const struct cf *cf) {
+    acp->cf = *cf;
     spin_init(&(acp)->lock);
-    epoll_init(&(acp)->el, 1024, 100, 1);
-    taskpool_init(&(acp)->tp, w);
+    epoll_init(&(acp)->el, 10240, cf->el_io_size, cf->el_wait_timeout);
+    taskpool_init(&(acp)->tp, cf->tp_workers);
     INIT_LIST_HEAD(&(acp)->et_head);
     INIT_LIST_HEAD(&(acp)->py_head);
 }
