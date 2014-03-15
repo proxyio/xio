@@ -41,9 +41,9 @@ int producer_send_request(producer_t *pp, const char *data, uint32_t size) {
     int64_t now = rt_mstime();
     rio_t *io = container_of(pp, rio_t, sockfd);
     struct pio_rt rt = {
-	.cost = 0,
-	.stay = 0,
-	.go = 0,
+	.cost = {0, 0},
+	.stay = {0, 0},
+	.begin = {0, 0},
     };
     struct pio_hdr h = {
 	.version = PIO_VERSION,
@@ -76,6 +76,7 @@ int producer_psend_request(producer_t *pp, const char *data, uint32_t size) {
 
 
 int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
+    int64_t now = rt_mstime();
     struct pio_rt *rt = NULL;
     struct pio_hdr h = {};
     rio_t *io = container_of(pp, rio_t, sockfd);
@@ -83,7 +84,8 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
     if ((rio_prefetch(io) < 0 && errno != EAGAIN)
 	|| rio_bread(io, &h, data, (char **)&rt) < 0)
 	return -1;
-    // pio_rt_print(h.end_ttl, rt);
+    rt->cost[0] = (uint16_t)(now - h.sendstamp - rt->begin[1]);
+    pio_rt_print(h.end_ttl, rt);
     mem_free(rt, pio_rt_size(&h));
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);

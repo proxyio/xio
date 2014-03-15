@@ -45,11 +45,14 @@ int comsumer_send_response(comsumer_t *pp, const char *data, uint32_t size,
     struct pio_rt *crt;
     struct pio_hdr *h = (struct pio_hdr *)urt;
 
+    if (!ph_validate(h))
+	return -1;
     h->go = 0;
     h->size = size;
-    h->ttl = h->end_ttl = (rt_size - PIOHDRLEN) / PIORTLEN;
+    h->end_ttl = h->ttl;
     crt = &((struct pio_rt *)(urt + PIOHDRLEN))[h->ttl - 1];
-    crt->stay = (uint16_t)(now - h->sendstamp - crt->go - crt->cost);
+    crt->begin[1] = (uint16_t)(now - h->sendstamp);
+    crt->stay[0] = (uint16_t)(now - h->sendstamp - crt->begin[0] - crt->cost[0]);
     ph_makechksum(h);
     rio_bwrite(io, h, data, urt + PIOHDRLEN);
     modstat_update_timestamp(rio_stat(io), now);
@@ -96,7 +99,7 @@ int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
 	return -1;
     }
     crt = &((struct pio_rt *)urt)[h.ttl - 1];
-    crt->cost = (uint16_t)(now - h.sendstamp - crt->go);
+    crt->cost[0] = (uint16_t)(now - h.sendstamp - crt->begin[0]);
     *size = h.size;
     *rt = urt;
     *rt_size = pio_rt_size(&h) + PIOHDRLEN;

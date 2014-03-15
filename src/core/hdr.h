@@ -11,9 +11,9 @@ struct pio_rt {
     uuid_t uuid;
     uint8_t ip[4];
     uint16_t port;
-    uint16_t cost;
-    uint16_t stay;
-    uint32_t go;
+    uint16_t begin[2];
+    uint16_t cost[2];
+    uint16_t stay[2];
 };
 #define PIORTLEN sizeof(struct pio_rt)
 
@@ -69,11 +69,22 @@ static inline uint32_t pio_msg_size(pio_msg_t *msg) {
 }
 
 #define pio_msg_currt(msg) (&(msg)->rt[(msg)->hdr.ttl - 1])
+#define pio_msg_prevrt(msg) (&(msg)->rt[(msg)->hdr.ttl - 2])
 
 static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
-    while (ttl--)
-	printf("[go:%d cost:%d stay:%d] ", rt->go, rt->cost, rt->stay);
-    printf("\n");
+    struct pio_rt *crt;
+    crt = rt;
+    while (crt < rt + ttl) {
+	printf("[go:%d cost:%d stay:%d]%s", crt->begin[0], crt->cost[0], crt->stay[0],
+	       (crt == rt + ttl - 1) ? "\n" : " ");
+	crt++;
+    }
+    crt = rt;
+    while (crt < rt + ttl) {
+	printf("[back:%d cost:%d stay:%d]%s", crt->begin[1], crt->cost[1], crt->stay[1],
+	       (crt == rt + ttl - 1) ? "\n" : " ");
+	crt++;
+    }
 }
 
 static inline int pio_rt_append(pio_msg_t *msg, struct pio_rt *rt) {
@@ -88,6 +99,12 @@ static inline int pio_rt_append(pio_msg_t *msg, struct pio_rt *rt) {
     ph_makechksum(&msg->hdr);
     return true;
 }
+
+static inline void pio_rt_shrink(pio_msg_t *msg) {
+    msg->hdr.ttl--;
+    ph_makechksum(&msg->hdr);
+}
+
 
 static inline void pio_msg_free_data_and_rt(pio_msg_t *msg) {
     mem_free(msg->data, msg->hdr.size);

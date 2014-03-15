@@ -133,7 +133,7 @@ static int __r_receiver_recv(struct role *r) {
 	return -1;
     }
     crt = pio_msg_currt(msg);
-    crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->go);
+    crt->cost[0] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[0]);
     if (!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
@@ -153,9 +153,10 @@ static void r_receiver_recv(struct role *r) {
 
 
 static int __r_dispatcher_recv(struct role *r) {
+    int64_t now = rt_mstime();
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     struct role *src;
-    struct pio_rt *crt;
+    struct pio_rt *crt, *prevrt;
 
     if (!msg)
 	return -1;
@@ -165,10 +166,10 @@ static int __r_dispatcher_recv(struct role *r) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return -1;
     }
-    msg->hdr.ttl--;
-    ph_makechksum(&msg->hdr);
     crt = pio_msg_currt(msg);
-    if (!(src = proxy_find_at(r->py, crt->uuid)) || r_push_massage(src, msg) < 0) {
+    crt->cost[1] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[1]);
+    prevrt = pio_msg_prevrt(msg);
+    if (!(src = proxy_find_at(r->py, prevrt->uuid)) || r_push_massage(src, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
 	return -1;
@@ -193,10 +194,15 @@ static void r_recv(struct role *r) {
 }
 
 static void r_receiver_send(struct role *r) {
+    int64_t now = rt_mstime();
     pio_msg_t *msg;
+    struct pio_rt *crt;
 
     if (!(msg = r_pop_massage(r)))
 	return;
+    crt = pio_msg_currt(msg);
+    crt->stay[1] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[1] - crt->cost[1]);
+    pio_rt_shrink(msg);
     rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
     while (rio_flush(&r->io) < 0)
 	if (errno != EAGAIN) {
@@ -216,8 +222,8 @@ static void r_dispatcher_send(struct role *r) {
 	return;
     crt = pio_msg_currt(msg);
     uuid_copy(rt.uuid, r->io.rgh.id);
-    rt.go = (uint32_t)(now - msg->hdr.sendstamp);
-    crt->stay = (uint16_t)(rt.go - crt->go - crt->cost);
+    rt.begin[0] = (uint32_t)(now - msg->hdr.sendstamp);
+    crt->stay[0] = (uint16_t)(rt.begin[0] - crt->begin[0] - crt->cost[0]);
     if (!pio_rt_append(msg, &rt))
 	goto EXIT;
     rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
