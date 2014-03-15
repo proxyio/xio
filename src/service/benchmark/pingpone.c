@@ -12,8 +12,6 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     proxyio_t *io = container_of(et, proxyio_t, et);
     char *data;
     uint32_t sz;
-    BUG_ON(happened != EPOLLIN);
-
     if (producer_recv_response(&io->sockfd, &data, &sz) == 0) {
 	producer_psend_request(&io->sockfd, data, sz);
 	mem_free(data, sz);
@@ -26,8 +24,6 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     proxyio_t *io = container_of(et, proxyio_t, et);
     char *data, *rt;
     uint32_t sz, rt_sz;
-    BUG_ON(happened != EPOLLIN);
-
     if (comsumer_recv_request(&io->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
 	comsumer_psend_response(&io->sockfd, data, sz, rt, rt_sz);
 	mem_free(data, sz);
@@ -52,7 +48,7 @@ int pingpong_start(struct bc_opt *cf) {
     for (i = 0; i < cf->comsumer_num; i++) {
 	if (!(sockfd = comsumer_new(cf->host, cf->proxyname)))
 	    continue;
-	io = container_of(io, proxyio_t, sockfd);
+	io = container_of(sockfd, proxyio_t, sockfd);
 	io->et.fd = *sockfd;
 	io->et.events = EPOLLIN;
 	io->et.f = comsumer_event_handler;
@@ -65,7 +61,7 @@ int pingpong_start(struct bc_opt *cf) {
     for (i = 0; i < cf->producer_num; i++) {
 	if (!(sockfd = producer_new(cf->host, cf->proxyname)))
 	    continue;
-	io = container_of(io, proxyio_t, sockfd);
+	io = container_of(sockfd, proxyio_t, sockfd);
 	io->et.fd = *sockfd;
 	io->et.events = EPOLLIN;
 	io->et.f = producer_event_handler;

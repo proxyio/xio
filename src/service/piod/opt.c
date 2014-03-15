@@ -6,10 +6,10 @@ NAME\n\
     pio - a high throughput, low latency network communication middleware\n\
 \n\
 SYNOPSIS\n\
-    pio -r time -w threads -m ipaddr\n\
+    pio -r time -w threads -m host\n\
 \n\
 OPTIONS\n\
-    -r service running time. default forever\n\
+    -r service running time. default forever\n		\
     -w threads. backend threadpool workers number\n\n\
     -m monitor_center host = ip + port\n\
 \n\
@@ -23,11 +23,13 @@ static inline void usage() {
 }
 
 int64_t deadline = 0;
+char *proxyname;
+char *proxyhost;
 
 int getoption(int argc, char* argv[], struct cf *cf) {
     int rc;
 
-    while ( (rc = getopt(argc, argv, "r:w:m:h")) != -1 ) {
+    while ( (rc = getopt(argc, argv, "r:w:m:p:h:z")) != -1 ) {
         switch(rc) {
 	case 'r':
 	    deadline = rt_mstime() + atoi(optarg) * 1E3;
@@ -36,9 +38,15 @@ int getoption(int argc, char* argv[], struct cf *cf) {
 	    cf->tp_workers = atoi(optarg);
             break;
 	case 'm':
-	    cf->monitor_addr = optarg;
+	    cf->monitor_center = optarg;
+	    break;
+	case 'p':
+	    proxyname = optarg;
 	    break;
         case 'h':
+	    proxyhost = optarg;
+	    break;
+	default:
 	    usage();
 	    return -1;
         }

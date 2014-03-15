@@ -7,7 +7,6 @@
 static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     int nfd;
     struct rio *r;
-
     if (!(happened & EPOLLIN) || (nfd = act_accept(et->fd)) < 0)
 	return -1;
     sk_setopt(nfd, SK_NONBLOCK, true);
@@ -91,6 +90,17 @@ int acp_listen(acp_t *acp, const char *addr) {
     et->events = EPOLLIN;
     list_add(&et->el_link, &acp->et_head);
     return epoll_add(&acp->el, et);
+}
+
+int acp_proxy(acp_t *acp, char *proxyname) {
+    proxy_t *py = proxy_new();
+
+    if (!py)
+	return -1;
+    proxy_init(py);
+    strncpy(py->proxyname, proxyname, PROXYNAME_MAX);
+    list_add(&py->acp_link, &acp->py_head);
+    return 0;
 }
 
 int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {

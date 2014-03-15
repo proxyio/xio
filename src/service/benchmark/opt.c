@@ -16,6 +16,7 @@ OPTIONS\n\
     -c comsumer number\n\
     -p producer number\n\
     -h proxyio host addr\n\
+    -x proxyname\n\
     -m benchmark mode\n\
 \n\
 EXAMPLE:\n\
@@ -30,7 +31,8 @@ static inline void usage() {
 int getoption(int argc, char* argv[], struct bc_opt *cf) {
     int rc;
 
-    while ( (rc = getopt(argc, argv, "r:c:p:h")) != -1 ) {
+    cf->deadline = 0xffffffff;
+    while ( (rc = getopt(argc, argv, "r:c:p:x:h:m:z")) != -1 ) {
         switch(rc) {
 	case 'r':
 	    cf->deadline = rt_mstime() + atoi(optarg) * 1E3;
@@ -41,8 +43,14 @@ int getoption(int argc, char* argv[], struct bc_opt *cf) {
 	case 'p':
 	    cf->producer_num = atoi(optarg);
 	    break;
+	case 'x':
+	    cf->proxyname = optarg;
+	    break;
 	case 'h':
 	    cf->host = optarg;
+	    break;
+	case 'm':
+	    cf->mode = atoi(optarg);
 	    break;
 	default:
 	    usage();

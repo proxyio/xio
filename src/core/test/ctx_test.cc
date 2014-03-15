@@ -74,19 +74,16 @@ static int test_producer2() {
 static void acp_test() {
     thread_t t;
     acp_t acp = {};
-    proxy_t py = {};
     struct cf cf = {};
 
     cf.tp_workers = 1;
     cf.el_io_size = 100;
     cf.el_wait_timeout = 1;
-    proxy_init(&py);
-    strcpy(py.proxyname, PROXYNAME);
     acp_init(&acp, &cf);
-    list_add(&py.acp_link, &acp.py_head);
-
-    acp_start(&acp);
+    acp_proxy(&acp, PROXYNAME);
     EXPECT_EQ(0, acp_listen(&acp, PIOHOST));
+    acp_start(&acp);
+
 
     thread_start(&t, comsumer_worker, NULL);
     while (!comsumer_ok) {
@@ -96,18 +93,10 @@ static void acp_test() {
 
     comsumer_ok = false;
     thread_stop(&t);
-
-    EXPECT_EQ(0, acp_proxyto(&acp, PROXYNAME, PIOHOST));
-    while (py.rsize != 2)
-	usleep(1000);
-    acp_stop(&acp);
-    proxy_destroy(&py);
     acp_destroy(&acp);
 }
 
 
 TEST(ctx, accepter) {
-    uuid_t uuid;
-    EXPECT_TRUE(sizeof(uuid) == sizeof(uuid_t));
     acp_test();
 }

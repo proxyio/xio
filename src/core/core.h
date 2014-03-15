@@ -17,8 +17,10 @@ struct cf {
     int tp_workers;
     int el_io_size;
     int el_wait_timeout;
-    char *monitor_addr;
+    char *monitor_center;
 };
+
+extern struct cf default_cf;
 
 typedef struct accepter {
     spin_t lock;
