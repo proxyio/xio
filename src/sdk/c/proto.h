@@ -13,7 +13,7 @@ struct pio_rt {
     uint16_t port;
     uint16_t cost;
     uint16_t stay;
-    uint32_t begin;
+    uint32_t go;
 };
 #define PIORTLEN sizeof(struct pio_rt)
 
@@ -70,12 +70,19 @@ static inline uint32_t pio_msg_size(pio_msg_t *msg) {
 
 #define pio_msg_currt(msg) (&(msg)->rt[(msg)->hdr.ttl - 1])
 
+static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
+    while (ttl--)
+	printf("[go:%d cost:%d stay:%d] ", rt->go, rt->cost, rt->stay);
+    printf("\n");
+}
+
 static inline int pio_rt_append(pio_msg_t *msg, struct pio_rt *rt) {
     struct pio_rt *nrt;
     uint32_t new_sz = pio_rt_size(&msg->hdr) + PIORTLEN;
     if (!(nrt = (struct pio_rt *)mem_realloc(msg->rt, new_sz)))
 	return false;
     msg->hdr.ttl++;
+    msg->hdr.end_ttl = msg->hdr.ttl;
     msg->rt = nrt;
     memcpy(pio_msg_currt(msg), rt, PIORTLEN);
     ph_makechksum(&msg->hdr);

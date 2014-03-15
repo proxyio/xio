@@ -21,11 +21,12 @@ static proxyio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     io = container_of(sockfd, proxyio_t, sockfd);
     io->et.fd = *sockfd;
     io->et.events = EPOLLIN;
-    io->et.f = comsumer_event_handler;
+    io->et.f = producer_event_handler;
     if (epoll_add(&ctx->el, &io->et) < 0) {
 	producer_destroy(sockfd);
 	return NULL;
     }
+    modstat_set_warnf(proxyio_stat(io), MSL_S, bc_threshold_warn);
     list_add(&io->io_link, &ctx->io_head);
     return io;
 }
@@ -45,6 +46,7 @@ static proxyio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 	comsumer_destroy(sockfd);
 	return NULL;
     }
+    modstat_set_warnf(proxyio_stat(io), MSL_S, bc_threshold_warn);
     list_add(&io->io_link, &ctx->io_head);
     return io;
 }
@@ -97,11 +99,10 @@ int pingpong_start(struct bc_opt *cf) {
     proxyio_t *io, *tmp;
     pingpong_ctx_t ctx = {};
 
-    printf("pingpong benchmark start...\n");
     INIT_LIST_HEAD(&ctx.io_head);
     ctx.cf = cf;
     randstr(page, REQLEN);
-    epoll_init(&ctx.el, 10240, 1024, 1);
+    epoll_init(&ctx.el, 10240, 100, 1);
     for (i = 0; i < cf->comsumer_num; i++)
 	new_pingpong_comsumer(&ctx);
     for (i = 0; i < cf->producer_num; i++) {

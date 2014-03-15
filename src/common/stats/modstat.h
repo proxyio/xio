@@ -18,6 +18,7 @@ enum STAT_TYPE {
     MST_AVG,
     MST_NUM,
 };
+extern const char *stat_type_token[MST_NUM];
 
 enum STAT_LEVEL {
     MSL_A = 0,
@@ -27,6 +28,8 @@ enum STAT_LEVEL {
     MSL_D,
     MSL_NUM,
 };
+
+extern const char *stat_level_token[MSL_NUM];
 
 typedef struct modstat {
     int kr;

@@ -9,10 +9,23 @@
 #include "bufio/bio.h"
 #include "proto.h"
 #include "net/socket.h"
+#include "stats/modstat.h"
+
+
+enum {
+    PIO_RECV = 0,
+    PIO_SEND,
+    PIO_ERROR,
+    PIO_RECONNECT,
+    PIO_MODSTAT_KEYRANGE,
+};
+extern const char *pio_modstat_item[PIO_MODSTAT_KEYRANGE];
+DEFINE_MODSTAT(pio, PIO_MODSTAT_KEYRANGE);
 
 typedef struct proxyio {
     int sockfd;
     int64_t seqid;
+    pio_modstat_t stat;
     struct bio in;
     struct bio out;
     pio_rgh_t rgh;
@@ -24,31 +37,8 @@ typedef struct proxyio {
 #define list_for_each_pio_safe(pos, tmp, head)				\
     list_for_each_entry_safe(pos, tmp, head, proxyio_t, io_link)
 
-static inline int64_t proxyio_sock_read(struct io *sock, char *buff, int64_t sz) {
-    proxyio_t *io = container_of(sock, proxyio_t, sock_ops);
-    sz = sk_read(io->sockfd, buff, sz);
-    return sz;
-}
-
-static inline int64_t proxyio_sock_write(struct io *sock, char *buff, int64_t sz) {
-    proxyio_t *io = container_of(sock, proxyio_t, sock_ops);
-    sz = sk_write(io->sockfd, buff, sz);
-    return sz;
-}
-
-
-static inline void proxyio_init(proxyio_t *io) {
-    ZERO(*io);
-    bio_init(&io->in);
-    bio_init(&io->out);
-    io->sock_ops.read = proxyio_sock_read;
-    io->sock_ops.write = proxyio_sock_write;
-}
-
-static inline void proxyio_destroy(proxyio_t *io) {
-    bio_destroy(&io->in);
-    bio_destroy(&io->out);
-}
+void proxyio_init(proxyio_t *io);
+void proxyio_destroy(proxyio_t *io);
 
 static inline proxyio_t *proxyio_new() {
     proxyio_t *io = (proxyio_t *)mem_zalloc(sizeof(*io));
@@ -60,6 +50,10 @@ static inline proxyio_t *proxyio_new() {
 int proxyio_ps_rgs(proxyio_t *io);
 int proxyio_at_rgs(proxyio_t *io);
 
+static inline modstat_t *proxyio_stat(proxyio_t *io) {
+    return &io->stat.self;
+}
+
 int proxyio_bread(proxyio_t *io, struct pio_hdr *h, char **data, char **rt);
 int proxyio_bwrite(proxyio_t *io,
 		   const struct pio_hdr *h, const char *data, const char *rt);
@@ -67,7 +61,6 @@ int proxyio_bwrite(proxyio_t *io,
 static inline int proxyio_one_ready(proxyio_t *io) {
     struct pio_hdr h = {};
     struct bio *b = &io->in;
-
     if ((b->bsize >= sizeof(h)) && ({ bio_copy(b, (char *)&h, sizeof(h));
 		b->bsize >= pio_pkg_size(&h);}))
 	return true;

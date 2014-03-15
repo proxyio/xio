@@ -27,6 +27,7 @@ static proxyio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
 	producer_destroy(sockfd);
 	return NULL;
     }
+    modstat_set_warnf(proxyio_stat(io), MSL_S, bc_threshold_warn);
     list_add(&io->io_link, &ctx->io_head);
     return io;
 }
@@ -46,6 +47,7 @@ static proxyio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 	comsumer_destroy(sockfd);
 	return NULL;
     }
+    modstat_set_warnf(proxyio_stat(io), MSL_S, bc_threshold_warn);
     list_add(&io->io_link, &ctx->io_head);
     return io;
 }

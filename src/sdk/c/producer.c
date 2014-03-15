@@ -37,25 +37,27 @@ void producer_destroy(producer_t *pp) {
 
 
 int producer_send_request(producer_t *pp, const char *data, uint32_t size) {
+    int64_t now = rt_mstime();
     proxyio_t *io = container_of(pp, proxyio_t, sockfd);
     struct pio_rt rt = {
 	.cost = 0,
 	.stay = 0,
-	.begin = 0,
+	.go = 0,
     };
     struct pio_hdr h = {
 	.version = PIO_VERSION,
 	.ttl = 1,
-	.end_ttl = 0,
+	.end_ttl = 1,
 	.size = size,
 	.go = 1,
 	.flags = 0,
 	.seqid = io->seqid++,
-	.sendstamp = rt_mstime(),
+	.sendstamp = now,
     };
     uuid_copy(rt.uuid, io->rgh.id);
     ph_makechksum(&h);
     proxyio_bwrite(io, &h, data, (char *)&rt);
+    modstat_update_timestamp(proxyio_stat(io), now);
     if (proxyio_flush(io) < 0 && errno != EAGAIN)
 	return -1;
     return 0;
@@ -80,6 +82,7 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
     if ((proxyio_prefetch(io) < 0 && errno != EAGAIN)
 	|| proxyio_bread(io, &h, data, (char **)&rt) < 0)
 	return -1;
+    // pio_rt_print(h.end_ttl, rt);
     mem_free(rt, pio_rt_size(&h));
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);
@@ -87,6 +90,7 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
 	return -1;
     }
     *size = h.size;
+    modstat_update_timestamp(proxyio_stat(io), rt_mstime());
     return 0;
 }
 

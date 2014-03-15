@@ -85,7 +85,6 @@ static int r_push_massage(struct rio *r, pio_msg_t *msg) {
 
 static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     struct rio *r = container_of(et, struct rio, et);
-    
     if (!r->registed)
 	r_rgs(r, happened);
     if (r->registed) {
@@ -134,7 +133,7 @@ static int __r_receiver_recv(struct rio *r) {
 	return -1;
     }
     crt = pio_msg_currt(msg);
-    crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->begin);
+    crt->cost = (uint16_t)(now - msg->hdr.sendstamp - crt->go);
     if (!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
@@ -217,8 +216,8 @@ static void r_dispatcher_send(struct rio *r) {
 	return;
     crt = pio_msg_currt(msg);
     uuid_copy(rt.uuid, r->io.rgh.id);
-    rt.begin = (uint32_t)(now - msg->hdr.sendstamp);
-    crt->stay = (uint16_t)(rt.begin - crt->begin - crt->cost);
+    rt.go = (uint32_t)(now - msg->hdr.sendstamp);
+    crt->stay = (uint16_t)(rt.go - crt->go - crt->cost);
     if (!pio_rt_append(msg, &rt))
 	goto EXIT;
     proxyio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);

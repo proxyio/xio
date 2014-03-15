@@ -3,16 +3,32 @@
 #include <string.h>
 #include "modstat.h"
 
-static void trigger_one_key_stat(modstat_t *ms, int64_t nowtime) {
-    int sl;
-    int64_t key;
+const char *stat_type_token[MST_NUM] = {
+    "now",
+    "last",
+    "min",
+    "max",
+    "avg",
+};
 
+
+const char *stat_level_token[MSL_NUM] = {
+    "total",
+    "second",
+    "minute",
+    "hour",
+    "day",
+};
+
+
+static void trigger_one_key_stat(modstat_t *ms, int64_t nowtime) {
+    int sl, key;
     for (sl = MSL_S; sl < MSL_NUM; sl++) {
 	if (nowtime - ms->timestamp[sl] <= ms->slv[sl])
 	    continue;
 	for (key = 0; key < ms->kr; key++) {
 	    if (ms->f[sl] && ms->keys[MST_NOW][sl][key] > ms->threshold[sl][key])
-		ms->f[sl](ms, key, sl, ms->threshold[sl][key], ms->keys[MST_NOW][sl][key]);		
+		ms->f[sl](ms, sl, key, ms->threshold[sl][key], ms->keys[MST_NOW][sl][key]);
 	    ms->keys[MST_LAST][sl][key] = ms->keys[MST_NOW][sl][key];
 	    if (!ms->keys[MST_MIN][sl][key] || ms->keys[MST_NOW][sl][key] < ms->keys[MST_MIN][sl][key])
 		ms->keys[MST_MIN][sl][key] = ms->keys[MST_NOW][sl][key];
@@ -23,9 +39,7 @@ static void trigger_one_key_stat(modstat_t *ms, int64_t nowtime) {
 }
 
 static void update_one_key_stat(modstat_t *ms, int64_t nowtime) {
-    int sl;
-    int64_t key;
-    
+    int sl, key;
     for (sl = MSL_S; sl < MSL_NUM; sl++) {
 	if (nowtime - ms->timestamp[sl] <= ms->slv[sl])
 	    continue;
