@@ -14,6 +14,7 @@ int randstr(char *buf, int sz) {
 }
 
 extern int pingpong_start(struct bc_opt *cf);
+extern int exception_start(struct bc_opt *cf);
 
 int main(int argc, char **argv) {
     struct bc_opt cf = {};
@@ -23,6 +24,9 @@ int main(int argc, char **argv) {
     switch (cf.mode) {
     case PINGPONG:
 	pingpong_start(&cf);
+	break;
+    case EXCEPTION:
+	exception_start(&cf);
 	break;
     }
     return 0;

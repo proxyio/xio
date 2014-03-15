@@ -6,6 +6,7 @@
 #include "sdk/c/proxyio.h"
 
 #define REQLEN (PAGE_SIZE * 8)
+static char page[REQLEN];
 extern int randstr(char *buff, int sz);
 
 static inline int producer_event_handler(epoll_t *, epollevent_t *, uint32_t);
@@ -20,7 +21,7 @@ static proxyio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
 	return NULL;
     io = container_of(sockfd, proxyio_t, sockfd);
     io->et.fd = *sockfd;
-    io->et.events = EPOLLIN;
+    io->et.events = EPOLLIN|EPOLLOUT;
     io->et.f = comsumer_event_handler;
     if (epoll_add(&ctx->el, &io->et) < 0) {
 	producer_destroy(sockfd);
@@ -62,8 +63,20 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	new_pingpong_producer(ctx);
 	return 0;
     }
-    if (producer_recv_response(&io->sockfd, &data, &sz) == 0) {
-	producer_psend_request(&io->sockfd, data, sz);
+    if (rand() % 234 == 0) {
+	switch (rand() % 4) {
+	case 0:
+	    sk_write(io->sockfd, page, rand() % 100);
+	    return -1;
+	case 1:
+	    epoll_del(el, et);
+	    proxyio_destroy(io);
+	    new_pingpong_producer(ctx);
+	    return -1;
+	}
+    }
+    if ((happened & EPOLLIN)
+	&& producer_recv_response(&io->sockfd, &data, &sz) == 0) {
 	mem_free(data, sz);
     }
     return 0;
@@ -81,6 +94,18 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	new_pingpong_comsumer(ctx);
 	return 0;
     }
+    if (rand() % 234 == 0) {
+	switch (rand() % 4) {
+	case 0:
+	    sk_write(io->sockfd, page, rand() % 100);
+	    return -1;
+	case 1:
+	    epoll_del(el, et);
+	    proxyio_destroy(io);
+	    new_pingpong_producer(ctx);
+	    return -1;
+	}
+    }
     if (comsumer_recv_request(&io->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
 	comsumer_psend_response(&io->sockfd, data, sz, rt, rt_sz);
 	mem_free(data, sz);
@@ -90,14 +115,12 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 }
 
 
-int pingpong_start(struct bc_opt *cf) {
+int exception_start(struct bc_opt *cf) {
     int i;
-    uint32_t sz;
-    char page[REQLEN];
     proxyio_t *io, *tmp;
     pingpong_ctx_t ctx = {};
 
-    printf("pingpong benchmark start...\n");
+    printf("exception benchmark start...\n");
     INIT_LIST_HEAD(&ctx.io_head);
     ctx.cf = cf;
     randstr(page, REQLEN);
@@ -106,8 +129,6 @@ int pingpong_start(struct bc_opt *cf) {
 	new_pingpong_comsumer(&ctx);
     for (i = 0; i < cf->producer_num; i++) {
 	io = new_pingpong_producer(&ctx);
-	sz = rand() % REQLEN;
-	BUG_ON(producer_psend_request(&io->sockfd, page, sz) != 0);
     }
     while (rt_mstime() < cf->deadline)
 	epoll_oneloop(&ctx.el);

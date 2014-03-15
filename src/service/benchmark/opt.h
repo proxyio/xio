@@ -5,6 +5,7 @@
 
 enum {
     PINGPONG = 0,
+    EXCEPTION,
 };
 
 struct bc_opt {
