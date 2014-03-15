@@ -40,3 +40,13 @@ endif()
 aux_source_directory( sdk/c CSDK )
 add_library( pioc ${CSDK} )
 target_link_libraries( common_test common)
+
+
+
+## compile core_test
+aux_source_directory( service/piod PIOD )
+add_executable( piod ${PIOD} )
+target_link_libraries( piod common core pioc)
+if (DEBUG_mode)
+   target_link_libraries( piod gcov )
+endif()

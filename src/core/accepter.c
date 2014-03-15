@@ -62,7 +62,7 @@ proxy_t *acp_find(acp_t *acp, char proxyname[PROXYNAME_MAX]) {
     return match;
 }
 
-int acp_worker(void *args) {
+static inline int acp_worker(void *args) {
     acp_t *acp = (acp_t *)args;
     return epoll_startloop(&acp->el);
 }
