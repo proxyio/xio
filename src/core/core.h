@@ -42,6 +42,8 @@ typedef struct proxy {
     struct list_head snder_head;
 } proxy_t;
 
+#define list_for_each_py_safe(pos, n, head)			\
+    list_for_each_entry_safe(pos, n, head, proxy_t, acp_link)
 
 struct role {
     rio_t io;

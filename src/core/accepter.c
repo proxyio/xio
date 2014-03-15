@@ -38,11 +38,17 @@ void acp_init(acp_t *acp, const struct cf *cf) {
 }
 
 void acp_destroy(acp_t *acp) {
-    epollevent_t *et, *tmp;
-    list_for_each_et_safe(et, tmp, &acp->et_head) {
+    epollevent_t *et, *ettmp;
+    proxy_t *py, *pytmp;
+    
+    list_for_each_et_safe(et, ettmp, &acp->et_head) {
 	epoll_del(&acp->el, et);
 	list_del(&et->el_link);
 	mem_free(et, sizeof(*et));
+    }
+    list_for_each_py_safe(py, pytmp, &acp->py_head) {
+	list_del(&py->acp_link);
+	mem_free(py, sizeof(*py));
     }
     epoll_destroy(&(acp)->el);	
     spin_destroy(&(acp)->lock);	
