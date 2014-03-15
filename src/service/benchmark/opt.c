@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include "os/timestamp.h"
+#include "os/timesz.h"
 #include "opt.h"
 
 static char __usage[] = "\n\

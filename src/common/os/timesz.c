@@ -1,6 +1,6 @@
 #include <time.h>
 #include <sys/time.h>
-#include "timestamp.h"
+#include "timesz.h"
 
 int64_t rt_mstime() {
     struct timeval tv;

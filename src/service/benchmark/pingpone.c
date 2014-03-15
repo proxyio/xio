@@ -2,7 +2,6 @@
 #include "bc.h"
 #include "opt.h"
 #include "os/epoll.h"
-#include "os/timestamp.h"
 #include "core/rio.h"
 #include "sdk/c/io.h"
 

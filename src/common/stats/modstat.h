@@ -2,7 +2,7 @@
 #define _HPIO_MODULESTAT_
 
 #include "base.h"
-#include "os/timestamp.h"
+#include "os/timesz.h"
 
 #define MODSTAT_KEYMAX 256
 

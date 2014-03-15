@@ -4,7 +4,6 @@
 #include "errno.h"
 #include "io.h"
 #include "core/rio.h"
-#include "os/timestamp.h"
 
 producer_t *producer_new(const char *addr, const char py[PROXYNAME_MAX]) {
     rio_t *io = rio_new();

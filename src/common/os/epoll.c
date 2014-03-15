@@ -2,7 +2,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
-#include "timestamp.h"
+#include "timesz.h"
 #include "epoll.h"
 #include "ds/skrb_sync.h"
 
