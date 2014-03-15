@@ -2,6 +2,7 @@
 #include <uuid/uuid.h>
 #include <unistd.h>
 #include "errno.h"
+#include "io.h"
 #include "proxyio.h"
 #include "os/timestamp.h"
 

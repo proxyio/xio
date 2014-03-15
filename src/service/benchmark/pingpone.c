@@ -4,6 +4,7 @@
 #include "os/epoll.h"
 #include "os/timestamp.h"
 #include "sdk/c/proxyio.h"
+#include "sdk/c/io.h"
 
 #define REQLEN (PAGE_SIZE * 8)
 extern int randstr(char *buff, int sz);

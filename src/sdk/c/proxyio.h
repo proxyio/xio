@@ -5,7 +5,6 @@
 #include "ds/list.h"
 #include "os/memory.h"
 #include "os/epoll.h"
-#include "io.h"
 #include "bufio/bio.h"
 #include "proto.h"
 #include "net/socket.h"

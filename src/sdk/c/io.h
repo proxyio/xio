@@ -4,6 +4,8 @@
 #define PROXYNAME_MAX 128
 #define PIO_VERSION 0x1
 
+#include <inttypes.h>
+
 typedef int comsumer_t;
 typedef int producer_t;
 
