@@ -3,7 +3,7 @@
 
 #include "os/epoll.h"
 #include "ds/list.h"
-#include "sdk/c/proxyio.h"
+#include "core/rio.h"
 
 typedef struct pingpong_ctx {
     struct bc_opt *cf;

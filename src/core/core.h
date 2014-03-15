@@ -10,8 +10,8 @@
 #include "sync/spin.h"
 #include "stats/modstat.h"
 #include "runner/taskpool.h"
-#include "sdk/c/proto.h"
-#include "sdk/c/proxyio.h"
+#include "hdr.h"
+#include "rio.h"
 
 struct cf {
     int tp_workers;
@@ -44,7 +44,7 @@ typedef struct proxy {
 
 
 struct role {
-    proxyio_t io;
+    rio_t io;
     spin_t lock;
     uint32_t registed:1;
     uint32_t status_ok:1;

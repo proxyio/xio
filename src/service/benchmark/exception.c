@@ -3,7 +3,7 @@
 #include "opt.h"
 #include "os/epoll.h"
 #include "os/timestamp.h"
-#include "sdk/c/proxyio.h"
+#include "core/rio.h"
 #include "sdk/c/io.h"
 
 #define REQLEN (PAGE_SIZE * 8)
@@ -13,14 +13,14 @@ extern int randstr(char *buff, int sz);
 static inline int producer_event_handler(epoll_t *, epollevent_t *, uint32_t);
 static inline int comsumer_event_handler(epoll_t *, epollevent_t *, uint32_t);
 
-static proxyio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
+static rio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     int *sockfd;
-    proxyio_t *io;
+    rio_t *io;
     struct bc_opt *cf = ctx->cf;
     
     if (!(sockfd = producer_new(cf->host, cf->proxyname)))
 	return NULL;
-    io = container_of(sockfd, proxyio_t, sockfd);
+    io = container_of(sockfd, rio_t, sockfd);
     io->et.fd = *sockfd;
     io->et.events = EPOLLIN|EPOLLOUT;
     io->et.f = comsumer_event_handler;
@@ -28,19 +28,19 @@ static proxyio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
 	producer_destroy(sockfd);
 	return NULL;
     }
-    modstat_set_warnf(proxyio_stat(io), MSL_S, bc_threshold_warn);
+    modstat_set_warnf(rio_stat(io), MSL_S, bc_threshold_warn);
     list_add(&io->io_link, &ctx->io_head);
     return io;
 }
 
-static proxyio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
+static rio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
     int *sockfd;
-    proxyio_t *io;
+    rio_t *io;
     struct bc_opt *cf = ctx->cf;
     
     if (!(sockfd = comsumer_new(cf->host, cf->proxyname)))
 	return NULL;
-    io = container_of(sockfd, proxyio_t, sockfd);
+    io = container_of(sockfd, rio_t, sockfd);
     io->et.fd = *sockfd;
     io->et.events = EPOLLIN;
     io->et.f = comsumer_event_handler;
@@ -48,7 +48,7 @@ static proxyio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 	comsumer_destroy(sockfd);
 	return NULL;
     }
-    modstat_set_warnf(proxyio_stat(io), MSL_S, bc_threshold_warn);
+    modstat_set_warnf(rio_stat(io), MSL_S, bc_threshold_warn);
     list_add(&io->io_link, &ctx->io_head);
     return io;
 }
@@ -56,13 +56,13 @@ static proxyio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 
 static inline int
 producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
-    proxyio_t *io = container_of(et, proxyio_t, et);
+    rio_t *io = container_of(et, rio_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data;
     uint32_t sz;
     if (happened & EPOLLERR) {
 	epoll_del(el, et);
-	proxyio_destroy(io);
+	rio_destroy(io);
 	new_pingpong_producer(ctx);
 	return 0;
     }
@@ -73,7 +73,7 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	    return -1;
 	case 1:
 	    epoll_del(el, et);
-	    proxyio_destroy(io);
+	    rio_destroy(io);
 	    new_pingpong_producer(ctx);
 	    return -1;
 	}
@@ -87,13 +87,13 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 
 static inline int
 comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
-    proxyio_t *io = container_of(et, proxyio_t, et);
+    rio_t *io = container_of(et, rio_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data, *rt;
     uint32_t sz, rt_sz;
     if (happened & EPOLLERR) {
 	epoll_del(el, et);
-	proxyio_destroy(io);
+	rio_destroy(io);
 	new_pingpong_comsumer(ctx);
 	return 0;
     }
@@ -104,7 +104,7 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	    return -1;
 	case 1:
 	    epoll_del(el, et);
-	    proxyio_destroy(io);
+	    rio_destroy(io);
 	    new_pingpong_producer(ctx);
 	    return -1;
 	}
@@ -120,7 +120,7 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 
 int exception_start(struct bc_opt *cf) {
     int i;
-    proxyio_t *io, *tmp;
+    rio_t *io, *tmp;
     pingpong_ctx_t ctx = {};
 
     printf("exception benchmark start...\n");
@@ -138,7 +138,7 @@ int exception_start(struct bc_opt *cf) {
     list_for_each_pio_safe(io, tmp, &ctx.io_head) {
 	epoll_del(&ctx.el, &io->et);
 	list_del(&io->io_link);
-	proxyio_destroy(io);
+	rio_destroy(io);
     }
     epoll_destroy(&ctx.el);
     return 0;

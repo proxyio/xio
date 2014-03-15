@@ -12,7 +12,7 @@ static void r_send(struct role *r);
 static void r_error(struct role *r);
 
 void r_init(struct role *r) {
-    proxyio_init(&r->io);
+    rio_init(&r->io);
     spin_init(&r->lock);
     r->registed = false;
     r->status_ok = true;
@@ -29,7 +29,7 @@ void r_init(struct role *r) {
 }
 
 void r_destroy(struct role *r) {
-    proxyio_destroy(&r->io);
+    rio_destroy(&r->io);
     spin_destroy(&r->lock);			
     atomic_destroy(&r->ref);		
     mem_cache_destroy(&r->slabs);
@@ -105,7 +105,7 @@ static void r_rgs(struct role *r, uint32_t happened) {
     acp_t *acp = container_of(r->el, struct accepter, el);
 
     if ((ret = r->is_register ?
-	 proxyio_ps_rgs(&r->io) : proxyio_at_rgs(&r->io)) < 0) {
+	 rio_ps_rgs(&r->io) : rio_at_rgs(&r->io)) < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }
@@ -126,7 +126,7 @@ static int __r_receiver_recv(struct role *r) {
 
     if (!msg)
 	return -1;
-    if (proxyio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
+    if (rio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
 	|| !ph_validate(&msg->hdr)) {
 	mem_cache_free(&r->slabs, msg);
 	r->status_ok = (errno != EAGAIN) ? false : true;
@@ -143,7 +143,7 @@ static int __r_receiver_recv(struct role *r) {
 }
 
 static void r_receiver_recv(struct role *r) {
-    if (proxyio_prefetch(&r->io) < 0 && errno != EAGAIN) {
+    if (rio_prefetch(&r->io) < 0 && errno != EAGAIN) {
 	r->status_ok = false;
 	return;
     }
@@ -159,7 +159,7 @@ static int __r_dispatcher_recv(struct role *r) {
 
     if (!msg)
 	return -1;
-    if (proxyio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
+    if (rio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
 	|| !ph_validate(&msg->hdr)) {
 	mem_cache_free(&r->slabs, msg);
 	r->status_ok = (errno != EAGAIN) ? false : true;
@@ -177,7 +177,7 @@ static int __r_dispatcher_recv(struct role *r) {
 }
 
 static void r_dispatcher_recv(struct role *r) {
-    if (proxyio_prefetch(&r->io) < 0 && errno != EAGAIN) {
+    if (rio_prefetch(&r->io) < 0 && errno != EAGAIN) {
 	r->status_ok = false;
 	return;
     }
@@ -197,8 +197,8 @@ static void r_receiver_send(struct role *r) {
 
     if (!(msg = r_pop_massage(r)))
 	return;
-    proxyio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
-    while (proxyio_flush(&r->io) < 0)
+    rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
+    while (rio_flush(&r->io) < 0)
 	if (errno != EAGAIN) {
 	    r->status_ok = false;
 	    break;
@@ -220,8 +220,8 @@ static void r_dispatcher_send(struct role *r) {
     crt->stay = (uint16_t)(rt.go - crt->go - crt->cost);
     if (!pio_rt_append(msg, &rt))
 	goto EXIT;
-    proxyio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
-    while (proxyio_flush(&r->io) < 0) {
+    rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
+    while (rio_flush(&r->io) < 0) {
 	if (errno != EAGAIN) {
 	    r->status_ok = false;
 	    break;

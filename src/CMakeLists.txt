@@ -39,7 +39,7 @@ endif()
 ## compile sdk for c/c++
 aux_source_directory( sdk/c CSDK )
 add_library( pioc ${CSDK} )
-target_link_libraries( pioc common)
+target_link_libraries( pioc common core )
 
 
 
