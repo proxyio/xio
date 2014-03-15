@@ -1,3 +1,4 @@
+#include <errno.h>
 #include "bio.h"
 #include "os/memory.h"
 
@@ -175,12 +176,13 @@ int64_t bio_flush(struct bio *b, struct io *io_ops) {
 }
 
 int64_t bio_prefetch(struct bio *b, struct io *io_ops) {
-    int64_t nbytes;
+    int64_t nbytes, sum = 0;
     char page[PAGE_SIZE];
 
-    if ((nbytes = io_ops->read(io_ops, page, PAGE_SIZE)) < 0)
+    while ((nbytes = io_ops->read(io_ops, page, PAGE_SIZE)) >= 0)
+	sum += bio_write(b, page, nbytes);
+    if (nbytes < 0 && errno != EAGAIN && sum == 0)
 	return -1;
-    BUG_ON(bio_write(b, page, nbytes) != nbytes);
-    return nbytes;
+    return sum;
 }
 

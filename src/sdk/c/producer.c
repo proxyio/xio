@@ -84,8 +84,7 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
     if ((rio_prefetch(io) < 0 && errno != EAGAIN)
 	|| rio_bread(io, &h, data, (char **)&rt) < 0)
 	return -1;
-    rt->cost[0] = (uint16_t)(now - h.sendstamp - rt->begin[1]);
-    pio_rt_print(h.end_ttl, rt);
+    rt->cost[1] = (uint16_t)(now - h.sendstamp - rt->begin[1]);
     mem_free(rt, pio_rt_size(&h));
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);

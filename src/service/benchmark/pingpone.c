@@ -6,7 +6,7 @@
 #include "core/rio.h"
 #include "sdk/c/io.h"
 
-#define REQLEN (PAGE_SIZE * 8)
+#define REQLEN PAGE_SIZE
 extern int randstr(char *buff, int sz);
 
 static inline int producer_event_handler(epoll_t *, epollevent_t *, uint32_t);
@@ -108,7 +108,7 @@ int pingpong_start(struct bc_opt *cf) {
 	new_pingpong_comsumer(&ctx);
     for (i = 0; i < cf->producer_num; i++) {
 	io = new_pingpong_producer(&ctx);
-	sz = rand() % REQLEN;
+	sz = cf->size > 0 ? cf->size : rand() % REQLEN;
 	BUG_ON(producer_psend_request(&io->sockfd, page, sz) != 0);
     }
     while (rt_mstime() < cf->deadline)

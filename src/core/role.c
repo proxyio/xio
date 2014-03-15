@@ -203,6 +203,8 @@ static void r_receiver_send(struct role *r) {
     crt = pio_msg_currt(msg);
     crt->stay[1] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[1] - crt->cost[1]);
     pio_rt_shrink(msg);
+    crt = pio_msg_currt(msg);
+    crt->begin[1] = (uint16_t)(now - msg->hdr.sendstamp);
     rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
     while (rio_flush(&r->io) < 0)
 	if (errno != EAGAIN) {
@@ -222,7 +224,7 @@ static void r_dispatcher_send(struct role *r) {
 	return;
     crt = pio_msg_currt(msg);
     uuid_copy(rt.uuid, r->io.rgh.id);
-    rt.begin[0] = (uint32_t)(now - msg->hdr.sendstamp);
+    rt.begin[0] = (uint16_t)(now - msg->hdr.sendstamp);
     crt->stay[0] = (uint16_t)(rt.begin[0] - crt->begin[0] - crt->cost[0]);
     if (!pio_rt_append(msg, &rt))
 	goto EXIT;

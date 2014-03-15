@@ -17,7 +17,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happ
     r->is_register = true;
     r->el = el;
     r->et.fd = r->io.sockfd = nfd;
-    r->et.events = EPOLLIN;
+    r->et.events = EPOLLIN|EPOLLOUT;
     if (epoll_add(el, &r->et) < 0) {
 	close(nfd);
 	r_destroy(r);

@@ -32,7 +32,7 @@ int getoption(int argc, char* argv[], struct bc_opt *cf) {
     int rc;
 
     cf->deadline = 0xffffffff;
-    while ( (rc = getopt(argc, argv, "r:c:p:x:h:m:z")) != -1 ) {
+    while ( (rc = getopt(argc, argv, "r:c:p:x:h:m:s:z")) != -1 ) {
         switch(rc) {
 	case 'r':
 	    cf->deadline = rt_mstime() + atoi(optarg) * 1E3;
@@ -51,6 +51,9 @@ int getoption(int argc, char* argv[], struct bc_opt *cf) {
 	    break;
 	case 'm':
 	    cf->mode = atoi(optarg);
+	    break;
+	case 's':
+	    cf->size = atoi(optarg);
 	    break;
 	default:
 	    usage();

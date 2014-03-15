@@ -9,6 +9,7 @@ enum {
 };
 
 struct bc_opt {
+    int size;
     int64_t deadline;
     int comsumer_num;
     int producer_num;
