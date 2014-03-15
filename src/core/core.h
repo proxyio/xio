@@ -13,11 +13,12 @@
 #include "sdk/c/proto.h"
 #include "sdk/c/proxyio.h"
 
+
 typedef struct accepter {
     spin_t lock;
     taskpool_t tp;
     epoll_t el;
-    epollevent_t et;
+    struct list_head et_head;
     struct list_head py_head;
 } acp_t;
 

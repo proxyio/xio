@@ -26,7 +26,11 @@ typedef struct epollevent {
     int64_t to_nsec;
     uint32_t events;
     skrb_node_t tr_node;
+    struct list_head el_link;
 } epollevent_t;
+
+#define list_for_each_et_safe(pos, tmp, head)				\
+    list_for_each_entry_safe(pos, tmp, head, epollevent_t, el_link)
 
 
 typedef struct epoll {
