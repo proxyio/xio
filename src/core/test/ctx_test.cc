@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 extern "C" {
-#include "core/rio.h"
+#include "core/role.h"
 #include "core/accepter.h"
 #include "core/proxy.h"
 #include "sdk/c/io.h"

@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include "net/accepter.h"
-#include "rio.h"
+#include "role.h"
 #include "proxy.h"
 #include "runner/taskpool.h"
 
 static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     int nfd;
-    struct rio *r;
+    struct role *r;
     if (!(happened & EPOLLIN) || (nfd = act_accept(et->fd)) < 0)
 	return -1;
     sk_setopt(nfd, SK_NONBLOCK, true);
@@ -106,7 +106,7 @@ int acp_proxy(acp_t *acp, char *proxyname) {
 int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     int nfd;
     pio_rgh_t *h;
-    struct rio *r;
+    struct role *r;
     
     if ((nfd = sk_connect("tcp", "", addr)) < 0)
 	return -1;

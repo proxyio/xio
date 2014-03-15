@@ -1,17 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "rio.h"
+#include "role.h"
 #include "proxy.h"
 #include "accepter.h"
 
 static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
-static void r_rgs(struct rio *r, uint32_t happened);
-static void r_recv(struct rio *r);
-static void r_send(struct rio *r);
-static void r_error(struct rio *r);
+static void r_rgs(struct role *r, uint32_t happened);
+static void r_recv(struct role *r);
+static void r_send(struct role *r);
+static void r_error(struct role *r);
 
-void r_init(struct rio *r) {
+void r_init(struct role *r) {
     proxyio_init(&r->io);
     spin_init(&r->lock);
     r->registed = false;
@@ -28,14 +28,14 @@ void r_init(struct rio *r) {
     mem_cache_init(&r->slabs, sizeof(pio_msg_t));
 }
 
-void r_destroy(struct rio *r) {
+void r_destroy(struct role *r) {
     proxyio_destroy(&r->io);
     spin_destroy(&r->lock);			
     atomic_destroy(&r->ref);		
     mem_cache_destroy(&r->slabs);
 }
 
-void r_put(struct rio *r) {
+void r_put(struct role *r) {
     if (atomic_dec(&r->ref, 1) == 1) {
 	r_destroy(r);
 	mem_free(r, sizeof(*r));
@@ -43,7 +43,7 @@ void r_put(struct rio *r) {
 }
 
 
-static inline int __r_disable_eventout(struct rio *r) {
+static inline int __r_disable_eventout(struct role *r) {
     if (r->et.events & EPOLLOUT) {
 	r->et.events &= ~EPOLLOUT;
 	return epoll_mod(r->el, &r->et);
@@ -51,7 +51,7 @@ static inline int __r_disable_eventout(struct rio *r) {
     return -1;
 }
 
-static inline int __r_enable_eventout(struct rio *r) {
+static inline int __r_enable_eventout(struct role *r) {
     if (!(r->et.events & EPOLLOUT)) {
 	r->et.events |= EPOLLOUT;
 	return epoll_mod(r->el, &r->et);
@@ -59,7 +59,7 @@ static inline int __r_enable_eventout(struct rio *r) {
     return -1;
 }
 
-static pio_msg_t *r_pop_massage(struct rio *r) {
+static pio_msg_t *r_pop_massage(struct role *r) {
     pio_msg_t *msg = NULL;
     r_lock(r);
     if (!list_empty(&r->mq)) {
@@ -73,7 +73,7 @@ static pio_msg_t *r_pop_massage(struct rio *r) {
     return msg;
 }
 
-static int r_push_massage(struct rio *r, pio_msg_t *msg) {
+static int r_push_massage(struct role *r, pio_msg_t *msg) {
     r_lock(r);
     r->mqsize++;
     list_add_tail(&msg->node, &r->mq);
@@ -84,7 +84,7 @@ static int r_push_massage(struct rio *r, pio_msg_t *msg) {
 }
 
 static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
-    struct rio *r = container_of(et, struct rio, et);
+    struct role *r = container_of(et, struct role, et);
     if (!r->registed)
 	r_rgs(r, happened);
     if (r->registed) {
@@ -98,7 +98,7 @@ static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     return 0;
 }
 
-static void r_rgs(struct rio *r, uint32_t happened) {
+static void r_rgs(struct role *r, uint32_t happened) {
     int ret;
     struct pio_rgh *h = &r->io.rgh;
     proxy_t *py;
@@ -118,10 +118,10 @@ static void r_rgs(struct rio *r, uint32_t happened) {
     proxy_add(py, r);
 }
 
-static int __r_receiver_recv(struct rio *r) {
+static int __r_receiver_recv(struct role *r) {
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     int64_t now = rt_mstime();
-    struct rio *dest;
+    struct role *dest;
     struct pio_rt *crt;
 
     if (!msg)
@@ -142,7 +142,7 @@ static int __r_receiver_recv(struct rio *r) {
     return 0;
 }
 
-static void r_receiver_recv(struct rio *r) {
+static void r_receiver_recv(struct role *r) {
     if (proxyio_prefetch(&r->io) < 0 && errno != EAGAIN) {
 	r->status_ok = false;
 	return;
@@ -152,9 +152,9 @@ static void r_receiver_recv(struct rio *r) {
 }
 
 
-static int __r_dispatcher_recv(struct rio *r) {
+static int __r_dispatcher_recv(struct role *r) {
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
-    struct rio *src;
+    struct role *src;
     struct pio_rt *crt;
 
     if (!msg)
@@ -176,7 +176,7 @@ static int __r_dispatcher_recv(struct rio *r) {
     return 0;
 }
 
-static void r_dispatcher_recv(struct rio *r) {
+static void r_dispatcher_recv(struct role *r) {
     if (proxyio_prefetch(&r->io) < 0 && errno != EAGAIN) {
 	r->status_ok = false;
 	return;
@@ -186,13 +186,13 @@ static void r_dispatcher_recv(struct rio *r) {
 }
 
 
-static void r_recv(struct rio *r) {
+static void r_recv(struct role *r) {
     if (IS_RCVER(r))
 	return r_receiver_recv(r);
     return r_dispatcher_recv(r);
 }
 
-static void r_receiver_send(struct rio *r) {
+static void r_receiver_send(struct role *r) {
     pio_msg_t *msg;
 
     if (!(msg = r_pop_massage(r)))
@@ -207,7 +207,7 @@ static void r_receiver_send(struct rio *r) {
     mem_cache_free(&r->slabs, msg);
 }
 
-static void r_dispatcher_send(struct rio *r) {
+static void r_dispatcher_send(struct role *r) {
     pio_msg_t *msg;
     int64_t now = rt_mstime();
     struct pio_rt rt = {}, *crt;
@@ -232,14 +232,14 @@ static void r_dispatcher_send(struct rio *r) {
     mem_cache_free(&r->slabs, msg);
 }
 
-static void r_send(struct rio *r) {
+static void r_send(struct role *r) {
     if (IS_RCVER(r))
 	return r_receiver_send(r);
     return r_dispatcher_send(r);
 }
 
 
-static void r_error(struct rio *r) {
+static void r_error(struct role *r) {
     epoll_del(r->el, &r->et);
     close(r->et.fd);
     proxy_del(r->py, r);

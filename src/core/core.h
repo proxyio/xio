@@ -43,7 +43,7 @@ typedef struct proxy {
 } proxy_t;
 
 
-struct rio {
+struct role {
     proxyio_t io;
     spin_t lock;
     uint32_t registed:1;
@@ -63,7 +63,7 @@ struct rio {
 };
 
 #define list_for_each_role_safe(pos, n, head)			\
-    list_for_each_entry_safe(pos, n, head, struct rio, py_link)
+    list_for_each_entry_safe(pos, n, head, struct role, py_link)
 
 
 #endif

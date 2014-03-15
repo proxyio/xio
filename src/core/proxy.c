@@ -1,5 +1,5 @@
 #include "proxy.h"
-#include "rio.h"
+#include "role.h"
 
 void proxy_init(proxy_t *py) {
     spin_init(&(py)->lock);
@@ -10,7 +10,7 @@ void proxy_init(proxy_t *py) {
 }
 
 void proxy_destroy(proxy_t *py) {
-    struct rio *r, *n;		
+    struct role *r, *n;		
 
     spin_destroy(&(py)->lock);	
     list_for_each_role_safe(r, n, &(py)->rcver_head) {	
@@ -23,7 +23,7 @@ void proxy_destroy(proxy_t *py) {
     }							
 }
 
-void proxy_add(proxy_t *py, struct rio *r) {
+void proxy_add(proxy_t *py, struct role *r) {
     struct list_head *__head;
     __head = IS_RCVER(r) ? &py->rcver_head : &py->snder_head;
     proxy_lock(py);
@@ -33,7 +33,7 @@ void proxy_add(proxy_t *py, struct rio *r) {
     proxy_unlock(py);						
 }
 
-void proxy_del(proxy_t *py, struct rio *r) {
+void proxy_del(proxy_t *py, struct role *r) {
     proxy_lock(py);				
     py->rsize--;				
     ssmap_delete(&py->roles, &r->sibling);	
@@ -42,26 +42,26 @@ void proxy_del(proxy_t *py, struct rio *r) {
 }
 
 void __proxy_walk(proxy_t *py, walkfn f, void *args, struct list_head *head) {
-    struct rio *r = NULL, *nxt = NULL;	
+    struct role *r = NULL, *nxt = NULL;	
     proxy_lock(py);				
     list_for_each_role_safe(r, nxt, head)	
 	f(py, r, args);			
     proxy_unlock(py);			
 }
 
-struct rio *__proxy_find(ssmap_t *map, uuid_t uuid) {
+struct role *__proxy_find(ssmap_t *map, uuid_t uuid) {
     ssmap_node_t *node;
-    struct rio *r = NULL;
+    struct role *r = NULL;
     if ((node = ssmap_find(map, (char *)uuid, sizeof(uuid_t))))
-	r = container_of(node, struct rio, sibling);
+	r = container_of(node, struct role, sibling);
     return r;
 }
 
 
-struct rio *proxy_lb_dispatch(proxy_t *py) {
-    struct rio *dest = NULL;
+struct role *proxy_lb_dispatch(proxy_t *py) {
+    struct role *dest = NULL;
     if (!list_empty(&py->snder_head)) {
-	dest = list_first(&py->snder_head, struct rio, py_link);
+	dest = list_first(&py->snder_head, struct role, py_link);
 	list_del(&dest->py_link);
 	list_add_tail(&dest->py_link, &py->snder_head);
     }
