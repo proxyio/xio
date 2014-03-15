@@ -2,7 +2,9 @@
 #define _HPIO_PROXYIO_
 
 #include "errno.h"
+#include "ds/list.h"
 #include "os/memory.h"
+#include "os/epoll.h"
 #include "io.h"
 #include "bufio/bio.h"
 #include "proto.h"
@@ -14,8 +16,13 @@ typedef struct proxyio {
     struct bio in;
     struct bio out;
     pio_rgh_t rgh;
+    epollevent_t et;
     struct io sock_ops;
+    struct list_head io_link;
 } proxyio_t;
+
+#define list_for_each_pio_safe(pos, tmp, head)				\
+    list_for_each_entry_safe(pos, tmp, head, proxyio_t, io_link)
 
 static inline int64_t proxyio_sock_read(struct io *sock, char *buff, int64_t sz) {
     proxyio_t *io = container_of(sock, proxyio_t, sock_ops);

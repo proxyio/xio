@@ -39,14 +39,23 @@ endif()
 ## compile sdk for c/c++
 aux_source_directory( sdk/c CSDK )
 add_library( pioc ${CSDK} )
-target_link_libraries( common_test common)
+target_link_libraries( pioc common)
 
 
 
-## compile core_test
+## compile pio daemon
 aux_source_directory( service/piod PIOD )
 add_executable( piod ${PIOD} )
 target_link_libraries( piod common core pioc)
 if (DEBUG_mode)
    target_link_libraries( piod gcov )
+endif()
+
+
+## compile pio benchmark
+aux_source_directory( service/benchmark PIOBENCHMARK )
+add_executable( pio_benchmark ${PIOBENCHMARK} )
+target_link_libraries( pio_benchmark common pioc pthread uuid)
+if (DEBUG_mode)
+   target_link_libraries( pio_benchmark gcov )
 endif()
