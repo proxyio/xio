@@ -93,6 +93,7 @@ static void acp_test() {
 
     comsumer_ok = false;
     thread_stop(&t);
+    acp_stop(&acp);
     acp_destroy(&acp);
 }
 
