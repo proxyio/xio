@@ -2,6 +2,7 @@
 #include "role.h"
 
 void proxy_init(proxy_t *py) {
+    ZERO(*py);
     spin_init(&(py)->lock);
     ssmap_init(&(py)->roles);
     ssmap_init(&(py)->tw_roles);

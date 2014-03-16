@@ -9,8 +9,8 @@
 static char page[REQLEN];
 extern int randstr(char *buff, int sz);
 
-static inline int producer_event_handler(epoll_t *, epollevent_t *, uint32_t);
-static inline int comsumer_event_handler(epoll_t *, epollevent_t *, uint32_t);
+static inline int producer_event_handler(epoll_t *, epollevent_t *);
+static inline int comsumer_event_handler(epoll_t *, epollevent_t *);
 
 static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     pio_t *io;
@@ -54,13 +54,13 @@ static proto_parser_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 
 
 static inline int
-producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
+producer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data;
     uint32_t sz;
 
-    if ((happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
+    if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
 	list_del(&pp->pp_link);
 	pio_close(&pp->sockfd);
@@ -78,13 +78,13 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 }
 
 static inline int
-comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
+comsumer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data, *rt;
     uint32_t sz, rt_sz;
 
-    if ((happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
+    if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
 	list_del(&pp->pp_link);
 	pio_close(&pp->sockfd);

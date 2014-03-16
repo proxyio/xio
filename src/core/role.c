@@ -90,8 +90,10 @@ static int r_push_massage(struct role *r, pio_msg_t *msg) {
     return 0;
 }
 
-static int r_event_handler(epoll_t *el, epollevent_t *et) {
-    struct role *r = container_of(et, struct role, et);
+static int r_task_runner(void *args) {
+    struct role *r = (struct role *)args;
+    epollevent_t *et = &r->et;
+
     if (!r->registed)
 	r_rgs(r);
     if (r->registed) {
@@ -102,6 +104,15 @@ static int r_event_handler(epoll_t *el, epollevent_t *et) {
     }
     if (!r->status_ok)
 	r_error(r);
+    return 0;
+}
+
+static int r_event_handler(epoll_t *el, epollevent_t *et) {
+    // acp_t *acp = container_of(el, acp_t, el);
+    struct role *r = container_of(et, struct role, et);
+    BUG_ON(r->el != el);
+    r_task_runner(r);
+    // taskpool_run(&acp->tp, r_task_runner, r);
     return 0;
 }
 
