@@ -16,7 +16,7 @@ void r_init(struct role *r) {
     spin_init(&r->lock);
     r->registed = false;
     r->status_ok = true;
-    r->is_register = false;
+    r->proxyto = false;
     atomic_init(&r->ref);
     atomic_set(&r->ref, 1);
     r->et.f = r_event_handler;
@@ -111,8 +111,7 @@ static void r_rgs(struct role *r, uint32_t happened) {
     proxy_t *py;
     acp_t *acp = container_of(r->el, struct accepter, el);
 
-    if ((ret = r->is_register ?
-	 rio_ps_rgs(&r->io) : rio_at_rgs(&r->io)) < 0) {
+    if ((ret = r->proxyto ? rio_at_rgs(&r->io) : rio_ps_rgs(&r->io)) < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }

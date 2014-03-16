@@ -50,8 +50,7 @@ struct role {
     spin_t lock;
     uint32_t registed:1;
     uint32_t status_ok:1;
-    uint32_t is_register:1;
-    uint32_t flags:29;
+    uint32_t proxyto:1;
     atomic_t ref;
     modstat_t st;
     epollevent_t et;

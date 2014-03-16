@@ -14,7 +14,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happ
 	close(nfd);
 	return -1;
     }
-    r->is_register = true;
+    r->proxyto = false;
     r->el = el;
     r->et.fd = r->io.sockfd = nfd;
     r->et.events = EPOLLIN|EPOLLOUT;
@@ -125,7 +125,7 @@ int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     h->type = PIO_RCVER;
     uuid_generate(h->id);
     strcpy(h->proxyname, proxyname);
-    r->is_register = false;
+    r->proxyto = true;
     r->el = &acp->el;
     r->et.fd = r->io.sockfd = nfd;
     r->et.events = EPOLLOUT;
