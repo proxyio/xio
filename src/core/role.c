@@ -5,8 +5,8 @@
 #include "proxy.h"
 #include "accepter.h"
 
-static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened);
-static void r_rgs(struct role *r, uint32_t happened);
+static int r_event_handler(epoll_t *el, epollevent_t *et);
+static void r_rgs(struct role *r);
 static void r_recv(struct role *r);
 static void r_send(struct role *r);
 static void r_error(struct role *r);
@@ -90,14 +90,14 @@ static int r_push_massage(struct role *r, pio_msg_t *msg) {
     return 0;
 }
 
-static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
+static int r_event_handler(epoll_t *el, epollevent_t *et) {
     struct role *r = container_of(et, struct role, et);
     if (!r->registed)
-	r_rgs(r, happened);
+	r_rgs(r);
     if (r->registed) {
-	if (r->status_ok && (happened & EPOLLIN))
+	if (r->status_ok && (et->happened & EPOLLIN))
 	    r_recv(r);
-	if (r->status_ok && (happened & EPOLLOUT))
+	if (r->status_ok && (et->happened & EPOLLOUT))
 	    r_send(r);
     }
     if (!r->status_ok)
@@ -105,7 +105,7 @@ static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     return 0;
 }
 
-static void r_rgs(struct role *r, uint32_t happened) {
+static void r_rgs(struct role *r) {
     int ret;
     struct pio_rgh *h = &r->pp.rgh;
     proxy_t *py;

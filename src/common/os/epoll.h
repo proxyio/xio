@@ -16,8 +16,7 @@
 
 struct epollevent;
 struct epoll;
-typedef int (*event_handler) (struct epoll *el, struct epollevent *ev,
-			      uint32_t happened);
+typedef int (*event_handler) (struct epoll *el, struct epollevent *et);
 
 typedef struct epollevent {
     event_handler f;
@@ -25,6 +24,7 @@ typedef struct epollevent {
     int fd;
     int64_t to_nsec;
     uint32_t events;
+    uint32_t happened;
     skrb_node_t tr_node;
     struct list_head el_link;
 } epollevent_t;

@@ -32,15 +32,15 @@ static int client_thread(void *arg) {
     return 0;
 }
 
-int client_event_handler(struct epoll *el, epollevent_t *et, uint32_t happened) {
+int client_event_handler(struct epoll *el, epollevent_t *et) {
     char buf[1024] = {};
 
     randstr(buf, sizeof(buf));
-    if (happened & EPOLLIN) {
+    if (et->happened & EPOLLIN) {
 	EXPECT_EQ(sizeof(buf), sk_read(et->fd, buf, sizeof(buf)));
 	EXPECT_EQ(sizeof(buf), sk_write(et->fd, buf, sizeof(buf)));
     }
-    if (happened & EPOLLRDHUP) {
+    if (et->happened & EPOLLRDHUP) {
 	epoll_del(el, et);
 	close(et->fd);
     }

@@ -121,14 +121,15 @@ static int __epoll_wait(epoll_t *el) {
 
 int epoll_oneloop(epoll_t *el) {
     int n = 0;
-    epollevent_t *ev;
+    epollevent_t *et;
     struct epoll_event *ev_buf = el->ev_buf;
     
     if ((n = __epoll_wait(el)) < 0)
 	return -1;
     while (ev_buf < el->ev_buf + n) {
-	ev = (epollevent_t *)ev_buf->data.ptr;
-	ev->f(el, ev, ev_buf->events);
+	et = (epollevent_t *)ev_buf->data.ptr;
+	et->happened = ev_buf->events;
+	et->f(el, et);
 	ev_buf++;
     }
     return 0;
