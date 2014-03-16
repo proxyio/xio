@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
-#include "errno.h"
 #include "io.h"
 #include "core/rio.h"
 
@@ -87,7 +86,6 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
     mem_free(rt, pio_rt_size(&h));
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);
-	errno = PIO_ECHKSUM;
 	return -1;
     }
     *size = h.size;

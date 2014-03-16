@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
-#include "errno.h"
 #include "io.h"
 #include "core/rio.h"
 #include "net/socket.h"
@@ -89,7 +88,6 @@ int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);
 	mem_free(rt, pio_rt_size(&h));
-	errno = PIO_ECHKSUM;
 	return -1;
     }
     if (!(urt = mem_realloc(*rt, pio_rt_size(&h) + PIOHDRLEN))) {
