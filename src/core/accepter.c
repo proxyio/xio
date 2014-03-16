@@ -4,9 +4,11 @@
 #include "proxy.h"
 #include "runner/taskpool.h"
 
-static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
+static inline int
+acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     int nfd;
     struct role *r;
+
     if (!(happened & EPOLLIN) || (nfd = act_accept(et->fd)) < 0)
 	return -1;
     sk_setopt(nfd, SK_NONBLOCK, true);

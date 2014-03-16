@@ -23,14 +23,18 @@ void proxy_destroy(proxy_t *py) {
     }							
 }
 
-void proxy_add(proxy_t *py, struct role *r) {
+int proxy_add(proxy_t *py, struct role *r) {
+    int ret;
     struct list_head *__head;
+
     __head = IS_RCVER(r) ? &py->rcver_head : &py->snder_head;
     proxy_lock(py);
-    py->rsize++;
-    ssmap_insert(&py->roles, &r->sibling);				
-    list_add(&r->py_link, __head);					
-    proxy_unlock(py);						
+    if ((ret = ssmap_insert(&py->roles, &r->sibling)) == 0) {
+	py->rsize++;
+	list_add(&r->py_link, __head);
+    }
+    proxy_unlock(py);
+    return ret;
 }
 
 void proxy_del(proxy_t *py, struct role *r) {

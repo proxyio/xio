@@ -111,24 +111,23 @@ static void r_rgs(struct role *r, uint32_t happened) {
     proxy_t *py;
     acp_t *acp = container_of(r->el, struct accepter, el);
 
-    if ((ret = r->proxyto ? proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp)) < 0) {
+    ret = r->proxyto ?  proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp);
+    if (ret < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }
-    if (!(py = acp_find(acp, h->proxyname))) {
+    if (!(py = acp_find(acp, h->proxyname)) || proxy_add(py, r) != 0)
 	r->status_ok = false;
-	return;
+    else {
+	r->py = py;
+	r->registed = true;
     }
-    r->registed = true;
-    r->py = py;
-    proxy_add(py, r);
 }
 
 static int __r_receiver_recv(struct role *r) {
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     int64_t now = rt_mstime();
     struct role *dest;
-    struct pio_rt *crt;
 
     if (!msg)
 	return -1;
@@ -138,8 +137,7 @@ static int __r_receiver_recv(struct role *r) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return -1;
     }
-    crt = pio_msg_currt(msg);
-    crt->cost[0] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[0]);
+    rt_go_cost(msg, now);
     if (!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
@@ -162,7 +160,7 @@ static int __r_dispatcher_recv(struct role *r) {
     int64_t now = rt_mstime();
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     struct role *src;
-    struct pio_rt *crt, *prevrt;
+    struct pio_rt *rt;
 
     if (!msg)
 	return -1;
@@ -172,10 +170,9 @@ static int __r_dispatcher_recv(struct role *r) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return -1;
     }
-    crt = pio_msg_currt(msg);
-    crt->cost[1] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[1]);
-    prevrt = pio_msg_prevrt(msg);
-    if (!(src = proxy_find_at(r->py, prevrt->uuid)) || r_push_massage(src, msg) < 0) {
+    rt_back_cost(msg, now);
+    rt = pio_msg_prevrt(msg);
+    if (!(src = proxy_find_at(r->py, rt->uuid)) || r_push_massage(src, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
 	return -1;
@@ -202,15 +199,10 @@ static void r_recv(struct role *r) {
 static void r_receiver_send(struct role *r) {
     int64_t now = rt_mstime();
     pio_msg_t *msg;
-    struct pio_rt *crt;
 
     if (!(msg = r_pop_massage(r)))
 	return;
-    crt = pio_msg_currt(msg);
-    crt->stay[1] = (uint16_t)(now - msg->hdr.sendstamp - crt->begin[1] - crt->cost[1]);
-    pio_rt_shrink(msg);
-    crt = pio_msg_currt(msg);
-    crt->begin[1] = (uint16_t)(now - msg->hdr.sendstamp);
+    rt_shrink_and_back(msg, now);
     proto_parser_bwrite(&r->pp, &msg->hdr, msg->data, (char *)msg->rt);
     while (proto_parser_flush(&r->pp) < 0)
 	if (errno != EAGAIN) {
@@ -224,15 +216,12 @@ static void r_receiver_send(struct role *r) {
 static void r_dispatcher_send(struct role *r) {
     pio_msg_t *msg;
     int64_t now = rt_mstime();
-    struct pio_rt rt = {}, *crt;
+    struct pio_rt rt = {};
     
     if (!(msg = r_pop_massage(r)))
 	return;
-    crt = pio_msg_currt(msg);
     uuid_copy(rt.uuid, r->pp.rgh.id);
-    rt.begin[0] = (uint16_t)(now - msg->hdr.sendstamp);
-    crt->stay[0] = (uint16_t)(rt.begin[0] - crt->begin[0] - crt->cost[0]);
-    if (!pio_rt_append(msg, &rt))
+    if (!rt_append_and_go(msg, &rt, now))
 	goto EXIT;
     proto_parser_bwrite(&r->pp, &msg->hdr, msg->data, (char *)msg->rt);
     while (proto_parser_flush(&r->pp) < 0) {
@@ -256,6 +245,7 @@ static void r_send(struct role *r) {
 static void r_error(struct role *r) {
     epoll_del(r->el, &r->et);
     close(r->et.fd);
-    proxy_del(r->py, r);
+    if (r->py)
+	proxy_del(r->py, r);
     r_put(r);
 }

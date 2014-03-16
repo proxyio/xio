@@ -74,38 +74,43 @@ static inline uint32_t pio_msg_size(pio_msg_t *msg) {
 #define pio_msg_currt(msg) (&(msg)->rt[(msg)->hdr.ttl - 1])
 #define pio_msg_prevrt(msg) (&(msg)->rt[(msg)->hdr.ttl - 2])
 
-static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
-    struct pio_rt *crt;
-    crt = rt;
-    while (crt < rt + ttl) {
-	printf("[go:%d cost:%d stay:%d]%s", crt->begin[0], crt->cost[0], crt->stay[0],
-	       (crt == rt + ttl - 1) ? "\n" : " ");
-	crt++;
-    }
-    crt = rt;
-    while (crt < rt + ttl) {
-	printf("[back:%d cost:%d stay:%d]%s", crt->begin[1], crt->cost[1], crt->stay[1],
-	       (crt == rt + ttl - 1) ? "\n" : " ");
-	crt++;
-    }
+static inline void rt_go_cost(pio_msg_t *msg, int64_t now) {
+    struct pio_hdr *h = &msg->hdr;
+    struct pio_rt *rt = pio_msg_currt(msg);
+    rt->stay[0] = (uint16_t)(now - h->sendstamp - rt->begin[0]);
 }
 
-static inline int pio_rt_append(pio_msg_t *msg, struct pio_rt *rt) {
-    struct pio_rt *nrt;
-    uint32_t new_sz = pio_rt_size(&msg->hdr) + PIORTLEN;
-    if (!(nrt = (struct pio_rt *)mem_realloc(msg->rt, new_sz)))
+static inline void rt_back_cost(pio_msg_t *msg, int64_t now) {
+    struct pio_hdr *h = &msg->hdr;
+    struct pio_rt *rt = pio_msg_currt(msg);
+    rt->cost[1] = (uint16_t)(now - h->sendstamp - rt->begin[1]);
+}
+
+static inline int rt_append_and_go(pio_msg_t *msg, struct pio_rt *rt,
+					 int64_t now) {
+    struct pio_rt *crt;
+    struct pio_hdr *h = &msg->hdr;
+    uint32_t new_sz = pio_rt_size(h) + PIORTLEN;
+    if (!(crt = (struct pio_rt *)mem_realloc(msg->rt, new_sz)))
 	return false;
-    msg->hdr.ttl++;
-    msg->hdr.end_ttl = msg->hdr.ttl;
-    msg->rt = nrt;
+    msg->rt = crt;
+    crt = pio_msg_currt(msg);
+    crt->stay[0] = (uint16_t)(now - h->sendstamp - crt->begin[0]);
+    h->ttl++;
+    rt->begin[0] = (uint16_t)(now - h->sendstamp);
     memcpy(pio_msg_currt(msg), rt, PIORTLEN);
-    ph_makechksum(&msg->hdr);
+    ph_makechksum(h);
     return true;
 }
 
-static inline void pio_rt_shrink(pio_msg_t *msg) {
+static inline void rt_shrink_and_back(pio_msg_t *msg, int64_t now) {
+    struct pio_rt *crt = pio_msg_currt(msg);
+    struct pio_hdr *h = &msg->hdr;
+    crt->stay[1] = (uint16_t)(now - h->sendstamp - crt->begin[1] - crt->cost[1]);
     msg->hdr.ttl--;
     ph_makechksum(&msg->hdr);
+    crt = pio_msg_currt(msg);
+    crt->begin[1] = (uint16_t)(now - msg->hdr.sendstamp);
 }
 
 

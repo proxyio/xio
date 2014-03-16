@@ -19,7 +19,7 @@ static inline proxy_t *proxy_new() {
 
 void proxy_init(proxy_t *py);
 void proxy_destroy(proxy_t *py);
-void proxy_add(proxy_t *py, struct role *r);
+int proxy_add(proxy_t *py, struct role *r);
 void proxy_del(proxy_t *py, struct role *r);
 void __proxy_walk(proxy_t *py, walkfn f, void *args, struct list_head *head);
 

@@ -55,12 +55,12 @@ struct role {
     modstat_t st;
     epollevent_t et;
     epoll_t *el;
-    proxy_t *py;
+    mem_cache_t slabs;
     uint32_t mqsize;
     struct list_head mq;
+    proxy_t *py;
     ssmap_node_t sibling;
     struct list_head py_link;
-    mem_cache_t slabs;
 };
 
 #define list_for_each_role_safe(pos, n, head)				\

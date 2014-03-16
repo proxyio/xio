@@ -5,6 +5,22 @@
 #include "core/proto_parser.h"
 
 
+static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
+    struct pio_rt *crt;
+    crt = rt;
+    while (crt < rt + ttl) {
+	printf("[go:%d cost:%d stay:%d]%s", crt->begin[0], crt->cost[0],
+	       crt->stay[0], (crt == rt + ttl - 1) ? "\n" : " ");
+	crt++;
+    }
+    crt = rt;
+    while (crt < rt + ttl) {
+	printf("[back:%d cost:%d stay:%d]%s", crt->begin[1], crt->cost[1],
+	       crt->stay[1], (crt == rt + ttl - 1) ? "\n" : " ");
+	crt++;
+    }
+}
+
 int producer_send_request(pio_t *io, const char *data, uint32_t size) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
