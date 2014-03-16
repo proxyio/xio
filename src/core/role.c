@@ -33,7 +33,7 @@ void r_destroy(struct role *r) {
 
     list_for_each_msg_safe(msg, tmp, &r->mq) {
 	list_del(&msg->mq_link);
-	pio_msg_free_data_and_rt(msg);
+	free_msg_data_and_rt(msg);
 	mem_free(msg, sizeof(*msg));
     }
     proto_parser_destroy(&r->pp);
@@ -140,7 +140,7 @@ static int __r_receiver_recv(struct role *r) {
     rt_go_cost(msg, now);
     if (ph_timeout(&msg->hdr, now) ||
 	!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
-	pio_msg_free_data_and_rt(msg);
+	free_msg_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
 	return -1;
     }
@@ -172,10 +172,10 @@ static int __r_dispatcher_recv(struct role *r) {
 	return -1;
     }
     rt_back_cost(msg, now);
-    rt = pio_msg_prevrt(msg);
+    rt = prev_rt(msg);
     if (ph_timeout(&msg->hdr, now) ||
 	!(src = proxy_find_at(r->py, rt->uuid)) || r_push_massage(src, msg) < 0) {
-	pio_msg_free_data_and_rt(msg);
+	free_msg_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
 	return -1;
     }
@@ -211,7 +211,7 @@ static void r_receiver_send(struct role *r) {
 	    r->status_ok = false;
 	    break;
 	}
-    pio_msg_free_data_and_rt(msg);
+    free_msg_data_and_rt(msg);
     mem_cache_free(&r->slabs, msg);
 }
 
@@ -233,7 +233,7 @@ static void r_dispatcher_send(struct role *r) {
 	}
     }
  EXIT:
-    pio_msg_free_data_and_rt(msg);
+    free_msg_data_and_rt(msg);
     mem_cache_free(&r->slabs, msg);
 }
 

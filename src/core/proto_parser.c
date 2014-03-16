@@ -76,14 +76,14 @@ int proto_parser_bread(proto_parser_t *pp,
     bio_copy(b, (char *)h, sizeof(*h));
     if (!(*data = (char *)mem_zalloc(h->size)))
 	return -1;
-    if (!(*rt = (char *)mem_zalloc(pio_rt_size(h)))) {
+    if (!(*rt = (char *)mem_zalloc(rt_size(h)))) {
 	mem_free(*data, h->size);
 	*data = NULL;
 	return -1;
     }
     bio_read(b, (char *)h, sizeof(*h));
     bio_read(b, *data, h->size);
-    bio_read(b, *rt, pio_rt_size(h));
+    bio_read(b, *rt, rt_size(h));
     return 0;
 }
 
@@ -95,7 +95,7 @@ int proto_parser_bwrite(proto_parser_t *pp,
     modstat_incrkey(stat, PP_SEND);
     bio_write(&pp->out, (char *)h, sizeof(*h));
     bio_write(&pp->out, data, h->size);
-    bio_write(&pp->out, rt, pio_rt_size(h));
+    bio_write(&pp->out, rt, rt_size(h));
     return 0;
 }
 

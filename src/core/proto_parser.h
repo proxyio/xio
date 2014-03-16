@@ -62,7 +62,7 @@ static inline int proto_parser_one_ready(proto_parser_t *pp) {
     struct pio_hdr h = {};
     struct bio *b = &pp->in;
     if ((b->bsize >= sizeof(h)) && ({ bio_copy(b, (char *)&h, sizeof(h));
-		b->bsize >= pio_pkg_size(&h);}))
+		b->bsize >= raw_pkg_size(&h);}))
 	return true;
     return false;
 }

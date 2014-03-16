@@ -6,7 +6,7 @@
 #include "net/socket.h"
 
 int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
-			   const char *urt, uint32_t rt_size) {
+			   const char *urt, uint32_t rt_sz) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     struct pio_rt *crt;
@@ -30,9 +30,9 @@ int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
 
 
 int comsumer_psend_response(pio_t *io, const char *data, uint32_t size,
-			    const char *urt, uint32_t rt_size) {
+			    const char *urt, uint32_t rt_sz) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    if (comsumer_send_response(io, data, size, urt, rt_size) < 0)
+    if (comsumer_send_response(io, data, size, urt, rt_sz) < 0)
 	return -1;
     while (proto_parser_flush(pp) < 0)
 	if (errno != EAGAIN)
@@ -44,7 +44,7 @@ int comsumer_psend_response(pio_t *io, const char *data, uint32_t size,
 
 
 int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
-			  char **rt, uint32_t *rt_size) {
+			  char **rt, uint32_t *rt_sz) {
     int64_t now = rt_mstime();
     char *urt;
     struct pio_rt *crt;
@@ -55,20 +55,20 @@ int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
 	return -1;
     if (!ph_validate(&h)) {
 	mem_free(*data, h.size);
-	mem_free(*rt, pio_rt_size(&h));
+	mem_free(*rt, rt_size(&h));
 	return -1;
     }
-    if (!(urt = mem_realloc(*rt, pio_rt_size(&h) + PIOHDRLEN))) {
+    if (!(urt = mem_realloc(*rt, rt_size(&h) + PIOHDRLEN))) {
 	mem_free(*data, h.size);
-	mem_free(*rt, pio_rt_size(&h));
+	mem_free(*rt, rt_size(&h));
 	return -1;
     }
     crt = &((struct pio_rt *)urt)[h.ttl - 1];
     crt->cost[0] = (uint16_t)(now - h.sendstamp - crt->begin[0]);
     *size = h.size;
     *rt = urt;
-    *rt_size = pio_rt_size(&h) + PIOHDRLEN;
-    memmove((*rt) + PIOHDRLEN, *rt, pio_rt_size(&h));
+    *rt_sz = rt_size(&h) + PIOHDRLEN;
+    memmove((*rt) + PIOHDRLEN, *rt, rt_size(&h));
     memcpy(*rt, (char *)&h, PIOHDRLEN);
     modstat_incrskey(proto_parser_stat(pp), PP_RTT, now - h.sendstamp);
     modstat_update_timestamp(proto_parser_stat(pp), now);
@@ -76,9 +76,9 @@ int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
 }
 
 int comsumer_precv_request(pio_t *pp, char **data, uint32_t *size,
-			   char **rt, uint32_t *rt_size) {
+			   char **rt, uint32_t *rt_sz) {
     int ret;
-    while ((ret = comsumer_recv_request(pp, data, size, rt, rt_size)) < 0
+    while ((ret = comsumer_recv_request(pp, data, size, rt, rt_sz)) < 0
 	   && errno == EAGAIN) {
     }
     return ret;
