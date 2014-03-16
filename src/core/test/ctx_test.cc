@@ -19,7 +19,7 @@ static volatile int comsumer_ok = false;
 static int comsumer_worker(void *args) {
     char *req, *rt;
     uint32_t sz, rt_sz;
-    comsumer_t *ct = comsumer_new(PIOHOST, PROXYNAME);
+    pio_t *ct = pio_join(PIOHOST, PROXYNAME, COMSUMER);
 
     comsumer_ok = true;
     while (comsumer_ok) {
@@ -29,7 +29,7 @@ static int comsumer_worker(void *args) {
 	    mem_free(rt, rt_sz);
 	}
     }
-    comsumer_destroy(ct);
+    pio_close(ct);
     return 0;
 }
 
@@ -37,7 +37,7 @@ static int test_producer1() {
     char req[PAGE_SIZE], *resp;
     uint32_t reqlen, resplen;
     int mycnt = cnt;
-    producer_t *pt = producer_new(PIOHOST, PROXYNAME);
+    pio_t *pt = pio_join(PIOHOST, PROXYNAME, PRODUCER);
 
     randstr(req, PAGE_SIZE);
     while (mycnt) {
@@ -49,14 +49,14 @@ static int test_producer1() {
 	mem_free(resp, resplen);
 	mycnt--;
     }
-    producer_destroy(pt);
+    pio_close(pt);
     return 0;
 }
 
 static int test_producer2() {
     char req[PAGE_SIZE], *resp;
     uint32_t resplen;
-    producer_t *pt = producer_new(PIOHOST, PROXYNAME);
+    pio_t *pt = pio_join(PIOHOST, PROXYNAME, PRODUCER);
 
     randstr(req, PAGE_SIZE);
     for (int i = 0; i < cnt; i++)
@@ -67,7 +67,7 @@ static int test_producer2() {
 	EXPECT_TRUE(memcmp(req, resp, resplen) == 0);
 	mem_free(resp, resplen);
     }
-    producer_destroy(pt);
+    pio_close(pt);
     return 0;
 }
 

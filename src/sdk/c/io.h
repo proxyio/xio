@@ -6,28 +6,28 @@
 
 #include <inttypes.h>
 
-typedef int comsumer_t;
-typedef int producer_t;
+enum {
+    PRODUCER = 2,
+    COMSUMER = 3,
+};
 
-producer_t *producer_new(const char *addr, const char py[PROXYNAME_MAX]);
-void producer_destroy(producer_t *io);
-int producer_send_request(producer_t *io, const char *data, uint32_t size);
-int producer_recv_response(producer_t *io, char **data, uint32_t *size);
-int producer_psend_request(producer_t *io, const char *data, uint32_t size);
-int producer_precv_response(producer_t *io, char **data, uint32_t *size);
+typedef int pio_t;
+pio_t *pio_join(const char *addr, const char py[PROXYNAME_MAX], int type);
+void pio_close(pio_t *io);
+
+int producer_send_request(pio_t *io, const char *data, uint32_t size);
+int producer_recv_response(pio_t *io, char **data, uint32_t *size);
+int producer_psend_request(pio_t *io, const char *data, uint32_t size);
+int producer_precv_response(pio_t *io, char **data, uint32_t *size);
 
 
-comsumer_t *comsumer_new(const char *addr, const char py[PROXYNAME_MAX]);
-void comsumer_destroy(comsumer_t *io);
-
-int comsumer_send_response(comsumer_t *io, const char *data, uint32_t size,
+int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
 			   const char *rt, uint32_t rt_size);
-int comsumer_recv_request(comsumer_t *io, char **data, uint32_t *size,
+int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
 			  char **rt, uint32_t *rt_size);
-
-int comsumer_psend_response(comsumer_t *io, const char *data, uint32_t size,
+int comsumer_psend_response(pio_t *io, const char *data, uint32_t size,
 			    const char *rt, uint32_t rt_size);
-int comsumer_precv_request(comsumer_t *io, char **data, uint32_t *size,
+int comsumer_precv_request(pio_t *io, char **data, uint32_t *size,
 			   char **rt, uint32_t *rt_size);
 
 

@@ -8,7 +8,7 @@
 typedef struct pingpong_ctx {
     struct bc_opt *cf;
     epoll_t el;
-    struct list_head io_head;
+    struct list_head pp_head;
 } pingpong_ctx_t;
 
 

@@ -5,39 +5,7 @@
 #include "core/proto_parser.h"
 #include "net/socket.h"
 
-comsumer_t *comsumer_new(const char *addr, const char py[PROXYNAME_MAX]) {
-    proto_parser_t *pp = proto_parser_new();
-
-    proto_parser_init(pp);
-    if ((pp->sockfd = sk_connect("tcp", "", addr)) < 0)
-	goto RGS_ERROR;
-    sk_setopt(pp->sockfd, SK_NONBLOCK, true);
-    pp->rgh.type = PIO_SNDER;
-    uuid_generate(pp->rgh.id);
-    memcpy(pp->rgh.proxyname, py, sizeof(py));
-    if (proto_parser_at_rgs(pp) < 0 && errno != EAGAIN)
-	goto RGS_ERROR;
-    while (!bio_empty(&pp->out))
-	if (bio_flush(&pp->out, &pp->sock_ops) < 0)
-	    goto RGS_ERROR;
-    return &pp->sockfd;
- RGS_ERROR:
-    proto_parser_destroy(pp);
-    mem_free(pp, sizeof(*pp));
-    return NULL;
-}
-
-
-void comsumer_destroy(comsumer_t *io) {
-    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    close(pp->sockfd);
-    proto_parser_destroy(pp);
-    mem_free(pp, sizeof(*pp));
-}
-
-
-
-int comsumer_send_response(comsumer_t *io, const char *data, uint32_t size,
+int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
 			   const char *urt, uint32_t rt_size) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
@@ -61,7 +29,7 @@ int comsumer_send_response(comsumer_t *io, const char *data, uint32_t size,
 }
 
 
-int comsumer_psend_response(comsumer_t *io, const char *data, uint32_t size,
+int comsumer_psend_response(pio_t *io, const char *data, uint32_t size,
 			    const char *urt, uint32_t rt_size) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     if (comsumer_send_response(io, data, size, urt, rt_size) < 0)
@@ -75,7 +43,7 @@ int comsumer_psend_response(comsumer_t *io, const char *data, uint32_t size,
 
 
 
-int comsumer_recv_request(comsumer_t *io, char **data, uint32_t *size,
+int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
 			  char **rt, uint32_t *rt_size) {
     int64_t now = rt_mstime();
     char *urt;
@@ -107,7 +75,7 @@ int comsumer_recv_request(comsumer_t *io, char **data, uint32_t *size,
     return 0;
 }
 
-int comsumer_precv_request(comsumer_t *pp, char **data, uint32_t *size,
+int comsumer_precv_request(pio_t *pp, char **data, uint32_t *size,
 			   char **rt, uint32_t *rt_size) {
     int ret;
     while ((ret = comsumer_recv_request(pp, data, size, rt, rt_size)) < 0

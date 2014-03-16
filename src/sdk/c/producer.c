@@ -4,38 +4,8 @@
 #include "io.h"
 #include "core/proto_parser.h"
 
-producer_t *producer_new(const char *addr, const char py[PROXYNAME_MAX]) {
-    proto_parser_t *pp = proto_parser_new();
 
-    proto_parser_init(pp);
-    if ((pp->sockfd = sk_connect("tcp", "", addr)) < 0)
-	goto RGS_ERROR;
-    sk_setopt(pp->sockfd, SK_NONBLOCK, true);
-    pp->rgh.type = PIO_RCVER;
-    uuid_generate(pp->rgh.id);
-    memcpy(pp->rgh.proxyname, py, sizeof(py));
-    if (proto_parser_at_rgs(pp) < 0 && errno != EAGAIN)
-	goto RGS_ERROR;
-    while (!bio_empty(&pp->out))
-	if (bio_flush(&pp->out, &pp->sock_ops) < 0)
-	    goto RGS_ERROR;
-    return &pp->sockfd;
- RGS_ERROR:
-    proto_parser_destroy(pp);
-    mem_free(pp, sizeof(*pp));
-    return NULL;
-}
-
-
-void producer_destroy(producer_t *io) {
-    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    close(pp->sockfd);
-    proto_parser_destroy(pp);
-    mem_free(pp, sizeof(*pp));
-}
-
-
-int producer_send_request(producer_t *io, const char *data, uint32_t size) {
+int producer_send_request(pio_t *io, const char *data, uint32_t size) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     struct pio_rt rt = {
@@ -62,7 +32,7 @@ int producer_send_request(producer_t *io, const char *data, uint32_t size) {
     return 0;
 }
 
-int producer_psend_request(producer_t *io, const char *data, uint32_t size) {
+int producer_psend_request(pio_t *io, const char *data, uint32_t size) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     if (producer_send_request(io, data, size) < 0)
 	return -1;
@@ -73,7 +43,7 @@ int producer_psend_request(producer_t *io, const char *data, uint32_t size) {
 }
 
 
-int producer_recv_response(producer_t *io, char **data, uint32_t *size) {
+int producer_recv_response(pio_t *io, char **data, uint32_t *size) {
     int64_t now = rt_mstime();
     struct pio_rt *rt = NULL;
     struct pio_hdr h = {};
@@ -94,7 +64,7 @@ int producer_recv_response(producer_t *io, char **data, uint32_t *size) {
     return 0;
 }
 
-int producer_precv_response(producer_t *pp, char **data, uint32_t *size) {
+int producer_precv_response(pio_t *pp, char **data, uint32_t *size) {
     int ret;
     while ((ret = producer_recv_response(pp, data, size)) < 0 && errno == EAGAIN) {
     }

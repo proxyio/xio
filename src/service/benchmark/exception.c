@@ -13,90 +13,90 @@ static inline int producer_event_handler(epoll_t *, epollevent_t *, uint32_t);
 static inline int comsumer_event_handler(epoll_t *, epollevent_t *, uint32_t);
 
 static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
-    int *sockfd;
-    proto_parser_t *io;
+    pio_t *io;
+    proto_parser_t *pp;
     struct bc_opt *cf = ctx->cf;
-    
-    if (!(sockfd = producer_new(cf->host, cf->proxyname)))
+
+    if (!(io = pio_join(cf->host, cf->proxyname, PRODUCER)))
 	return NULL;
-    io = container_of(sockfd, proto_parser_t, sockfd);
-    io->et.fd = *sockfd;
-    io->et.events = EPOLLIN|EPOLLOUT;
-    io->et.f = producer_event_handler;
-    if (epoll_add(&ctx->el, &io->et) < 0) {
-	producer_destroy(sockfd);
+    pp = container_of(io, proto_parser_t, pp_link);
+    pp->et.fd = pp->sockfd;
+    pp->et.events = EPOLLIN|EPOLLOUT;
+    pp->et.f = producer_event_handler;
+    if (epoll_add(&ctx->el, &pp->et) < 0) {
+	pio_close(io);
 	return NULL;
     }
-    modstat_set_warnf(proto_parser_stat(io), MSL_S, bc_threshold_warn);
-    list_add(&io->pp_link, &ctx->io_head);
-    return io;
+    modstat_set_warnf(proto_parser_stat(pp), MSL_S, bc_threshold_warn);
+    list_add(&pp->pp_link, &ctx->pp_head);
+    return pp;
 }
 
 static proto_parser_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
-    int *sockfd;
-    proto_parser_t *io;
+    pio_t *io;
+    proto_parser_t *pp;
     struct bc_opt *cf = ctx->cf;
-    
-    if (!(sockfd = comsumer_new(cf->host, cf->proxyname)))
+
+    if (!(io = pio_join(cf->host, cf->proxyname, COMSUMER)))
 	return NULL;
-    io = container_of(sockfd, proto_parser_t, sockfd);
-    io->et.fd = *sockfd;
-    io->et.events = EPOLLIN|EPOLLOUT;
-    io->et.f = comsumer_event_handler;
-    if (epoll_add(&ctx->el, &io->et) < 0) {
-	comsumer_destroy(sockfd);
+    pp = container_of(io, proto_parser_t, sockfd);
+    pp->et.fd = pp->sockfd;;
+    pp->et.events = EPOLLIN|EPOLLOUT;
+    pp->et.f = comsumer_event_handler;
+    if (epoll_add(&ctx->el, &pp->et) < 0) {
+	pio_close(io);
 	return NULL;
     }
-    modstat_set_warnf(proto_parser_stat(io), MSL_S, bc_threshold_warn);
-    list_add(&io->pp_link, &ctx->io_head);
-    return io;
+    modstat_set_warnf(proto_parser_stat(pp), MSL_S, bc_threshold_warn);
+    list_add(&pp->pp_link, &ctx->pp_head);
+    return pp;
 }
 
 
 static inline int
 producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
-    proto_parser_t *io = container_of(et, proto_parser_t, et);
+    proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data;
     uint32_t sz;
 
     if ((happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
-	list_del(&io->pp_link);
-	producer_destroy(&io->sockfd);
+	list_del(&pp->pp_link);
+	pio_close(&pp->sockfd);
 	while (!new_pingpong_producer(ctx))
 	    usleep(1000);
 	return 0;
     } else if (rand() % 2 == 0) {
-	//sk_write(io->sockfd, page, rand() % 100);
+	//sk_write(pp->sockfd, page, rand() % 100);
 	return -1;
     }
-    producer_psend_request(&io->sockfd, page, REQRMDLEN);
-    if (producer_recv_response(&io->sockfd, &data, &sz) == 0)
+    producer_psend_request(&pp->sockfd, page, REQRMDLEN);
+    if (producer_recv_response(&pp->sockfd, &data, &sz) == 0)
 	mem_free(data, sz);
     return 0;
 }
 
 static inline int
 comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
-    proto_parser_t *io = container_of(et, proto_parser_t, et);
+    proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data, *rt;
     uint32_t sz, rt_sz;
 
     if ((happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
-	list_del(&io->pp_link);
-	comsumer_destroy(&io->sockfd);
+	list_del(&pp->pp_link);
+	pio_close(&pp->sockfd);
 	while (!new_pingpong_comsumer(ctx))
 	    usleep(1000);
 	return 0;
     } else if (rand() % 2 == 0) {
-	//sk_write(io->sockfd, page, rand() % 100);
+	//sk_write(pp->sockfd, page, rand() % 100);
 	return -1;
     }
-    if (comsumer_recv_request(&io->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
-	comsumer_psend_response(&io->sockfd, data, sz, rt, rt_sz);
+    if (comsumer_recv_request(&pp->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
+	comsumer_psend_response(&pp->sockfd, data, sz, rt, rt_sz);
 	mem_free(data, sz);
 	mem_free(rt, rt_sz);
     }
@@ -106,11 +106,11 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 
 int exception_start(struct bc_opt *cf) {
     int i;
-    proto_parser_t *io, *tmp;
+    proto_parser_t *pp, *tmp;
     pingpong_ctx_t ctx = {};
 
     printf("exception benchmark start...\n");
-    INIT_LIST_HEAD(&ctx.io_head);
+    INIT_LIST_HEAD(&ctx.pp_head);
     ctx.cf = cf;
     randstr(page, REQLEN);
     epoll_init(&ctx.el, 10240, 1024, 1);
@@ -122,10 +122,10 @@ int exception_start(struct bc_opt *cf) {
 	    usleep(1000);
     while (rt_mstime() < cf->deadline)
 	epoll_oneloop(&ctx.el);
-    list_for_each_pio_safe(io, tmp, &ctx.io_head) {
-	epoll_del(&ctx.el, &io->et);
-	list_del(&io->pp_link);
-	producer_destroy(&io->sockfd);
+    list_for_each_pio_safe(pp, tmp, &ctx.pp_head) {
+	epoll_del(&ctx.el, &pp->et);
+	list_del(&pp->pp_link);
+	pio_close(&pp->sockfd);
     }
     epoll_destroy(&ctx.el);
     return 0;
