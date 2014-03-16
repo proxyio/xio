@@ -12,13 +12,13 @@ const char *pp_modstat_item[PP_MODSTAT_KEYRANGE] = {
     "RECONNECT",
 };
 
-static inline int64_t proto_parser_sock_read(struct io *sock, char *buff, int64_t sz) {
+static inline int64_t sock_read(struct io *sock, char *buff, int64_t sz) {
     proto_parser_t *pp = container_of(sock, proto_parser_t, sock_ops);
     sz = sk_read(pp->sockfd, buff, sz);
     return sz;
 }
 
-static inline int64_t proto_parser_sock_write(struct io *sock, char *buff, int64_t sz) {
+static inline int64_t sock_write(struct io *sock, char *buff, int64_t sz) {
     proto_parser_t *pp = container_of(sock, proto_parser_t, sock_ops);
     sz = sk_write(pp->sockfd, buff, sz);
     return sz;
@@ -30,8 +30,8 @@ void proto_parser_init(proto_parser_t *pp) {
     INIT_MODSTAT(pp->stat);
     bio_init(&pp->in);
     bio_init(&pp->out);
-    pp->sock_ops.read = proto_parser_sock_read;
-    pp->sock_ops.write = proto_parser_sock_write;
+    pp->sock_ops.read = sock_read;
+    pp->sock_ops.write = sock_write;
 }
 
 void proto_parser_destroy(proto_parser_t *pp) {
