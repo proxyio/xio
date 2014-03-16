@@ -54,8 +54,8 @@ int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
     if ((proto_parser_prefetch(pp) < 0 && errno != EAGAIN) || (proto_parser_bread(pp, &h, data, rt) < 0))
 	return -1;
     if (!ph_validate(&h)) {
-	mem_free(data, h.size);
-	mem_free(rt, pio_rt_size(&h));
+	mem_free(*data, h.size);
+	mem_free(*rt, pio_rt_size(&h));
 	return -1;
     }
     if (!(urt = mem_realloc(*rt, pio_rt_size(&h) + PIOHDRLEN))) {

@@ -71,7 +71,7 @@ int producer_recv_response(pio_t *io, char **data, uint32_t *size) {
     rt->cost[1] = (uint16_t)(now - h.sendstamp - rt->begin[1]);
     mem_free(rt, pio_rt_size(&h));
     if (!ph_validate(&h)) {
-	mem_free(data, h.size);
+	mem_free(*data, h.size);
 	return -1;
     }
     *size = h.size;
