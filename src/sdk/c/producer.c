@@ -2,42 +2,42 @@
 #include <uuid/uuid.h>
 #include <unistd.h>
 #include "io.h"
-#include "core/rio.h"
+#include "core/proto_parser.h"
 
 producer_t *producer_new(const char *addr, const char py[PROXYNAME_MAX]) {
-    rio_t *io = rio_new();
+    proto_parser_t *pp = proto_parser_new();
 
-    rio_init(io);
-    if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
+    proto_parser_init(pp);
+    if ((pp->sockfd = sk_connect("tcp", "", addr)) < 0)
 	goto RGS_ERROR;
-    sk_setopt(io->sockfd, SK_NONBLOCK, true);
-    io->rgh.type = PIO_RCVER;
-    uuid_generate(io->rgh.id);
-    memcpy(io->rgh.proxyname, py, sizeof(py));
-    if (rio_at_rgs(io) < 0 && errno != EAGAIN)
+    sk_setopt(pp->sockfd, SK_NONBLOCK, true);
+    pp->rgh.type = PIO_RCVER;
+    uuid_generate(pp->rgh.id);
+    memcpy(pp->rgh.proxyname, py, sizeof(py));
+    if (proto_parser_at_rgs(pp) < 0 && errno != EAGAIN)
 	goto RGS_ERROR;
-    while (!bio_empty(&io->out))
-	if (bio_flush(&io->out, &io->sock_ops) < 0)
+    while (!bio_empty(&pp->out))
+	if (bio_flush(&pp->out, &pp->sock_ops) < 0)
 	    goto RGS_ERROR;
-    return &io->sockfd;
+    return &pp->sockfd;
  RGS_ERROR:
-    rio_destroy(io);
-    mem_free(io, sizeof(*io));
+    proto_parser_destroy(pp);
+    mem_free(pp, sizeof(*pp));
     return NULL;
 }
 
 
-void producer_destroy(producer_t *pp) {
-    rio_t *io = container_of(pp, rio_t, sockfd);
-    close(io->sockfd);
-    rio_destroy(io);
-    mem_free(io, sizeof(*io));
+void producer_destroy(producer_t *io) {
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
+    close(pp->sockfd);
+    proto_parser_destroy(pp);
+    mem_free(pp, sizeof(*pp));
 }
 
 
-int producer_send_request(producer_t *pp, const char *data, uint32_t size) {
+int producer_send_request(producer_t *io, const char *data, uint32_t size) {
     int64_t now = rt_mstime();
-    rio_t *io = container_of(pp, rio_t, sockfd);
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     struct pio_rt rt = {
 	.cost = {0, 0},
 	.stay = {0, 0},
@@ -50,37 +50,37 @@ int producer_send_request(producer_t *pp, const char *data, uint32_t size) {
 	.size = size,
 	.go = 1,
 	.flags = 0,
-	.seqid = io->seqid++,
+	.seqid = pp->seqid++,
 	.sendstamp = now,
     };
-    uuid_copy(rt.uuid, io->rgh.id);
+    uuid_copy(rt.uuid, pp->rgh.id);
     ph_makechksum(&h);
-    rio_bwrite(io, &h, data, (char *)&rt);
-    modstat_update_timestamp(rio_stat(io), now);
-    if (rio_flush(io) < 0 && errno != EAGAIN)
+    proto_parser_bwrite(pp, &h, data, (char *)&rt);
+    modstat_update_timestamp(proto_parser_stat(pp), now);
+    if (proto_parser_flush(pp) < 0 && errno != EAGAIN)
 	return -1;
     return 0;
 }
 
-int producer_psend_request(producer_t *pp, const char *data, uint32_t size) {
-    rio_t *io = container_of(pp, rio_t, sockfd);
-    if (producer_send_request(pp, data, size) < 0)
+int producer_psend_request(producer_t *io, const char *data, uint32_t size) {
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
+    if (producer_send_request(io, data, size) < 0)
 	return -1;
-    while (rio_flush(io) < 0)
+    while (proto_parser_flush(pp) < 0)
 	if (errno != EAGAIN)
 	    return -1;
     return 0;
 }
 
 
-int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
+int producer_recv_response(producer_t *io, char **data, uint32_t *size) {
     int64_t now = rt_mstime();
     struct pio_rt *rt = NULL;
     struct pio_hdr h = {};
-    rio_t *io = container_of(pp, rio_t, sockfd);
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
 
-    if ((rio_prefetch(io) < 0 && errno != EAGAIN)
-	|| rio_bread(io, &h, data, (char **)&rt) < 0)
+    if ((proto_parser_prefetch(pp) < 0 && errno != EAGAIN)
+	|| proto_parser_bread(pp, &h, data, (char **)&rt) < 0)
 	return -1;
     rt->cost[1] = (uint16_t)(now - h.sendstamp - rt->begin[1]);
     mem_free(rt, pio_rt_size(&h));
@@ -89,8 +89,8 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
 	return -1;
     }
     *size = h.size;
-    modstat_incrskey(rio_stat(io), PIO_RTT, now - h.sendstamp);
-    modstat_update_timestamp(rio_stat(io), rt_mstime());
+    modstat_incrskey(proto_parser_stat(pp), PP_RTT, now - h.sendstamp);
+    modstat_update_timestamp(proto_parser_stat(pp), rt_mstime());
     return 0;
 }
 

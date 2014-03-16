@@ -3,8 +3,8 @@
 
 #include "core.h"
 
-#define IS_RCVER(r) r->io.rgh.type == PIO_RCVER
-#define IS_SNDER(r) r->io.rgh.type == PIO_SNDER
+#define IS_RCVER(r) r->pp.rgh.type == PIO_RCVER
+#define IS_SNDER(r) r->pp.rgh.type == PIO_SNDER
 
 static inline struct role *r_new() {
     struct role *r = (struct role *)mem_zalloc(sizeof(*r));

@@ -6,7 +6,7 @@
 
 typedef int (*walkfn) (proxy_t *py, struct role *r, void *args);
 
-#define list_for_each_role_safe(pos, n, head)			\
+#define list_for_each_role_safe(pos, n, head)				\
     list_for_each_entry_safe(pos, n, head, struct role, py_link)
 
 #define proxy_lock(py) spin_lock(&py->lock)

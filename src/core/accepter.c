@@ -16,7 +16,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et, uint32_t happ
     }
     r->proxyto = false;
     r->el = el;
-    r->et.fd = r->io.sockfd = nfd;
+    r->et.fd = r->pp.sockfd = nfd;
     r->et.events = EPOLLIN|EPOLLOUT;
     if (epoll_add(el, &r->et) < 0) {
 	close(nfd);
@@ -121,15 +121,15 @@ int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
 	return -1;
     }
     sk_setopt(nfd, SK_NONBLOCK, true);
-    h = &r->io.rgh;
+    h = &r->pp.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);
     strcpy(h->proxyname, proxyname);
     r->proxyto = true;
     r->el = &acp->el;
-    r->et.fd = r->io.sockfd = nfd;
+    r->et.fd = r->pp.sockfd = nfd;
     r->et.events = EPOLLOUT;
-    bio_write(&r->io.out, (char *)h, sizeof(*h));
+    bio_write(&r->pp.out, (char *)h, sizeof(*h));
     h->type = PIO_SNDER;
     if (epoll_add(&acp->el, &r->et) < 0) {
 	close(nfd);

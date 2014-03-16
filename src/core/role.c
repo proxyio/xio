@@ -12,7 +12,7 @@ static void r_send(struct role *r);
 static void r_error(struct role *r);
 
 void r_init(struct role *r) {
-    rio_init(&r->io);
+    proto_parser_init(&r->pp);
     spin_init(&r->lock);
     r->registed = false;
     r->status_ok = true;
@@ -23,8 +23,8 @@ void r_init(struct role *r) {
     r->et.data = r;
     r->mqsize = 0;
     INIT_LIST_HEAD(&r->mq);
-    r->sibling.key = (char *)r->io.rgh.id;
-    r->sibling.keylen = sizeof(r->io.rgh.id);
+    r->sibling.key = (char *)r->pp.rgh.id;
+    r->sibling.keylen = sizeof(r->pp.rgh.id);
     mem_cache_init(&r->slabs, sizeof(pio_msg_t));
 }
 
@@ -36,7 +36,7 @@ void r_destroy(struct role *r) {
 	pio_msg_free_data_and_rt(msg);
 	mem_free(msg, sizeof(*msg));
     }
-    rio_destroy(&r->io);
+    proto_parser_destroy(&r->pp);
     spin_destroy(&r->lock);			
     atomic_destroy(&r->ref);		
     mem_cache_destroy(&r->slabs);
@@ -107,11 +107,11 @@ static int r_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 
 static void r_rgs(struct role *r, uint32_t happened) {
     int ret;
-    struct pio_rgh *h = &r->io.rgh;
+    struct pio_rgh *h = &r->pp.rgh;
     proxy_t *py;
     acp_t *acp = container_of(r->el, struct accepter, el);
 
-    if ((ret = r->proxyto ? rio_at_rgs(&r->io) : rio_ps_rgs(&r->io)) < 0) {
+    if ((ret = r->proxyto ? proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp)) < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }
@@ -132,7 +132,7 @@ static int __r_receiver_recv(struct role *r) {
 
     if (!msg)
 	return -1;
-    if (rio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
+    if (proto_parser_bread(&r->pp, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
 	|| !ph_validate(&msg->hdr)) {
 	mem_cache_free(&r->slabs, msg);
 	r->status_ok = (errno != EAGAIN) ? false : true;
@@ -149,7 +149,7 @@ static int __r_receiver_recv(struct role *r) {
 }
 
 static void r_receiver_recv(struct role *r) {
-    if (rio_prefetch(&r->io) < 0 && errno != EAGAIN) {
+    if (proto_parser_prefetch(&r->pp) < 0 && errno != EAGAIN) {
 	r->status_ok = false;
 	return;
     }
@@ -166,7 +166,7 @@ static int __r_dispatcher_recv(struct role *r) {
 
     if (!msg)
 	return -1;
-    if (rio_bread(&r->io, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
+    if (proto_parser_bread(&r->pp, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
 	|| !ph_validate(&msg->hdr)) {
 	mem_cache_free(&r->slabs, msg);
 	r->status_ok = (errno != EAGAIN) ? false : true;
@@ -184,7 +184,7 @@ static int __r_dispatcher_recv(struct role *r) {
 }
 
 static void r_dispatcher_recv(struct role *r) {
-    if (rio_prefetch(&r->io) < 0 && errno != EAGAIN) {
+    if (proto_parser_prefetch(&r->pp) < 0 && errno != EAGAIN) {
 	r->status_ok = false;
 	return;
     }
@@ -211,8 +211,8 @@ static void r_receiver_send(struct role *r) {
     pio_rt_shrink(msg);
     crt = pio_msg_currt(msg);
     crt->begin[1] = (uint16_t)(now - msg->hdr.sendstamp);
-    rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
-    while (rio_flush(&r->io) < 0)
+    proto_parser_bwrite(&r->pp, &msg->hdr, msg->data, (char *)msg->rt);
+    while (proto_parser_flush(&r->pp) < 0)
 	if (errno != EAGAIN) {
 	    r->status_ok = false;
 	    break;
@@ -229,13 +229,13 @@ static void r_dispatcher_send(struct role *r) {
     if (!(msg = r_pop_massage(r)))
 	return;
     crt = pio_msg_currt(msg);
-    uuid_copy(rt.uuid, r->io.rgh.id);
+    uuid_copy(rt.uuid, r->pp.rgh.id);
     rt.begin[0] = (uint16_t)(now - msg->hdr.sendstamp);
     crt->stay[0] = (uint16_t)(rt.begin[0] - crt->begin[0] - crt->cost[0]);
     if (!pio_rt_append(msg, &rt))
 	goto EXIT;
-    rio_bwrite(&r->io, &msg->hdr, msg->data, (char *)msg->rt);
-    while (rio_flush(&r->io) < 0) {
+    proto_parser_bwrite(&r->pp, &msg->hdr, msg->data, (char *)msg->rt);
+    while (proto_parser_flush(&r->pp) < 0) {
 	if (errno != EAGAIN) {
 	    r->status_ok = false;
 	    break;

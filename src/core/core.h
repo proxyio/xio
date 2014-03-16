@@ -11,7 +11,7 @@
 #include "stats/modstat.h"
 #include "runner/taskpool.h"
 #include "hdr.h"
-#include "rio.h"
+#include "proto_parser.h"
 
 struct cf {
     int tp_workers;
@@ -46,7 +46,7 @@ typedef struct proxy {
     list_for_each_entry_safe(pos, n, head, proxy_t, acp_link)
 
 struct role {
-    rio_t io;
+    proto_parser_t pp;
     spin_t lock;
     uint32_t registed:1;
     uint32_t status_ok:1;
@@ -63,7 +63,7 @@ struct role {
     mem_cache_t slabs;
 };
 
-#define list_for_each_role_safe(pos, n, head)			\
+#define list_for_each_role_safe(pos, n, head)				\
     list_for_each_entry_safe(pos, n, head, struct role, py_link)
 
 

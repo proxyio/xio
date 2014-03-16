@@ -2,45 +2,45 @@
 #include <uuid/uuid.h>
 #include <unistd.h>
 #include "io.h"
-#include "core/rio.h"
+#include "core/proto_parser.h"
 #include "net/socket.h"
 
 comsumer_t *comsumer_new(const char *addr, const char py[PROXYNAME_MAX]) {
-    rio_t *io = rio_new();
+    proto_parser_t *pp = proto_parser_new();
 
-    rio_init(io);
-    if ((io->sockfd = sk_connect("tcp", "", addr)) < 0)
+    proto_parser_init(pp);
+    if ((pp->sockfd = sk_connect("tcp", "", addr)) < 0)
 	goto RGS_ERROR;
-    sk_setopt(io->sockfd, SK_NONBLOCK, true);
-    io->rgh.type = PIO_SNDER;
-    uuid_generate(io->rgh.id);
-    memcpy(io->rgh.proxyname, py, sizeof(py));
-    if (rio_at_rgs(io) < 0 && errno != EAGAIN)
+    sk_setopt(pp->sockfd, SK_NONBLOCK, true);
+    pp->rgh.type = PIO_SNDER;
+    uuid_generate(pp->rgh.id);
+    memcpy(pp->rgh.proxyname, py, sizeof(py));
+    if (proto_parser_at_rgs(pp) < 0 && errno != EAGAIN)
 	goto RGS_ERROR;
-    while (!bio_empty(&io->out))
-	if (bio_flush(&io->out, &io->sock_ops) < 0)
+    while (!bio_empty(&pp->out))
+	if (bio_flush(&pp->out, &pp->sock_ops) < 0)
 	    goto RGS_ERROR;
-    return &io->sockfd;
+    return &pp->sockfd;
  RGS_ERROR:
-    rio_destroy(io);
-    mem_free(io, sizeof(*io));
+    proto_parser_destroy(pp);
+    mem_free(pp, sizeof(*pp));
     return NULL;
 }
 
 
-void comsumer_destroy(comsumer_t *pp) {
-    rio_t *io = container_of(pp, rio_t, sockfd);
-    close(io->sockfd);
-    rio_destroy(io);
-    mem_free(io, sizeof(*io));
+void comsumer_destroy(comsumer_t *io) {
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
+    close(pp->sockfd);
+    proto_parser_destroy(pp);
+    mem_free(pp, sizeof(*pp));
 }
 
 
 
-int comsumer_send_response(comsumer_t *pp, const char *data, uint32_t size,
+int comsumer_send_response(comsumer_t *io, const char *data, uint32_t size,
 			   const char *urt, uint32_t rt_size) {
     int64_t now = rt_mstime();
-    rio_t *io = container_of(pp, rio_t, sockfd);
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     struct pio_rt *crt;
     struct pio_hdr *h = (struct pio_hdr *)urt;
 
@@ -53,20 +53,20 @@ int comsumer_send_response(comsumer_t *pp, const char *data, uint32_t size,
     crt->begin[1] = (uint16_t)(now - h->sendstamp);
     crt->stay[0] = (uint16_t)(now - h->sendstamp - crt->begin[0] - crt->cost[0]);
     ph_makechksum(h);
-    rio_bwrite(io, h, data, urt + PIOHDRLEN);
-    modstat_update_timestamp(rio_stat(io), now);
-    if (rio_flush(io) < 0 && errno != EAGAIN)
+    proto_parser_bwrite(pp, h, data, urt + PIOHDRLEN);
+    modstat_update_timestamp(proto_parser_stat(pp), now);
+    if (proto_parser_flush(pp) < 0 && errno != EAGAIN)
 	return -1;
     return 0;
 }
 
 
-int comsumer_psend_response(comsumer_t *pp, const char *data, uint32_t size,
+int comsumer_psend_response(comsumer_t *io, const char *data, uint32_t size,
 			    const char *urt, uint32_t rt_size) {
-    rio_t *io = container_of(pp, rio_t, sockfd);
-    if (comsumer_send_response(pp, data, size, urt, rt_size) < 0)
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
+    if (comsumer_send_response(io, data, size, urt, rt_size) < 0)
 	return -1;
-    while (rio_flush(io) < 0)
+    while (proto_parser_flush(pp) < 0)
 	if (errno != EAGAIN)
 	    return -1;
     return 0;
@@ -75,15 +75,15 @@ int comsumer_psend_response(comsumer_t *pp, const char *data, uint32_t size,
 
 
 
-int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
+int comsumer_recv_request(comsumer_t *io, char **data, uint32_t *size,
 			  char **rt, uint32_t *rt_size) {
     int64_t now = rt_mstime();
     char *urt;
     struct pio_rt *crt;
     struct pio_hdr h = {};
-    rio_t *io = container_of(pp, rio_t, sockfd);
+    proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
 
-    if ((rio_prefetch(io) < 0 && errno != EAGAIN) || (rio_bread(io, &h, data, rt) < 0))
+    if ((proto_parser_prefetch(pp) < 0 && errno != EAGAIN) || (proto_parser_bread(pp, &h, data, rt) < 0))
 	return -1;
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);
@@ -102,8 +102,8 @@ int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
     *rt_size = pio_rt_size(&h) + PIOHDRLEN;
     memmove((*rt) + PIOHDRLEN, *rt, pio_rt_size(&h));
     memcpy(*rt, (char *)&h, PIOHDRLEN);
-    modstat_incrskey(rio_stat(io), PIO_RTT, now - h.sendstamp);
-    modstat_update_timestamp(rio_stat(io), now);
+    modstat_incrskey(proto_parser_stat(pp), PP_RTT, now - h.sendstamp);
+    modstat_update_timestamp(proto_parser_stat(pp), now);
     return 0;
 }
 
