@@ -19,12 +19,12 @@ struct pio_rt {
 
 struct pio_hdr {
     uint8_t version;
-    uint8_t ttl:4;
-    uint8_t end_ttl:4;
-    uint32_t size;
+    uint16_t ttl:4;
+    uint16_t end_ttl:4;
     uint16_t go:1;
-    uint16_t flags:15;
-    uint16_t hdrcheck;
+    uint32_t size;
+    uint16_t timeout;
+    uint16_t checksum;
     uint64_t seqid;
     int64_t sendstamp;
 };
@@ -39,19 +39,23 @@ static inline uint32_t pio_pkg_size(const struct pio_hdr *h) {
     return PIOHDRLEN + h->size + pio_rt_size(h);
 }
 
+static inline int ph_timeout(const struct pio_hdr *h, int64_t now) {
+    return h->timeout && (h->sendstamp + h->timeout < now);
+}
+
 static inline int ph_validate(const struct pio_hdr *h) {
     struct pio_hdr copyheader = *h;
     int ok;
-    copyheader.hdrcheck = 0;
-    if (!(ok = (crc16((char *)&copyheader, PIOHDRLEN) == h->hdrcheck)))
+    copyheader.checksum = 0;
+    if (!(ok = (crc16((char *)&copyheader, PIOHDRLEN) == h->checksum)))
 	errno = EPROTO;
     return ok;
 }
 
 static inline void ph_makechksum(struct pio_hdr *hdr) {
     struct pio_hdr copyheader = *hdr;
-    copyheader.hdrcheck = 0;
-    hdr->hdrcheck = crc16((char *)&copyheader, PIOHDRLEN);
+    copyheader.checksum = 0;
+    hdr->checksum = crc16((char *)&copyheader, PIOHDRLEN);
 }
 
 

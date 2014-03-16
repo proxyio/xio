@@ -42,7 +42,7 @@ static int test_producer1() {
     randstr(req, PAGE_SIZE);
     while (mycnt) {
 	reqlen = rand() % PAGE_SIZE;
-	EXPECT_TRUE(producer_psend_request(pt, req, reqlen) == 0);
+	EXPECT_TRUE(producer_psend_request(pt, req, reqlen, 0) == 0);
 	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
 	EXPECT_EQ(reqlen, resplen);
 	EXPECT_TRUE(memcmp(req, resp, reqlen) == 0);
@@ -60,7 +60,7 @@ static int test_producer2() {
 
     randstr(req, PAGE_SIZE);
     for (int i = 0; i < cnt; i++)
-	EXPECT_TRUE(producer_psend_request(pt, req, i) == 0);
+	EXPECT_TRUE(producer_psend_request(pt, req, i, 0) == 0);
     for (int i = 0; i < cnt; i++) {
 	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
 	EXPECT_EQ(resplen, i);

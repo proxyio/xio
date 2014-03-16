@@ -138,7 +138,8 @@ static int __r_receiver_recv(struct role *r) {
 	return -1;
     }
     rt_go_cost(msg, now);
-    if (!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
+    if (ph_timeout(&msg->hdr, now) ||
+	!(dest = proxy_lb_dispatch(r->py)) || r_push_massage(dest, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
 	return -1;
@@ -172,7 +173,8 @@ static int __r_dispatcher_recv(struct role *r) {
     }
     rt_back_cost(msg, now);
     rt = pio_msg_prevrt(msg);
-    if (!(src = proxy_find_at(r->py, rt->uuid)) || r_push_massage(src, msg) < 0) {
+    if (ph_timeout(&msg->hdr, now) ||
+	!(src = proxy_find_at(r->py, rt->uuid)) || r_push_massage(src, msg) < 0) {
 	pio_msg_free_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
 	return -1;

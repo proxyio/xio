@@ -21,7 +21,7 @@ static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
     }
 }
 
-int producer_send_request(pio_t *io, const char *data, uint32_t size) {
+int producer_send_request(pio_t *io, const char *data, uint32_t size, int to) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     struct pio_rt rt = {
@@ -33,11 +33,11 @@ int producer_send_request(pio_t *io, const char *data, uint32_t size) {
 	.version = PIO_VERSION,
 	.ttl = 1,
 	.end_ttl = 1,
-	.size = size,
 	.go = 1,
-	.flags = 0,
-	.seqid = pp->seqid++,
+	.size = size,
+	.timeout = (uint16_t)to,
 	.sendstamp = now,
+	.seqid = pp->seqid++,
     };
     uuid_copy(rt.uuid, pp->rgh.id);
     ph_makechksum(&h);
@@ -48,9 +48,9 @@ int producer_send_request(pio_t *io, const char *data, uint32_t size) {
     return 0;
 }
 
-int producer_psend_request(pio_t *io, const char *data, uint32_t size) {
+int producer_psend_request(pio_t *io, const char *data, uint32_t size, int to) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    if (producer_send_request(io, data, size) < 0)
+    if (producer_send_request(io, data, size, to) < 0)
 	return -1;
     while (proto_parser_flush(pp) < 0)
 	if (errno != EAGAIN)

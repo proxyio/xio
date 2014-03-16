@@ -71,7 +71,7 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	//sk_write(pp->sockfd, page, rand() % 100);
 	return -1;
     }
-    producer_psend_request(&pp->sockfd, page, REQRMDLEN);
+    producer_psend_request(&pp->sockfd, page, REQRMDLEN, 1000);
     if (producer_recv_response(&pp->sockfd, &data, &sz) == 0)
 	mem_free(data, sz);
     return 0;

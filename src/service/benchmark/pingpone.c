@@ -31,7 +31,7 @@ static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     modstat_set_warnf(proto_parser_stat(pp), MSL_S, bc_threshold_warn);
     list_add(&pp->pp_link, &ctx->pp_head);
     sz = cf->size > 0 ? cf->size : rand() % REQLEN;
-    BUG_ON(producer_psend_request(&pp->sockfd, page, sz) != 0);
+    BUG_ON(producer_psend_request(&pp->sockfd, page, sz, cf->timeout) != 0);
     return pp;
 }
 
@@ -60,6 +60,7 @@ static inline int
 producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
+    struct bc_opt *cf = ctx->cf;
     char *data;
     uint32_t sz;
     if (happened & (EPOLLERR|EPOLLRDHUP)) {
@@ -71,7 +72,7 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
 	return 0;
     }
     if (producer_recv_response(&pp->sockfd, &data, &sz) == 0) {
-	producer_psend_request(&pp->sockfd, data, sz);
+	producer_psend_request(&pp->sockfd, data, sz, cf->timeout);
 	mem_free(data, sz);
     }
     return 0;
