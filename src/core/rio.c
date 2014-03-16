@@ -8,6 +8,7 @@ const char *pio_modstat_item[PIO_MODSTAT_KEYRANGE] = {
     "RECV",
     "SEND",
     "ERROR",
+    "RTT",
     "RECONNECT",
 };
 

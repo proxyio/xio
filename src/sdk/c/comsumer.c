@@ -84,8 +84,7 @@ int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
     struct pio_hdr h = {};
     rio_t *io = container_of(pp, rio_t, sockfd);
 
-    if ((rio_prefetch(io) < 0 && errno != EAGAIN)
-	|| (rio_bread(io, &h, data, rt) < 0))
+    if ((rio_prefetch(io) < 0 && errno != EAGAIN) || (rio_bread(io, &h, data, rt) < 0))
 	return -1;
     if (!ph_validate(&h)) {
 	mem_free(data, h.size);
@@ -105,6 +104,7 @@ int comsumer_recv_request(comsumer_t *pp, char **data, uint32_t *size,
     *rt_size = pio_rt_size(&h) + PIOHDRLEN;
     memmove((*rt) + PIOHDRLEN, *rt, pio_rt_size(&h));
     memcpy(*rt, (char *)&h, PIOHDRLEN);
+    modstat_incrskey(rio_stat(io), PIO_RTT, now - h.sendstamp);
     modstat_update_timestamp(rio_stat(io), now);
     return 0;
 }

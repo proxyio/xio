@@ -59,9 +59,12 @@ typedef struct pio_msg {
     struct pio_hdr hdr;
     char *data;
     struct pio_rt *rt;
-    struct list_head node;
+    struct list_head mq_link;
 } pio_msg_t;
 #define PIOMSGLEN sizeof(struct pio_msg)
+
+#define list_for_each_msg_safe(pos, tmp, head)				\
+    list_for_each_entry_safe(pos, tmp, head, struct pio_msg, mq_link)
 
 static inline uint32_t pio_msg_size(pio_msg_t *msg) {
     uint32_t ttl = msg->hdr.go ? msg->hdr.ttl : msg->hdr.end_ttl;

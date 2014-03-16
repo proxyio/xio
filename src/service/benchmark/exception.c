@@ -5,7 +5,8 @@
 #include "core/rio.h"
 #include "sdk/c/io.h"
 
-#define REQLEN (PAGE_SIZE * 8)
+#define REQLEN PAGE_SIZE
+#define REQRMDLEN (rand() % REQLEN)
 static char page[REQLEN];
 extern int randstr(char *buff, int sz);
 
@@ -22,7 +23,7 @@ static rio_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     io = container_of(sockfd, rio_t, sockfd);
     io->et.fd = *sockfd;
     io->et.events = EPOLLIN|EPOLLOUT;
-    io->et.f = comsumer_event_handler;
+    io->et.f = producer_event_handler;
     if (epoll_add(&ctx->el, &io->et) < 0) {
 	producer_destroy(sockfd);
 	return NULL;
@@ -41,7 +42,7 @@ static rio_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 	return NULL;
     io = container_of(sockfd, rio_t, sockfd);
     io->et.fd = *sockfd;
-    io->et.events = EPOLLIN;
+    io->et.events = EPOLLIN|EPOLLOUT;
     io->et.f = comsumer_event_handler;
     if (epoll_add(&ctx->el, &io->et) < 0) {
 	comsumer_destroy(sockfd);
@@ -59,28 +60,21 @@ producer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data;
     uint32_t sz;
-    if (happened & EPOLLERR) {
+
+    if ((happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
-	rio_destroy(io);
-	new_pingpong_producer(ctx);
+	list_del(&io->io_link);
+	producer_destroy(&io->sockfd);
+	while (!new_pingpong_producer(ctx))
+	    usleep(1000);
 	return 0;
+    } else if (rand() % 2 == 0) {
+	//sk_write(io->sockfd, page, rand() % 100);
+	return -1;
     }
-    if (rand() % 234 == 0) {
-	switch (rand() % 4) {
-	case 0:
-	    sk_write(io->sockfd, page, rand() % 100);
-	    return -1;
-	case 1:
-	    epoll_del(el, et);
-	    rio_destroy(io);
-	    new_pingpong_producer(ctx);
-	    return -1;
-	}
-    }
-    if ((happened & EPOLLIN)
-	&& producer_recv_response(&io->sockfd, &data, &sz) == 0) {
+    producer_psend_request(&io->sockfd, page, REQRMDLEN);
+    if (producer_recv_response(&io->sockfd, &data, &sz) == 0)
 	mem_free(data, sz);
-    }
     return 0;
 }
 
@@ -90,23 +84,17 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et, uint32_t happened) {
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     char *data, *rt;
     uint32_t sz, rt_sz;
-    if (happened & EPOLLERR) {
+
+    if ((happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
-	rio_destroy(io);
-	new_pingpong_comsumer(ctx);
+	list_del(&io->io_link);
+	comsumer_destroy(&io->sockfd);
+	while (!new_pingpong_comsumer(ctx))
+	    usleep(1000);
 	return 0;
-    }
-    if (rand() % 234 == 0) {
-	switch (rand() % 4) {
-	case 0:
-	    sk_write(io->sockfd, page, rand() % 100);
-	    return -1;
-	case 1:
-	    epoll_del(el, et);
-	    rio_destroy(io);
-	    new_pingpong_producer(ctx);
-	    return -1;
-	}
+    } else if (rand() % 2 == 0) {
+	//sk_write(io->sockfd, page, rand() % 100);
+	return -1;
     }
     if (comsumer_recv_request(&io->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
 	comsumer_psend_response(&io->sockfd, data, sz, rt, rt_sz);
@@ -128,16 +116,17 @@ int exception_start(struct bc_opt *cf) {
     randstr(page, REQLEN);
     epoll_init(&ctx.el, 10240, 1024, 1);
     for (i = 0; i < cf->comsumer_num; i++)
-	new_pingpong_comsumer(&ctx);
-    for (i = 0; i < cf->producer_num; i++) {
-	io = new_pingpong_producer(&ctx);
-    }
+	while (!new_pingpong_comsumer(&ctx))
+	    usleep(1000);
+    for (i = 0; i < cf->producer_num; i++)
+	while (!new_pingpong_producer(&ctx))
+	    usleep(1000);
     while (rt_mstime() < cf->deadline)
 	epoll_oneloop(&ctx.el);
     list_for_each_pio_safe(io, tmp, &ctx.io_head) {
 	epoll_del(&ctx.el, &io->et);
 	list_del(&io->io_link);
-	rio_destroy(io);
+	producer_destroy(&io->sockfd);
     }
     epoll_destroy(&ctx.el);
     return 0;

@@ -15,6 +15,7 @@ enum {
     PIO_RECV = 0,
     PIO_SEND,
     PIO_ERROR,
+    PIO_RTT,
     PIO_RECONNECT,
     PIO_MODSTAT_KEYRANGE,
 };

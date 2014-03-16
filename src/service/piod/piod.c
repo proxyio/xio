@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/signal.h>
 #include "core/accepter.h"
 
 extern int64_t deadline;
@@ -10,6 +11,8 @@ int main(int argc, char **argv) {
     acp_t acp = {};
     struct cf cf = default_cf;
     
+    if (SIG_ERR == signal(SIGPIPE, SIG_IGN))
+        return -1;
     if (getoption(argc, argv, &cf) < 0)
 	return -1;
     acp_init(&acp, &cf);

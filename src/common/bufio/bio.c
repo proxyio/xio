@@ -162,17 +162,18 @@ int64_t bio_write(struct bio *b, const char *buff, int64_t sz) {
 
 
 int64_t bio_flush(struct bio *b, struct io *io_ops) {
+    int64_t nbytes, sum = 0;
     char page[PAGE_SIZE];
-    int64_t nbytes = 0, ret;
     
     while (!list_empty(&b->page_head)) {
-	if ((ret = io_ops->write(io_ops, page,
-				 bio_copy(b, page, PAGE_SIZE))) < 0)
+	if ((nbytes = io_ops->write(io_ops, page, bio_copy(b, page, PAGE_SIZE))) < 0)
 	    break;
-	nbytes += ret;
-	BUG_ON(ret != bio_read(b, page, ret));
+	sum += nbytes;
+	BUG_ON(nbytes != bio_read(b, page, nbytes));
     }
-    return nbytes;
+    if (nbytes < 0 && errno != EAGAIN && sum == 0)
+	return -1;
+    return sum;
 }
 
 int64_t bio_prefetch(struct bio *b, struct io *io_ops) {

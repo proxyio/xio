@@ -91,6 +91,7 @@ int producer_recv_response(producer_t *pp, char **data, uint32_t *size) {
 	return -1;
     }
     *size = h.size;
+    modstat_incrskey(rio_stat(io), PIO_RTT, now - h.sendstamp);
     modstat_update_timestamp(rio_stat(io), rt_mstime());
     return 0;
 }

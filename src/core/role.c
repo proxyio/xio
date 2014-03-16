@@ -29,6 +29,13 @@ void r_init(struct role *r) {
 }
 
 void r_destroy(struct role *r) {
+    pio_msg_t *msg, *tmp;
+
+    list_for_each_msg_safe(msg, tmp, &r->mq) {
+	list_del(&msg->mq_link);
+	pio_msg_free_data_and_rt(msg);
+	mem_free(msg, sizeof(*msg));
+    }
     rio_destroy(&r->io);
     spin_destroy(&r->lock);			
     atomic_destroy(&r->ref);		
@@ -64,8 +71,8 @@ static pio_msg_t *r_pop_massage(struct role *r) {
     r_lock(r);
     if (!list_empty(&r->mq)) {
 	r->mqsize--;
-	msg = list_first(&r->mq, pio_msg_t, node);
-	list_del(&msg->node);
+	msg = list_first(&r->mq, pio_msg_t, mq_link);
+	list_del(&msg->mq_link);
     }
     if (list_empty(&r->mq))
 	__r_disable_eventout(r);
@@ -76,7 +83,7 @@ static pio_msg_t *r_pop_massage(struct role *r) {
 static int r_push_massage(struct role *r, pio_msg_t *msg) {
     r_lock(r);
     r->mqsize++;
-    list_add_tail(&msg->node, &r->mq);
+    list_add_tail(&msg->mq_link, &r->mq);
     if (!list_empty(&r->mq))
 	__r_enable_eventout(r);
     r_unlock(r);
