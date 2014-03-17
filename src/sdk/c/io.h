@@ -2,6 +2,7 @@
 #define _HPIO_IO_
 
 #define PROXYNAME_MAX 128
+#define HOSTNAME_MAX PROXYNAME_MAX
 #define PIO_VERSION 0x1
 
 #include <inttypes.h>
