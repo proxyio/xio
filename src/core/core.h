@@ -23,7 +23,7 @@
 
 
 struct cf {
-    int tp_workers;
+    int max_cpus;
     int el_io_size;
     int el_wait_timeout;
     char *monitor_center;
@@ -34,7 +34,7 @@ extern struct cf default_cf;
 typedef struct accepter {
     spin_t lock;
     taskpool_t tp;
-    epoll_t el;
+    epoll_t main_el;
     struct cf cf;
     struct list_head sub_el_head;
     struct list_head et_head;

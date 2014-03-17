@@ -76,7 +76,7 @@ static void acp_test() {
     acp_t acp = {};
     struct cf cf = {};
 
-    cf.tp_workers = 1;
+    cf.max_cpus = 1;
     cf.el_io_size = 100;
     cf.el_wait_timeout = 1;
     acp_init(&acp, &cf);

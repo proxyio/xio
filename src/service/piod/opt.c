@@ -34,7 +34,7 @@ int getoption(int argc, char* argv[], struct cf *cf) {
 	    deadline = rt_mstime() + atoi(optarg) * 1E3;
 	    break;
         case 'w':
-	    cf->tp_workers = atoi(optarg);
+	    cf->max_cpus = atoi(optarg);
             break;
 	case 'm':
 	    cf->monitor_center = optarg;

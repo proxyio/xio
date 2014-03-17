@@ -39,8 +39,13 @@ typedef struct epoll {
     int64_t max_to;
     skrb_t tr_tree;
     mutex_t mutex;
+    struct list_head link;
     struct epoll_event *ev_buf;
 } epoll_t;
+
+#define list_for_each_el_safe(pos, tmp, head)			\
+    list_for_each_entry_safe(pos, tmp, head, epoll_t, link)
+
 
 static inline epollevent_t *epollevent_new() {
     epollevent_t *ev = (epollevent_t *)mem_zalloc(sizeof(*ev));
