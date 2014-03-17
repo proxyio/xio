@@ -4,6 +4,19 @@
 #include "proxy.h"
 #include "runner/taskpool.h"
 
+static inline epoll_t *acp_get_subel_rrbin(acp_t *acp) {
+    epoll_t *sub_el;
+    lock(acp);
+    if (!list_empty(&acp->sub_el_head)) {
+	sub_el = list_first(&acp->sub_el_head, epoll_t, link);
+	list_del(&sub_el->link);
+	list_add_tail(&sub_el->link, &acp->sub_el_head);
+    } else
+	sub_el = &acp->main_el;
+    unlock(acp);
+    return sub_el;
+}
+
 static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
     acp_t *acp = container_of(el, struct accepter, main_el);
     int nfd;
@@ -17,11 +30,11 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
 	return -1;
     }
     r->proxyto = false;
-    r->el = el;
+    r->el = acp_get_subel_rrbin(acp);
     r->et.fd = r->pp.sockfd = nfd;
     r->et.events = EPOLLIN|EPOLLOUT;
     r->acp = acp;
-    if (epoll_add(el, &r->et) < 0) {
+    if (epoll_add(r->el, &r->et) < 0) {
 	close(nfd);
 	r_destroy(r);
 	mem_free(r, sizeof(*r));
@@ -70,19 +83,23 @@ static inline int acp_reactor(void *args) {
 void acp_start(acp_t *acp) {
     epoll_t *sub_el, *tmp;
 
+    lock(acp);
     taskpool_start(&acp->tp);
     taskpool_run(&acp->tp, acp_reactor, &acp->main_el);
     list_for_each_el_safe(sub_el, tmp, &acp->sub_el_head)
 	taskpool_run(&acp->tp, acp_reactor, sub_el);
+    unlock(acp);
 }
 
 void acp_stop(acp_t *acp) {
     epoll_t *sub_el, *tmp;
 
+    lock(acp);
     epoll_stoploop(&acp->main_el);
     list_for_each_el_safe(sub_el, tmp, &acp->sub_el_head)
 	epoll_stoploop(sub_el);
     taskpool_stop(&acp->tp);
+    unlock(acp);
 }
 
 int acp_listen(acp_t *acp, const char *addr) {
@@ -143,13 +160,14 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
 	close(nfd);
 	return -1;
     }
+    lock(acp);
     sk_setopt(nfd, SK_NONBLOCK, true);
     h = &r->pp.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);
     strcpy(h->proxyname, pyn);
     r->proxyto = true;
-    r->el = &acp->main_el;
+    r->el = acp_get_subel_rrbin(acp);
     r->et.fd = r->pp.sockfd = nfd;
     r->et.events = EPOLLOUT;
     r->acp = acp;
@@ -159,7 +177,9 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
 	close(nfd);
 	r_destroy(r);
 	mem_free(r, sizeof(*r));
+	unlock(acp);
 	return -1;
     }
+    unlock(acp);
     return 0;
 }
