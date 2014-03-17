@@ -18,7 +18,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
     r->proxyto = false;
     r->el = el;
     r->et.fd = r->pp.sockfd = nfd;
-    r->et.events = EPOLLET|EPOLLIN|EPOLLOUT;
+    r->et.events = EPOLLIN|EPOLLOUT;
     if (epoll_add(el, &r->et) < 0) {
 	close(nfd);
 	r_destroy(r);
@@ -101,7 +101,7 @@ static inline proxy_t *__acp_find(acp_t *acp, const char *pyn) {
     proxy_t *py;
 
     list_for_each_entry(py, &acp->py_head, proxy_t, acp_link)
-	if (memcmp(py->proxyname, pyn, PROXYNAME_MAX) == 0)
+	if (strncmp(py->proxyname, pyn, PROXYNAME_MAX) == 0)
 	    return py;
     return NULL;
 }

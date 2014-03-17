@@ -18,7 +18,7 @@ typedef struct atomic {
 	spin_destroy(&(at)->lock);		\
     } while (0)
 
-#define atomic_add(at, nval) ({ int64_t __old;	\
+#define atomic_incs(at, nval) ({ int64_t __old;	\
 	    spin_lock(&(at)->lock);		\
 	    __old = (at)->val;			\
 	    (at)->val += nval;			\
@@ -26,13 +26,16 @@ typedef struct atomic {
 	    __old;				\
 	})
 
-#define atomic_dec(at, nval) ({ int64_t __old;	\
+#define atomic_decs(at, nval) ({ int64_t __old;	\
 	    spin_lock(&(at)->lock);		\
 	    __old = (at)->val;			\
 	    (at)->val -= nval;			\
 	    spin_unlock(&(at)->lock);		\
 	    __old;				\
 	})
+
+#define atomic_inc(at) atomic_incs(at, 1)
+#define atomic_dec(at) atomic_decs(at, 1)
 
 #define atomic_read(at) ({ int64_t __old;	\
 	    spin_lock(&(at)->lock);		\

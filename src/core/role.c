@@ -43,7 +43,7 @@ void r_destroy(struct role *r) {
 }
 
 void r_put(struct role *r) {
-    if (atomic_dec(&r->ref, 1) == 1) {
+    if (atomic_dec(&r->ref) == 1) {
 	r_destroy(r);
 	mem_free(r, sizeof(*r));
     }
@@ -122,7 +122,7 @@ static void r_rgs(struct role *r) {
     proxy_t *py;
     acp_t *acp = container_of(r->el, struct accepter, el);
 
-    ret = r->proxyto ?  proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp);
+    ret = r->proxyto ? proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp);
     if (ret < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
@@ -256,7 +256,7 @@ static void r_send(struct role *r) {
 
 
 static void r_error(struct role *r) {
-    BUG_ON(epoll_del(r->el, &r->et) != 0);
+    epoll_del(r->el, &r->et);
     close(r->et.fd);
     if (r->py)
 	proxy_del(r->py, r);
