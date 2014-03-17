@@ -12,7 +12,7 @@ enum {
 };
 
 typedef int pio_t;
-pio_t *pio_join(const char *addr, const char py[PROXYNAME_MAX], int type);
+pio_t *pio_join(const char *addr, const char *pyn, int type);
 void pio_close(pio_t *io);
 
 int producer_send_request(pio_t *io, const char *data, uint32_t size, int to);

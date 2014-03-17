@@ -8,6 +8,8 @@ enum {
     EXCEPTION,
 };
 
+extern char *proxyname;
+
 struct bc_opt {
     int size;
     int timeout;
@@ -15,7 +17,6 @@ struct bc_opt {
     int comsumer_num;
     int producer_num;
     char *host;
-    char *proxyname;
     int mode;
 };
 

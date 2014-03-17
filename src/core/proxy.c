@@ -61,8 +61,10 @@ struct role *proxy_getr(proxy_t *py, uuid_t uuid) {
     ssmap_node_t *node;
     struct role *r = NULL;
     lock(py);
-    if ((node = ssmap_find(&py->roles, (char *)uuid, sizeof(uuid_t))))
+    if ((node = ssmap_find(&py->roles, (char *)uuid, sizeof(uuid_t)))) {
 	r = container_of(node, struct role, sibling);
+	atomic_add(&r->ref, 1);
+    }
     unlock(py);
     return r;
 }

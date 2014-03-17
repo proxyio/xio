@@ -108,11 +108,11 @@ static int r_task_runner(void *args) {
 }
 
 static int r_event_handler(epoll_t *el, epollevent_t *et) {
-    // acp_t *acp = container_of(el, acp_t, el);
+    //acp_t *acp = container_of(el, acp_t, el);
     struct role *r = container_of(et, struct role, et);
     BUG_ON(r->el != el);
     r_task_runner(r);
-    // taskpool_run(&acp->tp, r_task_runner, r);
+    //taskpool_run(&acp->tp, r_task_runner, r);
     return 0;
 }
 
@@ -256,7 +256,7 @@ static void r_send(struct role *r) {
 
 
 static void r_error(struct role *r) {
-    epoll_del(r->el, &r->et);
+    BUG_ON(epoll_del(r->el, &r->et) != 0);
     close(r->et.fd);
     if (r->py)
 	proxy_del(r->py, r);

@@ -4,6 +4,8 @@
 #include "os/timesz.h"
 #include "opt.h"
 
+char *proxyname = "testpio";
+
 static char __usage[] = "\n\
 NAME\n\
     pio_benchmark - pio benchmark program\n\
@@ -16,7 +18,6 @@ OPTIONS\n\
     -c comsumer number\n\
     -p producer number\n\
     -h proxyio host addr\n\
-    -x proxyname\n\
     -m benchmark mode\n\
 \n\
 EXAMPLE:\n\
@@ -42,9 +43,6 @@ int getoption(int argc, char* argv[], struct bc_opt *cf) {
             break;
 	case 'p':
 	    cf->producer_num = atoi(optarg);
-	    break;
-	case 'x':
-	    cf->proxyname = optarg;
 	    break;
 	case 'h':
 	    cf->host = optarg;

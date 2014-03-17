@@ -5,7 +5,7 @@
 #include "core/proto_parser.h"
 #include "net/socket.h"
 
-pio_t *pio_join(const char *addr, const char py[PROXYNAME_MAX], int type) {
+pio_t *pio_join(const char *addr, const char *pyn, int type) {
     proto_parser_t *pp = proto_parser_new();
 
     proto_parser_init(pp);
@@ -14,7 +14,7 @@ pio_t *pio_join(const char *addr, const char py[PROXYNAME_MAX], int type) {
     sk_setopt(pp->sockfd, SK_NONBLOCK, true);
     pp->rgh.type = (type == COMSUMER) ? PIO_SNDER : PIO_RCVER;
     uuid_generate(pp->rgh.id);
-    memcpy(pp->rgh.proxyname, py, sizeof(py));
+    memcpy(pp->rgh.proxyname, pyn, PROXYNAME_MAX);
     if (proto_parser_at_rgs(pp) < 0 && errno != EAGAIN)
 	goto RGS_ERROR;
     while (!bio_empty(&pp->out))

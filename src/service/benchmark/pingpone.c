@@ -18,7 +18,7 @@ static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     struct bc_opt *cf = ctx->cf;
     
     randstr(page, REQLEN);
-    if (!(io = pio_join(cf->host, cf->proxyname, PRODUCER)))
+    if (!(io = pio_join(cf->host, proxyname, PRODUCER)))
 	return NULL;
     pp = container_of(io, proto_parser_t, sockfd);
     pp->et.fd = pp->sockfd;
@@ -40,7 +40,7 @@ static proto_parser_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
     proto_parser_t *pp;
     struct bc_opt *cf = ctx->cf;
     
-    if (!(io = pio_join(cf->host, cf->proxyname, COMSUMER)))
+    if (!(io = pio_join(cf->host, proxyname, COMSUMER)))
 	return NULL;
     pp = container_of(io, proto_parser_t, sockfd);
     pp->et.fd = pp->sockfd;
