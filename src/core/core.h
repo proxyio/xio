@@ -45,7 +45,6 @@ typedef struct proxy {
     char proxyname[PROXYNAME_MAX];
     int rsize;
     ssmap_t roles;
-    ssmap_t tw_roles;
     struct list_head acp_link;
     struct list_head rcver_head;
     struct list_head snder_head;

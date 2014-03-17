@@ -1,11 +1,14 @@
 #include "proxy.h"
 #include "role.h"
 
+
+#define list_for_each_role_safe(pos, n, head)				\
+    list_for_each_entry_safe(pos, n, head, struct role, py_link)
+
 void proxy_init(proxy_t *py) {
     ZERO(*py);
     spin_init(&(py)->lock);
     ssmap_init(&(py)->roles);
-    ssmap_init(&(py)->tw_roles);
     INIT_LIST_HEAD(&(py)->rcver_head);
     INIT_LIST_HEAD(&(py)->snder_head);
 }
@@ -29,36 +32,38 @@ int proxy_add(proxy_t *py, struct role *r) {
     struct list_head *__head;
 
     __head = IS_RCVER(r) ? &py->rcver_head : &py->snder_head;
-    proxy_lock(py);
+    lock(py);
     if ((ret = ssmap_insert(&py->roles, &r->sibling)) == 0) {
 	py->rsize++;
 	list_add(&r->py_link, __head);
     }
-    proxy_unlock(py);
+    unlock(py);
     return ret;
 }
 
 void proxy_del(proxy_t *py, struct role *r) {
-    proxy_lock(py);				
+    lock(py);				
     py->rsize--;				
     ssmap_delete(&py->roles, &r->sibling);	
     list_del(&r->py_link);			
-    proxy_unlock(py);			
+    unlock(py);			
 }
 
 void __proxy_walk(proxy_t *py, walkfn f, void *args, struct list_head *head) {
     struct role *r = NULL, *nxt = NULL;	
-    proxy_lock(py);				
+    lock(py);				
     list_for_each_role_safe(r, nxt, head)	
 	f(py, r, args);			
-    proxy_unlock(py);			
+    unlock(py);			
 }
 
-struct role *__proxy_find(ssmap_t *map, uuid_t uuid) {
+struct role *proxy_getr(proxy_t *py, uuid_t uuid) {
     ssmap_node_t *node;
     struct role *r = NULL;
-    if ((node = ssmap_find(map, (char *)uuid, sizeof(uuid_t))))
+    lock(py);
+    if ((node = ssmap_find(&py->roles, (char *)uuid, sizeof(uuid_t))))
 	r = container_of(node, struct role, sibling);
+    unlock(py);
     return r;
 }
 
