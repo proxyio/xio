@@ -54,12 +54,11 @@ static inline modstat_t *proto_parser_stat(proto_parser_t *pp) {
     return &pp->stat.self;
 }
 
-int proto_parser_bread(proto_parser_t *pp, struct pio_hdr *h, char **data, char **rt);
-int proto_parser_bwrite(proto_parser_t *pp,
-			const struct pio_hdr *h, const char *data, const char *rt);
+int proto_parser_bread(proto_parser_t *, pio_hdr_t *, char **, char **);
+int proto_parser_bwrite(proto_parser_t *, const pio_hdr_t *, const char *, const char *);
 
 static inline int proto_parser_one_ready(proto_parser_t *pp) {
-    struct pio_hdr h = {};
+    pio_hdr_t h = {};
     struct bio *b = &pp->in;
     if ((b->bsize >= sizeof(h)) && ({ bio_copy(b, (char *)&h, sizeof(h));
 		b->bsize >= raw_pkg_size(&h);}))

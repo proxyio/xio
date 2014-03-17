@@ -64,7 +64,7 @@ int proto_parser_at_rgs(proto_parser_t *pp) {
 
 
 int proto_parser_bread(proto_parser_t *pp,
-		       struct pio_hdr *h, char **data, char **rt) {
+		       pio_hdr_t *h, char **data, char **rt) {
     struct bio *b = &pp->in;
     modstat_t *stat = proto_parser_stat(pp);
 
@@ -88,8 +88,8 @@ int proto_parser_bread(proto_parser_t *pp,
 }
 
 
-int proto_parser_bwrite(proto_parser_t *pp,
-			const struct pio_hdr *h, const char *data, const char *rt) {
+int proto_parser_bwrite(proto_parser_t *pp, const pio_hdr_t *h,
+			const char *data, const char *rt) {
     modstat_t *stat = proto_parser_stat(pp);
 
     modstat_incrkey(stat, PP_SEND);

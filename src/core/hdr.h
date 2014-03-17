@@ -7,17 +7,17 @@
 #include "hash/crc.h"
 #include "os/memory.h"
 
-struct pio_rt {
+typedef struct pio_rt {
     uuid_t uuid;
     uint8_t ip[4];
     uint16_t port;
     uint16_t begin[2];
     uint16_t cost[2];
     uint16_t stay[2];
-};
+} pio_rt_t;
 #define PIORTLEN sizeof(struct pio_rt)
 
-struct pio_hdr {
+typedef struct pio_hdr {
     uint8_t version;
     uint16_t ttl:4;
     uint16_t end_ttl:4;
@@ -28,7 +28,7 @@ struct pio_hdr {
     uint16_t checksum;
     uint64_t seqid;
     int64_t sendstamp;
-};
+} pio_hdr_t;
 #define PIOHDRLEN sizeof(struct pio_hdr)
 
 static inline uint32_t rt_size(const struct pio_hdr *h) {
