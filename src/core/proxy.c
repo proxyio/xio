@@ -14,14 +14,17 @@ void proxy_init(proxy_t *py) {
 }
 
 void proxy_destroy(proxy_t *py) {
+    struct list_head head = {};
     struct role *r, *n;		
 
-    spin_destroy(&(py)->lock);	
-    list_for_each_role_safe(r, n, &(py)->rcver_head) {	
-	r_destroy(r);					
-	mem_free(r, sizeof(*r));			
-    }							
-    list_for_each_role_safe(r, n, &(py)->snder_head) {	
+    spin_destroy(&(py)->lock);
+    INIT_LIST_HEAD(&head);
+    list_splice(&py->rcver_head, &head);
+    list_splice(&py->snder_head, &head);
+    list_for_each_role_safe(r, n, &head) {
+	list_del(&r->py_link);
+	epoll_del(r->el, &r->et);
+	close(r->et.fd);
 	r_destroy(r);					
 	mem_free(r, sizeof(*r));			
     }							

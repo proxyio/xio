@@ -45,12 +45,14 @@ void acp_destroy(acp_t *acp) {
     proxy_t *py, *pytmp;
     
     list_for_each_et_safe(et, ettmp, &acp->et_head) {
-	epoll_del(&acp->el, et);
 	list_del(&et->el_link);
+	epoll_del(&acp->el, et);
+	close(et->fd);
 	mem_free(et, sizeof(*et));
     }
     list_for_each_py_safe(py, pytmp, &acp->py_head) {
 	list_del(&py->acp_link);
+	proxy_destroy(py);
 	mem_free(py, sizeof(*py));
     }
     epoll_destroy(&(acp)->el);	

@@ -34,7 +34,7 @@ void r_destroy(struct role *r) {
     list_for_each_msg_safe(msg, tmp, &r->mq) {
 	list_del(&msg->mq_link);
 	free_msg_data_and_rt(msg);
-	mem_free(msg, sizeof(*msg));
+	mem_cache_free(&r->slabs, msg);
     }
     proto_parser_destroy(&r->pp);
     spin_destroy(&r->lock);			
@@ -253,6 +253,7 @@ static void r_send(struct role *r) {
 
 
 static void r_error(struct role *r) {
+    epoll_del(r->el, &r->et);
     close(r->et.fd);
     if (r->py)
 	proxy_del(r->py, r);
