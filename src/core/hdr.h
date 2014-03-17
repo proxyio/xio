@@ -123,8 +123,8 @@ static inline void free_msg_data_and_rt(pio_msg_t *msg) {
 #define PROXYNAME_MAX 128
 
 enum {
-    PIO_RCVER = 1,
-    PIO_SNDER,
+    PIO_RCVER = 0x01,
+    PIO_SNDER = 0x02,
 };
 
 typedef struct pio_rgh {

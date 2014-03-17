@@ -49,12 +49,16 @@ void proxy_del(proxy_t *py, struct role *r) {
     unlock(py);			
 }
 
-void __proxy_walk(proxy_t *py, walkfn f, void *args, struct list_head *head) {
+void proxy_walkr(proxy_t *py, walkfn f, void *args, int flags) {
     struct role *r = NULL, *nxt = NULL;	
-    lock(py);				
-    list_for_each_role_safe(r, nxt, head)	
-	f(py, r, args);			
-    unlock(py);			
+    lock(py);
+    if ((flags & PIO_RCVER))
+	list_for_each_role_safe(r, nxt, &py->rcver_head)
+	    f(py, r, args);
+    if ((flags & PIO_SNDER))
+	list_for_each_role_safe(r, nxt, &py->snder_head)
+	    f(py, r, args);
+    unlock(py);
 }
 
 struct role *proxy_getr(proxy_t *py, uuid_t uuid) {
