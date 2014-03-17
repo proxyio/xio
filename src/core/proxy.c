@@ -79,10 +79,12 @@ struct role *proxy_getr(proxy_t *py, uuid_t uuid) {
 
 struct role *proxy_lb_dispatch(proxy_t *py) {
     struct role *dest = NULL;
+    lock(py);
     if (!list_empty(&py->snder_head)) {
 	dest = list_first(&py->snder_head, struct role, py_link);
 	list_del(&dest->py_link);
 	list_add_tail(&dest->py_link, &py->snder_head);
     }
+    unlock(py);
     return dest;
 }

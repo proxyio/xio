@@ -45,19 +45,37 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
 
 
 void acp_init(acp_t *acp, const struct cf *cf) {
-    acp->cf = *cf;
-    spin_init(&acp->lock);
-    epoll_init(&acp->main_el, 10240, cf->el_io_size, cf->el_wait_timeout);
-    taskpool_init(&acp->tp, cf->max_cpus);
+    epoll_t *sub_el;
+    int cpus = cf->max_cpus;
+
     INIT_LIST_HEAD(&acp->sub_el_head);
     INIT_LIST_HEAD(&acp->et_head);
     INIT_LIST_HEAD(&acp->py_head);
+    acp->cf = *cf;
+    spin_init(&acp->lock);
+    epoll_init(&acp->main_el, 10240, cf->el_io_size, cf->el_wait_timeout);
+    list_add(&acp->main_el.link, &acp->sub_el_head);
+    while (--cpus > 0) {
+	if (!(sub_el = epoll_new()))
+	    continue;
+	epoll_init(sub_el, 10240, cf->el_io_size, cf->el_wait_timeout);
+	list_add(&sub_el->link, &acp->sub_el_head);
+    }
+    taskpool_init(&acp->tp, cf->max_cpus);
 }
 
 void acp_destroy(acp_t *acp) {
+    epoll_t *el, *eltmp;
     epollevent_t *et, *ettmp;
     proxy_t *py, *pytmp;
     
+    list_for_each_el_safe(el, eltmp, &acp->sub_el_head) {
+	list_del(&el->link);
+	epoll_destroy(el);
+	if (el == &acp->main_el)
+	    continue;
+	mem_free(el, sizeof(*el));
+    }
     list_for_each_et_safe(et, ettmp, &acp->et_head) {
 	list_del(&et->el_link);
 	epoll_del(&acp->main_el, et);
@@ -69,7 +87,6 @@ void acp_destroy(acp_t *acp) {
 	proxy_destroy(py);
 	mem_free(py, sizeof(*py));
     }
-    epoll_destroy(&acp->main_el);	
     spin_destroy(&acp->lock);	
     taskpool_destroy(&acp->tp);	
 }
@@ -85,7 +102,6 @@ void acp_start(acp_t *acp) {
 
     lock(acp);
     taskpool_start(&acp->tp);
-    taskpool_run(&acp->tp, acp_reactor, &acp->main_el);
     list_for_each_el_safe(sub_el, tmp, &acp->sub_el_head)
 	taskpool_run(&acp->tp, acp_reactor, sub_el);
     unlock(acp);

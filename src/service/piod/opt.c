@@ -9,12 +9,13 @@ SYNOPSIS\n\
     pio -r time -w threads -m host\n\
 \n\
 OPTIONS\n\
-    -r service running time. default forever\n		\
+    -r service running time. default forever\n\
+    -h listen host\n\
     -w threads. backend threadpool workers number\n\n\
     -m monitor_center host = ip + port\n\
 \n\
 EXAMPLE:\n\
-    pio -r 60 -w 20\n\n";
+    pio -r 60 -h *:4478 -w 20\n\n";
 
 
 static inline void usage() {
