@@ -5,6 +5,7 @@
 #include "runner/taskpool.h"
 
 static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
+    acp_t *acp = container_of(el, struct accepter, el);
     int nfd;
     struct role *r;
 
@@ -19,6 +20,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
     r->el = el;
     r->et.fd = r->pp.sockfd = nfd;
     r->et.events = EPOLLIN|EPOLLOUT;
+    r->acp = acp;
     if (epoll_add(el, &r->et) < 0) {
 	close(nfd);
 	r_destroy(r);
@@ -101,7 +103,7 @@ static inline proxy_t *__acp_find(acp_t *acp, const char *pyn) {
     proxy_t *py;
 
     list_for_each_entry(py, &acp->py_head, proxy_t, acp_link)
-	if (strncmp(py->proxyname, pyn, PROXYNAME_MAX) == 0)
+	if (strncmp(py->name, pyn, PROXYNAME_MAX) == 0)
 	    return py;
     return NULL;
 }
@@ -113,7 +115,7 @@ proxy_t *acp_getpy(acp_t *acp, const char *pyn) {
     if ((py = __acp_find(acp, pyn)) || !(py = proxy_new()))
 	goto EXIT;
     proxy_init(py);
-    strncpy(py->proxyname, pyn, PROXYNAME_MAX);
+    strncpy(py->name, pyn, PROXYNAME_MAX);
     list_add(&py->acp_link, &acp->py_head);
  EXIT:
     unlock(acp);
@@ -140,6 +142,7 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
     r->el = &acp->el;
     r->et.fd = r->pp.sockfd = nfd;
     r->et.events = EPOLLOUT;
+    r->acp = acp;
     bio_write(&r->pp.out, (char *)h, sizeof(*h));
     h->type = PIO_SNDER;
     if (epoll_add(&acp->el, &r->et) < 0) {

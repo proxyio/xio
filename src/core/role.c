@@ -108,11 +108,9 @@ static int r_task_runner(void *args) {
 }
 
 static int r_event_handler(epoll_t *el, epollevent_t *et) {
-    //acp_t *acp = container_of(el, acp_t, el);
     struct role *r = container_of(et, struct role, et);
     BUG_ON(r->el != el);
     r_task_runner(r);
-    //taskpool_run(&acp->tp, r_task_runner, r);
     return 0;
 }
 
@@ -120,14 +118,13 @@ static void r_rgs(struct role *r) {
     int ret;
     struct pio_rgh *h = &r->pp.rgh;
     proxy_t *py;
-    acp_t *acp = container_of(r->el, struct accepter, el);
 
     ret = r->proxyto ? proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp);
     if (ret < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }
-    if (!(py = acp_getpy(acp, h->proxyname)) || proxy_add(py, r) != 0)
+    if (!(py = acp_getpy(r->acp, h->proxyname)) || proxy_add(py, r) != 0)
 	r->status_ok = false;
     else {
 	r->py = py;
@@ -256,7 +253,6 @@ static void r_send(struct role *r) {
 
 
 static void r_error(struct role *r) {
-    epoll_del(r->el, &r->et);
     close(r->et.fd);
     if (r->py)
 	proxy_del(r->py, r);

@@ -36,13 +36,14 @@ typedef struct accepter {
     taskpool_t tp;
     epoll_t el;
     struct cf cf;
+    struct list_head sub_el_head;
     struct list_head et_head;
     struct list_head py_head;
 } acp_t;
 
 typedef struct proxy {
     spin_t lock;
-    char proxyname[PROXYNAME_MAX];
+    char name[PROXYNAME_MAX];
     int rsize;
     ssmap_t roles;
     struct list_head acp_link;
@@ -66,6 +67,7 @@ struct role {
     mem_cache_t slabs;
     uint32_t mqsize;
     struct list_head mq;
+    acp_t *acp;
     proxy_t *py;
     ssmap_node_t sibling;
     struct list_head py_link;
