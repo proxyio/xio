@@ -81,11 +81,20 @@ int acp_listen(acp_t *acp, const char *addr) {
 	mem_free(et, sizeof(*et));
 	return -1;
     }
+    lock(acp);
     et->f = acp_event_handler;
     et->data = acp;
     et->events = EPOLLIN;
     list_add(&et->el_link, &acp->et_head);
-    return epoll_add(&acp->el, et);
+    if (epoll_add(&acp->el, et) < 0) {
+	list_del(&et->el_link);
+	close(et->fd);
+	mem_free(et, sizeof(*et));
+	unlock(acp);
+	return -1;
+    }
+    unlock(acp);
+    return 0;
 }
 
 static inline proxy_t *__acp_find(acp_t *acp, const char *pyn) {
