@@ -56,17 +56,6 @@ void acp_destroy(acp_t *acp) {
     taskpool_destroy(&(acp)->tp);	
 }
 
-proxy_t *acp_find(acp_t *acp, char proxyname[PROXYNAME_MAX]) {
-    proxy_t *cur, *match = NULL;
-
-    list_for_each_entry(cur, &acp->py_head, proxy_t, acp_link) {
-	if (memcmp(proxyname, cur->proxyname, PROXYNAME_MAX) != 0)
-	    continue;
-	match = cur;
-	break;
-    }
-    return match;
-}
 
 static inline int acp_worker(void *args) {
     acp_t *acp = (acp_t *)args;
@@ -99,18 +88,30 @@ int acp_listen(acp_t *acp, const char *addr) {
     return epoll_add(&acp->el, et);
 }
 
-int acp_proxy(acp_t *acp, char *proxyname) {
-    proxy_t *py = proxy_new();
+static inline proxy_t *__acp_find(acp_t *acp, const char *pyn) {
+    proxy_t *py;
 
-    if (!py)
-	return -1;
-    proxy_init(py);
-    strncpy(py->proxyname, proxyname, PROXYNAME_MAX);
-    list_add(&py->acp_link, &acp->py_head);
-    return 0;
+    list_for_each_entry(py, &acp->py_head, proxy_t, acp_link)
+	if (memcmp(py->proxyname, pyn, PROXYNAME_MAX) == 0)
+	    return py;
+    return NULL;
 }
 
-int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
+proxy_t *acp_getpy(acp_t *acp, const char *pyn) {
+    proxy_t *py;
+
+    lock(acp);
+    if ((py = __acp_find(acp, pyn)) || !(py = proxy_new()))
+	goto EXIT;
+    proxy_init(py);
+    strncpy(py->proxyname, pyn, PROXYNAME_MAX);
+    list_add(&py->acp_link, &acp->py_head);
+ EXIT:
+    unlock(acp);
+    return py;
+}
+
+int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
     int nfd;
     pio_rgh_t *h;
     struct role *r;
@@ -125,7 +126,7 @@ int acp_proxyto(acp_t *acp, char *proxyname, const char *addr) {
     h = &r->pp.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);
-    strcpy(h->proxyname, proxyname);
+    strcpy(h->proxyname, pyn);
     r->proxyto = true;
     r->el = &acp->el;
     r->et.fd = r->pp.sockfd = nfd;

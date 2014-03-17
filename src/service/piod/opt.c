@@ -23,7 +23,6 @@ static inline void usage() {
 }
 
 int64_t deadline = 0;
-char *proxyname;
 char *proxyhost;
 
 int getoption(int argc, char* argv[], struct cf *cf) {
@@ -39,9 +38,6 @@ int getoption(int argc, char* argv[], struct cf *cf) {
             break;
 	case 'm':
 	    cf->monitor_center = optarg;
-	    break;
-	case 'p':
-	    proxyname = optarg;
 	    break;
         case 'h':
 	    proxyhost = optarg;

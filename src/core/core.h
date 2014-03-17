@@ -13,6 +13,15 @@
 #include "hdr.h"
 #include "proto_parser.h"
 
+#define lock(o) do {				\
+	spin_lock(&o->lock);			\
+    } while (0)
+
+#define unlock(o) do {				\
+	spin_unlock(&o->lock);			\
+    } while (0)
+
+
 struct cf {
     int tp_workers;
     int el_io_size;

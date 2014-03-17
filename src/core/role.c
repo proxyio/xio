@@ -68,7 +68,7 @@ static inline int __r_enable_eventout(struct role *r) {
 
 static pio_msg_t *r_pop_massage(struct role *r) {
     pio_msg_t *msg = NULL;
-    r_lock(r);
+    lock(r);
     if (!list_empty(&r->mq)) {
 	r->mqsize--;
 	msg = list_first(&r->mq, pio_msg_t, mq_link);
@@ -76,17 +76,17 @@ static pio_msg_t *r_pop_massage(struct role *r) {
     }
     if (list_empty(&r->mq))
 	__r_disable_eventout(r);
-    r_unlock(r);
+    unlock(r);
     return msg;
 }
 
 static int r_push_massage(struct role *r, pio_msg_t *msg) {
-    r_lock(r);
+    lock(r);
     r->mqsize++;
     list_add_tail(&msg->mq_link, &r->mq);
     if (!list_empty(&r->mq))
 	__r_enable_eventout(r);
-    r_unlock(r);
+    unlock(r);
     return 0;
 }
 
@@ -127,7 +127,7 @@ static void r_rgs(struct role *r) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }
-    if (!(py = acp_find(acp, h->proxyname)) || proxy_add(py, r) != 0)
+    if (!(py = acp_getpy(acp, h->proxyname)) || proxy_add(py, r) != 0)
 	r->status_ok = false;
     else {
 	r->py = py;

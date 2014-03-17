@@ -11,14 +11,6 @@ static inline struct role *r_new() {
     return r;
 }
 
-#define r_lock(r) do {				\
-	spin_lock(&r->lock);			\
-    } while (0)
-
-#define r_unlock(r) do {			\
-	spin_unlock(&r->lock);			\
-    } while (0)
-
 void r_init(struct role *r);
 void r_destroy(struct role *r);
 

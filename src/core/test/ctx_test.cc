@@ -80,7 +80,6 @@ static void acp_test() {
     cf.el_io_size = 100;
     cf.el_wait_timeout = 1;
     acp_init(&acp, &cf);
-    acp_proxy(&acp, PROXYNAME);
     EXPECT_EQ(0, acp_listen(&acp, PIOHOST));
     acp_start(&acp);
 
