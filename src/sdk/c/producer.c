@@ -5,8 +5,8 @@
 #include "core/proto_parser.h"
 
 
-static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
-    struct pio_rt *crt;
+static inline void pio_rt_print(int ttl, pio_rt_t *rt) {
+    pio_rt_t *crt;
     crt = rt;
     while (crt < rt + ttl) {
 	printf("[go:%d cost:%d stay:%d]%s", crt->begin[0], crt->cost[0],
@@ -24,12 +24,12 @@ static inline void pio_rt_print(int ttl, struct pio_rt *rt) {
 int producer_send_request(pio_t *io, const char *data, uint32_t size, int to) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    struct pio_rt rt = {
+    pio_rt_t rt = {
 	.cost = {0, 0},
 	.stay = {0, 0},
 	.begin = {0, 0},
     };
-    struct pio_hdr h = {
+    pio_hdr_t h = {
 	.version = PIO_VERSION,
 	.ttl = 1,
 	.end_ttl = 1,
@@ -61,8 +61,8 @@ int producer_psend_request(pio_t *io, const char *data, uint32_t size, int to) {
 
 int producer_recv_response(pio_t *io, char **data, uint32_t *size) {
     int64_t now = rt_mstime();
-    struct pio_rt *rt = NULL;
-    struct pio_hdr h = {};
+    pio_rt_t *rt = NULL;
+    pio_hdr_t h = {};
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
 
     if ((proto_parser_prefetch(pp) < 0 && errno != EAGAIN)

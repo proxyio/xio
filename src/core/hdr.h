@@ -15,7 +15,7 @@ typedef struct pio_rt {
     uint16_t cost[2];
     uint16_t stay[2];
 } pio_rt_t;
-#define PIORTLEN sizeof(struct pio_rt)
+#define PIORTLEN sizeof(pio_rt_t)
 
 typedef struct pio_hdr {
     uint8_t version;
@@ -29,23 +29,23 @@ typedef struct pio_hdr {
     uint64_t seqid;
     int64_t sendstamp;
 } pio_hdr_t;
-#define PIOHDRLEN sizeof(struct pio_hdr)
+#define PIOHDRLEN sizeof(pio_hdr_t)
 
-static inline uint32_t rt_size(const struct pio_hdr *h) {
+static inline uint32_t rt_size(const pio_hdr_t *h) {
     uint32_t ttl = h->go ? h->ttl : h->end_ttl;
     return ttl * PIORTLEN;
 }
 
-static inline uint32_t raw_pkg_size(const struct pio_hdr *h) {
+static inline uint32_t raw_pkg_size(const pio_hdr_t *h) {
     return PIOHDRLEN + h->size + rt_size(h);
 }
 
-static inline int ph_timeout(const struct pio_hdr *h, int64_t now) {
+static inline int ph_timeout(const pio_hdr_t *h, int64_t now) {
     return h->timeout && (h->sendstamp + h->timeout < now);
 }
 
-static inline int ph_validate(const struct pio_hdr *h) {
-    struct pio_hdr copyheader = *h;
+static inline int ph_validate(const pio_hdr_t *h) {
+    pio_hdr_t copyheader = *h;
     int ok;
     copyheader.checksum = 0;
     if (!(ok = (crc16((char *)&copyheader, PIOHDRLEN) == h->checksum)))
@@ -53,17 +53,17 @@ static inline int ph_validate(const struct pio_hdr *h) {
     return ok;
 }
 
-static inline void ph_makechksum(struct pio_hdr *hdr) {
-    struct pio_hdr copyheader = *hdr;
+static inline void ph_makechksum(pio_hdr_t *hdr) {
+    pio_hdr_t copyheader = *hdr;
     copyheader.checksum = 0;
     hdr->checksum = crc16((char *)&copyheader, PIOHDRLEN);
 }
 
 
 typedef struct pio_msg {
-    struct pio_hdr hdr;
+    pio_hdr_t hdr;
     char *data;
-    struct pio_rt *rt;
+    pio_rt_t *rt;
     struct list_head mq_link;
 } pio_msg_t;
 #define PIOMSGLEN sizeof(struct pio_msg)
@@ -75,23 +75,23 @@ typedef struct pio_msg {
 #define prev_rt(msg) (&(msg)->rt[(msg)->hdr.ttl - 2])
 
 static inline void rt_go_cost(pio_msg_t *msg, int64_t now) {
-    struct pio_hdr *h = &msg->hdr;
-    struct pio_rt *rt = cur_rt(msg);
+    pio_hdr_t *h = &msg->hdr;
+    pio_rt_t *rt = cur_rt(msg);
     rt->stay[0] = (uint16_t)(now - h->sendstamp - rt->begin[0]);
 }
 
 static inline void rt_back_cost(pio_msg_t *msg, int64_t now) {
-    struct pio_hdr *h = &msg->hdr;
-    struct pio_rt *rt = cur_rt(msg);
+    pio_hdr_t *h = &msg->hdr;
+    pio_rt_t *rt = cur_rt(msg);
     rt->cost[1] = (uint16_t)(now - h->sendstamp - rt->begin[1]);
 }
 
-static inline int rt_append_and_go(pio_msg_t *msg, struct pio_rt *rt,
+static inline int rt_append_and_go(pio_msg_t *msg, pio_rt_t *rt,
 				   int64_t now) {
-    struct pio_rt *crt;
-    struct pio_hdr *h = &msg->hdr;
+    pio_rt_t *crt;
+    pio_hdr_t *h = &msg->hdr;
     uint32_t new_sz = rt_size(h) + PIORTLEN;
-    if (!(crt = (struct pio_rt *)mem_realloc(msg->rt, new_sz)))
+    if (!(crt = (pio_rt_t *)mem_realloc(msg->rt, new_sz)))
 	return false;
     msg->rt = crt;
     crt = cur_rt(msg);
@@ -104,8 +104,8 @@ static inline int rt_append_and_go(pio_msg_t *msg, struct pio_rt *rt,
 }
 
 static inline void rt_shrink_and_back(pio_msg_t *msg, int64_t now) {
-    struct pio_rt *crt = cur_rt(msg);
-    struct pio_hdr *h = &msg->hdr;
+    pio_rt_t *crt = cur_rt(msg);
+    pio_hdr_t *h = &msg->hdr;
     crt->stay[1] = (uint16_t)(now - h->sendstamp - crt->begin[1] - crt->cost[1]);
     msg->hdr.ttl--;
     ph_makechksum(&msg->hdr);

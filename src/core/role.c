@@ -172,7 +172,7 @@ static int __r_dispatcher_recv(struct role *r) {
     int64_t now = rt_mstime();
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
     struct role *src;
-    struct pio_rt *rt;
+    pio_rt_t *rt;
 
     if (!msg)
 	return -1;
@@ -229,7 +229,7 @@ static void r_receiver_send(struct role *r) {
 static void r_dispatcher_send(struct role *r) {
     pio_msg_t *msg;
     int64_t now = rt_mstime();
-    struct pio_rt rt = {};
+    pio_rt_t rt = {};
     
     if (!(msg = r_pop_massage(r)))
 	return;

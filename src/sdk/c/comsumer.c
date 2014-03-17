@@ -9,15 +9,15 @@ int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
 			   const char *urt, uint32_t rt_sz) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    struct pio_rt *crt;
-    struct pio_hdr *h = (struct pio_hdr *)urt;
+    pio_rt_t *crt;
+    pio_hdr_t *h = (pio_hdr_t *)urt;
 
     if (!ph_validate(h))
 	return -1;
     h->go = 0;
     h->size = size;
     h->end_ttl = h->ttl;
-    crt = &((struct pio_rt *)(urt + PIOHDRLEN))[h->ttl - 1];
+    crt = &((pio_rt_t *)(urt + PIOHDRLEN))[h->ttl - 1];
     crt->begin[1] = (uint16_t)(now - h->sendstamp);
     crt->stay[0] = (uint16_t)(now - h->sendstamp - crt->begin[0] - crt->cost[0]);
     ph_makechksum(h);
@@ -47,8 +47,8 @@ int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
 			  char **rt, uint32_t *rt_sz) {
     int64_t now = rt_mstime();
     char *urt;
-    struct pio_rt *crt;
-    struct pio_hdr h = {};
+    pio_rt_t *crt;
+    pio_hdr_t h = {};
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
 
     if ((proto_parser_prefetch(pp) < 0 && errno != EAGAIN) || (proto_parser_bread(pp, &h, data, rt) < 0))
@@ -63,7 +63,7 @@ int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
 	mem_free(*rt, rt_size(&h));
 	return -1;
     }
-    crt = &((struct pio_rt *)urt)[h.ttl - 1];
+    crt = &((pio_rt_t *)urt)[h.ttl - 1];
     crt->cost[0] = (uint16_t)(now - h.sendstamp - crt->begin[0]);
     *size = h.size;
     *rt = urt;
