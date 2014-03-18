@@ -5,6 +5,7 @@
 #include "core/proto_parser.h"
 #include "net/socket.h"
 
+
 struct pio_msg *alloc_pio_msg(int chunk) {
     struct pio_msg *msg = (struct pio_msg *)
 	mem_zalloc(sizeof(*msg) + chunk * sizeof(struct pio_vec));
@@ -26,14 +27,14 @@ void free_pio_msg_and_vec(struct pio_msg *msg) {
     free_pio_msg(msg);
 }
 
-pio_t *pio_join(const char *addr, const char *pyn, int type) {
+static pio_t *pio_join(const char *addr, const char *pyn, int type) {
     proto_parser_t *pp = proto_parser_new();
 
     proto_parser_init(pp);
     if ((pp->sockfd = sk_connect("tcp", "", addr)) < 0)
 	goto RGS_ERROR;
     sk_setopt(pp->sockfd, SK_NONBLOCK, true);
-    pp->rgh.type = (type == COMSUMER) ? PIO_SNDER : PIO_RCVER;
+    pp->rgh.type = type;
     uuid_generate(pp->rgh.id);
     memcpy(pp->rgh.proxyname, pyn, PROXYNAME_MAX);
     if (proto_parser_at_rgs(pp) < 0 && errno != EAGAIN)
@@ -48,6 +49,13 @@ pio_t *pio_join(const char *addr, const char *pyn, int type) {
     return NULL;
 }
 
+pio_t *pio_join_producer(const char *addr, const char *pyn) {
+    return pio_join(addr, pyn, PIO_RCVER);
+}
+
+pio_t *pio_join_comsumer(const char *addr, const char *pyn) {
+    return pio_join(addr, pyn, PIO_SNDER);
+}
 
 void pio_close(pio_t *io) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);

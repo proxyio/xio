@@ -33,7 +33,7 @@ apio_t *apio_join_comsumer(apio_cf_t *cf, request_come_f f) {
 
     if (!(aio = apio_new()))
 	return NULL;
-    if (!(aio->io = pio_join(cf->host, cf->proxy, COMSUMER))) {
+    if (!(aio->io = pio_join_comsumer(cf->host, cf->proxy))) {
 	mem_free(aio, sizeof(*aio));
 	return NULL;
     }
@@ -50,7 +50,7 @@ apio_t *apio_join_producer(apio_cf_t *cf, response_back_f f) {
 
     if (!(aio = apio_new()))
 	return NULL;
-    if (!(aio->io = pio_join(cf->host, cf->proxy, PRODUCER))) {
+    if (!(aio->io = pio_join_producer(cf->host, cf->proxy))) {
 	mem_free(aio, sizeof(*aio));
 	return NULL;
     }

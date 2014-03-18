@@ -8,11 +8,6 @@
 #include <inttypes.h>
 #include <sys/uio.h>
 
-enum {
-    PRODUCER = 2,
-    COMSUMER = 3,
-};
-
 typedef int pio_t;
 
 struct pio_vec {
@@ -31,7 +26,8 @@ struct pio_msg *alloc_pio_msg(int chunk);
 void free_pio_msg(struct pio_msg *msg);
 void free_pio_msg_and_vec(struct pio_msg *msg);
 
-pio_t *pio_join(const char *addr, const char *pyn, int type);
+pio_t *pio_join_comsumer(const char *addr, const char *pyn);
+pio_t *pio_join_producer(const char *addr, const char *pyn);
 void pio_close(pio_t *io);
 
 int pio_flush(pio_t *io);

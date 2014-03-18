@@ -19,7 +19,7 @@ static volatile int comsumer_ok = false;
 
 static int comsumer_worker(void *args) {
     struct pio_msg *msg;
-    pio_t *io = pio_join(PIOHOST, PROXYNAME, COMSUMER);
+    pio_t *io = pio_join_comsumer(PIOHOST, PROXYNAME);
 
     comsumer_ok = true;
     usleep(10000);
@@ -37,7 +37,7 @@ static int test_producer1() {
     int mycnt = cnt;
     struct pio_msg *resp;
     struct pio_msg *req = alloc_pio_msg(1);
-    pio_t *io = pio_join(PIOHOST, PROXYNAME, PRODUCER);
+    pio_t *io = pio_join_producer(PIOHOST, PROXYNAME);
 
     while (mycnt) {
 	req->vec[0].iov_base = page;
@@ -58,7 +58,7 @@ static int test_producer1() {
 static int test_producer2() {
     struct pio_msg *resp;
     struct pio_msg *req = alloc_pio_msg(1);
-    pio_t *io = pio_join(PIOHOST, PROXYNAME, PRODUCER);
+    pio_t *io = pio_join_producer(PIOHOST, PROXYNAME);
 
     for (int i = 0; i < cnt; i++) {
 	req->vec[0].iov_base = page;
