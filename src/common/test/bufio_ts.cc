@@ -87,18 +87,7 @@ static void bufio_fetch_flush_test() {
     bio_destroy(&b);
 }
 
-static void iovec_test() {
-    struct iovec iovec[5] = {};
-    char *buff = NULL;
-    int cap = 0;
-    iovecs_cap(5, iovec, cap);
-    EXPECT_TRUE(cap == 0);
-    locate_iovecs_buffer(0, iovec, buff, cap);
-}
-
-
 TEST(bufio, bio) {
-    iovec_test();
     bufio_test();
     bufio_fetch_flush_test();
 }
