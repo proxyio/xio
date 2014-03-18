@@ -21,7 +21,7 @@ static inline void pio_rt_print(int ttl, pio_rt_t *rt) {
     }
 }
 
-int producer_send_request(pio_t *io, const char *data, uint32_t size, int to) {
+int producer_send(pio_t *io, const char *data, uint32_t size, int to) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     pio_rt_t rt = {
@@ -48,9 +48,9 @@ int producer_send_request(pio_t *io, const char *data, uint32_t size, int to) {
     return 0;
 }
 
-int producer_psend_request(pio_t *io, const char *data, uint32_t size, int to) {
+int producer_psend(pio_t *io, const char *data, uint32_t size, int to) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    if (producer_send_request(io, data, size, to) < 0)
+    if (producer_send(io, data, size, to) < 0)
 	return -1;
     while (proto_parser_flush(pp) < 0)
 	if (errno != EAGAIN)
@@ -59,7 +59,7 @@ int producer_psend_request(pio_t *io, const char *data, uint32_t size, int to) {
 }
 
 
-int producer_recv_response(pio_t *io, char **data, uint32_t *size) {
+int producer_recv(pio_t *io, char **data, uint32_t *size) {
     int64_t now = rt_mstime();
     pio_rt_t *rt = NULL;
     pio_hdr_t h = {};
@@ -80,9 +80,9 @@ int producer_recv_response(pio_t *io, char **data, uint32_t *size) {
     return 0;
 }
 
-int producer_precv_response(pio_t *pp, char **data, uint32_t *size) {
+int producer_precv(pio_t *pp, char **data, uint32_t *size) {
     int ret;
-    while ((ret = producer_recv_response(pp, data, size)) < 0 && errno == EAGAIN) {
+    while ((ret = producer_recv(pp, data, size)) < 0 && errno == EAGAIN) {
     }
     return ret;
 }

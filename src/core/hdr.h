@@ -60,16 +60,16 @@ static inline void ph_makechksum(pio_hdr_t *hdr) {
 }
 
 
-typedef struct pio_msg {
+typedef struct {
     pio_hdr_t hdr;
     char *data;
     pio_rt_t *rt;
     struct list_head mq_link;
 } pio_msg_t;
-#define PIOMSGLEN sizeof(struct pio_msg)
+#define PIOMSGLEN sizeof(pio_msg_t)
 
 #define list_for_each_msg_safe(pos, tmp, head)				\
-    list_for_each_entry_safe(pos, tmp, head, struct pio_msg, mq_link)
+    list_for_each_entry_safe(pos, tmp, head, pio_msg_t, mq_link)
 
 #define cur_rt(msg) (&(msg)->rt[(msg)->hdr.ttl - 1])
 #define prev_rt(msg) (&(msg)->rt[(msg)->hdr.ttl - 2])

@@ -74,7 +74,7 @@ int proto_parser_bread(proto_parser_t *pp,
     }
     modstat_incrkey(stat, PP_RECV);
     bio_copy(b, (char *)h, sizeof(*h));
-    if (!(*data = (char *)mem_zalloc(h->size)))
+    if (h->size > 0 && !(*data = (char *)mem_zalloc(h->size)))
 	return -1;
     if (!(*rt = (char *)mem_zalloc(rt_size(h)))) {
 	mem_free(*data, h->size);

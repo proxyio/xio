@@ -6,6 +6,7 @@
 #define PIO_VERSION 0x1
 
 #include <inttypes.h>
+#include <sys/uio.h>
 
 enum {
     PRODUCER = 2,
@@ -13,20 +14,29 @@ enum {
 };
 
 typedef int pio_t;
+
+struct pio_vec {
+    char *iov_base;
+    uint32_t iov_len;
+};
+
+struct pio_msg {
+    struct pio_vec sys_rt;
+    int chunk;
+    uint32_t flags;
+    struct pio_vec vec[0];
+};
+
+struct pio_msg *alloc_pio_msg(int chunk);
+void free_pio_msg(struct pio_msg *msg);
+void free_pio_msg_and_vec(struct pio_msg *msg);
+
 pio_t *pio_join(const char *addr, const char *pyn, int type);
 void pio_close(pio_t *io);
 
-int producer_send_request(pio_t *io, const char *data, uint32_t size, int to);
-int producer_psend_request(pio_t *io, const char *data, uint32_t size, int to);
-int producer_recv_response(pio_t *io, char **data, uint32_t *size);
-int producer_precv_response(pio_t *io, char **data, uint32_t *size);
-
-
-int comsumer_send_response(pio_t *io, const char *data, uint32_t size, const char *rt, uint32_t rt_size);
-int comsumer_psend_response(pio_t *io, const char *data, uint32_t size, const char *rt, uint32_t rt_size);
-int comsumer_recv_request(pio_t *io, char **data, uint32_t *size, char **rt, uint32_t *rt_size);
-int comsumer_precv_request(pio_t *io, char **data, uint32_t *size, char **rt, uint32_t *rt_size);
-
+int pio_flush(pio_t *io);
+int pio_recvmsg(pio_t *io, struct pio_msg **msg);
+int pio_sendmsg(pio_t *io, const struct pio_msg *msg);
 
 
 #endif

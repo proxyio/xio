@@ -5,19 +5,18 @@
 #include "sdk/c/io.h"
 
 #define REQLEN PAGE_SIZE
+static char page[REQLEN];
 extern int randstr(char *buff, int sz);
 
 static inline int producer_event_handler(epoll_t *, epollevent_t *);
 static inline int comsumer_event_handler(epoll_t *, epollevent_t *);
 
 static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
-    uint32_t sz;
     pio_t *io;
     proto_parser_t *pp;
-    char page[REQLEN];
+    struct pio_msg *msg = alloc_pio_msg(1);
     struct bc_opt *cf = ctx->cf;
     
-    randstr(page, REQLEN);
     if (!(io = pio_join(cf->host, proxyname, PRODUCER)))
 	return NULL;
     pp = container_of(io, proto_parser_t, sockfd);
@@ -30,8 +29,10 @@ static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     }
     modstat_set_warnf(proto_parser_stat(pp), MSL_S, bc_threshold_warn);
     list_add(&pp->pp_link, &ctx->pp_head);
-    sz = cf->size > 0 ? cf->size : rand() % REQLEN;
-    BUG_ON(producer_psend_request(&pp->sockfd, page, sz, cf->timeout) != 0);
+    msg->vec[0].iov_len = cf->size > 0 ? cf->size : rand() % REQLEN;
+    msg->vec[0].iov_base = page;
+    BUG_ON(pio_sendmsg(&pp->sockfd, msg) != 0);
+    free_pio_msg_and_vec(msg);
     return pp;
 }
 
@@ -60,9 +61,8 @@ static inline int
 producer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
-    struct bc_opt *cf = ctx->cf;
-    char *data;
-    uint32_t sz;
+    struct pio_msg *msg;
+
     if (et->happened & (EPOLLERR|EPOLLRDHUP)) {
 	epoll_del(el, et);
 	list_del(&pp->pp_link);
@@ -71,9 +71,9 @@ producer_event_handler(epoll_t *el, epollevent_t *et) {
 	    usleep(1000);
 	return 0;
     }
-    if (producer_recv_response(&pp->sockfd, &data, &sz) == 0) {
-	producer_psend_request(&pp->sockfd, data, sz, cf->timeout);
-	mem_free(data, sz);
+    if (pio_recvmsg(&pp->sockfd, &msg) == 0) {
+	pio_sendmsg(&pp->sockfd, msg);
+	free_pio_msg_and_vec(msg);
     }
     return 0;
 }
@@ -82,8 +82,8 @@ static inline int
 comsumer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
-    char *data, *rt;
-    uint32_t sz, rt_sz;
+    struct pio_msg *msg;
+
     if (et->happened & (EPOLLERR|EPOLLRDHUP)) {
 	epoll_del(el, et);
 	list_del(&pp->pp_link);
@@ -92,10 +92,9 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et) {
 	    usleep(1000);
 	return 0;
     }
-    if (comsumer_recv_request(&pp->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
-	comsumer_psend_response(&pp->sockfd, data, sz, rt, rt_sz);
-	mem_free(data, sz);
-	mem_free(rt, rt_sz);
+    if (pio_recvmsg(&pp->sockfd, &msg) == 0) {
+	pio_sendmsg(&pp->sockfd, msg);
+	free_pio_msg_and_vec(msg);
     }
     return 0;
 }
@@ -106,6 +105,7 @@ int pingpong_start(struct bc_opt *cf) {
     proto_parser_t *pp, *tmp;
     pingpong_ctx_t ctx = {};
 
+    randstr(page, REQLEN);
     INIT_LIST_HEAD(&ctx.pp_head);
     ctx.cf = cf;
 

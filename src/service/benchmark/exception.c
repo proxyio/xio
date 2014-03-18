@@ -57,8 +57,7 @@ static inline int
 producer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
-    char *data;
-    uint32_t sz;
+    struct pio_msg *msg = alloc_pio_msg(1);
 
     if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
@@ -71,9 +70,12 @@ producer_event_handler(epoll_t *el, epollevent_t *et) {
 	//sk_write(pp->sockfd, page, rand() % 100);
 	return -1;
     }
-    producer_psend_request(&pp->sockfd, page, REQRMDLEN, 1000);
-    if (producer_recv_response(&pp->sockfd, &data, &sz) == 0)
-	mem_free(data, sz);
+    msg->vec[0].iov_len = REQRMDLEN;
+    msg->vec[0].iov_base = page;
+    pio_sendmsg(&pp->sockfd, msg);
+    free_pio_msg_and_vec(msg);
+    if (pio_recvmsg(&pp->sockfd, &msg) == 0)
+	free_pio_msg_and_vec(msg);
     return 0;
 }
 
@@ -81,9 +83,8 @@ static inline int
 comsumer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
-    char *data, *rt;
-    uint32_t sz, rt_sz;
-
+    struct pio_msg *msg;
+    
     if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
 	list_del(&pp->pp_link);
@@ -95,10 +96,9 @@ comsumer_event_handler(epoll_t *el, epollevent_t *et) {
 	//sk_write(pp->sockfd, page, rand() % 100);
 	return -1;
     }
-    if (comsumer_recv_request(&pp->sockfd, &data, &sz, &rt, &rt_sz) == 0) {
-	comsumer_psend_response(&pp->sockfd, data, sz, rt, rt_sz);
-	mem_free(data, sz);
-	mem_free(rt, rt_sz);
+    if (pio_recvmsg(&pp->sockfd, &msg) == 0) {
+	pio_sendmsg(&pp->sockfd, msg);
+	free_pio_msg_and_vec(msg);
     }
     return 0;
 }

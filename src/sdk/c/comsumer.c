@@ -5,8 +5,7 @@
 #include "core/proto_parser.h"
 #include "net/socket.h"
 
-int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
-			   const char *urt, uint32_t rt_sz) {
+int comsumer_send(pio_t *io, const char *data, uint32_t size, const char *urt, uint32_t rt_sz) {
     int64_t now = rt_mstime();
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     pio_rt_t *crt;
@@ -29,10 +28,9 @@ int comsumer_send_response(pio_t *io, const char *data, uint32_t size,
 }
 
 
-int comsumer_psend_response(pio_t *io, const char *data, uint32_t size,
-			    const char *urt, uint32_t rt_sz) {
+int comsumer_psend(pio_t *io, const char *data, uint32_t size, const char *urt, uint32_t rt_sz) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
-    if (comsumer_send_response(io, data, size, urt, rt_sz) < 0)
+    if (comsumer_send(io, data, size, urt, rt_sz) < 0)
 	return -1;
     while (proto_parser_flush(pp) < 0)
 	if (errno != EAGAIN)
@@ -40,11 +38,7 @@ int comsumer_psend_response(pio_t *io, const char *data, uint32_t size,
     return 0;
 }
 
-
-
-
-int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
-			  char **rt, uint32_t *rt_sz) {
+int comsumer_recv(pio_t *io, char **data, uint32_t *size, char **rt, uint32_t *rt_sz) {
     int64_t now = rt_mstime();
     char *urt;
     pio_rt_t *crt;
@@ -75,10 +69,9 @@ int comsumer_recv_request(pio_t *io, char **data, uint32_t *size,
     return 0;
 }
 
-int comsumer_precv_request(pio_t *pp, char **data, uint32_t *size,
-			   char **rt, uint32_t *rt_sz) {
+int comsumer_precv(pio_t *pp, char **data, uint32_t *size, char **rt, uint32_t *rt_sz) {
     int ret;
-    while ((ret = comsumer_recv_request(pp, data, size, rt, rt_sz)) < 0
+    while ((ret = comsumer_recv(pp, data, size, rt, rt_sz)) < 0
 	   && errno == EAGAIN) {
     }
     return ret;

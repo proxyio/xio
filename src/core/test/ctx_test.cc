@@ -11,63 +11,69 @@ extern "C" {
 #define PIOHOST "127.0.0.1:12300"
 #define PROXYNAME "testapp"
 
+static char page[4096];
 extern int randstr(char *buff, int sz);
-static int cnt = 10;
+static int cnt = 1;
 
 static volatile int comsumer_ok = false;
 
 static int comsumer_worker(void *args) {
-    char *req, *rt;
-    uint32_t sz, rt_sz;
-    pio_t *ct = pio_join(PIOHOST, PROXYNAME, COMSUMER);
+    struct pio_msg *msg;
+    pio_t *io = pio_join(PIOHOST, PROXYNAME, COMSUMER);
 
     comsumer_ok = true;
+    usleep(10000);
     while (comsumer_ok) {
-	if (comsumer_recv_request(ct, &req, &sz, &rt, &rt_sz) == 0) {
-	    EXPECT_TRUE(comsumer_psend_response(ct, req, sz, rt, rt_sz) == 0);
-	    mem_free(req, sz);
-	    mem_free(rt, rt_sz);
+	if (pio_recvmsg(io, &msg) == 0) {
+	    EXPECT_TRUE(pio_sendmsg(io, msg) == 0);
+	    free_pio_msg_and_vec(msg);
 	}
     }
-    pio_close(ct);
+    pio_close(io);
     return 0;
 }
 
 static int test_producer1() {
-    char req[PAGE_SIZE], *resp;
-    uint32_t reqlen, resplen;
     int mycnt = cnt;
-    pio_t *pt = pio_join(PIOHOST, PROXYNAME, PRODUCER);
+    struct pio_msg *resp;
+    struct pio_msg *req = alloc_pio_msg(1);
+    pio_t *io = pio_join(PIOHOST, PROXYNAME, PRODUCER);
 
-    randstr(req, PAGE_SIZE);
     while (mycnt) {
-	reqlen = rand() % PAGE_SIZE;
-	EXPECT_TRUE(producer_psend_request(pt, req, reqlen, 0) == 0);
-	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
-	EXPECT_EQ(reqlen, resplen);
-	EXPECT_TRUE(memcmp(req, resp, reqlen) == 0);
-	mem_free(resp, resplen);
+	req->vec[0].iov_base = page;
+	req->vec[0].iov_len = rand() % PAGE_SIZE;
+	EXPECT_TRUE(pio_sendmsg(io, req) == 0);
+	while (pio_recvmsg(io, &resp) != 0)
+	    usleep(10000);
+	EXPECT_EQ(req->vec[0].iov_len, resp->vec[0].iov_len);
+	EXPECT_TRUE(memcmp(page, resp->vec[0].iov_base, resp->vec[0].iov_len) == 0);
+	free_pio_msg_and_vec(resp);
 	mycnt--;
     }
-    pio_close(pt);
+    free_pio_msg(req);
+    pio_close(io);
     return 0;
 }
 
 static int test_producer2() {
-    char req[PAGE_SIZE], *resp;
-    uint32_t resplen;
-    pio_t *pt = pio_join(PIOHOST, PROXYNAME, PRODUCER);
+    struct pio_msg *resp;
+    struct pio_msg *req = alloc_pio_msg(1);
+    pio_t *io = pio_join(PIOHOST, PROXYNAME, PRODUCER);
 
-    randstr(req, PAGE_SIZE);
-    for (int i = 0; i < cnt; i++)
-	EXPECT_TRUE(producer_psend_request(pt, req, i, 0) == 0);
     for (int i = 0; i < cnt; i++) {
-	EXPECT_TRUE(producer_precv_response(pt, &resp, &resplen) == 0);
-	EXPECT_EQ(resplen, i);
-	EXPECT_TRUE(memcmp(req, resp, resplen) == 0);
-	mem_free(resp, resplen);
+	req->vec[0].iov_base = page;
+	req->vec[0].iov_len = i;
+	EXPECT_TRUE(pio_sendmsg(io, req) == 0);
     }
-    pio_close(pt);
+    for (int i = 0; i < cnt; i++) {
+	while (pio_recvmsg(io, &resp) != 0)
+	    usleep(10000);
+	EXPECT_EQ(resp->vec[0].iov_len, i);
+	EXPECT_TRUE(memcmp(resp->vec[0].iov_base, page, i) == 0);
+	free_pio_msg_and_vec(resp);
+    }
+    free_pio_msg(req);
+    pio_close(io);
     return 0;
 }
 
@@ -76,13 +82,13 @@ static void acp_test() {
     acp_t acp = {};
     struct cf cf = {};
 
-    cf.max_cpus = 10;
+    randstr(page, sizeof(page));
+    cf.max_cpus = 1;
     cf.el_io_size = 100;
     cf.el_wait_timeout = 1;
     acp_init(&acp, &cf);
     EXPECT_EQ(0, acp_listen(&acp, PIOHOST));
     acp_start(&acp);
-
 
     thread_start(&t, comsumer_worker, NULL);
     while (!comsumer_ok) {
