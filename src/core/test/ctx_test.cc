@@ -18,7 +18,7 @@ static int cnt = 1;
 static volatile int comsumer_ok = false;
 
 static int comsumer_worker(void *args) {
-    struct pio_msg *msg;
+    pmsg_t *msg;
     pio_t *io = pio_join_comsumer(PIOHOST, PROXYNAME);
 
     comsumer_ok = true;
@@ -35,8 +35,8 @@ static int comsumer_worker(void *args) {
 
 static int test_producer1() {
     int mycnt = cnt;
-    struct pio_msg *resp;
-    struct pio_msg *req = alloc_pio_msg(1);
+    pmsg_t *resp;
+    pmsg_t *req = alloc_pio_msg(1);
     pio_t *io = pio_join_producer(PIOHOST, PROXYNAME);
 
     while (mycnt) {
@@ -56,8 +56,8 @@ static int test_producer1() {
 }
 
 static int test_producer2() {
-    struct pio_msg *resp;
-    struct pio_msg *req = alloc_pio_msg(1);
+    pmsg_t *resp;
+    pmsg_t *req = alloc_pio_msg(1);
     pio_t *io = pio_join_producer(PIOHOST, PROXYNAME);
 
     for (int i = 0; i < cnt; i++) {

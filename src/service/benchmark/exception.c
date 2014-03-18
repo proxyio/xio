@@ -57,7 +57,7 @@ static inline int
 producer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
-    struct pio_msg *msg = alloc_pio_msg(1);
+    pmsg_t *msg = alloc_pio_msg(1);
 
     if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);
@@ -83,7 +83,7 @@ static inline int
 comsumer_event_handler(epoll_t *el, epollevent_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
-    struct pio_msg *msg;
+    pmsg_t *msg;
     
     if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
 	epoll_del(el, et);

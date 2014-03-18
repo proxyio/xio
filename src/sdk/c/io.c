@@ -6,20 +6,20 @@
 #include "net/socket.h"
 
 
-struct pio_msg *alloc_pio_msg(int chunk) {
-    struct pio_msg *msg = (struct pio_msg *)
-	mem_zalloc(sizeof(*msg) + chunk * sizeof(struct pio_vec));
+pmsg_t *alloc_pio_msg(int chunk) {
+    pmsg_t *msg = (pmsg_t *)
+	mem_zalloc(sizeof(*msg) + chunk * sizeof(struct pvec));
     msg->chunk = chunk;
     return msg;
 }
 
-void free_pio_msg(struct pio_msg *msg) {
+void free_pio_msg(pmsg_t *msg) {
     if (msg->sys_rt.iov_len > 0)
 	mem_free(msg->sys_rt.iov_base, msg->sys_rt.iov_len);
-    mem_free(msg, sizeof(*msg) + msg->chunk * sizeof(struct pio_vec));
+    mem_free(msg, sizeof(*msg) + msg->chunk * sizeof(struct pvec));
 }
 
-void free_pio_msg_and_vec(struct pio_msg *msg) {
+void free_pio_msg_and_vec(pmsg_t *msg) {
     int chunks = msg->chunk;
     while (chunks-- > 0)
 	if (msg->vec[chunks].iov_len > 0)
@@ -108,8 +108,8 @@ extern int comsumer_precv(pio_t *io,
 
 
 
-int pio_recvmsg(pio_t *io, struct pio_msg **msg) {
-    struct pio_msg *new = alloc_pio_msg(1);
+int pio_recvmsg(pio_t *io, pmsg_t **msg) {
+    pmsg_t *new = alloc_pio_msg(1);
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     if (!new)
 	return -1;
@@ -130,7 +130,7 @@ int pio_recvmsg(pio_t *io, struct pio_msg **msg) {
     return -1;
 }
 
-int pio_sendmsg(pio_t *io, const struct pio_msg *msg) {
+int pio_sendmsg(pio_t *io, const pmsg_t *msg) {
     proto_parser_t *pp = container_of(io, proto_parser_t, sockfd);
     switch (pp->rgh.type) {
     case PIO_SNDER:
