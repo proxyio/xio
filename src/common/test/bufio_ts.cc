@@ -86,7 +86,6 @@ static void bufio_fetch_flush_test() {
     bio_destroy(&b);
 }
 
-
 TEST(bufio, bio) {
     bufio_test();
     bufio_fetch_flush_test();
