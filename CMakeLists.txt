@@ -16,7 +16,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 ## debug setting
-set(DEBUG_mode on)
+set(DEBUG_mode off)
 if (DEBUG_mode)
    add_definitions(-fprofile-arcs -ftest-coverage)
    message(STATUS "Debug version")

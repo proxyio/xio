@@ -168,9 +168,9 @@ static void r_receiver_recv(struct role *r) {
 static int __r_dispatcher_recv(struct role *r) {
     int64_t now = rt_mstime();
     pio_msg_t *msg = mem_cache_alloc(&r->slabs);
-    struct role *src;
     pio_rt_t *rt;
-
+    struct role *src = NULL;
+    
     if (!msg)
 	return -1;
     if (proto_parser_bread(&r->pp, &msg->hdr, &msg->data, (char **)&msg->rt) < 0
@@ -186,7 +186,8 @@ static int __r_dispatcher_recv(struct role *r) {
 	free_msg_data_and_rt(msg);
 	mem_cache_free(&r->slabs, msg);
     }
-    r_put(src);
+    if (src)
+	r_put(src);
     return 0;
 }
 
