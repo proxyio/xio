@@ -1,7 +1,6 @@
 #include <iostream>
 #include <gtest/gtest.h>
 extern "C" {
-#include "ds/iovec.h"
 #include "bufio/bio.h"
 }
 
