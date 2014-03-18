@@ -13,11 +13,11 @@ typedef struct apio_cf {
     int max_trip_time;
 } apio_cf_t;
 
-typedef struct resp_writer {
-    int (*send_resp) (struct resp_writer *rw, const char *resp, uint32_t sz);
-    int (*close) (struct resp_writer *rw);
-} resp_writer_t;
-typedef int (*request_come_f) (const char *req, uint32_t sz, resp_writer_t rw);
+typedef struct replyer {
+    int (*send_resp) (struct replyer *ry, const char *resp, uint32_t sz);
+    int (*close) (struct replyer *ry);
+} replyer_t;
+typedef int (*request_come_f) (const char *req, uint32_t sz, replyer_t ry);
 apio_t *apio_join_comsumer(apio_cf_t *cf, request_come_f f);
 
 

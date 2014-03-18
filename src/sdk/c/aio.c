@@ -20,12 +20,12 @@ static inline apio_t *apio_new() {
     return aio;
 }
 
-typedef struct kresp_writer {
+typedef struct kreplyer {
     apio_t *aio;
     char *rt;
     uint32_t rt_sz;
-    resp_writer_t rw;
-} kresp_writer_t;
+    replyer_t ry;
+} kreplyer_t;
 
 
 apio_t *apio_join_comsumer(apio_cf_t *cf, request_come_f f) {
