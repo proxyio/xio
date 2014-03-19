@@ -29,9 +29,9 @@ static pio_t *pio_join(const char *addr, const char *pyn, int type) {
     proto_parser_t *pp = proto_parser_new();
 
     proto_parser_init(pp);
-    if ((pp->sockfd = sk_connect("tcp", "", addr)) < 0)
+    if ((pp->sockfd = tcp_connect("tcp", "", addr)) < 0)
 	goto RGS_ERROR;
-    sk_setopt(pp->sockfd, SK_NONBLOCK, true);
+    tcp_setopt(pp->sockfd, PIO_TCP_NONBLOCK, true);
     pp->rgh.type = type;
     uuid_generate(pp->rgh.id);
     memcpy(pp->rgh.proxyname, pyn, PROXYNAME_MAX);

@@ -15,14 +15,14 @@ static void tcp_client() {
     int64_t nbytes;
     char buf[1024] = {};
 
-    ASSERT_TRUE((sfd = sk_connect("tcp", "", "127.0.0.1:18894")) > 0);
+    ASSERT_TRUE((sfd = tcp_connect("tcp", "", "127.0.0.1:18894")) > 0);
     randstr(buf, 1024);
-    EXPECT_EQ(sizeof(buf), nbytes = sk_write(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, sk_read(sfd, buf, nbytes));
+    EXPECT_EQ(sizeof(buf), nbytes = tcp_write(sfd, buf, sizeof(buf)));
+    EXPECT_EQ(nbytes, tcp_read(sfd, buf, nbytes));
 
-    ASSERT_EQ(0, sk_reconnect(&sfd));
-    EXPECT_EQ(sizeof(buf), nbytes = sk_write(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, sk_read(sfd, buf, nbytes));
+    ASSERT_EQ(0, tcp_reconnect(&sfd));
+    EXPECT_EQ(sizeof(buf), nbytes = tcp_write(sfd, buf, sizeof(buf)));
+    EXPECT_EQ(nbytes, tcp_read(sfd, buf, nbytes));
     close(sfd);
 }
 
@@ -36,8 +36,8 @@ int client_event_handler(struct epoll *el, epollevent_t *et) {
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	EXPECT_EQ(sizeof(buf), sk_read(et->fd, buf, sizeof(buf)));
-	EXPECT_EQ(sizeof(buf), sk_write(et->fd, buf, sizeof(buf)));
+	EXPECT_EQ(sizeof(buf), tcp_read(et->fd, buf, sizeof(buf)));
+	EXPECT_EQ(sizeof(buf), tcp_write(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
 	epoll_del(el, et);
@@ -55,10 +55,10 @@ static void server_thread() {
     
     epoll_init(&el, 1024, 100, 10);
 
-    ASSERT_TRUE((afd = act_listen("tcp", "*:18894", 100)) > 0);
+    ASSERT_TRUE((afd = tcp_listen("tcp", "*:18894", 100)) > 0);
     thread_start(&cli_thread, client_thread, NULL);
 
-    ASSERT_TRUE((sfd = act_accept(afd)) > 0);
+    ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);
     et.f = client_event_handler;
     et.fd = sfd;
     et.events = EPOLLIN|EPOLLRDHUP;
@@ -68,7 +68,7 @@ static void server_thread() {
 
     epoll_del(&el, &et);
     close(sfd);
-    ASSERT_TRUE((sfd = act_accept(afd)) > 0);
+    ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);
     et.fd = sfd;
     epoll_add(&el, &et);
     epoll_oneloop(&el);

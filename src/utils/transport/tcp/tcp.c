@@ -37,7 +37,7 @@ int __unp_listen(const char *host, const char *serv) {
     return listenfd;
 }
 
-static int __act_listen(const char *sock, int backlog) {
+static int __tcp_listen(const char *sock, int backlog) {
     int afd;
     char *host = NULL, *serv = NULL;
 
@@ -59,15 +59,15 @@ static int __act_listen(const char *sock, int backlog) {
 }
 
 
-int act_listen(const char *net, const char *sock, int backlog) {
+int tcp_listen(const char *net, const char *sock, int backlog) {
     if (STREQ(net, "") || (!STREQ(net, "tcp") && !STREQ(net, "tcp4") && !STREQ(net, "tcp6"))) {
 	errno = EINVAL;
 	return -1;
     }
-    return __act_listen(sock, backlog);
+    return __tcp_listen(sock, backlog);
 }
 
-int act_accept(int afd) {
+int tcp_accept(int afd) {
     int sfd;
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
@@ -82,7 +82,7 @@ int act_accept(int afd) {
     return sfd;
 }
 
-static inline int act_set_block(int afd, int nonblock) {
+static inline int tcp_set_block(int afd, int nonblock) {
     int flags = 0;
 
     flags = fcntl(afd, F_GETFL, 0);
@@ -95,21 +95,10 @@ static inline int act_set_block(int afd, int nonblock) {
     return fcntl(afd, F_SETFL, flags);
 }
 
-static inline int act_set_reuseaddr(int afd, int reuse) {
+static inline int tcp_set_reuseaddr(int afd, int reuse) {
     reuse = reuse == true ? 1 : 0;
     return setsockopt(afd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 }
-
-int act_setopt(int afd, int optname, ...) {
-    switch (optname) {
-    case SK_NONBLOCK:
-	return act_set_block(afd, optname);
-    case SK_REUSEADDR:
-	return act_set_reuseaddr(afd, optname);
-    }
-    return 0;
-}
-
 
 int __unp_connect(const char *host, const char *serv) {
     int sockfd, n;
@@ -151,11 +140,11 @@ static int __tcp_connect(const char *sock, const char *peer) {
 }
 
 
-// sk_connect() connects to the remote address raddr on the network net,
+// tcp_connect() connects to the remote address raddr on the network net,
 // which must be "tcp", "tcp4", or "tcp6".  If laddr is not nil, it is
 // used as the local address for the connection.
 
-int sk_connect(const char *net, const char *sock, const char *peer) {
+int tcp_connect(const char *net, const char *sock, const char *peer) {
     if (STREQ(net, "") || (!STREQ(net, "tcp") && !STREQ(net, "tcp4") && !STREQ(net, "tcp6"))) {
 	errno = EINVAL;
 	return -1;
@@ -164,7 +153,7 @@ int sk_connect(const char *net, const char *sock, const char *peer) {
 }
 
 
-int64_t sk_read(int sockfd, char *buf, int64_t len) {
+int64_t tcp_read(int sockfd, char *buf, int64_t len) {
     int64_t nbytes;
     nbytes = recv(sockfd, buf, len, 0);
 
@@ -184,7 +173,7 @@ int64_t sk_read(int sockfd, char *buf, int64_t len) {
     return nbytes;
 }
 
-int64_t sk_write(int sockfd, const char *buf, int64_t len) {
+int64_t tcp_write(int sockfd, const char *buf, int64_t len) {
     int64_t nbytes;
     nbytes = send(sockfd, buf, len, 0);
 
@@ -202,48 +191,48 @@ int64_t sk_write(int sockfd, const char *buf, int64_t len) {
     return nbytes;
 }
 
-int sk_sockname(int sfd, char *sock, int size) {
+int tcp_sockname(int sfd, char *sock, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char sk_addr[SOCKADDRLEN] = {};
+    char tcp_addr[SOCKADDRLEN] = {};
 
     if (-1 == getsockname(sfd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
     sa_in = (struct sockaddr_in *)&addr;
-    inet_ntop(AF_INET, (char *)&sa_in->sin_addr, sk_addr, sizeof(sk_addr));
-    snprintf(sk_addr + strlen(sk_addr),
-	     sizeof(sk_addr) - strlen(sk_addr), ":%d", ntohs(sa_in->sin_port));
+    inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
+    snprintf(tcp_addr + strlen(tcp_addr),
+	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
     size = size > SOCKADDRLEN - 1 ? SOCKADDRLEN - 1 : size;
     sock[size] = '\0';
-    memcpy(sock, sk_addr, size);
+    memcpy(sock, tcp_addr, size);
     return 0;
 }
 
-int sk_peername(int sfd, char *peer, int size) {
+int tcp_peername(int sfd, char *peer, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char sk_addr[SOCKADDRLEN] = {};
+    char tcp_addr[SOCKADDRLEN] = {};
 
     if (-1 == getpeername(sfd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
     sa_in = (struct sockaddr_in *)&addr;
-    inet_ntop(AF_INET, (char *)&sa_in->sin_addr, sk_addr, sizeof(sk_addr));
-    snprintf(sk_addr + strlen(sk_addr),
-	     sizeof(sk_addr) - strlen(sk_addr), ":%d", ntohs(sa_in->sin_port));
+    inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
+    snprintf(tcp_addr + strlen(tcp_addr),
+	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
     size = size > SOCKADDRLEN - 1 ? SOCKADDRLEN - 1 : size;
     peer[size] = '\0';
-    memcpy(peer, sk_addr, size);
+    memcpy(peer, tcp_addr, size);
     return 0;
 }
 
 
-int sk_reconnect(int *sfd) {
+int tcp_reconnect(int *sfd) {
     int nfd;
     char sock[SOCKADDRLEN] = {}, peer[SOCKADDRLEN] = {};
 
-    if (sk_sockname(*sfd, sock, SOCKADDRLEN) < 0 || sk_peername(*sfd, peer, SOCKADDRLEN) < 0)
+    if (tcp_sockname(*sfd, sock, SOCKADDRLEN) < 0 || tcp_peername(*sfd, peer, SOCKADDRLEN) < 0)
 	return -1;
     if ((nfd = __tcp_connect(sock, peer)) < 0)
 	return -1;
@@ -253,15 +242,15 @@ int sk_reconnect(int *sfd) {
 }
 
 
-int sk_setopt(int sfd, int optname, ...) {
+int tcp_setopt(int sfd, int optname, ...) {
     va_list ap;
 
     switch (optname) {
-    case SK_SENDTIMEOUT:
-    case SK_RECVTIMEOUT:
+    case PIO_TCP_SENDTIMEOUT:
+    case PIO_TCP_RECVTIMEOUT:
 	{
 	    int to_msec;
-	    int ff = (optname == SK_SENDTIMEOUT) ? SO_SNDTIMEO : SO_RCVTIMEO;
+	    int ff = (optname == PIO_TCP_SENDTIMEOUT) ? SO_SNDTIMEO : SO_RCVTIMEO;
 	    struct timeval to;
 	    va_start(ap, optname);
 	    to_msec = va_arg(ap, int) / 1000;
@@ -270,7 +259,7 @@ int sk_setopt(int sfd, int optname, ...) {
 	    to.tv_usec = (to_msec - to.tv_sec * 1000) * 1000;
 	    return setsockopt(sfd, SOL_SOCKET, ff, (char *)&to, sizeof(to));
 	}
-    case SK_NONBLOCK:
+    case PIO_TCP_NONBLOCK:
 	{
 	    int ff, block;
 	    va_start(ap, optname);
@@ -281,7 +270,7 @@ int sk_setopt(int sfd, int optname, ...) {
 	    ff = block ? (ff | O_NONBLOCK) : (ff & ~O_NONBLOCK);
 	    return fcntl(sfd, F_SETFL, ff);
 	}
-    case SK_NODELAY:
+    case PIO_TCP_NODELAY:
 	{
 	    int ff, delay;
 	    va_start(ap, optname);
@@ -289,6 +278,10 @@ int sk_setopt(int sfd, int optname, ...) {
 	    va_end(ap);
 	    ff = delay ? true : false;
 	    return setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, (char *)&ff, sizeof(ff));
+	}
+    case PIO_TCP_REUSEADDR:
+	{
+	    return tcp_set_reuseaddr(sfd, optname);
 	}
     }
     errno = EINVAL;

@@ -13,13 +13,13 @@ const char *pp_modstat_item[PP_MODSTAT_KEYRANGE] = {
 
 static inline int64_t sock_read(struct io *sock, char *buff, int64_t sz) {
     proto_parser_t *pp = container_of(sock, proto_parser_t, sock_ops);
-    sz = sk_read(pp->sockfd, buff, sz);
+    sz = tcp_read(pp->sockfd, buff, sz);
     return sz;
 }
 
 static inline int64_t sock_write(struct io *sock, char *buff, int64_t sz) {
     proto_parser_t *pp = container_of(sock, proto_parser_t, sock_ops);
-    sz = sk_write(pp->sockfd, buff, sz);
+    sz = tcp_write(pp->sockfd, buff, sz);
     return sz;
 }
 

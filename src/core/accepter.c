@@ -22,9 +22,9 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
     int nfd;
     struct role *r;
 
-    if (!(et->happened & EPOLLIN) || (nfd = act_accept(et->fd)) < 0)
+    if (!(et->happened & EPOLLIN) || (nfd = tcp_accept(et->fd)) < 0)
 	return -1;
-    sk_setopt(nfd, SK_NONBLOCK, true);
+    tcp_setopt(nfd, PIO_TCP_NONBLOCK, true);
     if (!(r = r_new_inited())) {
 	close(nfd);
 	return -1;
@@ -123,7 +123,7 @@ int acp_listen(acp_t *acp, const char *addr) {
 
     if (!et)
 	return -1;
-    if ((et->fd = act_listen("tcp", addr, 1024)) < 0) {
+    if ((et->fd = tcp_listen("tcp", addr, 1024)) < 0) {
 	mem_free(et, sizeof(*et));
 	return -1;
     }
@@ -170,14 +170,14 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
     pio_rgh_t *h;
     struct role *r;
     
-    if ((nfd = sk_connect("tcp", "", addr)) < 0)
+    if ((nfd = tcp_connect("tcp", "", addr)) < 0)
 	return -1;
     if (!(r = r_new_inited())) {
 	close(nfd);
 	return -1;
     }
     lock(acp);
-    sk_setopt(nfd, SK_NONBLOCK, true);
+    tcp_setopt(nfd, PIO_TCP_NONBLOCK, true);
     h = &r->pp.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);
