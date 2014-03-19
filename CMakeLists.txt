@@ -3,7 +3,7 @@ project( proxyio )
 
 include_directories(
 	${PROJECT_SOURCE_DIR}/src/
-	${PROJECT_SOURCE_DIR}/src/common/
+	${PROJECT_SOURCE_DIR}/src/utils/
 )
 
 link_directories(
