@@ -4,8 +4,7 @@
 #include <string.h>
 extern "C" {
 #include "os/epoll.h"
-#include "net/socket.h"
-#include "net/accepter.h"
+#include "transport/tcp/tcp.h"
 #include "runner/thread.h"
 }
 

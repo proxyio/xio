@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include "aio.h"
 #include "core/proto_parser.h"
-#include "net/socket.h"
 #include "runner/taskpool.h"
 
 struct apio {

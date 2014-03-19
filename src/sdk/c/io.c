@@ -3,8 +3,6 @@
 #include <unistd.h>
 #include "io.h"
 #include "core/proto_parser.h"
-#include "net/socket.h"
-
 
 pmsg_t *alloc_pio_msg(int chunk) {
     pmsg_t *msg = (pmsg_t *)

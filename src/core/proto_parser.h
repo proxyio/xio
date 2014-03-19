@@ -2,14 +2,13 @@
 #define _HPIO_PROTO_PARSER_
 
 #include "errno.h"
+#include "hdr.h"
 #include "ds/list.h"
 #include "os/memory.h"
 #include "os/epoll.h"
 #include "bufio/bio.h"
-#include "hdr.h"
-#include "net/socket.h"
 #include "stats/modstat.h"
-
+#include "transport/tcp/tcp.h"
 
 enum {
     PP_RECV = 0,

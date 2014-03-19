@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <uuid/uuid.h>
 #include <unistd.h>
-#include "net/socket.h"
 #include "proto_parser.h"
 
 const char *pp_modstat_item[PP_MODSTAT_KEYRANGE] = {

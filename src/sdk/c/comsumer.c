@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include "io.h"
 #include "core/proto_parser.h"
-#include "net/socket.h"
 
 int comsumer_send(pio_t *io, const char *data, uint32_t size, const char *urt, uint32_t rt_sz) {
     int64_t now = rt_mstime();
