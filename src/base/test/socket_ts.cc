@@ -19,10 +19,6 @@ static void tcp_client() {
     randstr(buf, 1024);
     EXPECT_EQ(sizeof(buf), nbytes = tcp_write(sfd, buf, sizeof(buf)));
     EXPECT_EQ(nbytes, tcp_read(sfd, buf, nbytes));
-
-    ASSERT_EQ(0, tcp_reconnect(&sfd));
-    EXPECT_EQ(sizeof(buf), nbytes = tcp_write(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, tcp_read(sfd, buf, nbytes));
     close(sfd);
 }
 
@@ -55,7 +51,7 @@ static void server_thread() {
     
     epoll_init(&el, 1024, 100, 10);
 
-    ASSERT_TRUE((afd = tcp_listen("*:18894")) > 0);
+    ASSERT_TRUE((afd = tcp_bind("*:18894")) > 0);
     thread_start(&cli_thread, client_thread, NULL);
 
     ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);

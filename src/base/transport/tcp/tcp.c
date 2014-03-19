@@ -10,9 +10,18 @@
 #include <arpa/inet.h>
 #include "base.h"
 #include "tcp.h"
+#include "transport/transport.h"
 
 
-int __unp_listen(const char *host, const char *serv) {
+#define PIO_TCP_SOCKADDRLEN 4096
+#define PIO_TCP_BACKLOG 100
+
+struct tcp_transport {
+    int fd;
+    struct transport basetp;
+};
+
+int __unp_bind(const char *host, const char *serv) {
     int listenfd, n;
     const int on = 1;
     struct addrinfo hints, *res, *ressave;
@@ -37,7 +46,7 @@ int __unp_listen(const char *host, const char *serv) {
     return listenfd;
 }
 
-int tcp_listen(const char *sock) {
+int tcp_bind(const char *sock) {
     int afd;
     char *host = NULL, *serv = NULL;
 
@@ -48,7 +57,7 @@ int tcp_listen(const char *sock) {
 	free(host);
 	return -1;
     }
-    afd = __unp_listen(host, serv);
+    afd = __unp_bind(host, serv);
     free(host);
     free(serv);
     if (afd < 0 || listen(afd, PIO_TCP_BACKLOG) < 0) {
@@ -206,29 +215,15 @@ int tcp_peername(int sfd, char *peer, int size) {
 }
 
 
-int tcp_reconnect(int *sfd) {
-    int nfd;
-    char peer[PIO_TCP_SOCKADDRLEN] = {};
-
-    if (tcp_peername(*sfd, peer, PIO_TCP_SOCKADDRLEN) < 0)
-	return -1;
-    if ((nfd = tcp_connect(peer)) < 0)
-	return -1;
-    close(*sfd);
-    *sfd = nfd;
-    return 0;
-}
-
-
 int tcp_setopt(int sfd, int optname, ...) {
     va_list ap;
 
     switch (optname) {
-    case PIO_TCP_SENDTIMEOUT:
-    case PIO_TCP_RECVTIMEOUT:
+    case PIO_SENDTIMEOUT:
+    case PIO_RECVTIMEOUT:
 	{
 	    int to_msec;
-	    int ff = (optname == PIO_TCP_SENDTIMEOUT) ? SO_SNDTIMEO : SO_RCVTIMEO;
+	    int ff = (optname == PIO_SENDTIMEOUT) ? SO_SNDTIMEO : SO_RCVTIMEO;
 	    struct timeval to;
 	    va_start(ap, optname);
 	    to_msec = va_arg(ap, int) / 1000;
@@ -237,7 +232,7 @@ int tcp_setopt(int sfd, int optname, ...) {
 	    to.tv_usec = (to_msec - to.tv_sec * 1000) * 1000;
 	    return setsockopt(sfd, SOL_SOCKET, ff, (char *)&to, sizeof(to));
 	}
-    case PIO_TCP_NONBLOCK:
+    case PIO_NONBLOCK:
 	{
 	    int ff, block;
 	    va_start(ap, optname);
@@ -248,7 +243,7 @@ int tcp_setopt(int sfd, int optname, ...) {
 	    ff = block ? (ff | O_NONBLOCK) : (ff & ~O_NONBLOCK);
 	    return fcntl(sfd, F_SETFL, ff);
 	}
-    case PIO_TCP_NODELAY:
+    case PIO_NODELAY:
 	{
 	    int ff, delay;
 	    va_start(ap, optname);
@@ -257,7 +252,7 @@ int tcp_setopt(int sfd, int optname, ...) {
 	    ff = delay ? true : false;
 	    return setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, (char *)&ff, sizeof(ff));
 	}
-    case PIO_TCP_REUSEADDR:
+    case PIO_REUSEADDR:
 	{
 	    return tcp_set_reuseaddr(sfd, optname);
 	}
