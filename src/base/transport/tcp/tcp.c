@@ -35,7 +35,8 @@ int __unp_bind(const char *host, const char *serv) {
 	return -1;
     ressave = res;
     do {
-	if ((listenfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
+	if ((listenfd = socket(res->ai_family, res->ai_socktype,
+			       res->ai_protocol)) < 0)
 	    continue;
 	setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 	if (bind(listenfd, res->ai_addr, res->ai_addrlen) == 0)
@@ -50,7 +51,8 @@ int tcp_bind(const char *sock) {
     int afd;
     char *host = NULL, *serv = NULL;
 
-    if (!(serv = strrchr(sock, ':')) || strlen(serv + 1) == 0 || !(host = strdup(sock)))
+    if (!(serv = strrchr(sock, ':'))
+	|| strlen(serv + 1) == 0 || !(host = strdup(sock)))
 	return -1;
     host[serv - sock] = '\0';
     if (!(serv = strdup(serv + 1))) {
@@ -68,17 +70,15 @@ int tcp_bind(const char *sock) {
 }
 
 int tcp_accept(int afd) {
-    int sfd;
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
-
-    if ((sfd = accept(afd, (struct sockaddr *) &addr, &addrlen)) < 0 &&
-	(errno == EAGAIN || errno == EWOULDBLOCK ||  errno == EINTR || errno == ECONNABORTED)) {
+    int sfd = accept(afd, (struct sockaddr *) &addr, &addrlen);
+    
+    if (sfd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK
+		    || errno == EINTR || errno == ECONNABORTED)) {
 	errno = EAGAIN;
 	return -1;
     }
-
-    // fixed for other errno, like EMFILE, ENFILE, ENOBUFS, ENOMEM.
     return sfd;
 }
 
@@ -112,7 +112,8 @@ int __unp_connect(const char *host, const char *serv) {
 	return -1;
     ressave = res;
     do {
-	if ((sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0)
+	sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+	if (sockfd < 0)
 	    continue;
 	if (connect(sockfd, res->ai_addr, res->ai_addrlen) == 0)
 	    break;
@@ -126,7 +127,8 @@ int tcp_connect(const char *peer) {
     int sfd = 0;
     char *host = NULL, *serv = NULL;
 
-    if (!(serv = strrchr(peer, ':')) || strlen(serv + 1) == 0 || !(host = strdup(peer)))
+    if (!(serv = strrchr(peer, ':'))
+	|| strlen(serv + 1) == 0 || !(host = strdup(peer)))
 	return -1;
     host[serv - peer] = '\0';
     if (!(serv = strdup(serv + 1))) {
@@ -144,11 +146,11 @@ int64_t tcp_read(int sockfd, char *buf, int64_t len) {
     int64_t nbytes;
     nbytes = recv(sockfd, buf, len, 0);
 
-
-    //  Several errors are OK. When speculative read is being done we may not
-    //  be able to read a single byte to the socket. Also, SIGSTOP issued
-    //  by a debugging tool can result in EINTR error.
-    if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+    //  Several errors are OK. When speculative read is being done we
+    //  may not be able to read a single byte to the socket. Also, SIGSTOP
+    //  issued by a debugging tool can result in EINTR error.
+    if (nbytes == -1 && (errno == EAGAIN ||
+			 errno == EWOULDBLOCK || errno == EINTR)) {
 	errno = EAGAIN;
         return -1;
     }
@@ -164,10 +166,11 @@ int64_t tcp_write(int sockfd, const char *buf, int64_t len) {
     int64_t nbytes;
     nbytes = send(sockfd, buf, len, 0);
 
-    //  Several errors are OK. When speculative write is being done we may not
-    //  be able to write a single byte to the socket. Also, SIGSTOP issued
-    //  by a debugging tool can result in EINTR error.
-    if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+    //  Several errors are OK. When speculative write is being done we
+    //  may not be able to write a single byte to the socket. Also, SIGSTOP
+    //  issued by a debugging tool can result in EINTR error.
+    if (nbytes == -1 && (errno == EAGAIN ||
+			 errno == EWOULDBLOCK || errno == EINTR)) {
 	errno = EAGAIN;
         return -1;
     } else if (nbytes == -1) {
