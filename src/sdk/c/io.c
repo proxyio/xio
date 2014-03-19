@@ -29,7 +29,7 @@ static pio_t *pio_join(const char *addr, const char *pyn, int type) {
     proto_parser_t *pp = proto_parser_new();
 
     proto_parser_init(pp);
-    if ((pp->sockfd = tcp_connect("tcp", "", addr)) < 0)
+    if ((pp->sockfd = tcp_connect(addr)) < 0)
 	goto RGS_ERROR;
     tcp_setopt(pp->sockfd, PIO_TCP_NONBLOCK, true);
     pp->rgh.type = type;

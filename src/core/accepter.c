@@ -123,7 +123,7 @@ int acp_listen(acp_t *acp, const char *addr) {
 
     if (!et)
 	return -1;
-    if ((et->fd = tcp_listen("tcp", addr, 1024)) < 0) {
+    if ((et->fd = tcp_listen(addr)) < 0) {
 	mem_free(et, sizeof(*et));
 	return -1;
     }
@@ -170,7 +170,7 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
     pio_rgh_t *h;
     struct role *r;
     
-    if ((nfd = tcp_connect("tcp", "", addr)) < 0)
+    if ((nfd = tcp_connect(addr)) < 0)
 	return -1;
     if (!(r = r_new_inited())) {
 	close(nfd);

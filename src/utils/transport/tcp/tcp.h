@@ -6,7 +6,8 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 
-#define SOCKADDRLEN PATH_MAX
+#define PIO_TCP_BACKLOG 100
+#define PIO_TCP_SOCKADDRLEN 4096
 
 enum {
     PIO_TCP_NONBLOCK = 1,
@@ -16,10 +17,10 @@ enum {
     PIO_TCP_REUSEADDR,
 };
 
-int tcp_listen(const char *net, const char *sock, int backlog);
+int tcp_listen(const char *sock);
 int tcp_accept(int afd);
 
-int tcp_connect(const char *net, const char *sock, const char *peer);
+int tcp_connect(const char *peer);
 int tcp_reconnect(int *sfd);
 int tcp_setopt(int sfd, int optname, ...);
 

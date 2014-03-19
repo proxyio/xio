@@ -37,7 +37,7 @@ int __unp_listen(const char *host, const char *serv) {
     return listenfd;
 }
 
-static int __tcp_listen(const char *sock, int backlog) {
+int tcp_listen(const char *sock) {
     int afd;
     char *host = NULL, *serv = NULL;
 
@@ -51,20 +51,11 @@ static int __tcp_listen(const char *sock, int backlog) {
     afd = __unp_listen(host, serv);
     free(host);
     free(serv);
-    if (afd < 0 || listen(afd, backlog) < 0) {
+    if (afd < 0 || listen(afd, PIO_TCP_BACKLOG) < 0) {
 	close(afd);
 	return -1;
     }
     return afd;
-}
-
-
-int tcp_listen(const char *net, const char *sock, int backlog) {
-    if (STREQ(net, "") || (!STREQ(net, "tcp") && !STREQ(net, "tcp4") && !STREQ(net, "tcp6"))) {
-	errno = EINVAL;
-	return -1;
-    }
-    return __tcp_listen(sock, backlog);
 }
 
 int tcp_accept(int afd) {
@@ -122,7 +113,7 @@ int __unp_connect(const char *host, const char *serv) {
     return sockfd;
 }
 
-static int __tcp_connect(const char *sock, const char *peer) {
+int tcp_connect(const char *peer) {
     int sfd = 0;
     char *host = NULL, *serv = NULL;
 
@@ -137,19 +128,6 @@ static int __tcp_connect(const char *sock, const char *peer) {
     free(host);
     free(serv);
     return sfd;
-}
-
-
-// tcp_connect() connects to the remote address raddr on the network net,
-// which must be "tcp", "tcp4", or "tcp6".  If laddr is not nil, it is
-// used as the local address for the connection.
-
-int tcp_connect(const char *net, const char *sock, const char *peer) {
-    if (STREQ(net, "") || (!STREQ(net, "tcp") && !STREQ(net, "tcp4") && !STREQ(net, "tcp6"))) {
-	errno = EINVAL;
-	return -1;
-    }
-    return __tcp_connect(sock, peer);
 }
 
 
@@ -195,7 +173,7 @@ int tcp_sockname(int sfd, char *sock, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char tcp_addr[SOCKADDRLEN] = {};
+    char tcp_addr[PIO_TCP_SOCKADDRLEN] = {};
 
     if (-1 == getsockname(sfd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
@@ -203,7 +181,7 @@ int tcp_sockname(int sfd, char *sock, int size) {
     inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
     snprintf(tcp_addr + strlen(tcp_addr),
 	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
-    size = size > SOCKADDRLEN - 1 ? SOCKADDRLEN - 1 : size;
+    size = size > PIO_TCP_SOCKADDRLEN - 1 ? PIO_TCP_SOCKADDRLEN - 1 : size;
     sock[size] = '\0';
     memcpy(sock, tcp_addr, size);
     return 0;
@@ -213,7 +191,7 @@ int tcp_peername(int sfd, char *peer, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char tcp_addr[SOCKADDRLEN] = {};
+    char tcp_addr[PIO_TCP_SOCKADDRLEN] = {};
 
     if (-1 == getpeername(sfd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
@@ -221,7 +199,7 @@ int tcp_peername(int sfd, char *peer, int size) {
     inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
     snprintf(tcp_addr + strlen(tcp_addr),
 	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
-    size = size > SOCKADDRLEN - 1 ? SOCKADDRLEN - 1 : size;
+    size = size > PIO_TCP_SOCKADDRLEN - 1 ? PIO_TCP_SOCKADDRLEN - 1 : size;
     peer[size] = '\0';
     memcpy(peer, tcp_addr, size);
     return 0;
@@ -230,11 +208,11 @@ int tcp_peername(int sfd, char *peer, int size) {
 
 int tcp_reconnect(int *sfd) {
     int nfd;
-    char sock[SOCKADDRLEN] = {}, peer[SOCKADDRLEN] = {};
+    char peer[PIO_TCP_SOCKADDRLEN] = {};
 
-    if (tcp_sockname(*sfd, sock, SOCKADDRLEN) < 0 || tcp_peername(*sfd, peer, SOCKADDRLEN) < 0)
+    if (tcp_peername(*sfd, peer, PIO_TCP_SOCKADDRLEN) < 0)
 	return -1;
-    if ((nfd = __tcp_connect(sock, peer)) < 0)
+    if ((nfd = tcp_connect(peer)) < 0)
 	return -1;
     close(*sfd);
     *sfd = nfd;

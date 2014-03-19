@@ -15,7 +15,7 @@ static void tcp_client() {
     int64_t nbytes;
     char buf[1024] = {};
 
-    ASSERT_TRUE((sfd = tcp_connect("tcp", "", "127.0.0.1:18894")) > 0);
+    ASSERT_TRUE((sfd = tcp_connect("127.0.0.1:18894")) > 0);
     randstr(buf, 1024);
     EXPECT_EQ(sizeof(buf), nbytes = tcp_write(sfd, buf, sizeof(buf)));
     EXPECT_EQ(nbytes, tcp_read(sfd, buf, nbytes));
@@ -55,7 +55,7 @@ static void server_thread() {
     
     epoll_init(&el, 1024, 100, 10);
 
-    ASSERT_TRUE((afd = tcp_listen("tcp", "*:18894", 100)) > 0);
+    ASSERT_TRUE((afd = tcp_listen("*:18894")) > 0);
     thread_start(&cli_thread, client_thread, NULL);
 
     ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);
