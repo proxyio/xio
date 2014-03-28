@@ -10,16 +10,10 @@
 #include <arpa/inet.h>
 #include "base.h"
 #include "tcp.h"
-#include "transport/transport.h"
 
 
 #define PIO_TCP_SOCKADDRLEN 4096
 #define PIO_TCP_BACKLOG 100
-
-struct tcp_transport {
-    int fd;
-    struct transport basetp;
-};
 
 int __unp_bind(const char *host, const char *serv) {
     int listenfd, n;
@@ -222,11 +216,11 @@ int tcp_setopt(int sfd, int optname, ...) {
     va_list ap;
 
     switch (optname) {
-    case PIO_SENDTIMEOUT:
-    case PIO_RECVTIMEOUT:
+    case PIO_SNDTIMEO:
+    case PIO_RCVTIMEO:
 	{
 	    int to_msec;
-	    int ff = (optname == PIO_SENDTIMEOUT) ? SO_SNDTIMEO : SO_RCVTIMEO;
+	    int ff = (optname == PIO_SNDTIMEO) ? SO_SNDTIMEO : SO_RCVTIMEO;
 	    struct timeval to;
 	    va_start(ap, optname);
 	    to_msec = va_arg(ap, int) / 1000;

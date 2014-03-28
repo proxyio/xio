@@ -5,7 +5,12 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
-#include "transport/transport.h"
+
+#define PIO_NONBLOCK 1
+#define PIO_NODELAY 2
+#define PIO_RCVTIMEO 3
+#define PIO_SNDTIMEO 4
+#define PIO_REUSEADDR 5
 
 int tcp_bind(const char *sock);
 int tcp_accept(int afd);
