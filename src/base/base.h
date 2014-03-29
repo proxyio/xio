@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #define true 1
 #define false 0
@@ -26,12 +27,10 @@
 #define __offsetof(TYPE, MEMBER) ((long) &(((TYPE *)0)->MEMBER))
 
 // Casts a member of a structure out to the containning structure
-// @param ptr             the pointer to the member
-// @param type            the type of the container struct this is embeded in.
-// @param member          the field name of the member within the struct
 #define container_of(ptr, type, member) ({				\
 	    (type *)((char *)ptr - __offsetof(type, member)); })
 
+#define pio_cont(ptr, type, member) container_of(ptr, type, member)
 
 typedef struct io {
     int64_t (*read)(struct io *c, char *buf, int64_t size);

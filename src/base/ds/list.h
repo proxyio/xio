@@ -145,6 +145,7 @@ static inline int list_empty(const struct list_head *head) {
     return head->next == head;
 }
 
+#define attached(head) !list_empty(head)
 
 // Join two lists
 // all entries in head1 will be moved into head2's head

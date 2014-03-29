@@ -2,49 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "sync/mutex.h"
-#include "sync/spin.h"
 #include "channel.h"
+#include "channel_poller.h"
 
-/*  Max number of concurrent channels. */
-#define PIO_MAX_CHANNELS 10240
-
-struct channel {
-    spin_t lock;
-    struct list_head rcv_head;
-    struct list_head snd_head;
-
-    uint32_t events;
-    epollevent_t et;
-    epoll_t *el;
-    struct bio b;
-    struct io sock_ops;
-    int fd;
-    struct transport *tp;
-};
-
-
-struct channel_global {
-    mutex_t lock;
-    
-    /*  The global table of existing channel. The descriptor representing
-        the channel is the index to this table. This pointer is also used to
-        find out whether context is initialised. If it is NULL, context is
-        uninitialised. */
-    struct channel channels[PIO_MAX_CHANNELS];
-
-    /*  Stack of unused file descriptors. */
-    int unused[PIO_MAX_CHANNELS];
-
-    /*  Number of actual open channels in the channel table. */
-    size_t nchannels;
-
-    /*  Combination of the flags listed above. */
-    int flags;
-
-    /*  List of all available transports. */
-    struct list_head transport_head;
-};
 
 static struct channel_global cn_global = {};
 
@@ -89,10 +49,12 @@ static void channel_init(struct channel *cn, int fd, struct transport *tp) {
     spin_init(&cn->lock);
     INIT_LIST_HEAD(&cn->rcv_head);
     INIT_LIST_HEAD(&cn->snd_head);
-    bio_init(&cn->b);
+    bio_init(&cn->in);
+    bio_init(&cn->out);
     cn->sock_ops = default_channel_ops;
     cn->fd = fd;
     cn->tp = tp;
+    INIT_LIST_HEAD(&cn->poller_item);
 }
 
 static void channel_destroy(struct channel *cn) {
@@ -106,7 +68,8 @@ static void channel_destroy(struct channel *cn) {
     list_splice(&cn->snd_head, &head);
     list_for_each_channel_msg_safe(item, nx, &head)
 	channel_freemsg(&item->msg);
-    bio_destroy(&cn->b);
+    bio_destroy(&cn->in);
+    bio_destroy(&cn->out);
 }
 
 
@@ -240,7 +203,7 @@ int channel_recv(int cd, struct channel_msg **msg) {
     }
     msgi = list_first(&cn->rcv_head, struct channel_msg_item, item);
     *msg = &msgi->msg;
-    list_del(&msgi->item);
+    list_del_init(&msgi->item);
 
     spin_unlock(&cn->lock);
     return 0;

@@ -6,6 +6,9 @@
 #include "os/memory.h"
 #include "hash/crc.h"
 #include "transport.h"
+#include "sync/mutex.h"
+#include "sync/spin.h"
+
 
 /*
   The transport protocol header is 10 bytes long and looks like this:
@@ -37,16 +40,16 @@ struct channel_msg_item {
 #define list_for_each_channel_msg_safe(pos, next, head)			\
     list_for_each_entry_safe(pos, next, head, struct channel_msg_item, item)
 
-#define channel_msgiov_len(msg) ({					\
+#define channel_msgiov_len(ptr) ({					\
 	    struct channel_msg_item *msgi =				\
-		container_of(msg, struct channel_msg_item, msg);	\
+		container_of((ptr), struct channel_msg_item, msg);	\
 	    sizeof(msgi->hdr) +						\
 		msgi->hdr.payload_sz + msgi->hdr.control_sz;		\
 	})
 
-#define channel_msgiov_base(msg) ({					\
+#define channel_msgiov_base(ptr) ({					\
 	    struct channel_msg_item *msgi =				\
-		container_of(msg, struct channel_msg_item, msg);	\
+		container_of((ptr), struct channel_msg_item, msg);	\
 	    (char *)&msgi->hdr;						\
 	})
 
@@ -56,6 +59,7 @@ static inline struct channel_msg *channel_allocmsg(
     char *chunk = (char *)mem_zalloc(sizeof(*msgi) + payload_sz + control_sz);
     if (!chunk)
 	return NULL;
+    msgi = (struct channel_msg_item *)chunk;
     msgi->hdr.payload_sz = payload_sz;
     msgi->hdr.control_sz = control_sz;
     msgi->hdr.checksum = crc16((char *)&msgi->hdr.payload_sz, 16);
@@ -70,12 +74,53 @@ static inline void channel_freemsg(struct channel_msg *msg) {
 }
 
 
-#define CHANNEL_MSGIN 1
-#define CHANNEL_MSGOUT 2
-#define CHANNEL_ERROR 4
+
+
+
+
+/*  Max number of concurrent channels. */
+#define PIO_MAX_CHANNELS 10240
+
+struct channel {
+    spin_t lock;
+    struct list_head rcv_head;
+    struct list_head snd_head;
+
+    epollevent_t et;
+    int pd;
+    struct bio in;
+    struct bio out;
+    struct io sock_ops;
+    int fd;
+    struct transport *tp;
+    struct list_head poller_item;
+};
+
+struct channel_global {
+    mutex_t lock;
+    
+    /*  The global table of existing channel. The descriptor representing
+        the channel is the index to this table. This pointer is also used to
+        find out whether context is initialised. If it is NULL, context is
+        uninitialised. */
+    struct channel channels[PIO_MAX_CHANNELS];
+
+    /*  Stack of unused file descriptors. */
+    int unused[PIO_MAX_CHANNELS];
+
+    /*  Number of actual open channels in the channel table. */
+    size_t nchannels;
+
+    /*  Combination of the flags listed above. */
+    int flags;
+
+    /*  List of all available transports. */
+    struct list_head transport_head;
+};
 
 
 void channel_global_init();
+
 
 int channel_listen(int pf, const char *sock);
 int channel_connect(int pf, const char *peer);
