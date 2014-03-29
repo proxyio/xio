@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include "channel.h"
-#include "transport/transport.h"
 
 static struct list_head transport_head;
 

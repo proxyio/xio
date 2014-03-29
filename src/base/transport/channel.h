@@ -5,7 +5,7 @@
 #include "bufio/bio.h"
 #include "os/memory.h"
 #include "hash/crc.h"
-#include "transport/transport.h"
+#include "transport.h"
 
 /*
   The transport protocol header is 10 bytes long and looks like this:
