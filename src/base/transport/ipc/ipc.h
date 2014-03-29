@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
-#include "transport/channel.h"
+#include "transport/transport.h"
 
 
 static inline void ipc_global_init(void) {
@@ -24,7 +24,7 @@ int ipc_sockname(int fd, char *sockname, int size);
 int ipc_peername(int fd, char *peername, int size);
 
 
-extern struct transport *ipc_transport;
+
 
 
 #endif

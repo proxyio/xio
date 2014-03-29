@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "channel.h"
-#include "transport/tcp/tcp.h"
-#include "transport/ipc/ipc.h"
 
 static struct list_head transport_head;
 
