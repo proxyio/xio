@@ -26,12 +26,13 @@ void free_pio_msg_and_vec(pmsg_t *msg) {
 }
 
 static pio_t *pio_join(const char *addr, const char *pyn, int type) {
+    int block = 1;
     proto_parser_t *pp = proto_parser_new();
 
     proto_parser_init(pp);
     if ((pp->sockfd = tcp_connect(addr)) < 0)
 	goto RGS_ERROR;
-    tcp_setopt(pp->sockfd, PIO_NONBLOCK, true);
+    tcp_setopt(pp->sockfd, PIO_NONBLOCK, &block, sizeof(block));
     pp->rgh.type = type;
     uuid_generate(pp->rgh.id);
     memcpy(pp->rgh.proxyname, pyn, PROXYNAME_MAX);

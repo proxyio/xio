@@ -20,11 +20,12 @@ static inline epoll_t *acp_get_subel_rrbin(acp_t *acp) {
 static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
     acp_t *acp = container_of(el, struct accepter, main_el);
     int nfd;
+    int block = 1;
     struct role *r;
 
     if (!(et->happened & EPOLLIN) || (nfd = tcp_accept(et->fd)) < 0)
 	return -1;
-    tcp_setopt(nfd, PIO_NONBLOCK, true);
+    tcp_setopt(nfd, PIO_NONBLOCK, &block, sizeof(block));
     if (!(r = r_new_inited())) {
 	close(nfd);
 	return -1;
@@ -166,6 +167,7 @@ proxy_t *acp_getpy(acp_t *acp, const char *pyn) {
 }
 
 int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
+    int block = 1;
     int nfd;
     pio_rgh_t *h;
     struct role *r;
@@ -177,7 +179,7 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
 	return -1;
     }
     lock(acp);
-    tcp_setopt(nfd, PIO_NONBLOCK, true);
+    tcp_setopt(nfd, PIO_NONBLOCK, &block, sizeof(block));
     h = &r->pp.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);

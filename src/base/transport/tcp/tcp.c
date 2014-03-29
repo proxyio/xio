@@ -12,8 +12,11 @@
 #include "tcp.h"
 
 
-#define PIO_TCP_SOCKADDRLEN 4096
 #define PIO_TCP_BACKLOG 100
+
+void tcp_close(int fd) {
+    close(fd);
+}
 
 int __unp_bind(const char *host, const char *serv) {
     int listenfd, n;
@@ -30,7 +33,7 @@ int __unp_bind(const char *host, const char *serv) {
     ressave = res;
     do {
 	if ((listenfd = socket(res->ai_family, res->ai_socktype,
-			       res->ai_protocol)) < 0)
+            res->ai_protocol)) < 0)
 	    continue;
 	setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 	if (bind(listenfd, res->ai_addr, res->ai_addrlen) == 0)
@@ -66,32 +69,14 @@ int tcp_bind(const char *sock) {
 int tcp_accept(int afd) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
-    int sfd = accept(afd, (struct sockaddr *) &addr, &addrlen);
+    int fd = accept(afd, (struct sockaddr *) &addr, &addrlen);
     
-    if (sfd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK
-		    || errno == EINTR || errno == ECONNABORTED)) {
+    if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK
+		   || errno == EINTR || errno == ECONNABORTED)) {
 	errno = EAGAIN;
 	return -1;
     }
-    return sfd;
-}
-
-static inline int tcp_set_block(int afd, int nonblock) {
-    int flags = 0;
-
-    flags = fcntl(afd, F_GETFL, 0);
-    if (flags == -1)
-	flags = 0;
-    if (nonblock)
-	flags |= O_NONBLOCK;
-    else
-	flags &= ~O_NONBLOCK;
-    return fcntl(afd, F_SETFL, flags);
-}
-
-static inline int tcp_set_reuseaddr(int afd, int reuse) {
-    reuse = reuse == true ? 1 : 0;
-    return setsockopt(afd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
+    return fd;
 }
 
 int __unp_connect(const char *host, const char *serv) {
@@ -118,7 +103,7 @@ int __unp_connect(const char *host, const char *serv) {
 }
 
 int tcp_connect(const char *peer) {
-    int sfd = 0;
+    int fd = 0;
     char *host = NULL, *serv = NULL;
 
     if (!(serv = strrchr(peer, ':'))
@@ -129,10 +114,10 @@ int tcp_connect(const char *peer) {
 	free(host);
 	return -1;
     }
-    sfd = __unp_connect(host, serv);
+    fd = __unp_connect(host, serv);
     free(host);
     free(serv);
-    return sfd;
+    return fd;
 }
 
 
@@ -175,83 +160,74 @@ int64_t tcp_write(int sockfd, const char *buf, int64_t len) {
     return nbytes;
 }
 
-int tcp_sockname(int sfd, char *sock, int size) {
+int tcp_sockname(int fd, char *sock, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char tcp_addr[PIO_TCP_SOCKADDRLEN] = {};
+    char tcp_addr[PIO_SOCKADDRLEN] = {};
 
-    if (-1 == getsockname(sfd, (struct sockaddr *)&addr, &addrlen))
+    if (-1 == getsockname(fd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
     sa_in = (struct sockaddr_in *)&addr;
     inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
     snprintf(tcp_addr + strlen(tcp_addr),
 	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
-    size = size > PIO_TCP_SOCKADDRLEN - 1 ? PIO_TCP_SOCKADDRLEN - 1 : size;
+    size = size > PIO_SOCKADDRLEN - 1 ? PIO_SOCKADDRLEN - 1 : size;
     sock[size] = '\0';
     memcpy(sock, tcp_addr, size);
     return 0;
 }
 
-int tcp_peername(int sfd, char *peer, int size) {
+int tcp_peername(int fd, char *peer, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char tcp_addr[PIO_TCP_SOCKADDRLEN] = {};
+    char tcp_addr[PIO_SOCKADDRLEN] = {};
 
-    if (-1 == getpeername(sfd, (struct sockaddr *)&addr, &addrlen))
+    if (-1 == getpeername(fd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
     sa_in = (struct sockaddr_in *)&addr;
     inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
     snprintf(tcp_addr + strlen(tcp_addr),
 	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
-    size = size > PIO_TCP_SOCKADDRLEN - 1 ? PIO_TCP_SOCKADDRLEN - 1 : size;
+    size = size > PIO_SOCKADDRLEN - 1 ? PIO_SOCKADDRLEN - 1 : size;
     peer[size] = '\0';
     memcpy(peer, tcp_addr, size);
     return 0;
 }
 
 
-int tcp_setopt(int sfd, int optname, ...) {
-    va_list ap;
-
-    switch (optname) {
+int tcp_setopt(int fd, int opt, void *val, int valsz) {
+    switch (opt) {
     case PIO_SNDTIMEO:
     case PIO_RCVTIMEO:
 	{
-	    int to_msec;
-	    int ff = (optname == PIO_SNDTIMEO) ? SO_SNDTIMEO : SO_RCVTIMEO;
-	    struct timeval to;
-	    va_start(ap, optname);
-	    to_msec = va_arg(ap, int) / 1000;
-	    va_end(ap);
-	    to.tv_sec = to_msec / 1000;
-	    to.tv_usec = (to_msec - to.tv_sec * 1000) * 1000;
-	    return setsockopt(sfd, SOL_SOCKET, ff, (char *)&to, sizeof(to));
+	    int to = *((int *)val);
+	    int ff = (opt == PIO_SNDTIMEO) ? SO_SNDTIMEO : SO_RCVTIMEO;
+	    struct timeval tv = {
+		.tv_sec = to / 1000,
+		.tv_usec = (to % 1000) * 1000,
+	    };
+	    return setsockopt(fd, SOL_SOCKET, ff, &tv, sizeof(tv));
 	}
     case PIO_NONBLOCK:
 	{
-	    int ff, block;
-	    va_start(ap, optname);
-	    block = va_arg(ap, int);
-	    va_end(ap);
-	    if ((ff = fcntl(sfd, F_GETFL, 0)) < 0)
+	    int ff;
+	    int block = *((int *)val);
+	    if ((ff = fcntl(fd, F_GETFL, 0)) < 0)
 		ff = 0;
 	    ff = block ? (ff | O_NONBLOCK) : (ff & ~O_NONBLOCK);
-	    return fcntl(sfd, F_SETFL, ff);
+	    return fcntl(fd, F_SETFL, ff);
 	}
     case PIO_NODELAY:
 	{
-	    int ff, delay;
-	    va_start(ap, optname);
-	    delay = va_arg(ap, int);
-	    va_end(ap);
-	    ff = delay ? true : false;
-	    return setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, (char *)&ff, sizeof(ff));
+	    int ff = *((int *)val) ? 1 : 0;
+	    return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &ff, sizeof(ff));
 	}
     case PIO_REUSEADDR:
 	{
-	    return tcp_set_reuseaddr(sfd, optname);
+	    int ff = *((int *)val) ? 1 : 0;
+	    return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &ff, sizeof(ff));
 	}
     }
     errno = EINVAL;
