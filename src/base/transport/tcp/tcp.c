@@ -8,9 +8,8 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
-#include "base.h"
 #include "tcp.h"
-
+#include "ds/list.h"
 
 #define PIO_TCP_BACKLOG 100
 
@@ -19,6 +18,7 @@ static struct transport tcp_transport_vfptr = {
     .name = "tcp",
     .proto = PIO_TCP,
 
+    .global_init = tcp_global_init,
     .close = tcp_close,
     .bind = tcp_bind,
     .accept = tcp_accept,
@@ -27,6 +27,7 @@ static struct transport tcp_transport_vfptr = {
     .write = tcp_write,
     .setopt = tcp_setopt,
     .getopt = NULL,
+    .item = LIST_ITEM_INITIALIZE,
 };
 
 struct transport *tcp_transport = &tcp_transport_vfptr;

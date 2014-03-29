@@ -7,6 +7,10 @@
 #include <fcntl.h>
 #include "transport/channel.h"
 
+
+static inline void tcp_global_init() {
+}
+
 void tcp_close(int fd);
 int tcp_bind(const char *sock);
 int tcp_accept(int fd);
@@ -19,7 +23,6 @@ int64_t tcp_read(int fd, char *buff, int64_t size);
 int64_t tcp_write(int fd, const char *buff, int64_t size);
 int tcp_sockname(int fd, char *sockname, int size);
 int tcp_peername(int fd, char *peername, int size);
-
 
 extern struct transport *tcp_transport;
 

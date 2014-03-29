@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
-#include "base.h"
 #include "ipc.h"
+#include "ds/list.h"
 
 
 #define PIO_IPC_BACKLOG 100
@@ -18,6 +18,7 @@ static struct transport ipc_transport_vfptr = {
     .name = "ipc",
     .proto = PIO_IPC,
 
+    .global_init = ipc_global_init,
     .close = ipc_close,
     .bind = ipc_bind,
     .accept = ipc_accept,
@@ -26,6 +27,7 @@ static struct transport ipc_transport_vfptr = {
     .write = ipc_write,
     .setopt = ipc_setopt,
     .getopt = NULL,
+    .item = LIST_ITEM_INITIALIZE,
 };
 
 struct transport *ipc_transport = &ipc_transport_vfptr;
