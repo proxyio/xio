@@ -6,7 +6,7 @@
 #include "channel_poller.h"
 
 
-static struct channel_global cn_global = {};
+struct channel_global cn_global = {};
 
 
 #define list_for_each_transport(tp, head)			\
@@ -18,9 +18,12 @@ static inline void add_transport(struct transport *tp) {
     list_add(&tp->item, &cn_global.transport_head);
 }
 
+extern void channelpoller_global_init();
+
 void channel_global_init() {
     int cd;
 
+    channelpoller_global_init();
     mutex_init(&cn_global.lock);
     INIT_LIST_HEAD(&cn_global.transport_head);
     add_transport(tcp_transport);
@@ -102,8 +105,10 @@ int channel_listen(int pf, const char *addr) {
     mutex_lock(&cn_global.lock);
     list_for_each_transport(tp, &cn_global.transport_head)
 	if (tp->proto == pf) {
-	    if ((s = tp->bind(addr)) < 0)
+	    if ((s = tp->bind(addr)) < 0) {
+		mutex_unlock(&cn_global.lock);
 		return s;
+	    }
 
 	    // Find a unused channel id and slot
 	    cd = cn_global.unused[cn_global.nchannels++];
@@ -111,6 +116,7 @@ int channel_listen(int pf, const char *addr) {
 
 	    // Init channel from raw-level sockid and transport vfptr
 	    channel_init(cn, s, tp);
+	    mutex_unlock(&cn_global.lock);
 	    return cd;
 	}
     mutex_unlock(&cn_global.lock);
@@ -125,8 +131,10 @@ int channel_connect(int pf, const char *peer) {
     mutex_lock(&cn_global.lock);
     list_for_each_transport(tp, &cn_global.transport_head)
 	if (tp->proto == pf) {
-	    if ((s = tp->connect(peer)) < 0)
+	    if ((s = tp->connect(peer)) < 0) {
+		mutex_unlock(&cn_global.lock);
 		return s;
+	    }
 
 	    // Find a unused channel id and slot
 	    cd = cn_global.unused[cn_global.nchannels++];
@@ -134,6 +142,7 @@ int channel_connect(int pf, const char *peer) {
 
 	    // Init channel from raw-level sockid and transport vfptr
 	    channel_init(cn, s, tp);
+	    mutex_unlock(&cn_global.lock);
 	    return cd;
 	}
     mutex_unlock(&cn_global.lock);
