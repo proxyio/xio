@@ -1,6 +1,7 @@
 #ifndef _HPIO_CHANNEL_
 #define _HPIO_CHANNEL_
 
+#include "os/epoll.h"
 #include "bufio/bio.h"
 #include "os/memory.h"
 #include "hash/crc.h"
@@ -32,6 +33,9 @@ struct channel_msg_item {
     struct list_head item;
     struct channel_msghdr hdr;
 };
+
+#define list_for_each_channel_msg_safe(pos, next, head)			\
+    list_for_each_entry_safe(pos, next, head, struct channel_msg_item, item)
 
 #define channel_msgiov_len(msg) ({					\
 	    struct channel_msg_item *msgi =				\
@@ -65,17 +69,30 @@ static inline void channel_freemsg(struct channel_msg *msg) {
     mem_free(msgi, sizeof(*msgi) + msgi->hdr.payload_sz + msgi->hdr.control_sz);
 }
 
+
+#define CHANNEL_MSGIN 1
+#define CHANNEL_MSGOUT 2
+#define CHANNEL_ERROR 4
+
 struct channel {
     struct list_head rcv_head;
     struct list_head snd_head;
 
-    int fd;
+    uint32_t events;
+    epollevent_t et;
+    epoll_t *el;
     struct bio b;
-    struct io io_ops;
+    struct io sock_ops;
+    int fd;
     struct transport *tp;
 };
 
 void channel_global_init();
+void channel_init(struct channel *cn, int fd, struct transport *tp);
+void channel_destroy(struct channel *cn);
+int channel_recv(struct channel *cn, struct channel_msg **msg);
+int channel_send(struct channel *cn, const struct channel_msg *msg);
+
 
 
 #endif
