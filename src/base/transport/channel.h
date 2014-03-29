@@ -74,25 +74,16 @@ static inline void channel_freemsg(struct channel_msg *msg) {
 #define CHANNEL_MSGOUT 2
 #define CHANNEL_ERROR 4
 
-struct channel {
-    struct list_head rcv_head;
-    struct list_head snd_head;
-
-    uint32_t events;
-    epollevent_t et;
-    epoll_t *el;
-    struct bio b;
-    struct io sock_ops;
-    int fd;
-    struct transport *tp;
-};
 
 void channel_global_init();
-void channel_init(struct channel *cn, int fd, struct transport *tp);
-void channel_destroy(struct channel *cn);
-int channel_recv(struct channel *cn, struct channel_msg **msg);
-int channel_send(struct channel *cn, const struct channel_msg *msg);
 
-
+int channel_listen(int pf, const char *sock);
+int channel_connect(int pf, const char *peer);
+int channel_accept(int cd);
+int channel_recv(int cd, struct channel_msg **msg);
+int channel_send(int cd, const struct channel_msg *msg);
+int channel_setopt(int cd, int opt, void *val, int valsz);
+int channel_getopt(int cd, int opt, void *val, int valsz);
+void channel_close(int cd);
 
 #endif
