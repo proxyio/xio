@@ -14,6 +14,23 @@
 
 #define PIO_IPC_BACKLOG 100
 
+static struct transport ipc_transport_vfptr = {
+    .name = "ipc",
+    .proto = PIO_IPC,
+
+    .close = ipc_close,
+    .bind = ipc_bind,
+    .accept = ipc_accept,
+    .connect = ipc_connect,
+    .read = ipc_read,
+    .write = ipc_write,
+    .setopt = ipc_setopt,
+    .getopt = NULL,
+};
+
+struct transport *ipc_transport = &ipc_transport_vfptr;
+
+
 void ipc_close(int fd) {
     close(fd);
 }

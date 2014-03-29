@@ -14,6 +14,25 @@
 
 #define PIO_TCP_BACKLOG 100
 
+
+static struct transport tcp_transport_vfptr = {
+    .name = "tcp",
+    .proto = PIO_TCP,
+
+    .close = tcp_close,
+    .bind = tcp_bind,
+    .accept = tcp_accept,
+    .connect = tcp_connect,
+    .read = tcp_read,
+    .write = tcp_write,
+    .setopt = tcp_setopt,
+    .getopt = NULL,
+};
+
+struct transport *tcp_transport = &tcp_transport_vfptr;
+
+
+
 void tcp_close(int fd) {
     close(fd);
 }
