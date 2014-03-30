@@ -43,14 +43,14 @@ struct channel_msg_item {
 #define channel_msgiov_len(ptr) ({					\
 	    struct channel_msg_item *_msgi =				\
 		container_of((ptr), struct channel_msg_item, msg);	\
-	    sizeof(_msgi->hdr) +						\
+	    sizeof(_msgi->hdr) +					\
 		_msgi->hdr.payload_sz + _msgi->hdr.control_sz;		\
 	})
 
 #define channel_msgiov_base(ptr) ({					\
 	    struct channel_msg_item *_msgi =				\
 		container_of((ptr), struct channel_msg_item, msg);	\
-	    (char *)&_msgi->hdr;						\
+	    (char *)&_msgi->hdr;					\
 	})
 
 
