@@ -25,7 +25,6 @@ static void channel_client() {
 	memcpy(msg->payload, buf, nbytes);
 	memcpy(msg->control, buf, nbytes);
 	ASSERT_EQ(0, channel_send(sfd, msg));
-	channel_freemsg(msg);
 	ASSERT_EQ(0, channel_recv(sfd, &msg));
 	channel_freemsg(msg);
     }
@@ -64,6 +63,11 @@ static void channel_server_thread() {
     channel_close(sfd2);
 }
 
-TEST(transport, channel) {
+TEST(channel, msg) {
+    struct channel_msg *msg = channel_allocmsg(1024, 1024);
+    channel_freemsg(msg);
+}
+
+TEST(channel, send_recv) {
     channel_server_thread();
 }

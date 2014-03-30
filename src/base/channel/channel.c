@@ -21,7 +21,7 @@ static int PIO_RCVBUFSZ = 10485760;
 
 
 struct channel {
-    uint64_t fasio:1;
+    uint64_t fasync:1;
     uint64_t fok:1;
     uint64_t faccepter:1;
     int cd;
@@ -279,7 +279,7 @@ void channel_freemsg(struct channel_msg *msg) {
 static void channel_init(int cd, int isaccepter, int fd, struct transport *tp) {
     struct channel *cn = global_channel(cd);
 
-    cn->fasio = false;
+    cn->fasync = false;
     cn->fok = true;
     cn->faccepter = !!isaccepter;
     
@@ -435,10 +435,10 @@ int channel_setopt(int cd, int opt, void *val, int valsz) {
     mutex_lock(&cn->lock);
 
     if (opt == PIO_NONBLOCK) {
-	if (!cn->fasio && (*(int *)val))
-	    cn->fasio = true;
-	else if (cn->fasio && (*(int *)val) == 0)
-	    cn->fasio = false;
+	if (!cn->fasync && (*(int *)val))
+	    cn->fasync = true;
+	else if (cn->fasync && (*(int *)val) == 0)
+	    cn->fasync = false;
     } else
 	rc = tp->setopt(cn->fd, opt, val, valsz);
 
@@ -467,6 +467,9 @@ static void channel_push_rcvmsg(struct channel *cn, struct channel_msg *msg) {
 
     mutex_lock(&cn->lock);
     list_add_tail(&msgi->item, &cn->rcv_head);
+
+    /* Wakeup the blocking waiters. fix by needed here */
+    condition_broadcast(&cn->cond);
     mutex_unlock(&cn->lock);
 }
 
@@ -474,23 +477,20 @@ static struct channel_msg *channel_pop_rcvmsg(struct channel *cn) {
     struct channel_msg_item *msgi = NULL;
     struct channel_msg *msg = NULL;
 
-    mutex_lock(&cn->lock);
     if (!list_empty(&cn->rcv_head)) {
 	msgi = list_first(&cn->rcv_head, struct channel_msg_item, item);
 	list_del_init(&msgi->item);
 	msg = &msgi->msg;
     }
-    mutex_unlock(&cn->lock);
     return msg;
 }
 
 
-static void channel_push_sndmsg(struct channel *cn, struct channel_msg *msg) {
+static int channel_push_sndmsg(struct channel *cn, struct channel_msg *msg) {
+    int rc = 0;
     struct channel_msg_item *msgi = pio_cont(msg, struct channel_msg_item, msg);
-
-    mutex_lock(&cn->lock);
     list_add_tail(&msgi->item, &cn->snd_head);
-    mutex_unlock(&cn->lock);
+    return rc;
 }
 
 static struct channel_msg *channel_pop_sndmsg(struct channel *cn) {
@@ -502,6 +502,9 @@ static struct channel_msg *channel_pop_sndmsg(struct channel *cn) {
 	msgi = list_first(&cn->snd_head, struct channel_msg_item, item);
 	list_del_init(&msgi->item);
 	msg = &msgi->msg;
+
+	/* Wakeup the blocking waiters. fix by needed here */
+	condition_broadcast(&cn->cond);
     }
     mutex_unlock(&cn->lock);
 
@@ -509,19 +512,27 @@ static struct channel_msg *channel_pop_sndmsg(struct channel *cn) {
 }
 
 int channel_recv(int cd, struct channel_msg **msg) {
+    int rc = 0;
     struct channel *cn = global_channel(cd);
 
-    do {
-	*msg = channel_pop_rcvmsg(cn);
-    } while (!*msg && cn->fasio == false);
-    return 0;
+    mutex_lock(&cn->lock);
+    while (!(*msg = channel_pop_rcvmsg(cn)) && !cn->fasync)
+	condition_wait(&cn->cond, &cn->lock);
+    mutex_unlock(&cn->lock);
+    if (!*msg)
+	rc = -EAGAIN;
+    return rc;
 }
 
 int channel_send(int cd, struct channel_msg *msg) {
+    int rc = 0;
     struct channel *cn = global_channel(cd);
 
-    channel_push_sndmsg(cn, msg);
-    return 0;
+    mutex_lock(&cn->lock);
+    while ((rc = channel_push_sndmsg(cn, msg)) < 0 && rc != -EAGAIN)
+	condition_wait(&cn->cond, &cn->lock);
+    mutex_unlock(&cn->lock);
+    return rc;
 }
 
 
@@ -559,8 +570,10 @@ static int io_event_handler(epoll_t *el, epollevent_t *et) {
 	}
     }
     if (et->events & EPOLLOUT) {
-	while ((msg = channel_pop_sndmsg(cn)) != NULL)
+	while ((msg = channel_pop_sndmsg(cn)) != NULL) {
 	    bio_write(&cn->out, channel_msgiov_base(msg), channel_msgiov_len(msg));
+	    channel_freemsg(msg);
+	}
 	if ((rc = bio_flush(&cn->out, &cn->sock_ops)) < 0 && errno != EAGAIN)
 	    goto EXIT;
     }
