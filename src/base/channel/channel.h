@@ -1,14 +1,8 @@
 #ifndef _HPIO_CHANNEL_
 #define _HPIO_CHANNEL_
 
-#include "os/epoll.h"
-#include "bufio/bio.h"
-#include "os/memory.h"
-#include "hash/crc.h"
+#include <inttypes.h>
 #include "transport/transport.h"
-#include "sync/mutex.h"
-#include "sync/spin.h"
-
 
 /*
   The transport protocol header is 10 bytes long and looks like this:
@@ -31,28 +25,8 @@ struct channel_msg {
     char *control;
 };
 
-struct channel_msg_item {
-    struct channel_msg msg;
-    struct list_head item;
-    struct channel_msghdr hdr;
-};
-
-#define list_for_each_channel_msg_safe(pos, next, head)			\
-    list_for_each_entry_safe(pos, next, head, struct channel_msg_item, item)
-
-#define channel_msgiov_len(ptr) ({					\
-	    struct channel_msg_item *_msgi =				\
-		container_of((ptr), struct channel_msg_item, msg);	\
-	    sizeof(_msgi->hdr) +					\
-		_msgi->hdr.payload_sz + _msgi->hdr.control_sz;		\
-	})
-
-#define channel_msgiov_base(ptr) ({					\
-	    struct channel_msg_item *_msgi =				\
-		container_of((ptr), struct channel_msg_item, msg);	\
-	    (char *)&_msgi->hdr;					\
-	})
-
+uint32_t channel_msgiov_len(struct channel_msg *msg);
+char *channel_msgiov_base(struct channel_msg *msg);
 
 struct channel_msg *channel_allocmsg(uint32_t payload_sz, uint32_t control_sz);
 void channel_freemsg(struct channel_msg *msg);
