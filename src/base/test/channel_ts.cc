@@ -19,7 +19,6 @@ static void channel_client() {
 
     randstr(buf, 1024);
     ASSERT_TRUE((sfd = channel_connect(PIO_TCP, "127.0.0.1:18894")) >= 0);
-    /*
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	msg = channel_allocmsg(nbytes, nbytes);
@@ -30,7 +29,6 @@ static void channel_client() {
 	ASSERT_EQ(0, channel_recv(sfd, &msg));
 	channel_freemsg(msg);
     }
-    */
     channel_close(sfd);
 }
 
@@ -51,19 +49,15 @@ static void channel_server_thread() {
     thread_start(&cli_thread, channel_client_thread, NULL);
     ASSERT_TRUE((sfd = channel_accept(afd)) >= 0);
     
-    /*
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd, &msg));
 	ASSERT_TRUE(0 == channel_send(sfd, msg));
     }
-    */
     ASSERT_TRUE((sfd2 = channel_accept(afd)) >= 0);
-    /*
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &msg));
 	ASSERT_TRUE(0 == channel_send(sfd2, msg));
     }
-    */
     thread_stop(&cli_thread);
     channel_close(sfd);
     channel_close(afd);
