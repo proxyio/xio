@@ -16,7 +16,7 @@ int randstr(char *buf, int len) {
 
 int main(int argc, char **argv) {
 
-    int ret;
+    int rc;
     
     gargc = argc;
     gargv = argv;
@@ -27,6 +27,6 @@ int main(int argc, char **argv) {
         return -1;
     }
     testing::InitGoogleTest(&gargc, gargv);
-    ret = RUN_ALL_TESTS();
-    return ret;
+    rc = RUN_ALL_TESTS();
+    return rc;
 }

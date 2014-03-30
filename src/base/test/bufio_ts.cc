@@ -60,15 +60,15 @@ static void bufio_fetch_flush_test() {
     int i;
     struct test_io tio = {};
     uint64_t nbytes = 0;
-    int64_t ret, alen = 0;
+    int64_t rc, alen = 0;
 
     bio_init(&b);
     tio.io_ops.read = test_io_read;
     tio.io_ops.write = test_io_write;
     randstr(buf1, sizeof(buf1));
     for (i = 0; i < 4; i++) {
-	if ((ret =  bio_prefetch(&b, &tio.io_ops)) > 0)
-	    nbytes += ret;
+	if ((rc =  bio_prefetch(&b, &tio.io_ops)) > 0)
+	    nbytes += rc;
     }
     alen = nbytes;
     bio_copy(&b, buf2, nbytes);
@@ -77,8 +77,8 @@ static void bufio_fetch_flush_test() {
     EXPECT_TRUE(memcmp(buf1, buf2, alen) == 0);
     EXPECT_TRUE(b.bsize == nbytes);
     while (nbytes > 0) {
-	if ((ret =  bio_flush(&b, &tio.io_ops)) > 0)
-	    nbytes -= ret;
+	if ((rc =  bio_flush(&b, &tio.io_ops)) > 0)
+	    nbytes -= rc;
     }
     EXPECT_EQ(b.bsize, 0);
     EXPECT_TRUE(list_empty(&b.page_head));

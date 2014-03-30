@@ -54,17 +54,17 @@ static inline ssmap_node_t *ssmap_find(ssmap_t *map, char *key, int size) {
     ssmap_node_t *cur;
     struct rb_root *root = &map->root;
     struct rb_node **np = &root->rb_node, *parent = NULL;
-    int keylen = size, ret;
+    int keylen = size, rc;
 
     while (*np) {
 	parent = *np;
 	cur = rb_entry(parent, ssmap_node_t, rb);
 	keylen = cur->keylen > size ? size : cur->keylen;
-	if ((ret = memcmp(cur->key, key, keylen)) == 0 && size == cur->keylen)
+	if ((rc = memcmp(cur->key, key, keylen)) == 0 && size == cur->keylen)
 	    return cur;
-	if ((!ret && size < cur->keylen) || ret > 0)
+	if ((!rc && size < cur->keylen) || rc > 0)
 	    np = &parent->rb_left;
-	else if ((!ret && size > cur->keylen) || ret < 0)
+	else if ((!rc && size > cur->keylen) || rc < 0)
 	    np = &parent->rb_right;
     }
     return NULL;
@@ -74,7 +74,7 @@ static inline int ssmap_insert(ssmap_t *map, ssmap_node_t *node) {
     ssmap_node_t *cur;
     struct rb_root *root = &map->root;
     struct rb_node **np = &root->rb_node, *parent = NULL;
-    int keylen, ret;
+    int keylen, rc;
     char *key = node->key;
 
     map->size++;
@@ -82,11 +82,11 @@ static inline int ssmap_insert(ssmap_t *map, ssmap_node_t *node) {
 	parent = *np;
 	cur = rb_entry(parent, ssmap_node_t, rb);
 	keylen = cur->keylen > node->keylen ? node->keylen : cur->keylen;
-	if ((ret = memcmp(cur->key, key, keylen)) == 0 && node->keylen == cur->keylen)
+	if ((rc = memcmp(cur->key, key, keylen)) == 0 && node->keylen == cur->keylen)
 	    return -1;
-	if ((!ret && node->keylen < cur->keylen) || ret > 0)
+	if ((!rc && node->keylen < cur->keylen) || rc > 0)
 	    np = &parent->rb_left;
-	else if ((!ret && node->keylen > cur->keylen) || ret < 0)
+	else if ((!rc && node->keylen > cur->keylen) || rc < 0)
 	    np = &parent->rb_right;
     }
     rb_link_node(&node->rb, parent, np);

@@ -29,12 +29,12 @@ static int __taskpool_push(taskpool_t *tp, thread_func func, void *data) {
 }
 
 static int taskpool_push(taskpool_t *tp, thread_func func, void *data) {
-    int ret = 0;
+    int rc = 0;
     mutex_lock(&tp->mutex);
-    if ((ret = __taskpool_push(tp, func, data)) == 0)
+    if ((rc = __taskpool_push(tp, func, data)) == 0)
 	condition_broadcast(&tp->cond);
     mutex_unlock(&tp->mutex);
-    return ret;
+    return rc;
 }
 
 static struct __task *_taskpool_pop(taskpool_t *tp) {

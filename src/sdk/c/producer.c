@@ -81,8 +81,8 @@ int producer_recv(pio_t *io, char **data, uint32_t *size) {
 }
 
 int producer_precv(pio_t *pp, char **data, uint32_t *size) {
-    int ret;
-    while ((ret = producer_recv(pp, data, size)) < 0 && errno == EAGAIN) {
+    int rc;
+    while ((rc = producer_recv(pp, data, size)) < 0 && errno == EAGAIN) {
     }
-    return ret;
+    return rc;
 }

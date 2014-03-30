@@ -31,17 +31,17 @@ void proxy_destroy(proxy_t *py) {
 }
 
 int proxy_add(proxy_t *py, struct role *r) {
-    int ret;
+    int rc;
     struct list_head *__head;
 
     __head = IS_RCVER(r) ? &py->rcver_head : &py->snder_head;
     lock(py);
-    if ((ret = ssmap_insert(&py->roles, &r->sibling)) == 0) {
+    if ((rc = ssmap_insert(&py->roles, &r->sibling)) == 0) {
 	py->rsize++;
 	list_add(&r->py_link, __head);
     }
     unlock(py);
-    return ret;
+    return rc;
 }
 
 void proxy_del(proxy_t *py, struct role *r) {

@@ -69,10 +69,10 @@ int comsumer_recv(pio_t *io, char **data, uint32_t *size, char **rt, uint32_t *r
 }
 
 int comsumer_precv(pio_t *pp, char **data, uint32_t *size, char **rt, uint32_t *rt_sz) {
-    int ret;
-    while ((ret = comsumer_recv(pp, data, size, rt, rt_sz)) < 0
+    int rc;
+    while ((rc = comsumer_recv(pp, data, size, rt, rt_sz)) < 0
 	   && errno == EAGAIN) {
     }
-    return ret;
+    return rc;
 }
 

@@ -115,12 +115,12 @@ static int r_event_handler(epoll_t *el, epollevent_t *et) {
 }
 
 static void r_rgs(struct role *r) {
-    int ret;
+    int rc;
     struct pio_rgh *h = &r->pp.rgh;
     proxy_t *py;
 
-    ret = r->proxyto ? proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp);
-    if (ret < 0) {
+    rc = r->proxyto ? proto_parser_at_rgs(&r->pp) : proto_parser_ps_rgs(&r->pp);
+    if (rc < 0) {
 	r->status_ok = (errno != EAGAIN) ? false : true;
 	return;
     }

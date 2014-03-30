@@ -7,7 +7,7 @@
 #include "ds/skrb_sync.h"
 
 int epoll_add(epoll_t *el, epollevent_t *ev) {
-    int ret = 0;
+    int rc = 0;
     int64_t _cur_nsec = rt_nstime();
     struct epoll_event ee;
 
@@ -18,15 +18,15 @@ int epoll_add(epoll_t *el, epollevent_t *ev) {
     if (ev->fd >= 0) {
 	ee.events = ev->events;
 	ee.data.ptr = ev;
-	if ((ret = epoll_ctl(el->efd, EPOLL_CTL_ADD, ev->fd, &ee)) == 0)
+	if ((rc = epoll_ctl(el->efd, EPOLL_CTL_ADD, ev->fd, &ee)) == 0)
 	    el->event_size++;
     }
-    return ret;
+    return rc;
 }
 
 
 int epoll_mod(epoll_t *el, epollevent_t *ev) {
-    int ret = 0;
+    int rc = 0;
     int64_t _cur_nsec = rt_nstime();
     struct epoll_event ee;
 
@@ -40,13 +40,13 @@ int epoll_mod(epoll_t *el, epollevent_t *ev) {
     if (ev->fd >= 0) {
 	ee.events = ev->events;
 	ee.data.ptr = ev;
-	ret = epoll_ctl(el->efd, EPOLL_CTL_MOD, ev->fd, &ee);
+	rc = epoll_ctl(el->efd, EPOLL_CTL_MOD, ev->fd, &ee);
     }
-    return ret;
+    return rc;
 }
 
 int epoll_del(epoll_t *el, epollevent_t *ev) {
-    int ret = 0;
+    int rc = 0;
     struct epoll_event ee;
 
     if (ev->to_nsec > 0 && ev->tr_node.key) {
@@ -57,10 +57,10 @@ int epoll_del(epoll_t *el, epollevent_t *ev) {
     if (ev->fd >= 0) {
 	ee.events = ev->events;
 	ee.data.ptr = ev;
-	if ((ret = epoll_ctl(el->efd, EPOLL_CTL_DEL, ev->fd, &ee)) == 0)
+	if ((rc = epoll_ctl(el->efd, EPOLL_CTL_DEL, ev->fd, &ee)) == 0)
 	    el->event_size--;
     }
-    return ret;
+    return rc;
 }
 
 static void epoll_update_timer(epoll_t *el, epollevent_t *ev, int64_t cur) {
