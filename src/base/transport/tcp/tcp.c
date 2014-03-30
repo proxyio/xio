@@ -90,7 +90,7 @@ int tcp_accept(int afd) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     int fd = accept(afd, (struct sockaddr *) &addr, &addrlen);
-    
+
     if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK
 		   || errno == EINTR || errno == ECONNABORTED)) {
 	errno = EAGAIN;

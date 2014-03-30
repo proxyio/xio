@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 #include <sys/signal.h>
+extern "C" {
+#include "base/base.h"
+}
 
 int gargc = 0;
 char **gargv = NULL;
@@ -21,6 +24,7 @@ int main(int argc, char **argv) {
     gargc = argc;
     gargv = argv;
 
+    base_init();
     // Ignore SIGPIPE
     if (SIG_ERR == signal(SIGPIPE, SIG_IGN)) {
         fprintf(stderr, "signal SIG_IGN");
@@ -28,5 +32,6 @@ int main(int argc, char **argv) {
     }
     testing::InitGoogleTest(&gargc, gargv);
     ret = RUN_ALL_TESTS();
+    base_exit();
     return ret;
 }

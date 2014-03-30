@@ -162,7 +162,7 @@ int64_t bio_write(struct bio *b, const char *buff, int64_t sz) {
 
 
 int64_t bio_flush(struct bio *b, struct io *io_ops) {
-    int64_t nbytes, sum = 0;
+    int64_t nbytes = 0, sum = 0;
     char page[PAGE_SIZE];
     
     while (!list_empty(&b->page_head)) {

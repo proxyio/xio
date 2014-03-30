@@ -32,7 +32,6 @@ typedef struct epollevent {
 #define list_for_each_et_safe(pos, tmp, head)				\
     list_for_each_entry_safe(pos, tmp, head, epollevent_t, el_link)
 
-
 typedef struct epoll {
     int stopping;
     int efd, max_io_events, event_size;

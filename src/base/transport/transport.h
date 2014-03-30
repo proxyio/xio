@@ -32,10 +32,7 @@ struct transport {
     struct list_head item;
 };
 
-
-extern struct transport *tcp_transport;
-extern struct transport *ipc_transport;
-
+struct transport *transport_lookup(int proto);
 
 
 #endif

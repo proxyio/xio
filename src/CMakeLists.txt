@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 2.6)
 project( proxyio )
 
 ## compile base
+aux_source_directory( base/ BASE )
 aux_source_directory( base/bufio BASE )
 aux_source_directory( base/ds BASE )
 aux_source_directory( base/hash BASE )
+aux_source_directory( base/channel BASE )
 aux_source_directory( base/transport BASE )
 aux_source_directory( base/transport/tcp BASE )
 aux_source_directory( base/transport/ipc BASE )

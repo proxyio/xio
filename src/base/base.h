@@ -7,6 +7,10 @@
 #include <assert.h>
 #include <errno.h>
 
+
+void base_init();
+void base_exit();
+
 #define true 1
 #define false 0
 
