@@ -23,6 +23,7 @@ static int PIO_RCVBUFSZ = 10485760;
 struct channel {
     uint64_t fasio:1;
     uint64_t fok:1;
+    uint64_t faccepter:1;
     int cd;
     mutex_t lock;
     uint64_t rcv_bufsz;
@@ -225,9 +226,7 @@ void global_channel_init() {
 
 void global_channel_exit() {
     cn_global.exiting = true;
-    printf("fuck\n");
     taskpool_stop(&cn_global.tpool);
-    printf("fuck 2\n");
     taskpool_destroy(&cn_global.tpool);
     mutex_destroy(&cn_global.lock);
 }
@@ -254,8 +253,8 @@ static struct io default_channel_ops = {
 };
 
 
-static int channel_event_handler(epoll_t *el, epollevent_t *et);
-
+static int io_event_handler(epoll_t *el, epollevent_t *et);
+static int accepter_event_handler(epoll_t *el, epollevent_t *et);
 
 
 struct channel_msg *channel_allocmsg(uint32_t payload_sz, uint32_t control_sz) {
@@ -277,11 +276,12 @@ void channel_freemsg(struct channel_msg *msg) {
     mem_free(msgi, sizeof(*msgi) + msgi->hdr.payload_sz + msgi->hdr.control_sz);
 }
 
-static void channel_init(int cd, int fd, struct transport *tp) {
+static void channel_init(int cd, int isaccepter, int fd, struct transport *tp) {
     struct channel *cn = global_channel(cd);
 
     cn->fasio = false;
     cn->fok = true;
+    cn->faccepter = !!isaccepter;
     
     /* Init channel id */
     cn->cd = cd;
@@ -299,7 +299,7 @@ static void channel_init(int cd, int fd, struct transport *tp) {
     /* Init poll entry */
     cn->et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
     cn->et.fd = fd;
-    cn->et.f = channel_event_handler;
+    cn->et.f = isaccepter ? io_event_handler : accepter_event_handler;
     cn->et.data = cn;
     cn->pd = select_a_poller(cd);
     
@@ -320,17 +320,11 @@ static void channel_init(int cd, int fd, struct transport *tp) {
 
     /* Add current channel into async io poller */
     assert(epoll_add(global_poller(cn->pd), &cn->et) == 0);
-    //epoll_add(global_poller(cn->pd), &cn->et);
 }
 
 static void channel_destroy(struct channel *cn) {
     struct list_head head;
     struct channel_msg_item *item, *nx;
-
-    /* Remove this channel from the table, add it to unused channel
-       table. */
-    global_put_channel_id(cn->cd);
-    cn->cd = -1;
 
     /* Destroy lock */
     mutex_destroy(&cn->lock);
@@ -344,9 +338,7 @@ static void channel_destroy(struct channel *cn) {
 	channel_freemsg(&item->msg);
 
     /* Detach channel low-level file descriptor from poller */
-    //assert(epoll_del(global_poller(cn->pd), &cn->et) == 0);
-
-    epoll_del(global_poller(cn->pd), &cn->et);
+    assert(epoll_del(global_poller(cn->pd), &cn->et) == 0);
     cn->pd = -1;
     
     /*  Destroy buffer io  */
@@ -366,6 +358,11 @@ static void channel_destroy(struct channel *cn) {
 	list_del_init(&cn->in_link);
     if (attached(&cn->out_link))
 	list_del_init(&cn->out_link);
+
+    /* Remove this channel from the table, add it to unused channel
+       table. */
+    global_put_channel_id(cn->cd);
+    cn->cd = -1;
 }
 
 
@@ -387,7 +384,7 @@ int channel_listen(int pf, const char *addr) {
     cd = global_get_channel_id();
 
     // Init channel from raw-level sockid and transport vfptr
-    channel_init(cd, s, tp);
+    channel_init(cd, false, s, tp);
     return cd;
 }
 
@@ -405,7 +402,7 @@ int channel_connect(int pf, const char *peer) {
     cd = global_get_channel_id();
 
     // Init channel from raw-level sockid and transport vfptr
-    channel_init(cd, s, tp);
+    channel_init(cd, true, s, tp);
     tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
 
     return cd;
@@ -420,13 +417,11 @@ int channel_accept(int cd) {
     if ((s = tp->accept(cn->fd)) < 0)
 	return s;
 
-
     // Find a unused channel id and slot.
     new_cd = global_get_channel_id();
 
     // Init channel from raw-level sockid and transport vfptr.
-
-    channel_init(new_cd, s, tp);
+    channel_init(new_cd, true, s, tp);
     tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
 
     return new_cd;
@@ -543,7 +538,12 @@ static int msg_ready(struct bio *b, int64_t *payload_sz, int64_t *control_sz) {
     return true;
 }
 
-static int channel_event_handler(epoll_t *el, epollevent_t *et) {
+static int accepter_event_handler(epoll_t *el, epollevent_t *et) {
+    int rc = 0;
+    return rc;
+}
+
+static int io_event_handler(epoll_t *el, epollevent_t *et) {
     int rc = 0;
     struct channel *cn = pio_cont(et, struct channel, et);
     struct channel_msg *msg;

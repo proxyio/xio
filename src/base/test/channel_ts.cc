@@ -31,7 +31,7 @@ static void channel_client() {
 	channel_freemsg(msg);
     }
     */
-    close(sfd);
+    channel_close(sfd);
 }
 
 static int channel_client_thread(void *arg) {
@@ -49,9 +49,7 @@ static void channel_server_thread() {
 
     ASSERT_TRUE((afd = channel_listen(PIO_TCP, "*:18894")) >= 0);
     thread_start(&cli_thread, channel_client_thread, NULL);
-    printf("%d\n", __LINE__);
     ASSERT_TRUE((sfd = channel_accept(afd)) >= 0);
-    printf("%d\n", __LINE__);
     
     /*
     for (i = 0; i < cnt; i++) {
@@ -60,7 +58,6 @@ static void channel_server_thread() {
     }
     */
     ASSERT_TRUE((sfd2 = channel_accept(afd)) >= 0);
-    printf("%d\n", __LINE__);
     /*
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &msg));
@@ -68,11 +65,9 @@ static void channel_server_thread() {
     }
     */
     thread_stop(&cli_thread);
-    printf("%d\n", __LINE__);
-    channel_close(afd);
     channel_close(sfd);
+    channel_close(afd);
     channel_close(sfd2);
-    printf("%d\n", __LINE__);
 }
 
 TEST(transport, channel) {
