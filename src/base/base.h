@@ -31,10 +31,8 @@ void base_exit();
 #define __offsetof(TYPE, MEMBER) ((long) &(((TYPE *)0)->MEMBER))
 
 // Casts a member of a structure out to the containning structure
-#define container_of(ptr, type, member) ({				\
+#define cont_of(ptr, type, member) ({					\
 	    (type *)((char *)ptr - __offsetof(type, member)); })
-
-#define pio_cont(ptr, type, member) container_of(ptr, type, member)
 
 typedef struct io {
     int64_t (*read)(struct io *c, char *buf, int64_t size);

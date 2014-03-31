@@ -32,7 +32,7 @@ struct test_io {
 };
 
 static int64_t test_io_read(struct io *ops, char *buff, int64_t sz) {
-    struct test_io *tio = container_of(ops, struct test_io, io_ops);
+    struct test_io *tio = cont_of(ops, struct test_io, io_ops);
     int64_t len = rand() % PAGE_SIZE;
 
     if (rand() % 2 == 0)
@@ -44,7 +44,7 @@ static int64_t test_io_read(struct io *ops, char *buff, int64_t sz) {
 }
 
 static int64_t test_io_write(struct io *ops, char *buff, int64_t sz) {
-    struct test_io *tio = container_of(ops, struct test_io, io_ops);
+    struct test_io *tio = cont_of(ops, struct test_io, io_ops);
     int64_t len = rand() % PAGE_SIZE;
 
     if (rand() % 2 == 0)

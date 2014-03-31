@@ -37,7 +37,7 @@ struct channel_vf {
 };
 
 extern struct channel_vf *io_channel_vfptr;
-extern struct channel_vf *act_channel_vfptr;
+extern struct channel_vf *inproc_channel_vfptr;
 
 struct channel {
     uint64_t fasync:1;

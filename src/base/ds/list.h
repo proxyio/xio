@@ -60,10 +60,10 @@ struct list_link {
 
     
 #define list_first(head, type, member)		\
-    container_of((head)->next, type, member)
+    cont_of((head)->next, type, member)
 
 #define list_last(head, type, member)		\
-    container_of((head)->prev, type, member)
+    cont_of((head)->prev, type, member)
 
 
 
@@ -175,7 +175,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param ptr         the &struct list_head pointer
 // @param type        the type of the struct this is embedded in.
 // @param member      the name of the list_struct within the sturct.
-#define list_entry(ptr, type, member) container_of(ptr, type, member)
+#define list_entry(ptr, type, member) cont_of(ptr, type, member)
 
 
 
@@ -370,7 +370,7 @@ static inline void hlist_add_after(struct hlist_node *node, struct hlist_node *p
 }
 
 
-#define hlist_entry(ptr, type, member) container_of(ptr, type, member)
+#define hlist_entry(ptr, type, member) cont_of(ptr, type, member)
 
 #define hlist_for_each(pos, head)			\
     for (pos = (head)->first; pos; pos = pos->next)

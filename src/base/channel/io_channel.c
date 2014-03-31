@@ -8,29 +8,23 @@
 
 extern struct channel_global cn_global;
 
-extern uint32_t channel_msgiov_len(struct channel_msg *msg);
-extern char *channel_msgiov_base(struct channel_msg *msg);
-
-extern struct channel *global_channel(int cd);
+extern struct channel *cid_to_channel(int cd);
 extern void global_put_closing_channel(struct channel *cn);
+extern int alloc_cid();
 
-extern void global_channel_poll_state(struct channel *cn);
-
-extern struct channel_msg *channel_allocmsg(uint32_t payload_sz,
-    uint32_t control_sz);
-extern void channel_freemsg(struct channel_msg *msg);
-
+extern void generic_channel_init(int cd, int fd,
+    struct transport *tp, struct channel_vf *vfptr);
 
 static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
     int rc;
-    struct channel *cn = pio_cont(io_ops, struct channel, sock_ops);
+    struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
     rc = cn->tp->read(cn->fd, buff, sz);
     return rc;
 }
 
 static int64_t io_channel_write(struct io *io_ops, char *buff, int64_t sz) {
     int rc;
-    struct channel *cn = pio_cont(io_ops, struct channel, sock_ops);
+    struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
     rc = cn->tp->write(cn->fd, buff, sz);
     return rc;
 }
@@ -40,13 +34,13 @@ static struct io default_channel_ops = {
     .write = io_channel_write,
 };
 
-static int io_event_handler(epoll_t *el, epollevent_t *et);
-
+static int accept_handler(epoll_t *el, epollevent_t *et);
+static int io_handler(epoll_t *el, epollevent_t *et);
 
 static void io_channel_init(int cd) {
-    struct channel *cn = global_channel(cd);
+    struct channel *cn = cid_to_channel(cd);
 
-    cn->et.f = io_event_handler;
+    cn->et.f = cn->faccepter ? accept_handler : io_handler;
     cn->sock_ops = default_channel_ops;
 }
 
@@ -55,16 +49,30 @@ static void io_channel_destroy(int cd) {
 }
 
 static int io_channel_accept(int cd) {
-    return -EINVAL;
+    int new_cd, s;
+    int nb = 1;
+    struct channel *cn = cid_to_channel(cd);
+    struct transport *tp = cn->tp;
+
+    if ((s = tp->accept(cn->fd)) < 0)
+	return s;
+    tp->setopt(s, TP_NOBLOCK, &nb, sizeof(nb));
+
+    // Find a unused channel id and slot.
+    new_cd = alloc_cid();
+
+    // Init channel from raw-level sockid and transport vfptr.
+    generic_channel_init(new_cd, s, tp, io_channel_vfptr);
+    return new_cd;
 }
 
 static void io_channel_close(int cd) {
-    global_put_closing_channel(global_channel(cd));
+    global_put_closing_channel(cid_to_channel(cd));
 }
 
 static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
     int rc = 0;
-    struct channel *cn = global_channel(cd);
+    struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
     mutex_unlock(&cn->lock);
@@ -73,7 +81,7 @@ static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
 
 static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
     int rc = 0;
-    struct channel *cn = global_channel(cd);
+    struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
     mutex_unlock(&cn->lock);
@@ -81,7 +89,7 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
 }
 
 static void channel_push_rcvmsg(struct channel *cn, struct channel_msg *msg) {
-    struct channel_msg_item *msgi = pio_cont(msg, struct channel_msg_item, msg);
+    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);
 
     mutex_lock(&cn->lock);
     list_add_tail(&msgi->item, &cn->rcv_head);
@@ -106,7 +114,7 @@ static struct channel_msg *channel_pop_rcvmsg(struct channel *cn) {
 
 static int channel_push_sndmsg(struct channel *cn, struct channel_msg *msg) {
     int rc = 0;
-    struct channel_msg_item *msgi = pio_cont(msg, struct channel_msg_item, msg);
+    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);
     list_add_tail(&msgi->item, &cn->snd_head);
     return rc;
 }
@@ -131,7 +139,7 @@ static struct channel_msg *channel_pop_sndmsg(struct channel *cn) {
 
 static int io_channel_recv(int cd, struct channel_msg **msg) {
     int rc = 0;
-    struct channel *cn = global_channel(cd);
+    struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
     while (!(*msg = channel_pop_rcvmsg(cn)) && !cn->fasync)
@@ -144,12 +152,20 @@ static int io_channel_recv(int cd, struct channel_msg **msg) {
 
 static int io_channel_send(int cd, struct channel_msg *msg) {
     int rc = 0;
-    struct channel *cn = global_channel(cd);
+    struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
     while ((rc = channel_push_sndmsg(cn, msg)) < 0 && rc != -EAGAIN)
 	condition_wait(&cn->cond, &cn->lock);
     mutex_unlock(&cn->lock);
+    return rc;
+}
+
+
+
+
+static int accept_handler(epoll_t *el, epollevent_t *et) {
+    int rc = 0;
     return rc;
 }
 
@@ -167,9 +183,37 @@ static int msg_ready(struct bio *b, int64_t *payload_sz, int64_t *control_sz) {
     return true;
 }
 
-static int io_event_handler(epoll_t *el, epollevent_t *et) {
+static void global_channel_poll_state(struct channel *cn) {
+    struct list_head *err_head = &cn_global.error_head[cn->pd];
+    struct list_head *in_head = &cn_global.readyin_head[cn->pd];
+    struct list_head *out_head = &cn_global.readyout_head[cn->pd];
+    
+    mutex_lock(&cn_global.lock);
+    mutex_lock(&cn->lock);
+
+    /* Check the error status */
+    if (!cn->fok && !attached(&cn->err_link))
+	list_add_tail(&cn->err_link, err_head);
+
+    /* Check the readyin status */
+    if (attached(&cn->in_link) && list_empty(&cn->rcv_head))
+	list_del_init(&cn->in_link);
+    else if (!attached(&cn->in_link) && !list_empty(&cn->rcv_head))
+	list_add_tail(&cn->in_link, in_head);
+
+    /* Check the readyout status */
+    if (attached(&cn->out_link) && cn->out.bsize > cn->snd_bufsz)
+	list_del_init(&cn->out_link);
+    else if (!attached(&cn->out_link) && cn->out.bsize <= cn->snd_bufsz)
+	list_add_tail(&cn->out_link, out_head);
+    
+    mutex_unlock(&cn->lock);
+    mutex_unlock(&cn_global.lock);
+}
+
+static int io_handler(epoll_t *el, epollevent_t *et) {
     int rc = 0;
-    struct channel *cn = pio_cont(et, struct channel, et);
+    struct channel *cn = cont_of(et, struct channel, et);
     struct channel_msg *msg;
     int64_t payload_sz = 0, control_sz = 0;
 
