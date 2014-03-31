@@ -24,6 +24,21 @@
 static int PIO_SNDBUFSZ = 10485760;
 static int PIO_RCVBUFSZ = 10485760;
 
+
+struct channel_vf {
+    void (*init) (int cd);
+    void (*destroy) (int cd);
+    int (*accept) (int cd);
+    void (*close) (int cd);
+    int (*recv) (int cd, struct channel_msg **msg);
+    int (*send) (int cd, struct channel_msg *msg);
+    int (*setopt) (int cd, int opt, void *val, int valsz);
+    int (*getopt) (int cd, int opt, void *val, int valsz);
+};
+
+extern struct channel_vf *io_channel_vfptr;
+extern struct channel_vf *act_channel_vfptr;
+
 struct channel {
     uint64_t fasync:1;
     uint64_t fok:1;
@@ -47,6 +62,8 @@ struct channel {
     struct list_head err_link;
     struct list_head in_link;
     struct list_head out_link;
+
+    struct channel_vf *vf;
 };
 
 struct channel_global {
@@ -87,8 +104,6 @@ struct channel_global {
 };
 
 extern struct channel_global cn_global;
-
-
 
 
 struct channel_msg_item {
