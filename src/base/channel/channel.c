@@ -224,10 +224,12 @@ void generic_channel_init(int cd, int fd,
     INIT_LIST_HEAD(&cn->in_link);
     INIT_LIST_HEAD(&cn->out_link);
 
-    /* Add current channel into async io poller */
-    assert(epoll_add(global_poller(cn->pd), &cn->et) == 0);
     cn->vf = vfptr;
     vfptr->init(cd);
+
+    /* Add current channel into async io poller. this it
+       must be the last step, because of the async poller */
+    assert(epoll_add(global_poller(cn->pd), &cn->et) == 0);
 }
 
 static void channel_destroy(struct channel *cn) {
@@ -308,13 +310,13 @@ int channel_connect(int pf, const char *peer) {
 	return -EINVAL;
     if ((s = tp->connect(peer)) < 0)
 	return s;
+    tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
     
     // Find a unused channel id and slot
     cd = global_get_channel_id();
 
     // Init channel from raw-level sockid and transport vfptr
     generic_channel_init(cd, s, tp, io_channel_vfptr);
-    tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
 
     return cd;
 }

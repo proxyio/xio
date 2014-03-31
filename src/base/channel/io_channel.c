@@ -56,8 +56,9 @@ static int io_event_handler(epoll_t *el, epollevent_t *et);
 
 static void io_channel_init(int cd) {
     struct channel *cn = global_channel(cd);
-    cn->sock_ops = default_channel_ops;
+
     cn->et.f = io_event_handler;
+    cn->sock_ops = default_channel_ops;
 }
 
 static void io_channel_destroy(int cd) {

@@ -43,14 +43,13 @@ static int act_channel_accept(int cd) {
 
     if ((s = tp->accept(cn->fd)) < 0)
 	return s;
+    tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
 
     // Find a unused channel id and slot.
     new_cd = global_get_channel_id();
 
     // Init channel from raw-level sockid and transport vfptr.
     generic_channel_init(new_cd, s, tp, io_channel_vfptr);
-    tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
-
     return new_cd;
 }
 
