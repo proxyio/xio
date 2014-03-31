@@ -89,10 +89,10 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
 }
 
 static void channel_push_rcvmsg(struct channel *cn, struct channel_msg *msg) {
-    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);
+    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
 
     mutex_lock(&cn->lock);
-    list_add_tail(&msgi->item, &cn->rcv_head);
+    list_add_tail(&mi->item, &cn->rcv_head);
 
     /* Wakeup the blocking waiters. fix by needed here */
     condition_broadcast(&cn->cond);
@@ -100,13 +100,13 @@ static void channel_push_rcvmsg(struct channel *cn, struct channel_msg *msg) {
 }
 
 static struct channel_msg *channel_pop_rcvmsg(struct channel *cn) {
-    struct channel_msg_item *msgi = NULL;
+    struct channel_msg_item *mi = NULL;
     struct channel_msg *msg = NULL;
 
     if (!list_empty(&cn->rcv_head)) {
-	msgi = list_first(&cn->rcv_head, struct channel_msg_item, item);
-	list_del_init(&msgi->item);
-	msg = &msgi->msg;
+	mi = list_first(&cn->rcv_head, struct channel_msg_item, item);
+	list_del_init(&mi->item);
+	msg = &mi->msg;
     }
     return msg;
 }
@@ -114,20 +114,20 @@ static struct channel_msg *channel_pop_rcvmsg(struct channel *cn) {
 
 static int channel_push_sndmsg(struct channel *cn, struct channel_msg *msg) {
     int rc = 0;
-    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);
-    list_add_tail(&msgi->item, &cn->snd_head);
+    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
+    list_add_tail(&mi->item, &cn->snd_head);
     return rc;
 }
 
 static struct channel_msg *channel_pop_sndmsg(struct channel *cn) {
-    struct channel_msg_item *msgi;
+    struct channel_msg_item *mi;
     struct channel_msg *msg = NULL;
     
     mutex_lock(&cn->lock);
     if (!list_empty(&cn->snd_head)) {
-	msgi = list_first(&cn->snd_head, struct channel_msg_item, item);
-	list_del_init(&msgi->item);
-	msg = &msgi->msg;
+	mi = list_first(&cn->snd_head, struct channel_msg_item, item);
+	list_del_init(&mi->item);
+	msg = &mi->msg;
 
 	/* Wakeup the blocking waiters. fix by needed here */
 	condition_broadcast(&cn->cond);
@@ -171,15 +171,15 @@ static int accept_handler(epoll_t *el, epollevent_t *et) {
 
 
 static int msg_ready(struct bio *b, int64_t *payload_sz, int64_t *control_sz) {
-    struct channel_msg_item msgi = {};
+    struct channel_msg_item mi = {};
     
-    if (b->bsize < sizeof(msgi.hdr))
+    if (b->bsize < sizeof(mi.hdr))
 	return false;
-    bio_copy(b, (char *)(&msgi.hdr), sizeof(msgi.hdr));
-    if (b->bsize < channel_msgiov_len(&msgi.msg))
+    bio_copy(b, (char *)(&mi.hdr), sizeof(mi.hdr));
+    if (b->bsize < channel_msgiov_len(&mi.msg))
 	return false;
-    *payload_sz = msgi.hdr.payload_sz;
-    *control_sz = msgi.hdr.control_sz;
+    *payload_sz = mi.hdr.payload_sz;
+    *control_sz = mi.hdr.control_sz;
     return true;
 }
 

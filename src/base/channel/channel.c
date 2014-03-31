@@ -10,32 +10,32 @@ struct channel_global cn_global = {};
 
 
 uint32_t channel_msgiov_len(struct channel_msg *msg) {
-    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);	
-    return sizeof(msgi->hdr) + msgi->hdr.payload_sz + msgi->hdr.control_sz;		
+    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);	
+    return sizeof(mi->hdr) + mi->hdr.payload_sz + mi->hdr.control_sz;		
 }
 
 char *channel_msgiov_base(struct channel_msg *msg) {
-    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);
-    return (char *)&msgi->hdr;				
+    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
+    return (char *)&mi->hdr;				
 }
 
 struct channel_msg *channel_allocmsg(uint32_t payload_sz, uint32_t control_sz) {
-    struct channel_msg_item *msgi;
-    char *chunk = (char *)mem_zalloc(sizeof(*msgi) + payload_sz + control_sz);
+    struct channel_msg_item *mi;
+    char *chunk = (char *)mem_zalloc(sizeof(*mi) + payload_sz + control_sz);
     if (!chunk)
 	return NULL;
-    msgi = (struct channel_msg_item *)chunk;
-    msgi->hdr.payload_sz = payload_sz;
-    msgi->hdr.control_sz = control_sz;
-    msgi->hdr.checksum = crc16((char *)&msgi->hdr.payload_sz, 16);
-    msgi->msg.payload = chunk + sizeof(*msgi);
-    msgi->msg.control = msgi->msg.payload + payload_sz;
-    return &msgi->msg;
+    mi = (struct channel_msg_item *)chunk;
+    mi->hdr.payload_sz = payload_sz;
+    mi->hdr.control_sz = control_sz;
+    mi->hdr.checksum = crc16((char *)&mi->hdr.payload_sz, 16);
+    mi->msg.payload = chunk + sizeof(*mi);
+    mi->msg.control = mi->msg.payload + payload_sz;
+    return &mi->msg;
 }
 
 void channel_freemsg(struct channel_msg *msg) {
-    struct channel_msg_item *msgi = cont_of(msg, struct channel_msg_item, msg);
-    mem_free(msgi, sizeof(*msgi) + msgi->hdr.payload_sz + msgi->hdr.control_sz);
+    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
+    mem_free(mi, sizeof(*mi) + mi->hdr.payload_sz + mi->hdr.control_sz);
 }
 
 int alloc_cid() {
