@@ -15,7 +15,7 @@
 #define TP_RCVTIMEO 6
 #define TP_SNDTIMEO 7
 #define TP_REUSEADDR 8
-#define TP_SOCKADDRLEN 4096
+#define TP_SOCKADDRLEN 128
 
 struct transport {
     const char *name;

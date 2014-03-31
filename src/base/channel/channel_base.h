@@ -24,11 +24,14 @@
 static int PIO_SNDBUFSZ = 10485760;
 static int PIO_RCVBUFSZ = 10485760;
 
+/* Define channel type for listner/accepter/connector */
+#define CHANNEL_LISTENER 1
+#define CHANNEL_ACCEPTER 2
+#define CHANNEL_CONNECTOR 3
 
 struct channel_vf {
-    void (*init) (int cd);
+    int (*init) (int cd);
     void (*destroy) (int cd);
-    int (*accept) (int cd);
     void (*close) (int cd);
     int (*recv) (int cd, struct channel_msg **msg);
     int (*send) (int cd, struct channel_msg *msg);
@@ -40,16 +43,24 @@ extern struct channel_vf *io_channel_vfptr;
 extern struct channel_vf *inproc_channel_vfptr;
 
 struct channel {
+    int ty;
+    int pf;
+    char sock[TP_SOCKADDRLEN];
+    char peer[TP_SOCKADDRLEN];
     uint64_t fasync:1;
     uint64_t fok:1;
-    uint64_t faccepter:1;
+    int parent;
     int cd;
+    int waiters;
     mutex_t lock;
-    uint64_t rcv_bufsz;
-    uint64_t snd_bufsz;
+    condition_t cond;
+    uint64_t rcv;
+    uint64_t snd;
+    uint64_t rcv_wnd;
+    uint64_t snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    condition_t cond;
+    struct channel_vf *vf;
     
     epollevent_t et;
     int pd;
@@ -62,8 +73,6 @@ struct channel {
     struct list_head err_link;
     struct list_head in_link;
     struct list_head out_link;
-
-    struct channel_vf *vf;
 };
 
 struct channel_global {

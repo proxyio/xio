@@ -4,6 +4,12 @@
 #include <inttypes.h>
 #include "transport/transport.h"
 
+
+#define PF_INPROC 1
+#define PF_TCP    2
+#define PF_IPC    3
+
+
 /*
   The transport protocol header is 10 bytes long and looks like this:
 

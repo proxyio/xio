@@ -11,12 +11,12 @@ struct channel_global cn_global = {};
 
 uint32_t channel_msgiov_len(struct channel_msg *msg) {
     struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);	
-    return sizeof(mi->hdr) + mi->hdr.payload_sz + mi->hdr.control_sz;		
+    return sizeof(mi->hdr) + mi->hdr.payload_sz + mi->hdr.control_sz;
 }
 
 char *channel_msgiov_base(struct channel_msg *msg) {
     struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
-    return (char *)&mi->hdr;				
+    return (char *)&mi->hdr;
 }
 
 struct channel_msg *channel_allocmsg(uint32_t payload_sz, uint32_t control_sz) {
@@ -47,6 +47,8 @@ int alloc_cid() {
     return cd;
 }
 
+
+
 void free_cid(int cd) {
     mutex_lock(&cn_global.lock);
     cn_global.unused[--cn_global.nchannels] = cd;
@@ -57,6 +59,60 @@ struct channel *cid_to_channel(int cd) {
     return &cn_global.channels[cd];
 }
 
+static void channel_base_init(int cd) {
+    struct channel *cn = cid_to_channel(cd);
+    cn->fasync = false;
+    cn->fok = true;
+    cn->parent = -1;
+    cn->cd = cd;
+    cn->waiters = 0;
+    mutex_init(&cn->lock);
+    condition_init(&cn->cond);
+    cn->rcv = 0;
+    cn->snd = 0;
+    cn->rcv_wnd = PIO_RCVBUFSZ;
+    cn->snd_wnd = PIO_SNDBUFSZ;
+    INIT_LIST_HEAD(&cn->rcv_head);
+    INIT_LIST_HEAD(&cn->snd_head);
+}
+
+static void channel_base_exit(int cd) {
+    struct channel *cn = cid_to_channel(cd);
+    struct list_head head = {};
+    struct channel_msg_item *pos, *nx;
+    
+    cn->ty = -1;
+    cn->pf = -1;
+    cn->fasync = -1;
+    cn->fok = -1;
+    cn->cd = -1;
+    mutex_destroy(&cn->lock);
+    condition_destroy(&cn->cond);
+    cn->rcv = -1;
+    cn->snd = -1;
+    cn->rcv_wnd = -1;
+    cn->snd_wnd = -1;
+
+    INIT_LIST_HEAD(&head);
+    list_splice(&cn->rcv_head, &head);
+    list_splice(&cn->snd_head, &head);
+    list_for_each_channel_msg_safe(pos, nx, &head)
+	channel_freemsg(&pos->msg);
+}
+
+
+struct channel *alloc_channel() {
+    int cd = alloc_cid();
+    struct channel *cn = cid_to_channel(cd);
+    channel_base_init(cd);
+    return cn;
+}
+
+void free_channel(struct channel *cn) {
+    int cd = cn->cd;
+    channel_base_exit(cd);
+    free_cid(cd);
+}
 
 int alloc_pid() {
     int pd;
@@ -96,8 +152,6 @@ struct channel *global_get_closing_channel(int pd) {
     return cn;
 }
 
-static void channel_destroy(struct channel *cn);
-
 static inline int event_runner(void *args) {
     int rc = 0;
     int pd = alloc_pid();
@@ -107,11 +161,15 @@ static inline int event_runner(void *args) {
     assert(epoll_init(el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
     while (!cn_global.exiting) {
 	epoll_oneloop(el);
-	while ((closing_cn = global_get_closing_channel(pd)) != NULL)
-	    channel_destroy(closing_cn);
+	while ((closing_cn = global_get_closing_channel(pd)) != NULL) {
+	    closing_cn->vf->destroy(closing_cn->cd);
+	    free_channel(closing_cn);
+	}
     }
-    while ((closing_cn = global_get_closing_channel(pd)) != NULL)
-	channel_destroy(closing_cn);
+    while ((closing_cn = global_get_closing_channel(pd)) != NULL) {
+	closing_cn->vf->destroy(closing_cn->cd);
+	free_channel(closing_cn);
+    }
 
     /*  Release the poller descriptor to global table when runner exit.  */
     free_pid(pd);
@@ -119,7 +177,7 @@ static inline int event_runner(void *args) {
     return rc;
 }
 
-static inline int select_a_poller(int cd) {
+int select_a_poller(int cd) {
     return cd % cn_global.npolls;
 }
 
@@ -155,146 +213,48 @@ void global_channel_exit() {
     mutex_destroy(&cn_global.lock);
 }
 
-void generic_channel_init(int cd, int fd,
-        struct transport *tp, struct channel_vf *vfptr) {
-    struct channel *cn = cid_to_channel(cd);
-
-    cn->fasync = false;
-    cn->fok = true;
-    
-    /* Init channel id */
-    cn->cd = cd;
-
-    /* Init lock */
-    mutex_init(&cn->lock);
-    condition_init(&cn->cond);
-    
-    /* Init caching msg head */
-    cn->rcv_bufsz = PIO_RCVBUFSZ;
-    cn->snd_bufsz = PIO_SNDBUFSZ;
-    INIT_LIST_HEAD(&cn->rcv_head);
-    INIT_LIST_HEAD(&cn->snd_head);
-
-    /* Init poll entry */
-    cn->et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
-    cn->et.fd = fd;
-    cn->et.data = cn;
-    cn->pd = select_a_poller(cd);
-    
-    /* Init input/output buffer */
-    bio_init(&cn->in);
-    bio_init(&cn->out);
-
-    /* Init low-level transport vfptr */
-    cn->fd = fd;
-    cn->tp = tp;
-    
-    /* Init backend poll link */
-    INIT_LIST_HEAD(&cn->closing_link);
-    INIT_LIST_HEAD(&cn->err_link);
-    INIT_LIST_HEAD(&cn->in_link);
-    INIT_LIST_HEAD(&cn->out_link);
-
-    cn->vf = vfptr;
-    vfptr->init(cd);
-
-    /* Add current channel into async io poller. this it
-       must be the last step, because of the async poller */
-    assert(epoll_add(pid_to_poller(cn->pd), &cn->et) == 0);
-}
-
-static void channel_destroy(struct channel *cn) {
-    struct list_head head;
-    struct channel_msg_item *item, *nx;
-    struct channel_vf *vf = cn->vf;
-
-    vf->destroy(cn->cd);
-    
-    /* Destroy lock */
-    mutex_destroy(&cn->lock);
-    condition_destroy(&cn->cond);
-    
-    /* Release all the caching msg */
-    INIT_LIST_HEAD(&head);
-    list_splice(&cn->rcv_head, &head);
-    list_splice(&cn->snd_head, &head);
-    list_for_each_channel_msg_safe(item, nx, &head)
-	channel_freemsg(&item->msg);
-
-    /* Detach channel low-level file descriptor from poller */
-    assert(epoll_del(pid_to_poller(cn->pd), &cn->et) == 0);
-    cn->pd = -1;
-    
-    /*  Destroy buffer io  */
-    bio_destroy(&cn->in);
-    bio_destroy(&cn->out);
-
-    /* close low-level transport file descriptor */
-    cn->tp->close(cn->fd);
-    cn->fd = -1;
-
-    /* Detach from all poll status head */
-    if (attached(&cn->closing_link))
-	list_del_init(&cn->closing_link);
-    if (attached(&cn->err_link))
-	list_del_init(&cn->err_link);
-    if (attached(&cn->in_link))
-	list_del_init(&cn->in_link);
-    if (attached(&cn->out_link))
-	list_del_init(&cn->out_link);
-
-    /* Remove this channel from the table, add it to unused channel
-       table. */
-    free_cid(cn->cd);
-    cn->cd = -1;
-}
-
-
 void channel_close(int cd) {
     struct channel *cn = cid_to_channel(cd);
     cn->vf->close(cd);
 }
 
-int channel_listen(int pf, const char *addr) {
-    int cd, s;
-    struct transport *tp = transport_lookup(pf);
+int channel_accept(int cd) {
+    struct channel *cn = cid_to_channel(cd);
+    struct channel_vf *vf = cn->vf;
+    struct channel *new = alloc_channel();
 
-    if (!tp)
-	return -EINVAL;
-    if ((s = tp->bind(addr)) < 0)
-	return s;
+    new->ty = CHANNEL_ACCEPTER;
+    new->pf = cn->pf;
+    new->vf = vf;
+    new->parent = cd;
+    vf->init(new->cd);
+    return new->cd;
+}
 
-    // Find a unused channel id and slot
-    cd = alloc_cid();
+int channel_listen(int pf, const char *sock) {
+    struct channel *new = alloc_channel();
+    struct channel_vf *vf = (pf == PF_INPROC) ? inproc_channel_vfptr :
+	io_channel_vfptr;
 
-    // Init channel from raw-level sockid and transport vfptr
-    generic_channel_init(cd, s, tp, io_channel_vfptr);
-    return cd;
+    new->ty = CHANNEL_LISTENER;
+    new->pf = pf;
+    new->vf = vf;
+    strncpy(new->sock, sock, TP_SOCKADDRLEN);
+    vf->init(new->cd);
+    return new->cd;
 }
 
 int channel_connect(int pf, const char *peer) {
-    int cd, s;
-    int nb = 1;
-    struct transport *tp = transport_lookup(pf);
+    struct channel *new = alloc_channel();
+    struct channel_vf *vf = (pf == PF_INPROC) ? inproc_channel_vfptr :
+	io_channel_vfptr;
 
-    if (!tp)
-	return -EINVAL;
-    if ((s = tp->connect(peer)) < 0)
-	return s;
-    tp->setopt(s, TP_NOBLOCK, &nb, sizeof(nb));
-    
-    // Find a unused channel id and slot
-    cd = alloc_cid();
-
-    // Init channel from raw-level sockid and transport vfptr
-    generic_channel_init(cd, s, tp, io_channel_vfptr);
-
-    return cd;
-}
-
-int channel_accept(int cd) {
-    struct channel *cn = cid_to_channel(cd);
-    return cn->vf->accept(cd);
+    new->ty = CHANNEL_CONNECTOR;
+    new->pf = pf;
+    new->vf = vf;
+    strncpy(new->peer, peer, TP_SOCKADDRLEN);
+    vf->init(new->cd);
+    return new->cd;
 }
 
 int channel_setopt(int cd, int opt, void *val, int valsz) {

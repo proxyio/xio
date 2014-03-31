@@ -34,6 +34,7 @@ static void channel_client() {
 static int channel_client_thread(void *arg) {
     channel_client();
     channel_client();
+    channel_client();
     return 0;
 }
 
@@ -57,10 +58,16 @@ static void channel_server_thread() {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &msg));
 	ASSERT_TRUE(0 == channel_send(sfd2, msg));
     }
-    thread_stop(&cli_thread);
     channel_close(sfd);
-    channel_close(afd);
     channel_close(sfd2);
+    ASSERT_TRUE((sfd2 = channel_accept(afd)) >= 0);
+    for (i = 0; i < cnt; i++) {
+	ASSERT_TRUE(0 == channel_recv(sfd2, &msg));
+	ASSERT_TRUE(0 == channel_send(sfd2, msg));
+    }
+    thread_stop(&cli_thread);
+    channel_close(sfd2);
+    channel_close(afd);
 }
 
 TEST(channel, msg) {
