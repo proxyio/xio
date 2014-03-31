@@ -61,7 +61,8 @@ struct channel {
     struct list_head rcv_head;
     struct list_head snd_head;
     struct channel_vf *vf;
-    
+
+    /* Only for transport channel */
     epollevent_t et;
     int pd;
     struct bio in;
@@ -73,6 +74,9 @@ struct channel {
     struct list_head err_link;
     struct list_head in_link;
     struct list_head out_link;
+
+    /* Only for intern process channel */
+    /* Reserve */
 };
 
 struct channel_global {
