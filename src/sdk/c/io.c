@@ -32,7 +32,7 @@ static pio_t *pio_join(const char *addr, const char *pyn, int type) {
     proto_parser_init(pp);
     if ((pp->sockfd = tcp_connect(addr)) < 0)
 	goto RGS_ERROR;
-    tcp_setopt(pp->sockfd, PIO_NONBLOCK, &block, sizeof(block));
+    tcp_setopt(pp->sockfd, TP_NOBLOCK, &block, sizeof(block));
     pp->rgh.type = type;
     uuid_generate(pp->rgh.id);
     memcpy(pp->rgh.proxyname, pyn, PROXYNAME_MAX);

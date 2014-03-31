@@ -43,7 +43,7 @@ static int act_channel_accept(int cd) {
 
     if ((s = tp->accept(cn->fd)) < 0)
 	return s;
-    tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
+    tp->setopt(s, TP_NOBLOCK, &ff, sizeof(ff));
 
     // Find a unused channel id and slot.
     new_cd = global_get_channel_id();
@@ -60,7 +60,7 @@ static int act_channel_setopt(int cd, int opt, void *val, int valsz) {
 
     mutex_lock(&cn->lock);
 
-    if (opt == PIO_NONBLOCK) {
+    if (opt == TP_NOBLOCK) {
 	if (!cn->fasync && (*(int *)val))
 	    cn->fasync = true;
 	else if (cn->fasync && (*(int *)val) == 0)

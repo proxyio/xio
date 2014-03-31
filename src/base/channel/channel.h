@@ -28,7 +28,8 @@ struct channel_msg {
 uint32_t channel_msgiov_len(struct channel_msg *msg);
 char *channel_msgiov_base(struct channel_msg *msg);
 
-struct channel_msg *channel_allocmsg(uint32_t payload_sz, uint32_t control_sz);
+struct channel_msg *channel_allocmsg(uint32_t payload_sz,
+    uint32_t control_sz);
 void channel_freemsg(struct channel_msg *msg);
 
 

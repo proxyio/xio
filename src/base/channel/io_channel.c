@@ -80,7 +80,7 @@ static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
 
     mutex_lock(&cn->lock);
 
-    if (opt == PIO_NONBLOCK) {
+    if (opt == TP_NOBLOCK) {
 	if (!cn->fasync && (*(int *)val))
 	    cn->fasync = true;
 	else if (cn->fasync && (*(int *)val) == 0)

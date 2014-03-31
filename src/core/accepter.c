@@ -25,7 +25,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
 
     if (!(et->happened & EPOLLIN) || (nfd = tcp_accept(et->fd)) < 0)
 	return -1;
-    tcp_setopt(nfd, PIO_NONBLOCK, &block, sizeof(block));
+    tcp_setopt(nfd, TP_NOBLOCK, &block, sizeof(block));
     if (!(r = r_new_inited())) {
 	close(nfd);
 	return -1;
@@ -179,7 +179,7 @@ int acp_proxyto(acp_t *acp, const char *pyn, const char *addr) {
 	return -1;
     }
     lock(acp);
-    tcp_setopt(nfd, PIO_NONBLOCK, &block, sizeof(block));
+    tcp_setopt(nfd, TP_NOBLOCK, &block, sizeof(block));
     h = &r->pp.rgh;
     h->type = PIO_RCVER;
     uuid_generate(h->id);

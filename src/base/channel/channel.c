@@ -310,7 +310,7 @@ int channel_connect(int pf, const char *peer) {
 	return -EINVAL;
     if ((s = tp->connect(peer)) < 0)
 	return s;
-    tp->setopt(s, PIO_NONBLOCK, &ff, sizeof(ff));
+    tp->setopt(s, TP_NOBLOCK, &ff, sizeof(ff));
     
     // Find a unused channel id and slot
     cd = global_get_channel_id();

@@ -11,12 +11,12 @@
 #include "tcp.h"
 #include "ds/list.h"
 
-#define PIO_TCP_BACKLOG 100
+#define TP_TCP_BACKLOG 100
 
 
 static struct transport tcp_transport_vfptr = {
     .name = "tcp",
-    .proto = PIO_TCP,
+    .proto = TP_TCP,
 
     .global_init = tcp_global_init,
     .close = tcp_close,
@@ -79,7 +79,7 @@ int tcp_bind(const char *sock) {
     afd = __unp_bind(host, serv);
     free(host);
     free(serv);
-    if (afd < 0 || listen(afd, PIO_TCP_BACKLOG) < 0) {
+    if (afd < 0 || listen(afd, TP_TCP_BACKLOG) < 0) {
 	close(afd);
 	return -1;
     }
@@ -184,7 +184,7 @@ int tcp_sockname(int fd, char *sock, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char tcp_addr[PIO_SOCKADDRLEN] = {};
+    char tcp_addr[TP_SOCKADDRLEN] = {};
 
     if (-1 == getsockname(fd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
@@ -192,7 +192,7 @@ int tcp_sockname(int fd, char *sock, int size) {
     inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
     snprintf(tcp_addr + strlen(tcp_addr),
 	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
-    size = size > PIO_SOCKADDRLEN - 1 ? PIO_SOCKADDRLEN - 1 : size;
+    size = size > TP_SOCKADDRLEN - 1 ? TP_SOCKADDRLEN - 1 : size;
     sock[size] = '\0';
     memcpy(sock, tcp_addr, size);
     return 0;
@@ -202,7 +202,7 @@ int tcp_peername(int fd, char *peer, int size) {
     struct sockaddr_storage addr = {};
     socklen_t addrlen = sizeof(addr);
     struct sockaddr_in *sa_in;
-    char tcp_addr[PIO_SOCKADDRLEN] = {};
+    char tcp_addr[TP_SOCKADDRLEN] = {};
 
     if (-1 == getpeername(fd, (struct sockaddr *)&addr, &addrlen))
 	return -1;
@@ -210,7 +210,7 @@ int tcp_peername(int fd, char *peer, int size) {
     inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
     snprintf(tcp_addr + strlen(tcp_addr),
 	     sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
-    size = size > PIO_SOCKADDRLEN - 1 ? PIO_SOCKADDRLEN - 1 : size;
+    size = size > TP_SOCKADDRLEN - 1 ? TP_SOCKADDRLEN - 1 : size;
     peer[size] = '\0';
     memcpy(peer, tcp_addr, size);
     return 0;
@@ -219,18 +219,18 @@ int tcp_peername(int fd, char *peer, int size) {
 
 int tcp_setopt(int fd, int opt, void *val, int valsz) {
     switch (opt) {
-    case PIO_SNDTIMEO:
-    case PIO_RCVTIMEO:
+    case TP_SNDTIMEO:
+    case TP_RCVTIMEO:
 	{
 	    int to = *((int *)val);
-	    int ff = (opt == PIO_SNDTIMEO) ? SO_SNDTIMEO : SO_RCVTIMEO;
+	    int ff = (opt == TP_SNDTIMEO) ? SO_SNDTIMEO : SO_RCVTIMEO;
 	    struct timeval tv = {
 		.tv_sec = to / 1000,
 		.tv_usec = (to % 1000) * 1000,
 	    };
 	    return setsockopt(fd, SOL_SOCKET, ff, &tv, sizeof(tv));
 	}
-    case PIO_NONBLOCK:
+    case TP_NOBLOCK:
 	{
 	    int ff;
 	    int block = *((int *)val);
@@ -239,12 +239,12 @@ int tcp_setopt(int fd, int opt, void *val, int valsz) {
 	    ff = block ? (ff | O_NONBLOCK) : (ff & ~O_NONBLOCK);
 	    return fcntl(fd, F_SETFL, ff);
 	}
-    case PIO_NODELAY:
+    case TP_NODELAY:
 	{
 	    int ff = *((int *)val) ? 1 : 0;
 	    return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &ff, sizeof(ff));
 	}
-    case PIO_REUSEADDR:
+    case TP_REUSEADDR:
 	{
 	    int ff = *((int *)val) ? 1 : 0;
 	    return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &ff, sizeof(ff));

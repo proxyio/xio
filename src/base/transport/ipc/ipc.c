@@ -12,11 +12,11 @@
 #include "ds/list.h"
 
 
-#define PIO_IPC_BACKLOG 100
+#define TP_IPC_BACKLOG 100
 
 static struct transport ipc_transport_vfptr = {
     .name = "ipc",
-    .proto = PIO_IPC,
+    .proto = TP_IPC,
 
     .global_init = ipc_global_init,
     .close = ipc_close,
@@ -50,7 +50,7 @@ int ipc_bind(const char *sock) {
     strcpy(addr.sun_path, sock);
     unlink(sock);
     if (bind(afd, (struct sockaddr *)&addr, addr_len) < 0
-	|| listen(afd, PIO_IPC_BACKLOG) < 0) {
+	|| listen(afd, TP_IPC_BACKLOG) < 0) {
 	close(afd);
 	return -1;
     }
@@ -147,7 +147,7 @@ int ipc_peername(int fd, char *peer, int size) {
 
 int ipc_setopt(int fd, int opt, void *val, int valsz) {
     switch (opt) {
-    case PIO_NONBLOCK:
+    case TP_NOBLOCK:
 	{
 	    int ff;
 	    int block = *((int *)val);

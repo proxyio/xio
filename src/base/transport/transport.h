@@ -3,19 +3,19 @@
 
 #include "ds/list.h"
 
-#define PIO_TCP -1
-#define PIO_IPC -2
-#define PIO_INPROC -3
+#define TP_TCP -1
+#define TP_IPC -2
+#define TP_INPROC -3
 
-#define PIO_LINGER 1
-#define PIO_SNDBUF 2
-#define PIO_RCVBUF 3
-#define PIO_NONBLOCK 4
-#define PIO_NODELAY 5
-#define PIO_RCVTIMEO 6
-#define PIO_SNDTIMEO 7
-#define PIO_REUSEADDR 8
-#define PIO_SOCKADDRLEN 4096
+#define TP_LINGER 1
+#define TP_SNDBUF 2
+#define TP_RCVBUF 3
+#define TP_NOBLOCK 4
+#define TP_NODELAY 5
+#define TP_RCVTIMEO 6
+#define TP_SNDTIMEO 7
+#define TP_REUSEADDR 8
+#define TP_SOCKADDRLEN 4096
 
 struct transport {
     const char *name;
