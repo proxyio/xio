@@ -129,57 +129,63 @@ void free_pid(int pd) {
     mutex_unlock(&cn_global.lock);
 }
 
-eloop_t *pid_to_poller(int pd) {
+struct channel_poll *pid_to_channel_poll(int pd) {
     return &cn_global.polls[pd];
 }
 
 
-static int has_closed_channel(int pd) {
+static int has_closed_channel(struct channel_poll *po) {
     int has = true;
-    mutex_lock(&cn_global.lock);
-    if (list_empty(&cn_global.closing_head[pd]))
+    spin_lock(&po->lock);
+    if (list_empty(&po->closing_head))
 	has = false;
-    mutex_unlock(&cn_global.lock);
+    spin_unlock(&po->lock);
     return has;
 }
 
 static void push_closed_channel(struct channel *cn) {
-    struct list_head *head = &cn_global.closing_head[cn->pollid];
-
-    mutex_lock(&cn_global.lock);
-    list_add_tail(&cn->closing_link, head);
-    mutex_unlock(&cn_global.lock);
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    
+    spin_lock(&po->lock);
+    list_add_tail(&cn->closing_link, &po->closing_head);
+    spin_unlock(&po->lock);
 }
 
-static struct channel *pop_closed_channel(int pd) {
+static struct channel *pop_closed_channel(struct channel_poll *po) {
     struct channel *cn = NULL;
-    struct list_head *head = &cn_global.closing_head[pd];
 
-    mutex_lock(&cn_global.lock);
-    if (!list_empty(head))
-	cn = list_first(head, struct channel, closing_link);
-    mutex_unlock(&cn_global.lock);
+    spin_lock(&po->lock);
+    if (!list_empty(&po->closing_head))
+	cn = list_first(&po->closing_head, struct channel, closing_link);
+    spin_unlock(&po->lock);
     return cn;
 }
 
 static inline int event_runner(void *args) {
     int rc = 0;
     int pd = alloc_pid();
-    eloop_t *el = pid_to_poller(pd);
     struct channel *closing_cn;
+    struct channel_poll *po = pid_to_channel_poll(pd);
 
-    assert(eloop_init(el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
-    while (!cn_global.exiting || has_closed_channel(pd)) {
-	eloop_once(el);
-	while ((closing_cn = pop_closed_channel(pd))) {
+    spin_init(&po->lock);
+    INIT_LIST_HEAD(&po->closing_head);
+    INIT_LIST_HEAD(&po->error_head);
+    INIT_LIST_HEAD(&po->readyin_head);
+    INIT_LIST_HEAD(&po->readyout_head);
+
+    assert(eloop_init(&po->el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
+    while (!cn_global.exiting || has_closed_channel(po)) {
+	eloop_once(&po->el);
+	while ((closing_cn = pop_closed_channel(po))) {
 	    closing_cn->vf->destroy(closing_cn->cd);
 	    free_channel(closing_cn);
 	}
     }
 
-    /*  Release the poll descriptor when runner exit.  */
+    /* Release the poll descriptor when runner exit. */
     free_pid(pd);
-    eloop_destroy(el);
+    eloop_destroy(&po->el);
+    spin_destroy(&po->lock);
     return rc;
 }
 
@@ -198,13 +204,9 @@ void global_channel_init() {
 
     for (cd = 0; cd < PIO_MAX_CHANNELS; cd++)
 	cn_global.unused[cd] = cd;
-    for (pd = 0; pd < PIO_MAX_CPUS; pd++) {
+    for (pd = 0; pd < PIO_MAX_CPUS; pd++)
 	cn_global.poll_unused[pd] = pd;
-	INIT_LIST_HEAD(&cn_global.closing_head[pd]);
-	INIT_LIST_HEAD(&cn_global.error_head[pd]);
-	INIT_LIST_HEAD(&cn_global.readyin_head[pd]);
-	INIT_LIST_HEAD(&cn_global.readyout_head[pd]);
-    }
+
     cn_global.cpu_cores = 2;
     taskpool_init(&cn_global.tpool, cn_global.cpu_cores);
     taskpool_start(&cn_global.tpool);

@@ -12,7 +12,7 @@ extern struct channel *cid_to_channel(int cd);
 extern void global_put_closing_channel(struct channel *cn);
 extern int alloc_cid();
 extern int select_a_poller(int cd);
-extern eloop_t *pid_to_poller(int pd);
+extern struct channel_poll *pid_to_channel_poll(int pd);
 
 static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
     struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
@@ -40,8 +40,9 @@ static int io_accepter_init(int cd) {
     int s;
     int fnb = 1;
     struct channel *cn = cid_to_channel(cd);
-    struct channel *parent = cid_to_channel(cn->parent);
+    struct channel_poll *po;
     struct transport *tp = transport_lookup(cn->pf);
+    struct channel *parent = cid_to_channel(cn->parent);
 
     if ((s = tp->accept(parent->fd)) < 0)
 	return s;
@@ -51,10 +52,11 @@ static int io_accepter_init(int cd) {
     cn->et.f = io_handler;
     cn->et.data = cn;
     cn->pollid = select_a_poller(cd);
+    po = pid_to_channel_poll(cn->pollid);
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
-    assert(eloop_add(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_add(&po->el, &cn->et) == 0);
     return rc;
 }
 
@@ -62,6 +64,7 @@ static int io_listener_init(int cd) {
     int rc = 0;
     int s;
     struct channel *cn = cid_to_channel(cd);
+    struct channel_poll *po;
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->bind(cn->sock)) < 0)
@@ -71,9 +74,10 @@ static int io_listener_init(int cd) {
     cn->et.f = accept_handler;
     cn->et.data = cn;
     cn->pollid = select_a_poller(cd);
+    po = pid_to_channel_poll(cn->pollid);
     cn->fd = s;
     cn->tp = tp;
-    assert(eloop_add(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_add(&po->el, &cn->et) == 0);
     return rc;
 }
 
@@ -82,6 +86,7 @@ static int io_connector_init(int cd) {
     int s;
     int fnb = 1;
     struct channel *cn = cid_to_channel(cd);
+    struct channel_poll *po;
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->connect(cn->peer)) < 0)
@@ -92,10 +97,11 @@ static int io_connector_init(int cd) {
     cn->et.f = io_handler;
     cn->et.data = cn;
     cn->pollid = select_a_poller(cd);
+    po = pid_to_channel_poll(cn->pollid);
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
-    assert(eloop_add(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_add(&po->el, &cn->et) == 0);
     return rc;
 }
 
@@ -123,10 +129,11 @@ static int io_channel_init(int cd) {
 
 static void io_channel_destroy(int cd) {
     struct channel *cn = cid_to_channel(cd);
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = cn->tp;
     
     /* Detach channel low-level file descriptor from poller */
-    assert(eloop_del(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_del(&po->el, &cn->et) == 0);
     tp->close(cn->fd);
 
     cn->fd = -1;

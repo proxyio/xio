@@ -78,39 +78,48 @@ struct channel {
     /* Reserve */
 };
 
+struct channel_poll {
+    spin_t lock;
+
+    /* Backend eventloop for io runner. */
+    eloop_t el;
+
+    /* Waiting for closed channel will be attached here */
+    struct list_head closing_head;
+
+    /* Channel state list CHANNEL_ERROR|CHANNEL_MSGIN|CHANNEL_MSGOUT */
+    struct list_head error_head;
+    struct list_head readyin_head;
+    struct list_head readyout_head;
+};
+
+
 struct channel_global {
     int exiting;
     mutex_t lock;
 
-    /*  The global table of existing channel. The descriptor representing
-        the channel is the index to this table. This pointer is also used to
-        find out whether context is initialised. If it is NULL, context is
-        uninitialised. */
+    /* The global table of existing channel. The descriptor representing
+       the channel is the index to this table. This pointer is also used to
+       find out whether context is initialised. If it is NULL, context is
+       uninitialised. */
     struct channel channels[PIO_MAX_CHANNELS];
 
-    /*  Stack of unused channel descriptors.  */
+    /* Stack of unused channel descriptors.  */
     int unused[PIO_MAX_CHANNELS];
 
-    /*  Number of actual channels. */
+    /* Number of actual channels. */
     size_t nchannels;
     
 
-    
-    /*  Backend poller for io runner. */
-    eloop_t polls[PIO_MAX_CPUS];
+    struct channel_poll polls[PIO_MAX_CPUS];
 
-    /*  Stack of unused channel descriptors.  */
+    /* Stack of unused channel descriptors.  */
     int poll_unused[PIO_MAX_CPUS];
     
-    /*  Number of actual runner poller.  */
+    /* Number of actual runner poller.  */
     size_t npolls;
 
-    struct list_head closing_head[PIO_MAX_CPUS];
-    struct list_head error_head[PIO_MAX_CPUS];
-    struct list_head readyin_head[PIO_MAX_CPUS];
-    struct list_head readyout_head[PIO_MAX_CPUS];
-
-    /*  Backend cpu_cores and taskpool for io runner.  */
+    /* Backend cpu_cores and taskpool for io runner.  */
     int cpu_cores;
     struct taskpool tpool;
 };
