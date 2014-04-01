@@ -1,7 +1,6 @@
 #ifndef _HPIO_CHANNELBASE_
 #define _HPIO_CHANNELBASE_
 
-
 #include "os/eventloop.h"
 #include "bufio/bio.h"
 #include "os/alloc.h"
@@ -10,19 +9,13 @@
 #include "sync/spin.h"
 #include "sync/condition.h"
 #include "runner/taskpool.h"
+#include "channel.h"
 
 /* Max number of concurrent channels. */
 #define PIO_MAX_CHANNELS 10240
 
 /* Max number of cpu core */
 #define PIO_MAX_CPUS 32
-
-/* Backend poller wait kernel timeout msec */
-#define PIO_POLLER_TIMEOUT 1
-
-/* Default input/output buffer size */
-static int PIO_SNDBUFSZ = 10485760;
-static int PIO_RCVBUFSZ = 10485760;
 
 /* Define channel type for listner/accepter/connector */
 #define CHANNEL_LISTENER 1

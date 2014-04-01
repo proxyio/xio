@@ -3,10 +3,22 @@
 #include <string.h>
 #include <errno.h>
 #include "runner/taskpool.h"
-#include "channel.h"
 #include "channel_base.h"
 
+/* Backend poller wait kernel timeout msec */
+#define PIO_POLLER_TIMEOUT 1
+
+/* Default input/output buffer size */
+static int PIO_SNDBUFSZ = 10485760;
+static int PIO_RCVBUFSZ = 10485760;
+
+
 struct channel_global cn_global = {};
+
+
+extern int has_closed_channel(struct channel_poll *po);
+extern void push_closed_channel(struct channel *cn);
+extern struct channel *pop_closed_channel(struct channel_poll *po);
 
 
 uint32_t channel_msgiov_len(struct channel_msg *msg) {
@@ -131,34 +143,6 @@ void free_pid(int pd) {
 
 struct channel_poll *pid_to_channel_poll(int pd) {
     return &cn_global.polls[pd];
-}
-
-
-static int has_closed_channel(struct channel_poll *po) {
-    int has = true;
-    spin_lock(&po->lock);
-    if (list_empty(&po->closing_head))
-	has = false;
-    spin_unlock(&po->lock);
-    return has;
-}
-
-static void push_closed_channel(struct channel *cn) {
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
-    
-    spin_lock(&po->lock);
-    list_add_tail(&cn->closing_link, &po->closing_head);
-    spin_unlock(&po->lock);
-}
-
-static struct channel *pop_closed_channel(struct channel_poll *po) {
-    struct channel *cn = NULL;
-
-    spin_lock(&po->lock);
-    if (!list_empty(&po->closing_head))
-	cn = list_first(&po->closing_head, struct channel, closing_link);
-    spin_unlock(&po->lock);
-    return cn;
 }
 
 static inline int event_runner(void *args) {

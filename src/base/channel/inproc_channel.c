@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include "runner/taskpool.h"
-#include "channel.h"
 #include "channel_base.h"
 
 extern struct channel_global cn_global;
