@@ -9,7 +9,6 @@
 extern struct channel_global cn_global;
 
 extern struct channel *cid_to_channel(int cd);
-extern void global_put_closing_channel(struct channel *cn);
 extern int alloc_cid();
 extern int select_a_poller(int cd);
 extern epoll_t *pid_to_poller(int pd);
@@ -46,10 +45,6 @@ static int inproc_channel_init(int cd) {
 static void inproc_channel_destroy(int cd) {
 }
 
-static void inproc_channel_close(int cd) {
-    global_put_closing_channel(cid_to_channel(cd));
-}
-
 static int inproc_channel_setopt(int cd, int opt, void *val, int valsz) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
@@ -81,7 +76,6 @@ static int inproc_channel_send(int cd, struct channel_msg *msg) {
 static struct channel_vf inproc_channel_vf = {
     .init = inproc_channel_init,
     .destroy = inproc_channel_destroy,
-    .close = inproc_channel_close,
     .recv = inproc_channel_recv,
     .send = inproc_channel_send,
     .setopt = inproc_channel_setopt,

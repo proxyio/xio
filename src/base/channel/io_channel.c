@@ -50,11 +50,11 @@ static int io_accepter_init(int cd) {
     cn->et.fd = s;
     cn->et.f = io_handler;
     cn->et.data = cn;
-    cn->pd = select_a_poller(cd);
+    cn->pollid = select_a_poller(cd);
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
-    assert(epoll_add(pid_to_poller(cn->pd), &cn->et) == 0);
+    assert(epoll_add(pid_to_poller(cn->pollid), &cn->et) == 0);
     return rc;
 }
 
@@ -70,10 +70,10 @@ static int io_listener_init(int cd) {
     cn->et.fd = s;
     cn->et.f = accept_handler;
     cn->et.data = cn;
-    cn->pd = select_a_poller(cd);
+    cn->pollid = select_a_poller(cd);
     cn->fd = s;
     cn->tp = tp;
-    assert(epoll_add(pid_to_poller(cn->pd), &cn->et) == 0);
+    assert(epoll_add(pid_to_poller(cn->pollid), &cn->et) == 0);
     return rc;
 }
 
@@ -91,11 +91,11 @@ static int io_connector_init(int cd) {
     cn->et.fd = s;
     cn->et.f = io_handler;
     cn->et.data = cn;
-    cn->pd = select_a_poller(cd);
+    cn->pollid = select_a_poller(cd);
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
-    assert(epoll_add(pid_to_poller(cn->pd), &cn->et) == 0);
+    assert(epoll_add(pid_to_poller(cn->pollid), &cn->et) == 0);
     return rc;
 }
 
@@ -126,7 +126,7 @@ static void io_channel_destroy(int cd) {
     struct transport *tp = cn->tp;
     
     /* Detach channel low-level file descriptor from poller */
-    assert(epoll_del(pid_to_poller(cn->pd), &cn->et) == 0);
+    assert(epoll_del(pid_to_poller(cn->pollid), &cn->et) == 0);
     tp->close(cn->fd);
 
     cn->fd = -1;
@@ -134,7 +134,7 @@ static void io_channel_destroy(int cd) {
     cn->et.fd = -1;
     cn->et.f = 0;
     cn->et.data = 0;
-    cn->pd = -1;
+    cn->pollid = -1;
     cn->tp = 0;
 
     /* Detach from all poll status head */
@@ -146,10 +146,6 @@ static void io_channel_destroy(int cd) {
 	list_del_init(&cn->in_link);
     if (attached(&cn->out_link))
 	list_del_init(&cn->out_link);
-}
-
-static void io_channel_close(int cd) {
-    global_put_closing_channel(cid_to_channel(cd));
 }
 
 static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
@@ -273,34 +269,6 @@ static int msg_ready(struct bio *b, int64_t *payload_sz, int64_t *control_sz) {
     return true;
 }
 
-static void global_channel_poll_state(struct channel *cn) {
-    struct list_head *err_head = &cn_global.error_head[cn->pd];
-    struct list_head *in_head = &cn_global.readyin_head[cn->pd];
-    struct list_head *out_head = &cn_global.readyout_head[cn->pd];
-    
-    mutex_lock(&cn_global.lock);
-    mutex_lock(&cn->lock);
-
-    /* Check the error status */
-    if (!cn->fok && !attached(&cn->err_link))
-	list_add_tail(&cn->err_link, err_head);
-
-    /* Check the readyin status */
-    if (attached(&cn->in_link) && list_empty(&cn->rcv_head))
-	list_del_init(&cn->in_link);
-    else if (!attached(&cn->in_link) && !list_empty(&cn->rcv_head))
-	list_add_tail(&cn->in_link, in_head);
-
-    /* Check the readyout status */
-    if (attached(&cn->out_link) && cn->out.bsize > cn->snd_wnd)
-	list_del_init(&cn->out_link);
-    else if (!attached(&cn->out_link) && cn->out.bsize <= cn->snd_wnd)
-	list_add_tail(&cn->out_link, out_head);
-    
-    mutex_unlock(&cn->lock);
-    mutex_unlock(&cn_global.lock);
-}
-
 static int io_handler(epoll_t *el, epollevent_t *et) {
     int rc = 0;
     struct channel *cn = cont_of(et, struct channel, et);
@@ -326,7 +294,6 @@ static int io_handler(epoll_t *el, epollevent_t *et) {
     }
     if ((rc < 0 && errno != EAGAIN) || et->events & (EPOLLERR|EPOLLRDHUP))
 	cn->fok = false;
-    global_channel_poll_state(cn);
  EXIT:
     return rc;
 }
@@ -336,7 +303,6 @@ static int io_handler(epoll_t *el, epollevent_t *et) {
 static struct channel_vf io_channel_vf = {
     .init = io_channel_init,
     .destroy = io_channel_destroy,
-    .close = io_channel_close,
     .recv = io_channel_recv,
     .send = io_channel_send,
     .setopt = io_channel_setopt,

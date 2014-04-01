@@ -32,7 +32,6 @@ static int PIO_RCVBUFSZ = 10485760;
 struct channel_vf {
     int (*init) (int cd);
     void (*destroy) (int cd);
-    void (*close) (int cd);
     int (*recv) (int cd, struct channel_msg **msg);
     int (*send) (int cd, struct channel_msg *msg);
     int (*setopt) (int cd, int opt, void *val, int valsz);
@@ -51,6 +50,7 @@ struct channel {
     uint64_t fok:1;
     int parent;
     int cd;
+    int pollid;
     int waiters;
     mutex_t lock;
     condition_t cond;
@@ -64,7 +64,6 @@ struct channel {
 
     /* Only for transport channel */
     epollevent_t et;
-    int pd;
     struct bio in;
     struct bio out;
     struct io sock_ops;

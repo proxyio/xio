@@ -133,15 +133,25 @@ epoll_t *pid_to_poller(int pd) {
     return &cn_global.polls[pd];
 }
 
-void global_put_closing_channel(struct channel *cn) {
-    struct list_head *head = &cn_global.closing_head[cn->pd];
+
+static int has_closed_channel(int pd) {
+    int has = true;
+    mutex_lock(&cn_global.lock);
+    if (list_empty(&cn_global.closing_head[pd]))
+	has = false;
+    mutex_unlock(&cn_global.lock);
+    return has;
+}
+
+static void push_closed_channel(struct channel *cn) {
+    struct list_head *head = &cn_global.closing_head[cn->pollid];
 
     mutex_lock(&cn_global.lock);
     list_add_tail(&cn->closing_link, head);
     mutex_unlock(&cn_global.lock);
 }
 
-struct channel *global_get_closing_channel(int pd) {
+static struct channel *pop_closed_channel(int pd) {
     struct channel *cn = NULL;
     struct list_head *head = &cn_global.closing_head[pd];
 
@@ -159,19 +169,15 @@ static inline int event_runner(void *args) {
     struct channel *closing_cn;
 
     assert(epoll_init(el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
-    while (!cn_global.exiting) {
+    while (!cn_global.exiting || has_closed_channel(pd)) {
 	epoll_oneloop(el);
-	while ((closing_cn = global_get_closing_channel(pd)) != NULL) {
+	while ((closing_cn = pop_closed_channel(pd))) {
 	    closing_cn->vf->destroy(closing_cn->cd);
 	    free_channel(closing_cn);
 	}
     }
-    while ((closing_cn = global_get_closing_channel(pd)) != NULL) {
-	closing_cn->vf->destroy(closing_cn->cd);
-	free_channel(closing_cn);
-    }
 
-    /*  Release the poller descriptor to global table when runner exit.  */
+    /*  Release the poll descriptor when runner exit.  */
     free_pid(pd);
     epoll_destroy(el);
     return rc;
@@ -215,7 +221,7 @@ void global_channel_exit() {
 
 void channel_close(int cd) {
     struct channel *cn = cid_to_channel(cd);
-    cn->vf->close(cd);
+    push_closed_channel(cn);
 }
 
 int channel_accept(int cd) {
