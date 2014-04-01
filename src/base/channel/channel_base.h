@@ -1,6 +1,7 @@
 #ifndef _HPIO_CHANNELBASE_
 #define _HPIO_CHANNELBASE_
 
+#include "ds/map.h"
 #include "os/eventloop.h"
 #include "bufio/bio.h"
 #include "os/alloc.h"
@@ -55,6 +56,11 @@ struct channel {
     struct list_head snd_head;
     struct channel_vf *vf;
 
+    struct list_head closing_link;
+    struct list_head err_link;
+    struct list_head in_link;
+    struct list_head out_link;
+
     /* Only for transport channel */
     ev_t et;
     struct bio in;
@@ -62,14 +68,22 @@ struct channel {
     struct io sock_ops;
     int fd;
     struct transport *tp;
-    struct list_head closing_link;
-    struct list_head err_link;
-    struct list_head in_link;
-    struct list_head out_link;
 
-    /* Only for intern process channel */
-    /* Reserve */
+    /* Reserved only for intern process channel */
+
+    /* For inproc-listener */
+    struct list_head new_connectors;
+    struct ssmap_node listener_node;
+
+    /* For inproc-connector and inproc-accepter (new connection) */
+    struct list_head wait_item;
+    struct channel *peer_channel;
 };
+
+#define list_for_each_new_connector_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head, struct channel, wait_item)
+
+
 
 struct channel_poll {
     spin_t lock;
@@ -115,9 +129,20 @@ struct channel_global {
     /* Backend cpu_cores and taskpool for io runner.  */
     int cpu_cores;
     struct taskpool tpool;
+
+    /* INPROC global listening address mapping */
+    struct ssmap inproc_listeners;
 };
 
 extern struct channel_global cn_global;
+
+static inline void cn_global_lock() {
+    mutex_lock(&cn_global.lock);
+}
+
+static inline void cn_global_unlock() {
+    mutex_unlock(&cn_global.lock);
+}
 
 
 struct channel_msg_item {

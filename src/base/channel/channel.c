@@ -50,6 +50,10 @@ void channel_freemsg(struct channel_msg *msg) {
     mem_free(mi, sizeof(*mi) + mi->hdr.payload_sz + mi->hdr.control_sz);
 }
 
+static int select_a_poller(int cd) {
+    return cd % cn_global.npolls;
+}
+
 int alloc_cid() {
     int cd;
     mutex_lock(&cn_global.lock);
@@ -58,8 +62,6 @@ int alloc_cid() {
     mutex_unlock(&cn_global.lock);
     return cd;
 }
-
-
 
 void free_cid(int cd) {
     mutex_lock(&cn_global.lock);
@@ -77,6 +79,7 @@ static void channel_base_init(int cd) {
     cn->fok = true;
     cn->parent = -1;
     cn->cd = cd;
+    cn->pollid = select_a_poller(cd);
     cn->waiters = 0;
     mutex_init(&cn->lock);
     condition_init(&cn->cond);
@@ -86,6 +89,11 @@ static void channel_base_init(int cd) {
     cn->snd_wnd = PIO_SNDBUFSZ;
     INIT_LIST_HEAD(&cn->rcv_head);
     INIT_LIST_HEAD(&cn->snd_head);
+
+    INIT_LIST_HEAD(&cn->closing_link);
+    INIT_LIST_HEAD(&cn->err_link);
+    INIT_LIST_HEAD(&cn->in_link);
+    INIT_LIST_HEAD(&cn->out_link);
 }
 
 static void channel_base_exit(int cd) {
@@ -98,6 +106,7 @@ static void channel_base_exit(int cd) {
     cn->fasync = -1;
     cn->fok = -1;
     cn->cd = -1;
+    cn->pollid = -1;
     mutex_destroy(&cn->lock);
     condition_destroy(&cn->cond);
     cn->rcv = -1;
@@ -110,6 +119,16 @@ static void channel_base_exit(int cd) {
     list_splice(&cn->snd_head, &head);
     list_for_each_channel_msg_safe(pos, nx, &head)
 	channel_freemsg(&pos->msg);
+
+    /* Detach from all poll status head */
+    if (attached(&cn->closing_link))
+	list_del_init(&cn->closing_link);
+    if (attached(&cn->err_link))
+	list_del_init(&cn->err_link);
+    if (attached(&cn->in_link))
+	list_del_init(&cn->in_link);
+    if (attached(&cn->out_link))
+	list_del_init(&cn->out_link);
 }
 
 
@@ -173,10 +192,6 @@ static inline int event_runner(void *args) {
     return rc;
 }
 
-int select_a_poller(int cd) {
-    return cd % cn_global.npolls;
-}
-
 void global_channel_init() {
     int cd;
     int pd;
@@ -219,7 +234,10 @@ int channel_accept(int cd) {
     new->pf = cn->pf;
     new->vf = vf;
     new->parent = cd;
-    vf->init(new->cd);
+    if (vf->init(new->cd) < 0) {
+	free_channel(new);
+	return -1;
+    }
     return new->cd;
 }
 
@@ -231,8 +249,12 @@ int channel_listen(int pf, const char *sock) {
     new->ty = CHANNEL_LISTENER;
     new->pf = pf;
     new->vf = vf;
+    ZERO(new->sock);
     strncpy(new->sock, sock, TP_SOCKADDRLEN);
-    vf->init(new->cd);
+    if (vf->init(new->cd) < 0) {
+	free_channel(new);
+	return -1;
+    }
     return new->cd;
 }
 
@@ -244,8 +266,12 @@ int channel_connect(int pf, const char *peer) {
     new->ty = CHANNEL_CONNECTOR;
     new->pf = pf;
     new->vf = vf;
+    ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    vf->init(new->cd);
+    if (vf->init(new->cd) < 0) {
+	free_channel(new);
+	return -1;
+    }
     return new->cd;
 }
 

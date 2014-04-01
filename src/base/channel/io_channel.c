@@ -10,7 +10,6 @@ extern struct channel_global cn_global;
 extern struct channel *cid_to_channel(int cd);
 extern void global_put_closing_channel(struct channel *cn);
 extern int alloc_cid();
-extern int select_a_poller(int cd);
 extern struct channel_poll *pid_to_channel_poll(int pd);
 
 static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
@@ -39,7 +38,7 @@ static int io_accepter_init(int cd) {
     int s;
     int fnb = 1;
     struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po;
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
     struct channel *parent = cid_to_channel(cn->parent);
 
@@ -50,8 +49,6 @@ static int io_accepter_init(int cd) {
     cn->et.fd = s;
     cn->et.f = io_handler;
     cn->et.data = cn;
-    cn->pollid = select_a_poller(cd);
-    po = pid_to_channel_poll(cn->pollid);
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
@@ -63,7 +60,7 @@ static int io_listener_init(int cd) {
     int rc = 0;
     int s;
     struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po;
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->bind(cn->sock)) < 0)
@@ -72,8 +69,6 @@ static int io_listener_init(int cd) {
     cn->et.fd = s;
     cn->et.f = accept_handler;
     cn->et.data = cn;
-    cn->pollid = select_a_poller(cd);
-    po = pid_to_channel_poll(cn->pollid);
     cn->fd = s;
     cn->tp = tp;
     assert(eloop_add(&po->el, &cn->et) == 0);
@@ -85,7 +80,7 @@ static int io_connector_init(int cd) {
     int s;
     int fnb = 1;
     struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po;
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->connect(cn->peer)) < 0)
@@ -95,8 +90,6 @@ static int io_connector_init(int cd) {
     cn->et.fd = s;
     cn->et.f = io_handler;
     cn->et.data = cn;
-    cn->pollid = select_a_poller(cd);
-    po = pid_to_channel_poll(cn->pollid);
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
@@ -110,11 +103,6 @@ static int io_channel_init(int cd) {
     bio_init(&cn->in);
     bio_init(&cn->out);
 
-    INIT_LIST_HEAD(&cn->closing_link);
-    INIT_LIST_HEAD(&cn->err_link);
-    INIT_LIST_HEAD(&cn->in_link);
-    INIT_LIST_HEAD(&cn->out_link);
-    
     switch (cn->ty) {
     case CHANNEL_ACCEPTER:
 	return io_accepter_init(cd);
@@ -140,18 +128,7 @@ static void io_channel_destroy(int cd) {
     cn->et.fd = -1;
     cn->et.f = 0;
     cn->et.data = 0;
-    cn->pollid = -1;
     cn->tp = 0;
-
-    /* Detach from all poll status head */
-    if (attached(&cn->closing_link))
-	list_del_init(&cn->closing_link);
-    if (attached(&cn->err_link))
-	list_del_init(&cn->err_link);
-    if (attached(&cn->in_link))
-	list_del_init(&cn->in_link);
-    if (attached(&cn->out_link))
-	list_del_init(&cn->out_link);
 }
 
 static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
@@ -244,7 +221,7 @@ static int io_channel_send(int cd, struct channel_msg *msg) {
     struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
-    while ((rc = channel_push_sndmsg(cn, msg)) < 0 && rc != -EAGAIN) {
+    while ((rc = channel_push_sndmsg(cn, msg)) < 0 && errno == EAGAIN) {
 	cn->waiters++;
 	condition_wait(&cn->cond, &cn->lock);
 	cn->waiters--;
