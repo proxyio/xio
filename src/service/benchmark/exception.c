@@ -23,7 +23,7 @@ static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     pp->et.fd = pp->sockfd;
     pp->et.events = EPOLLIN|EPOLLOUT;
     pp->et.f = producer_event_handler;
-    if (epoll_add(&ctx->el, &pp->et) < 0) {
+    if (eloop_add(&ctx->el, &pp->et) < 0) {
 	pio_close(io);
 	return NULL;
     }
@@ -43,7 +43,7 @@ static proto_parser_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
     pp->et.fd = pp->sockfd;;
     pp->et.events = EPOLLIN|EPOLLOUT;
     pp->et.f = comsumer_event_handler;
-    if (epoll_add(&ctx->el, &pp->et) < 0) {
+    if (eloop_add(&ctx->el, &pp->et) < 0) {
 	pio_close(io);
 	return NULL;
     }
@@ -60,7 +60,7 @@ producer_event_handler(eloop_t *el, ev_t *et) {
     pmsg_t *msg = alloc_pio_msg(1);
 
     if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
-	epoll_del(el, et);
+	eloop_del(el, et);
 	list_del(&pp->pp_link);
 	pio_close(&pp->sockfd);
 	while (!new_pingpong_producer(ctx))
@@ -86,7 +86,7 @@ comsumer_event_handler(eloop_t *el, ev_t *et) {
     pmsg_t *msg;
     
     if ((et->happened & (EPOLLERR|EPOLLRDHUP)) || rand() % 1234 == 0) {
-	epoll_del(el, et);
+	eloop_del(el, et);
 	list_del(&pp->pp_link);
 	pio_close(&pp->sockfd);
 	while (!new_pingpong_comsumer(ctx))
@@ -113,7 +113,7 @@ int exception_start(struct bc_opt *cf) {
     INIT_LIST_HEAD(&ctx.pp_head);
     ctx.cf = cf;
     randstr(page, REQLEN);
-    epoll_init(&ctx.el, 10240, 1024, 1);
+    eloop_init(&ctx.el, 10240, 1024, 1);
     for (i = 0; i < cf->comsumer_num; i++)
 	while (!new_pingpong_comsumer(&ctx))
 	    usleep(1000);
@@ -121,12 +121,12 @@ int exception_start(struct bc_opt *cf) {
 	while (!new_pingpong_producer(&ctx))
 	    usleep(1000);
     while (rt_mstime() < cf->deadline)
-	epoll_oneloop(&ctx.el);
+	eloop_once(&ctx.el);
     list_for_each_pio_safe(pp, tmp, &ctx.pp_head) {
-	epoll_del(&ctx.el, &pp->et);
+	eloop_del(&ctx.el, &pp->et);
 	list_del(&pp->pp_link);
 	pio_close(&pp->sockfd);
     }
-    epoll_destroy(&ctx.el);
+    eloop_destroy(&ctx.el);
     return 0;
 }

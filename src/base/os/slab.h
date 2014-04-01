@@ -1,7 +1,7 @@
 #ifndef _HPIO_SLAB_
 #define _HPIO_SLAB_
 
-#include "memory.h"
+#include "alloc.h"
 
 struct __mitem {
     void *next;

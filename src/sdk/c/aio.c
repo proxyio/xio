@@ -38,7 +38,7 @@ apio_t *apio_join_comsumer(apio_cf_t *cf, request_come_f f) {
     }
     aio->cf = *cf;
     aio->qf = f;
-    epoll_init(&aio->el, 10240, 100, 1);
+    eloop_init(&aio->el, 10240, 100, 1);
     taskpool_init(&aio->tp, cf->max_cpus);
     return aio;
 }
@@ -55,7 +55,7 @@ apio_t *apio_join_producer(apio_cf_t *cf, response_back_f f) {
     }
     aio->cf = *cf;
     aio->pf = f;
-    epoll_init(&aio->el, 10240, 100, 1);
+    eloop_init(&aio->el, 10240, 100, 1);
     taskpool_init(&aio->tp, cf->max_cpus);
     return aio;
 }
@@ -63,7 +63,7 @@ apio_t *apio_join_producer(apio_cf_t *cf, response_back_f f) {
 
 int apio_reactor(void *args) {
     eloop_t *el = (eloop_t *)args;
-    return epoll_startloop(el);
+    return eloop_start(el);
 }
 
 static int producer_event_handler(eloop_t *el, ev_t *et) {

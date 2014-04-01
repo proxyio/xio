@@ -1,6 +1,6 @@
 #include <errno.h>
 #include "bio.h"
-#include "os/memory.h"
+#include "os/alloc.h"
 
 #define list_for_each_page_safe(bp, tmp, head)				\
     list_for_each_entry_safe(bp, tmp, head, bio_page_t, page_link)

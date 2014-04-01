@@ -23,7 +23,7 @@ void proxy_destroy(proxy_t *py) {
     list_splice(&py->snder_head, &head);
     list_for_each_role_safe(r, n, &head) {
 	list_del(&r->py_link);
-	epoll_del(r->el, &r->et);
+	eloop_del(r->el, &r->et);
 	close(r->et.fd);
 	r_destroy(r);					
 	mem_free(r, sizeof(*r));			

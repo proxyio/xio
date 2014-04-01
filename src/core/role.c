@@ -53,7 +53,7 @@ void r_put(struct role *r) {
 static inline int __r_disable_eventout(struct role *r) {
     if (r->et.events & EPOLLOUT) {
 	r->et.events &= ~EPOLLOUT;
-	return epoll_mod(r->el, &r->et);
+	return eloop_mod(r->el, &r->et);
     }
     return -1;
 }
@@ -61,7 +61,7 @@ static inline int __r_disable_eventout(struct role *r) {
 static inline int __r_enable_eventout(struct role *r) {
     if (!(r->et.events & EPOLLOUT)) {
 	r->et.events |= EPOLLOUT;
-	return epoll_mod(r->el, &r->et);
+	return eloop_mod(r->el, &r->et);
     }
     return -1;
 }
@@ -254,7 +254,7 @@ static void r_send(struct role *r) {
 
 
 static void r_error(struct role *r) {
-    epoll_del(r->el, &r->et);
+    eloop_del(r->el, &r->et);
     close(r->et.fd);
     if (r->py)
 	proxy_del(r->py, r);

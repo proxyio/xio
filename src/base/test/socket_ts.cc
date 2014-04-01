@@ -38,7 +38,7 @@ int tcp_client_event_handler(eloop_t *el, ev_t *et) {
 	EXPECT_EQ(sizeof(buf), tcp_write(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
-	epoll_del(el, et);
+	eloop_del(el, et);
 	close(et->fd);
     }
     return 0;
@@ -51,7 +51,7 @@ static void tcp_server_thread() {
     eloop_t el = {};
     ev_t et = {};
     
-    epoll_init(&el, 1024, 100, 10);
+    eloop_init(&el, 1024, 100, 10);
 
     ASSERT_TRUE((afd = tcp_bind("*:18894")) > 0);
     thread_start(&cli_thread, tcp_client_thread, NULL);
@@ -61,17 +61,17 @@ static void tcp_server_thread() {
     et.fd = sfd;
     et.events = EPOLLIN|EPOLLRDHUP;
 
-    epoll_add(&el, &et);
-    epoll_oneloop(&el);
+    eloop_add(&el, &et);
+    eloop_once(&el);
 
-    epoll_del(&el, &et);
+    eloop_del(&el, &et);
     close(sfd);
     ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);
     et.fd = sfd;
-    epoll_add(&el, &et);
-    epoll_oneloop(&el);
+    eloop_add(&el, &et);
+    eloop_once(&el);
     thread_stop(&cli_thread);
-    epoll_destroy(&el);
+    eloop_destroy(&el);
     close(sfd);
 
     close(afd);
@@ -106,7 +106,7 @@ int ipc_client_event_handler(eloop_t *el, ev_t *et) {
 	EXPECT_EQ(sizeof(buf), ipc_write(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
-	epoll_del(el, et);
+	eloop_del(el, et);
 	close(et->fd);
     }
     return 0;
@@ -119,7 +119,7 @@ static void ipc_server_thread() {
     eloop_t el = {};
     ev_t et = {};
     
-    epoll_init(&el, 1024, 100, 10);
+    eloop_init(&el, 1024, 100, 10);
 
     ASSERT_TRUE((afd = ipc_bind("/tmp/pio_ipc_socket")) > 0);
     thread_start(&cli_thread, ipc_client_thread, NULL);
@@ -128,17 +128,17 @@ static void ipc_server_thread() {
     et.fd = sfd;
     et.events = EPOLLIN|EPOLLRDHUP;
 
-    epoll_add(&el, &et);
-    epoll_oneloop(&el);
+    eloop_add(&el, &et);
+    eloop_once(&el);
 
-    epoll_del(&el, &et);
+    eloop_del(&el, &et);
     close(sfd);
     ASSERT_TRUE((sfd = ipc_accept(afd)) > 0);
     et.fd = sfd;
-    epoll_add(&el, &et);
-    epoll_oneloop(&el);
+    eloop_add(&el, &et);
+    eloop_once(&el);
     thread_stop(&cli_thread);
-    epoll_destroy(&el);
+    eloop_destroy(&el);
     close(sfd);
 
     close(afd);

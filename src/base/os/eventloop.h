@@ -46,17 +46,17 @@ typedef struct eloop {
     list_for_each_entry_safe(pos, tmp, head, eloop_t, link)
 
 
-static inline ev_t *epollevent_new() {
+static inline ev_t *ev_new() {
     ev_t *ev = (ev_t *)mem_zalloc(sizeof(*ev));
     return ev;
 }
 
-static inline eloop_t *epoll_new() {
+static inline eloop_t *eloop_new() {
     eloop_t *el = (eloop_t *)mem_zalloc(sizeof(*el));
     return el;
 }
 
-static inline int epoll_init(eloop_t *el, int size, int max_io_events, int max_to) {
+static inline int eloop_init(eloop_t *el, int size, int max_io_events, int max_to) {
     if ((el->efd = epoll_create(size)) < 0)
 	return -1;
     if (!(el->ev_buf =
@@ -71,7 +71,7 @@ static inline int epoll_init(eloop_t *el, int size, int max_io_events, int max_t
     return 0;
 }
 
-static inline int epoll_destroy(eloop_t *el) {
+static inline int eloop_destroy(eloop_t *el) {
     ev_t *ev = NULL;
     mutex_destroy(&el->mutex);
     while (!skrb_empty(&el->tr_tree)) {
@@ -85,12 +85,12 @@ static inline int epoll_destroy(eloop_t *el) {
     return 0;
 }
 
-int epoll_add(eloop_t *el, ev_t *ev);
-int epoll_del(eloop_t *el, ev_t *ev);
-int epoll_mod(eloop_t *el, ev_t *ev);
-int epoll_oneloop(eloop_t *el);
-int epoll_startloop(eloop_t *el);
-void epoll_stoploop(eloop_t *el);
+int eloop_add(eloop_t *el, ev_t *ev);
+int eloop_del(eloop_t *el, ev_t *ev);
+int eloop_mod(eloop_t *el, ev_t *ev);
+int eloop_once(eloop_t *el);
+int eloop_start(eloop_t *el);
+void eloop_stop(eloop_t *el);
 
 
 #endif

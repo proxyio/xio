@@ -54,7 +54,7 @@ static int io_accepter_init(int cd) {
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
-    assert(epoll_add(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_add(pid_to_poller(cn->pollid), &cn->et) == 0);
     return rc;
 }
 
@@ -73,7 +73,7 @@ static int io_listener_init(int cd) {
     cn->pollid = select_a_poller(cd);
     cn->fd = s;
     cn->tp = tp;
-    assert(epoll_add(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_add(pid_to_poller(cn->pollid), &cn->et) == 0);
     return rc;
 }
 
@@ -95,7 +95,7 @@ static int io_connector_init(int cd) {
     cn->fd = s;
     cn->tp = tp;
     cn->sock_ops = default_channel_ops;
-    assert(epoll_add(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_add(pid_to_poller(cn->pollid), &cn->et) == 0);
     return rc;
 }
 
@@ -126,7 +126,7 @@ static void io_channel_destroy(int cd) {
     struct transport *tp = cn->tp;
     
     /* Detach channel low-level file descriptor from poller */
-    assert(epoll_del(pid_to_poller(cn->pollid), &cn->et) == 0);
+    assert(eloop_del(pid_to_poller(cn->pollid), &cn->et) == 0);
     tp->close(cn->fd);
 
     cn->fd = -1;

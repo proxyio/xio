@@ -168,9 +168,9 @@ static inline int event_runner(void *args) {
     eloop_t *el = pid_to_poller(pd);
     struct channel *closing_cn;
 
-    assert(epoll_init(el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
+    assert(eloop_init(el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
     while (!cn_global.exiting || has_closed_channel(pd)) {
-	epoll_oneloop(el);
+	eloop_once(el);
 	while ((closing_cn = pop_closed_channel(pd))) {
 	    closing_cn->vf->destroy(closing_cn->cd);
 	    free_channel(closing_cn);
@@ -179,7 +179,7 @@ static inline int event_runner(void *args) {
 
     /*  Release the poll descriptor when runner exit.  */
     free_pid(pd);
-    epoll_destroy(el);
+    eloop_destroy(el);
     return rc;
 }
 
