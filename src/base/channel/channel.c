@@ -129,7 +129,7 @@ void free_pid(int pd) {
     mutex_unlock(&cn_global.lock);
 }
 
-epoll_t *pid_to_poller(int pd) {
+eloop_t *pid_to_poller(int pd) {
     return &cn_global.polls[pd];
 }
 
@@ -165,7 +165,7 @@ static struct channel *pop_closed_channel(int pd) {
 static inline int event_runner(void *args) {
     int rc = 0;
     int pd = alloc_pid();
-    epoll_t *el = pid_to_poller(pd);
+    eloop_t *el = pid_to_poller(pd);
     struct channel *closing_cn;
 
     assert(epoll_init(el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);

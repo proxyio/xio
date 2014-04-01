@@ -4,11 +4,11 @@
 #include "proxy.h"
 #include "runner/taskpool.h"
 
-static inline epoll_t *acp_get_subel_rrbin(acp_t *acp) {
-    epoll_t *sub_el;
+static inline eloop_t *acp_get_subel_rrbin(acp_t *acp) {
+    eloop_t *sub_el;
     lock(acp);
     if (!list_empty(&acp->sub_el_head)) {
-	sub_el = list_first(&acp->sub_el_head, epoll_t, link);
+	sub_el = list_first(&acp->sub_el_head, eloop_t, link);
 	list_del(&sub_el->link);
 	list_add_tail(&sub_el->link, &acp->sub_el_head);
     } else
@@ -17,7 +17,7 @@ static inline epoll_t *acp_get_subel_rrbin(acp_t *acp) {
     return sub_el;
 }
 
-static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
+static inline int acp_event_handler(eloop_t *el, ev_t *et) {
     acp_t *acp = container_of(el, struct accepter, main_el);
     int nfd;
     int block = 1;
@@ -46,7 +46,7 @@ static inline int acp_event_handler(epoll_t *el, epollevent_t *et) {
 
 
 void acp_init(acp_t *acp, const struct cf *cf) {
-    epoll_t *sub_el;
+    eloop_t *sub_el;
     int cpus = cf->max_cpus;
 
     INIT_LIST_HEAD(&acp->sub_el_head);
@@ -66,8 +66,8 @@ void acp_init(acp_t *acp, const struct cf *cf) {
 }
 
 void acp_destroy(acp_t *acp) {
-    epoll_t *el, *eltmp;
-    epollevent_t *et, *ettmp;
+    eloop_t *el, *eltmp;
+    ev_t *et, *ettmp;
     proxy_t *py, *pytmp;
     
     list_for_each_el_safe(el, eltmp, &acp->sub_el_head) {
@@ -94,12 +94,12 @@ void acp_destroy(acp_t *acp) {
 
 
 static inline int acp_reactor(void *args) {
-    epoll_t *el = (epoll_t *)args;
+    eloop_t *el = (eloop_t *)args;
     return epoll_startloop(el);
 }
 
 void acp_start(acp_t *acp) {
-    epoll_t *sub_el, *tmp;
+    eloop_t *sub_el, *tmp;
 
     lock(acp);
     taskpool_start(&acp->tp);
@@ -109,7 +109,7 @@ void acp_start(acp_t *acp) {
 }
 
 void acp_stop(acp_t *acp) {
-    epoll_t *sub_el, *tmp;
+    eloop_t *sub_el, *tmp;
 
     lock(acp);
     epoll_stoploop(&acp->main_el);
@@ -120,7 +120,7 @@ void acp_stop(acp_t *acp) {
 }
 
 int acp_listen(acp_t *acp, const char *addr) {
-    epollevent_t *et = epollevent_new();
+    ev_t *et = epollevent_new();
 
     if (!et)
 	return -1;

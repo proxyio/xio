@@ -12,7 +12,7 @@ extern struct channel *cid_to_channel(int cd);
 extern void global_put_closing_channel(struct channel *cn);
 extern int alloc_cid();
 extern int select_a_poller(int cd);
-extern epoll_t *pid_to_poller(int pd);
+extern eloop_t *pid_to_poller(int pd);
 
 static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
     struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
@@ -31,8 +31,8 @@ static struct io default_channel_ops = {
     .write = io_channel_write,
 };
 
-static int accept_handler(epoll_t *el, epollevent_t *et);
-static int io_handler(epoll_t *el, epollevent_t *et);
+static int accept_handler(eloop_t *el, ev_t *et);
+static int io_handler(eloop_t *el, ev_t *et);
 
 
 static int io_accepter_init(int cd) {
@@ -250,7 +250,7 @@ static int io_channel_send(int cd, struct channel_msg *msg) {
 
 
 
-static int accept_handler(epoll_t *el, epollevent_t *et) {
+static int accept_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     return rc;
 }
@@ -269,7 +269,7 @@ static int msg_ready(struct bio *b, int64_t *payload_sz, int64_t *control_sz) {
     return true;
 }
 
-static int io_handler(epoll_t *el, epollevent_t *et) {
+static int io_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     struct channel *cn = cont_of(et, struct channel, et);
     struct channel_msg *msg;

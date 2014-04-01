@@ -5,7 +5,7 @@
 #include "proxy.h"
 #include "accepter.h"
 
-static int r_event_handler(epoll_t *el, epollevent_t *et);
+static int r_event_handler(eloop_t *el, ev_t *et);
 static void r_rgs(struct role *r);
 static void r_recv(struct role *r);
 static void r_send(struct role *r);
@@ -92,7 +92,7 @@ static int r_push_massage(struct role *r, pio_msg_t *msg) {
 
 static int r_task_runner(void *args) {
     struct role *r = (struct role *)args;
-    epollevent_t *et = &r->et;
+    ev_t *et = &r->et;
 
     if (!r->registed)
 	r_rgs(r);
@@ -107,7 +107,7 @@ static int r_task_runner(void *args) {
     return 0;
 }
 
-static int r_event_handler(epoll_t *el, epollevent_t *et) {
+static int r_event_handler(eloop_t *el, ev_t *et) {
     struct role *r = container_of(et, struct role, et);
     BUG_ON(r->el != el);
     r_task_runner(r);

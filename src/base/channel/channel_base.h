@@ -2,7 +2,7 @@
 #define _HPIO_CHANNELBASE_
 
 
-#include "os/epoll.h"
+#include "os/eventloop.h"
 #include "bufio/bio.h"
 #include "os/memory.h"
 #include "hash/crc.h"
@@ -63,7 +63,7 @@ struct channel {
     struct channel_vf *vf;
 
     /* Only for transport channel */
-    epollevent_t et;
+    ev_t et;
     struct bio in;
     struct bio out;
     struct io sock_ops;
@@ -97,7 +97,7 @@ struct channel_global {
 
     
     /*  Backend poller for io runner. */
-    epoll_t polls[PIO_MAX_CPUS];
+    eloop_t polls[PIO_MAX_CPUS];
 
     /*  Stack of unused channel descriptors.  */
     int poll_unused[PIO_MAX_CPUS];

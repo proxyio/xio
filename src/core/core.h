@@ -5,7 +5,7 @@
 #include <uuid/uuid.h>
 #include "sync/atomic.h"
 #include "ds/map.h"
-#include "os/epoll.h"
+#include "os/eventloop.h"
 #include "os/slab.h"
 #include "sync/spin.h"
 #include "stats/modstat.h"
@@ -34,7 +34,7 @@ extern struct cf default_cf;
 typedef struct accepter {
     spin_t lock;
     taskpool_t tp;
-    epoll_t main_el;
+    eloop_t main_el;
     struct cf cf;
     struct list_head sub_el_head;
     struct list_head et_head;
@@ -62,8 +62,8 @@ struct role {
     uint32_t proxyto:1;
     atomic_t ref;
     modstat_t st;
-    epollevent_t et;
-    epoll_t *el;
+    ev_t et;
+    eloop_t *el;
     mem_cache_t slabs;
     uint32_t mqsize;
     struct list_head mq;

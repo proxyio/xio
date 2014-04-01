@@ -8,7 +8,7 @@
 struct apio {
     apio_cf_t cf;
     pio_t *io;
-    epoll_t el;
+    eloop_t el;
     taskpool_t tp;
     request_come_f qf;
     response_back_f pf;
@@ -62,17 +62,17 @@ apio_t *apio_join_producer(apio_cf_t *cf, response_back_f f) {
 
 
 int apio_reactor(void *args) {
-    epoll_t *el = (epoll_t *)args;
+    eloop_t *el = (eloop_t *)args;
     return epoll_startloop(el);
 }
 
-static int producer_event_handler(epoll_t *el, epollevent_t *et) {
+static int producer_event_handler(eloop_t *el, ev_t *et) {
     return 0;
 }
 
 int apio_start(apio_t *aio) {
     proto_parser_t *pp = container_of(aio->io, proto_parser_t, sockfd);
-    epollevent_t *et = &pp->et;
+    ev_t *et = &pp->et;
 
     et->fd = *aio->io;
     et->f = producer_event_handler;

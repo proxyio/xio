@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include "bc.h"
 #include "opt.h"
-#include "os/epoll.h"
+#include "os/eventloop.h"
 #include "sdk/c/io.h"
 
 #define REQLEN PAGE_SIZE
 static char page[REQLEN];
 extern int randstr(char *buff, int sz);
 
-static inline int producer_event_handler(epoll_t *, epollevent_t *);
-static inline int comsumer_event_handler(epoll_t *, epollevent_t *);
+static inline int producer_event_handler(eloop_t *, ev_t *);
+static inline int comsumer_event_handler(eloop_t *, ev_t *);
 
 static proto_parser_t *new_pingpong_producer(pingpong_ctx_t *ctx) {
     pio_t *io;
@@ -58,7 +58,7 @@ static proto_parser_t *new_pingpong_comsumer(pingpong_ctx_t *ctx) {
 
 
 static inline int
-producer_event_handler(epoll_t *el, epollevent_t *et) {
+producer_event_handler(eloop_t *el, ev_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     pmsg_t *msg;
@@ -79,7 +79,7 @@ producer_event_handler(epoll_t *el, epollevent_t *et) {
 }
 
 static inline int
-comsumer_event_handler(epoll_t *el, epollevent_t *et) {
+comsumer_event_handler(eloop_t *el, ev_t *et) {
     proto_parser_t *pp = container_of(et, proto_parser_t, et);
     pingpong_ctx_t *ctx = container_of(el, pingpong_ctx_t, el);
     pmsg_t *msg;

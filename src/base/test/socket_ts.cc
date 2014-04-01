@@ -3,7 +3,7 @@
 #include <time.h>
 #include <string.h>
 extern "C" {
-#include "os/epoll.h"
+#include "os/eventloop.h"
 #include "transport/tcp/tcp.h"
 #include "transport/ipc/ipc.h"
 #include "runner/thread.h"
@@ -29,7 +29,7 @@ static int tcp_client_thread(void *arg) {
     return 0;
 }
 
-int tcp_client_event_handler(struct epoll *el, epollevent_t *et) {
+int tcp_client_event_handler(eloop_t *el, ev_t *et) {
     char buf[1024] = {};
 
     randstr(buf, sizeof(buf));
@@ -48,8 +48,8 @@ int tcp_client_event_handler(struct epoll *el, epollevent_t *et) {
 static void tcp_server_thread() {
     int afd, sfd;
     thread_t cli_thread = {};
-    epoll_t el = {};
-    epollevent_t et = {};
+    eloop_t el = {};
+    ev_t et = {};
     
     epoll_init(&el, 1024, 100, 10);
 
@@ -97,7 +97,7 @@ static int ipc_client_thread(void *arg) {
     return 0;
 }
 
-int ipc_client_event_handler(struct epoll *el, epollevent_t *et) {
+int ipc_client_event_handler(eloop_t *el, ev_t *et) {
     char buf[1024] = {};
 
     randstr(buf, sizeof(buf));
@@ -116,8 +116,8 @@ int ipc_client_event_handler(struct epoll *el, epollevent_t *et) {
 static void ipc_server_thread() {
     int afd, sfd;
     thread_t cli_thread = {};
-    epoll_t el = {};
-    epollevent_t et = {};
+    eloop_t el = {};
+    ev_t et = {};
     
     epoll_init(&el, 1024, 100, 10);
 

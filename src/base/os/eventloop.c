@@ -3,10 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include "timesz.h"
-#include "epoll.h"
+#include "eventloop.h"
 #include "ds/skrb_sync.h"
 
-int epoll_add(epoll_t *el, epollevent_t *ev) {
+int epoll_add(eloop_t *el, ev_t *ev) {
     int rc = 0;
     int64_t _cur_nsec = rt_nstime();
     struct epoll_event ee;
@@ -25,7 +25,7 @@ int epoll_add(epoll_t *el, epollevent_t *ev) {
 }
 
 
-int epoll_mod(epoll_t *el, epollevent_t *ev) {
+int epoll_mod(eloop_t *el, ev_t *ev) {
     int rc = 0;
     int64_t _cur_nsec = rt_nstime();
     struct epoll_event ee;
@@ -45,7 +45,7 @@ int epoll_mod(epoll_t *el, epollevent_t *ev) {
     return rc;
 }
 
-int epoll_del(epoll_t *el, epollevent_t *ev) {
+int epoll_del(eloop_t *el, ev_t *ev) {
     int rc = 0;
     struct epoll_event ee;
 
@@ -63,7 +63,7 @@ int epoll_del(epoll_t *el, epollevent_t *ev) {
     return rc;
 }
 
-static void epoll_update_timer(epoll_t *el, epollevent_t *ev, int64_t cur) {
+static void epoll_update_timer(eloop_t *el, ev_t *ev, int64_t cur) {
     if (!ev->to_nsec || !ev->tr_node.key)
 	return;
     skrb_mutex_delete(&el->tr_tree, &ev->tr_node, &el->mutex);
@@ -71,7 +71,7 @@ static void epoll_update_timer(epoll_t *el, epollevent_t *ev, int64_t cur) {
     skrb_mutex_insert(&el->tr_tree, &ev->tr_node, &el->mutex);
 }
 
-static int64_t epoll_find_timer(epoll_t *el, int64_t to) {
+static int64_t epoll_find_timer(eloop_t *el, int64_t to) {
     skrb_node_t *node = NULL;
     
     if (skrb_mutex_empty(&el->tr_tree, &el->mutex))
@@ -82,10 +82,10 @@ static int64_t epoll_find_timer(epoll_t *el, int64_t to) {
     return to;
 }
 
-static int __epoll_wait(epoll_t *el) {
+static int __epoll_wait(eloop_t *el) {
     int n = 0, size = el->max_io_events;
     int64_t max_to = el->max_to;
-    epollevent_t *ev = NULL;
+    ev_t *ev = NULL;
     struct epoll_event *ev_buf = el->ev_buf;
     skrb_node_t *node = NULL;
     int64_t to = 0, _cur_nsec = rt_nstime();
@@ -99,7 +99,7 @@ static int __epoll_wait(epoll_t *el) {
 	n = 0;
 
     while (ev_buf < el->ev_buf + n) {
-	epoll_update_timer(el, (epollevent_t *)ev_buf->data.ptr, _cur_nsec);
+	epoll_update_timer(el, (ev_t *)ev_buf->data.ptr, _cur_nsec);
 	ev_buf++;
     }
     
@@ -107,7 +107,7 @@ static int __epoll_wait(epoll_t *el) {
     while (size && !skrb_mutex_empty(&el->tr_tree, &el->mutex)) {
 	if (({node = skrb_mutex_min(&el->tr_tree, &el->mutex); node->key;}) > _cur_nsec)
 	    break;
-	ev = (epollevent_t *)node->data;
+	ev = (ev_t *)node->data;
 	skrb_mutex_delete(&el->tr_tree, &ev->tr_node, &el->mutex);
 	ev->tr_node.key = 0;
 	ev_buf->data.ptr = ev;
@@ -119,15 +119,15 @@ static int __epoll_wait(epoll_t *el) {
 }
 
 
-int epoll_oneloop(epoll_t *el) {
+int epoll_oneloop(eloop_t *el) {
     int n = 0;
-    epollevent_t *et;
+    ev_t *et;
     struct epoll_event *ev_buf = el->ev_buf;
     
     if ((n = __epoll_wait(el)) < 0)
 	return -1;
     while (ev_buf < el->ev_buf + n) {
-	et = (epollevent_t *)ev_buf->data.ptr;
+	et = (ev_t *)ev_buf->data.ptr;
 	et->happened = ev_buf->events;
 	et->f(el, et);
 	ev_buf++;
@@ -136,13 +136,13 @@ int epoll_oneloop(epoll_t *el) {
 }
 
 
-int epoll_startloop(epoll_t *el) {
+int epoll_startloop(eloop_t *el) {
     el->stopping = false;
     while (!el->stopping)
 	epoll_oneloop(el);
     return 0;
 }
 
-void epoll_stoploop(epoll_t *el) {
+void epoll_stoploop(eloop_t *el) {
     el->stopping = true;
 }

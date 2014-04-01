@@ -11,7 +11,7 @@ extern struct channel_global cn_global;
 extern struct channel *cid_to_channel(int cd);
 extern int alloc_cid();
 extern int select_a_poller(int cd);
-extern epoll_t *pid_to_poller(int pd);
+extern eloop_t *pid_to_poller(int pd);
 
 static int inproc_accepter_init(int cd) {
     int rc = 0;

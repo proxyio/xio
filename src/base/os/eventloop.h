@@ -1,5 +1,5 @@
-#ifndef _HPIO_EPOLLER_
-#define _HPIO_EPOLLER_
+#ifndef _HPIO_EVENTLOOP_
+#define _HPIO_EVENTLOOP_
 
 #include <unistd.h>
 #include <sys/epoll.h>
@@ -14,11 +14,11 @@
 #define EPOLLRDHUP 0x2000
 #endif
 
-struct epollevent;
-struct epoll;
-typedef int (*event_handler) (struct epoll *el, struct epollevent *et);
+struct ev;
+struct eloop;
+typedef int (*event_handler) (struct eloop *el, struct ev *et);
 
-typedef struct epollevent {
+typedef struct ev {
     event_handler f;
     void *data;
     int fd;
@@ -27,12 +27,12 @@ typedef struct epollevent {
     uint32_t happened;
     skrb_node_t tr_node;
     struct list_head el_link;
-} epollevent_t;
+} ev_t;
 
 #define list_for_each_et_safe(pos, tmp, head)				\
-    list_for_each_entry_safe(pos, tmp, head, epollevent_t, el_link)
+    list_for_each_entry_safe(pos, tmp, head, ev_t, el_link)
 
-typedef struct epoll {
+typedef struct eloop {
     int stopping;
     int efd, max_io_events, event_size;
     int64_t max_to;
@@ -40,23 +40,23 @@ typedef struct epoll {
     mutex_t mutex;
     struct list_head link;
     struct epoll_event *ev_buf;
-} epoll_t;
+} eloop_t;
 
 #define list_for_each_el_safe(pos, tmp, head)			\
-    list_for_each_entry_safe(pos, tmp, head, epoll_t, link)
+    list_for_each_entry_safe(pos, tmp, head, eloop_t, link)
 
 
-static inline epollevent_t *epollevent_new() {
-    epollevent_t *ev = (epollevent_t *)mem_zalloc(sizeof(*ev));
+static inline ev_t *epollevent_new() {
+    ev_t *ev = (ev_t *)mem_zalloc(sizeof(*ev));
     return ev;
 }
 
-static inline epoll_t *epoll_new() {
-    epoll_t *el = (epoll_t *)mem_zalloc(sizeof(*el));
+static inline eloop_t *epoll_new() {
+    eloop_t *el = (eloop_t *)mem_zalloc(sizeof(*el));
     return el;
 }
 
-static inline int epoll_init(epoll_t *el, int size, int max_io_events, int max_to) {
+static inline int epoll_init(eloop_t *el, int size, int max_io_events, int max_to) {
     if ((el->efd = epoll_create(size)) < 0)
 	return -1;
     if (!(el->ev_buf =
@@ -71,11 +71,11 @@ static inline int epoll_init(epoll_t *el, int size, int max_io_events, int max_t
     return 0;
 }
 
-static inline int epoll_destroy(epoll_t *el) {
-    epollevent_t *ev = NULL;
+static inline int epoll_destroy(eloop_t *el) {
+    ev_t *ev = NULL;
     mutex_destroy(&el->mutex);
     while (!skrb_empty(&el->tr_tree)) {
-	ev = (epollevent_t *)(skrb_min(&el->tr_tree))->data;
+	ev = (ev_t *)(skrb_min(&el->tr_tree))->data;
 	skrb_delete(&el->tr_tree, &ev->tr_node);
     }
     if (el->efd > 0)
@@ -85,12 +85,12 @@ static inline int epoll_destroy(epoll_t *el) {
     return 0;
 }
 
-int epoll_add(epoll_t *el, epollevent_t *ev);
-int epoll_del(epoll_t *el, epollevent_t *ev);
-int epoll_mod(epoll_t *el, epollevent_t *ev);
-int epoll_oneloop(epoll_t *el);
-int epoll_startloop(epoll_t *el);
-void epoll_stoploop(epoll_t *el);
+int epoll_add(eloop_t *el, ev_t *ev);
+int epoll_del(eloop_t *el, ev_t *ev);
+int epoll_mod(eloop_t *el, ev_t *ev);
+int epoll_oneloop(eloop_t *el);
+int epoll_startloop(eloop_t *el);
+void epoll_stoploop(eloop_t *el);
 
 
 #endif

@@ -5,7 +5,7 @@
 #include "hdr.h"
 #include "ds/list.h"
 #include "os/memory.h"
-#include "os/epoll.h"
+#include "os/eventloop.h"
 #include "bufio/bio.h"
 #include "stats/modstat.h"
 #include "transport/tcp/tcp.h"
@@ -28,7 +28,7 @@ typedef struct proto_parser {
     struct bio in;
     struct bio out;
     pio_rgh_t rgh;
-    epollevent_t et;
+    ev_t et;
     struct io sock_ops;
     struct list_head pp_link;
 } proto_parser_t;

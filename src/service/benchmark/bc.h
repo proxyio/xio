@@ -1,13 +1,13 @@
 #ifndef _HPIO_BC_
 #define _HPIO_BC_
 
-#include "os/epoll.h"
+#include "os/eventloop.h"
 #include "ds/list.h"
 #include "core/proto_parser.h"
 
 typedef struct pingpong_ctx {
     struct bc_opt *cf;
-    epoll_t el;
+    eloop_t el;
     struct list_head pp_head;
 } pingpong_ctx_t;
 
