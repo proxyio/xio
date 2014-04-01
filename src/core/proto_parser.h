@@ -4,7 +4,6 @@
 #include "errno.h"
 #include "hdr.h"
 #include "ds/list.h"
-#include "os/memory.h"
 #include "os/eventloop.h"
 #include "bufio/bio.h"
 #include "stats/modstat.h"

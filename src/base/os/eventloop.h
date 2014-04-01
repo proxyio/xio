@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 #include <sys/epoll.h>
-#include "memory.h"
+#include "alloc.h"
 #include "ds/list.h"
 #include "ds/skrb.h"
 #include "sync/mutex.h"

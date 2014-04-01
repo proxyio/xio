@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 #include "base.h"
-#include "os/memory.h"
+#include "os/alloc.h"
 
 #define gettid() syscall(__NR_gettid)
 

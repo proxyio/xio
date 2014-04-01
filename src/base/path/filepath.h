@@ -1,7 +1,7 @@
 #ifndef _HPIO_FILEPATH_
 #define _HPIO_FILEPATH_
 
-#include "os/memory.h"
+#include "os/alloc.h"
 
 char *fp_join(const char *p1, const char *p2);
 char *fp_abs(const char *path);

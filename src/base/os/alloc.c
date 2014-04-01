@@ -1,6 +1,6 @@
 #include <malloc.h>
 #include <string.h>
-#include "memory.h"
+#include "alloc.h"
 
 static mem_stat_t mem_stats = {};
 

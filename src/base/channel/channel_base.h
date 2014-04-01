@@ -4,7 +4,7 @@
 
 #include "os/eventloop.h"
 #include "bufio/bio.h"
-#include "os/memory.h"
+#include "os/alloc.h"
 #include "hash/crc.h"
 #include "sync/mutex.h"
 #include "sync/spin.h"

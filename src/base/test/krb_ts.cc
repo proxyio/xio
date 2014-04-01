@@ -8,7 +8,7 @@
 extern "C" {
 #include "ds/skrb.h"
 #include "ds/map.h"
-#include "os/memory.h"
+#include "os/alloc.h"
 }
 
 using namespace std;
