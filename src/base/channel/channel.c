@@ -21,12 +21,12 @@ extern void push_closed_channel(struct channel *cn);
 extern struct channel *pop_closed_channel(struct channel_poll *po);
 
 
-uint32_t channel_msglen(char *payload) {
+uint32_t msg_iovlen(char *payload) {
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
     return sizeof(msg->hdr) + msg->hdr.size;
 }
 
-char *channel_msgbase(char *payload) {
+char *msg_iovbase(char *payload) {
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
     return (char *)&msg->hdr;
 }

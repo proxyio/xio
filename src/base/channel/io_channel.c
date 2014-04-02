@@ -250,7 +250,7 @@ static int msg_ready(struct bio *b, int64_t *payload_sz) {
     if (b->bsize < sizeof(msg.hdr))
 	return false;
     bio_copy(b, (char *)(&msg.hdr), sizeof(msg.hdr));
-    if (b->bsize < channel_msglen(msg.hdr.payload))
+    if (b->bsize < msg_iovlen(msg.hdr.payload))
 	return false;
     *payload_sz = msg.hdr.size;
     return true;
@@ -267,13 +267,13 @@ static int io_handler(eloop_t *el, ev_t *et) {
 	    goto EXIT;
 	while (msg_ready(&cn->sock.in, &payload_sz)) {
 	    payload = channel_allocmsg(payload_sz);
-	    bio_read(&cn->sock.in, channel_msgbase(payload), channel_msglen(payload));
+	    bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
 	    channel_push_rcvmsg(cn, payload);
 	}
     }
     if (et->events & EPOLLOUT) {
 	while ((payload = channel_pop_sndmsg(cn)) != NULL) {
-	    bio_write(&cn->sock.out, channel_msgbase(payload), channel_msglen(payload));
+	    bio_write(&cn->sock.out, msg_iovbase(payload), msg_iovlen(payload));
 	    channel_freemsg(payload);
 	}
 	if ((rc = bio_flush(&cn->sock.out, &cn->sock.ops)) < 0 && errno != EAGAIN)

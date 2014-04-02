@@ -154,10 +154,31 @@ static inline void cn_global_unlock() {
 }
 
 
+
+
+/*
+  The transport protocol header is 6 bytes long and looks like this:
+
+  +--------+------------+------------+
+  | 0xffff | 0xffffffff | 0xffffffff |
+  +--------+------------+------------+
+  |  crc16 |    size    |   payload  |
+  +--------+------------+------------+
+*/
+
+struct channel_msghdr {
+    uint16_t checksum;
+    uint32_t size;
+    char payload[0];
+};
+
 struct channel_msg {
     struct list_head item;
     struct channel_msghdr hdr;
 };
+
+uint32_t msg_iovlen(char *payload);
+char *msg_iovbase(char *payload);
 
 #define list_for_each_channel_msg_safe(pos, next, head)			\
     list_for_each_entry_safe(pos, next, head, struct channel_msg, item)

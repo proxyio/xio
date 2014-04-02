@@ -9,26 +9,9 @@
 #define PF_IPC    TP_IPC
 #define PF_INPROC TP_MOCK_INPROC
 
-/*
-  The transport protocol header is 10 bytes long and looks like this:
 
-  +--------+------------+------------+
-  | 0xffff | 0xffffffff | 0xffffffff |
-  +--------+------------+------------+
-  |  crc16 |    size    |   payload  |
-  +--------+------------+------------+
-*/
-
-struct channel_msghdr {
-    uint16_t checksum;
-    uint32_t size;
-    char payload[0];
-};
-
-uint32_t channel_msglen(char *payload);
 char *channel_allocmsg(uint32_t size);
 void channel_freemsg(char *payload);
-
 
 int channel_listen(int pf, const char *sock);
 int channel_connect(int pf, const char *peer);
