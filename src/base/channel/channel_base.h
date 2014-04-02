@@ -40,7 +40,7 @@ struct channel {
     condition_t cond;
     int ty;
     int pf;
-    char sock[TP_SOCKADDRLEN];
+    char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];
     uint64_t fasync:1;
     uint64_t fok:1;

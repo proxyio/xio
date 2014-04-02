@@ -240,7 +240,7 @@ int channel_accept(int cd) {
     return new->cd;
 }
 
-int channel_listen(int pf, const char *sock) {
+int channel_listen(int pf, const char *addr) {
     struct channel *new = alloc_channel();
     struct channel_vf *vf = (pf == PF_INPROC) ? inproc_channel_vfptr :
 	io_channel_vfptr;
@@ -248,8 +248,8 @@ int channel_listen(int pf, const char *sock) {
     new->ty = CHANNEL_LISTENER;
     new->pf = pf;
     new->vf = vf;
-    ZERO(new->sock);
-    strncpy(new->sock, sock, TP_SOCKADDRLEN);
+    ZERO(new->addr);
+    strncpy(new->addr, addr, TP_SOCKADDRLEN);
     if (vf->init(new->cd) < 0) {
 	free_channel(new);
 	return -1;

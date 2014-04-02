@@ -27,12 +27,12 @@ static int channel_put(struct channel *cn) {
     return old;
 }
 
-static struct channel *find_listener(char *sock) {
+static struct channel *find_listener(char *addr) {
     struct ssmap_node *node;
     struct channel *cn = NULL;
 
     cn_global_lock();
-    if ((node = ssmap_find(&cn_global.inproc_listeners, sock, strlen(sock))))
+    if ((node = ssmap_find(&cn_global.inproc_listeners, addr, TP_SOCKADDRLEN)))
 	cn = cont_of(node, struct channel, listener_node);
     cn_global_unlock();
     return cn;
@@ -108,8 +108,8 @@ static int inproc_listener_init(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct ssmap_node *node = &cn->listener_node;
 
-    node->key = cn->sock;
-    node->keylen = strlen(cn->sock);
+    node->key = cn->addr;
+    node->keylen = TP_SOCKADDRLEN;
     INIT_LIST_HEAD(&cn->new_connectors);
     if ((rc = insert_listener(node)) < 0)
 	return rc;

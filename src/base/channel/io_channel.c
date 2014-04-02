@@ -63,7 +63,7 @@ static int io_listener_init(int cd) {
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
-    if ((s = tp->bind(cn->sock)) < 0)
+    if ((s = tp->bind(cn->addr)) < 0)
 	return s;
     cn->et.events = EPOLLIN|EPOLLERR;
     cn->et.fd = s;
