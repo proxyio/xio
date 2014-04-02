@@ -14,7 +14,7 @@ extern void free_channel(struct channel *cn);
 static int channel_get(struct channel *cn) {
     int ref;
     mutex_lock(&cn->lock);
-    ref = cn->ref;
+    ref = cn->proc.ref;
     mutex_unlock(&cn->lock);
     return ref;
 }
@@ -22,7 +22,7 @@ static int channel_get(struct channel *cn) {
 static int channel_put(struct channel *cn) {
     int old;
     mutex_lock(&cn->lock);
-    old = cn->ref--;
+    old = cn->proc.ref--;
     mutex_unlock(&cn->lock);
     return old;
 }
@@ -33,7 +33,7 @@ static struct channel *find_listener(char *addr) {
 
     cn_global_lock();
     if ((node = ssmap_find(&cn_global.inproc_listeners, addr, TP_SOCKADDRLEN)))
-	cn = cont_of(node, struct channel, listener_node);
+	cn = cont_of(node, struct channel, proc.listener_node);
     cn_global_unlock();
     return cn;
 }
@@ -61,7 +61,7 @@ static void remove_listener(struct ssmap_node *node) {
 
 static void push_new_connector(struct channel *cn, struct channel *new) {
     mutex_lock(&cn->lock);
-    list_add_tail(&new->wait_item, &cn->new_connectors);
+    list_add_tail(&new->proc.wait_item, &cn->proc.new_connectors);
     mutex_unlock(&cn->lock);
 }
 
@@ -69,9 +69,9 @@ static struct channel *pop_new_connector(struct channel *cn) {
     struct channel *new = NULL;
 
     mutex_lock(&cn->lock);
-    if (!list_empty(&cn->new_connectors)) {
-	new = list_first(&cn->new_connectors, struct channel, wait_item);
-	list_del_init(&new->wait_item);
+    if (!list_empty(&cn->proc.new_connectors)) {
+	new = list_first(&cn->proc.new_connectors, struct channel, proc.wait_item);
+	list_del_init(&new->proc.wait_item);
     }
     mutex_unlock(&cn->lock);
     return new;
@@ -87,30 +87,40 @@ static int inproc_accepter_init(int cd) {
     struct channel *peer;
     struct channel *parent = cid_to_channel(me->parent);
 
+    /* step1. Pop a new connector from parent's channel queue */
     if (!(peer = pop_new_connector(parent)))
 	return -1;
+
+    /* step2. Hold the peer's lock and make a connection. */
     mutex_lock(&peer->lock);
 
     /* Each channel endpoint has one ref to another endpoint */
-    peer->peer_channel = me;
-    me->peer_channel = peer;
-    me->ref = peer->ref = 2;
+    peer->proc.peer_channel = me;
+    me->proc.peer_channel = peer;
 
-    /* Send the DONE singal to the other end. */
-    if (--peer->waiters == 0)
+    /* Send the ACK singal to the other end.
+     * Here only has two possible state:
+     * 1. if peer->proc.ref == 0. the peer haven't enter step2 state.
+     * 2. if peer->proc.ref == 1. the peer is waiting and we should
+     *    wakeup him when we done the connect work.
+     */
+    assert(peer->proc.ref == 0 || peer->proc.ref == 1);
+    if (peer->proc.ref == 1)
 	condition_signal(&peer->cond);
+    me->proc.ref = peer->proc.ref = 2;
     mutex_unlock(&peer->lock);
+
     return rc;
 }
 
 static int inproc_listener_init(int cd) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-    struct ssmap_node *node = &cn->listener_node;
+    struct ssmap_node *node = &cn->proc.listener_node;
 
     node->key = cn->addr;
     node->keylen = TP_SOCKADDRLEN;
-    INIT_LIST_HEAD(&cn->new_connectors);
+    INIT_LIST_HEAD(&cn->proc.new_connectors);
     if ((rc = insert_listener(node)) < 0)
 	return rc;
     return rc;
@@ -123,12 +133,12 @@ static int inproc_listener_destroy(int cd) {
     struct channel *new;
 
     /* Avoiding the new connectors */
-    remove_listener(&cn->listener_node);
+    remove_listener(&cn->proc.listener_node);
 
     while ((new = pop_new_connector(cn))) {
 	mutex_lock(&new->lock);
-	/* TODO: Sending a ECONNREFUSED signel to the other peer. */
-	if (--new->waiters == 0)
+	/* Sending a ECONNREFUSED signel to the other peer. */
+	if (new->proc.ref-- == 1)
 	    condition_signal(&new->cond);
 	mutex_unlock(&new->lock);
     }
@@ -147,20 +157,38 @@ static int inproc_connector_init(int cd) {
     errno = ENOENT;
     if (!listener)
 	return -1;
-    cn->waiters = 0;
-    cn->peer_channel = NULL;
+    cn->proc.ref = 0;
+    cn->proc.peer_channel = NULL;
 
-    /* Push the new connector into listener's new_connectors queue */
+    /* step1. Push the new connector into listener's new_connectors
+       queue */
     push_new_connector(listener, cn);
 
+    /* step2. Hold lock and waiting for the connection established
+     * if need. here only has two possible state too:
+     * if cn->proc.ref == 0. we incr the ref indicate that i'm waiting.
+     */
     mutex_lock(&cn->lock);
-    if (++cn->waiters == 1)
+    if (cn->proc.ref == 0) {
+	cn->proc.ref++;
 	condition_wait(&cn->cond, &cn->lock);
+    } else
+	assert(cn->proc.ref != 0);
     mutex_unlock(&cn->lock);
-    assert(cn->waiters == 0 || cn->waiters == -1);
 
-    /* If the other peer close the connection before the ESTABLISHED */
-    if (!cn->peer_channel) {
+    /* step3. Check the connection status.
+     * Maybe the other peer close the connection before the ESTABLISHED
+     * if cn->proc.ref == 0. the peer was closed.
+     * if cn->proc.ref == 2. the connect was established.
+     */
+    if (cn->proc.ref == -1)
+	assert(cn->proc.ref == -1);
+    else if (cn->proc.ref == 0)
+	assert(cn->proc.ref == 0);
+    else if (cn->proc.ref == 2)
+	assert(cn->proc.ref == 2);
+
+    if (cn->proc.ref == 0 || cn->proc.ref == -1) {
 	errno = ECONNREFUSED;
 	return -1;
     }
@@ -170,7 +198,7 @@ static int inproc_connector_init(int cd) {
 static int inproc_connector_destroy(int cd) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);    
-    struct channel *peer = cn->peer_channel;
+    struct channel *peer = cn->proc.peer_channel;
 
     /* Destroy the channel and free channel id if i hold the last ref. */
     if (channel_put(peer) == 1)
@@ -280,7 +308,7 @@ static int inproc_channel_recv(int cd, struct channel_msg **msg) {
 
 static int inproc_channel_send(int cd, struct channel_msg *msg) {
     int rc = 0;
-    struct channel *peer = cid_to_channel(cd)->peer_channel;
+    struct channel *peer = cid_to_channel(cd)->proc.peer_channel;
 
     /* Only i hold the channel, the other peer shutdown. */
     if (channel_get(peer) == 1) {

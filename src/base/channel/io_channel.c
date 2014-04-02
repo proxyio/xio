@@ -13,14 +13,16 @@ extern void free_channel(struct channel *cn);
 
 
 static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
-    struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
-    int rc = cn->tp->read(cn->fd, buff, sz);
+    struct channel *cn = cont_of(io_ops, struct channel, sock.ops);
+    struct transport *tp = cn->sock.tp;
+    int rc = tp->read(cn->sock.fd, buff, sz);
     return rc;
 }
 
 static int64_t io_channel_write(struct io *io_ops, char *buff, int64_t sz) {
-    struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
-    int rc = cn->tp->write(cn->fd, buff, sz);
+    struct channel *cn = cont_of(io_ops, struct channel, sock.ops);
+    struct transport *tp = cn->sock.tp;
+    int rc = tp->write(cn->sock.fd, buff, sz);
     return rc;
 }
 
@@ -42,17 +44,17 @@ static int io_accepter_init(int cd) {
     struct transport *tp = transport_lookup(cn->pf);
     struct channel *parent = cid_to_channel(cn->parent);
 
-    if ((s = tp->accept(parent->fd)) < 0)
+    if ((s = tp->accept(parent->sock.fd)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &fnb, sizeof(fnb));
-    cn->et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
-    cn->et.fd = s;
-    cn->et.f = io_handler;
-    cn->et.data = cn;
-    cn->fd = s;
-    cn->tp = tp;
-    cn->sock_ops = default_channel_ops;
-    assert(eloop_add(&po->el, &cn->et) == 0);
+    cn->sock.et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
+    cn->sock.et.fd = s;
+    cn->sock.et.f = io_handler;
+    cn->sock.et.data = cn;
+    cn->sock.fd = s;
+    cn->sock.tp = tp;
+    cn->sock.ops = default_channel_ops;
+    assert(eloop_add(&po->el, &cn->sock.et) == 0);
     return rc;
 }
 
@@ -65,13 +67,13 @@ static int io_listener_init(int cd) {
 
     if ((s = tp->bind(cn->addr)) < 0)
 	return s;
-    cn->et.events = EPOLLIN|EPOLLERR;
-    cn->et.fd = s;
-    cn->et.f = accept_handler;
-    cn->et.data = cn;
-    cn->fd = s;
-    cn->tp = tp;
-    assert(eloop_add(&po->el, &cn->et) == 0);
+    cn->sock.et.events = EPOLLIN|EPOLLERR;
+    cn->sock.et.fd = s;
+    cn->sock.et.f = accept_handler;
+    cn->sock.et.data = cn;
+    cn->sock.fd = s;
+    cn->sock.tp = tp;
+    assert(eloop_add(&po->el, &cn->sock.et) == 0);
     return rc;
 }
 
@@ -86,22 +88,22 @@ static int io_connector_init(int cd) {
     if ((s = tp->connect(cn->peer)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &fnb, sizeof(fnb));
-    cn->et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
-    cn->et.fd = s;
-    cn->et.f = io_handler;
-    cn->et.data = cn;
-    cn->fd = s;
-    cn->tp = tp;
-    cn->sock_ops = default_channel_ops;
-    assert(eloop_add(&po->el, &cn->et) == 0);
+    cn->sock.et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
+    cn->sock.et.fd = s;
+    cn->sock.et.f = io_handler;
+    cn->sock.et.data = cn;
+    cn->sock.fd = s;
+    cn->sock.tp = tp;
+    cn->sock.ops = default_channel_ops;
+    assert(eloop_add(&po->el, &cn->sock.et) == 0);
     return rc;
 }
 
 static int io_channel_init(int cd) {
     struct channel *cn = cid_to_channel(cd);
 
-    bio_init(&cn->in);
-    bio_init(&cn->out);
+    bio_init(&cn->sock.in);
+    bio_init(&cn->sock.out);
 
     switch (cn->ty) {
     case CHANNEL_ACCEPTER:
@@ -117,18 +119,18 @@ static int io_channel_init(int cd) {
 static void io_channel_destroy(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
-    struct transport *tp = cn->tp;
+    struct transport *tp = cn->sock.tp;
     
     /* Detach channel low-level file descriptor from poller */
-    assert(eloop_del(&po->el, &cn->et) == 0);
-    tp->close(cn->fd);
+    assert(eloop_del(&po->el, &cn->sock.et) == 0);
+    tp->close(cn->sock.fd);
 
-    cn->fd = -1;
-    cn->et.events = -1;
-    cn->et.fd = -1;
-    cn->et.f = 0;
-    cn->et.data = 0;
-    cn->tp = 0;
+    cn->sock.fd = -1;
+    cn->sock.et.events = -1;
+    cn->sock.et.fd = -1;
+    cn->sock.et.f = 0;
+    cn->sock.et.data = 0;
+    cn->sock.tp = 0;
 
     /* Destroy the channel base and free channelid. */
     free_channel(cn);
@@ -257,25 +259,25 @@ static int msg_ready(struct bio *b, int64_t *payload_sz, int64_t *control_sz) {
 
 static int io_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
-    struct channel *cn = cont_of(et, struct channel, et);
+    struct channel *cn = cont_of(et, struct channel, sock.et);
     struct channel_msg *msg;
     int64_t payload_sz = 0, control_sz = 0;
 
     if (et->events & EPOLLIN) {
-	if ((rc = bio_prefetch(&cn->in, &cn->sock_ops)) < 0 && errno != EAGAIN)
+	if ((rc = bio_prefetch(&cn->sock.in, &cn->sock.ops)) < 0 && errno != EAGAIN)
 	    goto EXIT;
-	while (msg_ready(&cn->in, &payload_sz, &control_sz)) {
+	while (msg_ready(&cn->sock.in, &payload_sz, &control_sz)) {
 	    msg = channel_allocmsg(payload_sz, control_sz);
-	    bio_read(&cn->in, channel_msgiov_base(msg), channel_msgiov_len(msg));
+	    bio_read(&cn->sock.in, channel_msgiov_base(msg), channel_msgiov_len(msg));
 	    channel_push_rcvmsg(cn, msg);
 	}
     }
     if (et->events & EPOLLOUT) {
 	while ((msg = channel_pop_sndmsg(cn)) != NULL) {
-	    bio_write(&cn->out, channel_msgiov_base(msg), channel_msgiov_len(msg));
+	    bio_write(&cn->sock.out, channel_msgiov_base(msg), channel_msgiov_len(msg));
 	    channel_freemsg(msg);
 	}
-	if ((rc = bio_flush(&cn->out, &cn->sock_ops)) < 0 && errno != EAGAIN)
+	if ((rc = bio_flush(&cn->sock.out, &cn->sock.ops)) < 0 && errno != EAGAIN)
 	    goto EXIT;
     }
     if ((rc < 0 && errno != EAGAIN) || et->events & (EPOLLERR|EPOLLRDHUP))

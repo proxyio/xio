@@ -148,13 +148,14 @@ static void inproc_server_thread() {
 
 
 
-static int cnt2 = 100;
+static int cnt2 = 1000;
 
 static void inproc_client2() {
     int sfd, i;
 
-    for (i = 0; i < cnt2; i++) {
-	ASSERT_TRUE((sfd = channel_connect(PF_INPROC, "/b_inproc")) >= 0);
+    for (i = 0; i < cnt2/2; i++) {
+	if ((sfd = channel_connect(PF_INPROC, "/b_inproc")) < 0)
+	    break;
 	channel_close(sfd);
     }
 }
@@ -164,21 +165,37 @@ static int inproc_client_thread2(void *args) {
     return 0;
 }
 
+static void inproc_client3() {
+    int sfd, i;
+
+    for (i = 0; i < cnt2/2; i++) {
+	if ((sfd = channel_connect(PF_INPROC, "/b_inproc")) < 0)
+	    break;
+	channel_close(sfd);
+    }
+}
+
+static int inproc_client_thread3(void *args) {
+    inproc_client3();
+    return 0;
+}
+
 static void inproc_server_thread2() {
     int i, afd, sfd;
-    thread_t cli_thread = {};
+    thread_t cli_thread[2] = {};
 
     ASSERT_TRUE((afd = channel_listen(PF_INPROC, "/b_inproc")) >= 0);
-    thread_start(&cli_thread, inproc_client_thread2, NULL);
+    thread_start(&cli_thread[0], inproc_client_thread2, NULL);
+    thread_start(&cli_thread[1], inproc_client_thread3, NULL);
 
-    for (i = 0; i < cnt2; i++) {
+    for (i = 0; i < cnt2 - 10; i++) {
 	while ((sfd = channel_accept(afd)) < 0)
 	    usleep(1000);
 	channel_close(sfd);
     }
-
-    thread_stop(&cli_thread);
     channel_close(afd);
+    thread_stop(&cli_thread[0]);
+    thread_stop(&cli_thread[1]);
 }
 
 TEST(channel, inproc) {

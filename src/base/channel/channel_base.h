@@ -62,29 +62,33 @@ struct channel {
     struct list_head out_link;
 
     /* Only for transport channel */
-    ev_t et;
-    struct bio in;
-    struct bio out;
-    struct io sock_ops;
-    int fd;
-    struct transport *tp;
+    struct {
+	ev_t et;
+	struct bio in;
+	struct bio out;
+	struct io ops;
+	int fd;
+	struct transport *tp;
+    } sock;
 
     /* Reserved only for intern process channel */
 
-    /* Reference by self and the peer.
-     * if ref == 2, connection work in normal state
-     * if ref == 1, connection closed by peer.
-     * if ref == 0, is should destroy because no other hold it.
-     */
-    int ref;
+    struct {
+	/* Reference by self and the peer.
+	 * if ref == 2, connection work in normal state
+	 * if ref == 1, connection closed by peer.
+	 * if ref == 0, is should destroy because no other hold it.
+	 */
+	int ref;
 
-    /* For inproc-listener */
-    struct list_head new_connectors;
-    struct ssmap_node listener_node;
+	/* For inproc-listener */
+	struct list_head new_connectors;
+	struct ssmap_node listener_node;
 
-    /* For inproc-connector and inproc-accepter (new connection) */
-    struct list_head wait_item;
-    struct channel *peer_channel;
+	/* For inproc-connector and inproc-accepter (new connection) */
+	struct list_head wait_item;
+	struct channel *peer_channel;
+    } proc;
 };
 
 #define list_for_each_new_connector_safe(pos, nx, head)			\
