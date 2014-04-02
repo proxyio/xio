@@ -147,7 +147,42 @@ static void inproc_server_thread() {
 }
 
 
+
+static int cnt2 = 100;
+
+static void inproc_client2() {
+    int sfd, i;
+
+    for (i = 0; i < cnt2; i++) {
+	ASSERT_TRUE((sfd = channel_connect(PF_INPROC, "/b_inproc")) >= 0);
+	channel_close(sfd);
+    }
+}
+
+static int inproc_client_thread2(void *args) {
+    inproc_client2();
+    return 0;
+}
+
+static void inproc_server_thread2() {
+    int i, afd, sfd;
+    thread_t cli_thread = {};
+
+    ASSERT_TRUE((afd = channel_listen(PF_INPROC, "/b_inproc")) >= 0);
+    thread_start(&cli_thread, inproc_client_thread2, NULL);
+
+    for (i = 0; i < cnt2; i++) {
+	while ((sfd = channel_accept(afd)) < 0)
+	    usleep(1000);
+	channel_close(sfd);
+    }
+
+    thread_stop(&cli_thread);
+    channel_close(afd);
+}
+
 TEST(channel, inproc) {
     inproc_server_thread();
+    inproc_server_thread2();
 }
 

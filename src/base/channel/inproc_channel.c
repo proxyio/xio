@@ -12,11 +12,11 @@ extern int alloc_cid();
 extern void free_channel(struct channel *cn);
 
 static int channel_get(struct channel *cn) {
-    int old;
+    int ref;
     mutex_lock(&cn->lock);
-    old = cn->ref++;
+    ref = cn->ref;
     mutex_unlock(&cn->lock);
-    return old;
+    return ref;
 }
 
 static int channel_put(struct channel *cn) {
@@ -91,11 +91,9 @@ static int inproc_accepter_init(int cd) {
 	return -1;
     mutex_lock(&peer->lock);
 
-    /* TODO: Set the peer_channel */
+    /* Each channel endpoint has one ref to another endpoint */
     peer->peer_channel = me;
     me->peer_channel = peer;
-
-    /* Each channel endpoint has one ref to another endpoint */
     me->ref = peer->ref = 2;
 
     /* Send the DONE singal to the other end. */
@@ -134,6 +132,9 @@ static int inproc_listener_destroy(int cd) {
 	    condition_signal(&new->cond);
 	mutex_unlock(&new->lock);
     }
+
+    /* Destroy the channel and free channel id. */
+    free_channel(cn);
     return rc;
 }
 
@@ -167,7 +168,16 @@ static int inproc_connector_init(int cd) {
 }
 
 static int inproc_connector_destroy(int cd) {
-    return 0;
+    int rc = 0;
+    struct channel *cn = cid_to_channel(cd);    
+    struct channel *peer = cn->peer_channel;
+
+    /* Destroy the channel and free channel id if i hold the last ref. */
+    if (channel_put(peer) == 1)
+	free_channel(peer);
+    if (channel_put(cn) == 1)
+	free_channel(cn);
+    return rc;
 }
 
 
@@ -199,9 +209,6 @@ static void inproc_channel_destroy(int cd) {
     default:
 	assert(0);
     }
-
-    /* Destroy the channel and free channel id. */
-    free_channel(cn);
 }
 
 static int inproc_channel_setopt(int cd, int opt, void *val, int valsz) {
@@ -248,6 +255,14 @@ static int inproc_channel_recv(int cd, struct channel_msg **msg) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
 
+    /* Only i hold the channel, the other peer shutdown. */
+    if (channel_get(cn) == 1) {
+	errno = EPIPE;
+	return -1;
+    }
+
+    /* Conditon race here when the peer channel shutdown
+       after above checking. it's ok. */
     mutex_lock(&cn->lock);
     while (!(*msg = channel_pop_rcvmsg(cn)) && !cn->fasync) {
 	cn->waiters++;
@@ -267,6 +282,14 @@ static int inproc_channel_send(int cd, struct channel_msg *msg) {
     int rc = 0;
     struct channel *peer = cid_to_channel(cd)->peer_channel;
 
+    /* Only i hold the channel, the other peer shutdown. */
+    if (channel_get(peer) == 1) {
+	errno = EPIPE;
+	return -1;
+    }
+
+    /* Conditon race here when the peer channel shutdown
+       after above checking. it's ok. */
     mutex_lock(&peer->lock);
     while ((rc = channel_push_sndmsg(peer, msg)) < 0 && errno == EAGAIN) {
 	peer->waiters++;

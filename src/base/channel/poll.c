@@ -25,8 +25,10 @@ struct channel *pop_closed_channel(struct channel_poll *po) {
     struct channel *cn = NULL;
 
     spin_lock(&po->lock);
-    if (!list_empty(&po->closing_head))
+    if (!list_empty(&po->closing_head)) {
 	cn = list_first(&po->closing_head, struct channel, closing_link);
+	list_del_init(&cn->closing_link);
+    }
     spin_unlock(&po->lock);
     return cn;
 }

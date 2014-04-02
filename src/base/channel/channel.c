@@ -121,9 +121,9 @@ static void channel_base_exit(int cd) {
     list_for_each_channel_msg_safe(pos, nx, &head)
 	channel_freemsg(&pos->msg);
 
+    assert(!attached(&cn->closing_link));
+
     /* Detach from all poll status head */
-    if (attached(&cn->closing_link))
-	list_del_init(&cn->closing_link);
     if (attached(&cn->err_link))
 	list_del_init(&cn->err_link);
     if (attached(&cn->in_link))
