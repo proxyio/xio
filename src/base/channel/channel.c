@@ -21,33 +21,30 @@ extern void push_closed_channel(struct channel *cn);
 extern struct channel *pop_closed_channel(struct channel_poll *po);
 
 
-uint32_t channel_msgiov_len(struct channel_msg *msg) {
-    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);	
-    return sizeof(mi->hdr) + mi->hdr.payload_sz + mi->hdr.control_sz;
+uint32_t channel_msglen(char *payload) {
+    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+    return sizeof(msg->hdr) + msg->hdr.size;
 }
 
-char *channel_msgiov_base(struct channel_msg *msg) {
-    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
-    return (char *)&mi->hdr;
+char *channel_msgbase(char *payload) {
+    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+    return (char *)&msg->hdr;
 }
 
-struct channel_msg *channel_allocmsg(uint32_t payload_sz, uint32_t control_sz) {
-    struct channel_msg_item *mi;
-    char *chunk = (char *)mem_zalloc(sizeof(*mi) + payload_sz + control_sz);
+char *channel_allocmsg(uint32_t size) {
+    struct channel_msg *msg;
+    char *chunk = (char *)mem_zalloc(sizeof(*msg) + size);
     if (!chunk)
 	return NULL;
-    mi = (struct channel_msg_item *)chunk;
-    mi->hdr.payload_sz = payload_sz;
-    mi->hdr.control_sz = control_sz;
-    mi->hdr.checksum = crc16((char *)&mi->hdr.payload_sz, 16);
-    mi->msg.payload = chunk + sizeof(*mi);
-    mi->msg.control = mi->msg.payload + payload_sz;
-    return &mi->msg;
+    msg = (struct channel_msg *)chunk;
+    msg->hdr.size = size;
+    msg->hdr.checksum = crc16((char *)&msg->hdr.size, 4);
+    return msg->hdr.payload;
 }
 
-void channel_freemsg(struct channel_msg *msg) {
-    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
-    mem_free(mi, sizeof(*mi) + mi->hdr.payload_sz + mi->hdr.control_sz);
+void channel_freemsg(char *payload) {
+    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+    mem_free(msg, sizeof(*msg) + msg->hdr.size);
 }
 
 static int select_a_poller(int cd) {
@@ -100,7 +97,7 @@ static void channel_base_init(int cd) {
 static void channel_base_exit(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct list_head head = {};
-    struct channel_msg_item *pos, *nx;
+    struct channel_msg *pos, *nx;
     
     mutex_destroy(&cn->lock);
     condition_destroy(&cn->cond);
@@ -119,7 +116,7 @@ static void channel_base_exit(int cd) {
     list_splice(&cn->rcv_head, &head);
     list_splice(&cn->snd_head, &head);
     list_for_each_channel_msg_safe(pos, nx, &head)
-	channel_freemsg(&pos->msg);
+	channel_freemsg(pos->hdr.payload);
 
     assert(!attached(&cn->closing_link));
 
@@ -284,12 +281,12 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
     return cn->vf->getopt(cd, opt, val, valsz);
 }
 
-int channel_recv(int cd, struct channel_msg **msg) {
+int channel_recv(int cd, char **payload) {
     struct channel *cn = cid_to_channel(cd);
-    return cn->vf->recv(cd, msg);
+    return cn->vf->recv(cd, payload);
 }
 
-int channel_send(int cd, struct channel_msg *msg) {
+int channel_send(int cd, char *payload) {
     struct channel *cn = cid_to_channel(cd);
-    return cn->vf->send(cd, msg);
+    return cn->vf->send(cd, payload);
 }

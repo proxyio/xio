@@ -26,8 +26,8 @@
 struct channel_vf {
     int (*init) (int cd);
     void (*destroy) (int cd);
-    int (*recv) (int cd, struct channel_msg **msg);
-    int (*send) (int cd, struct channel_msg *msg);
+    int (*recv) (int cd, char **payload);
+    int (*send) (int cd, char *payload);
     int (*setopt) (int cd, int opt, void *val, int valsz);
     int (*getopt) (int cd, int opt, void *val, int valsz);
 };
@@ -74,7 +74,7 @@ struct channel {
     /* Reserved only for intern process channel */
 
     struct {
-	/* Reference by self and the peer.
+	/* Reference by self and the peer. in normal case
 	 * if ref == 2, connection work in normal state
 	 * if ref == 1, connection closed by peer.
 	 * if ref == 0, is should destroy because no other hold it.
@@ -154,14 +154,13 @@ static inline void cn_global_unlock() {
 }
 
 
-struct channel_msg_item {
-    struct channel_msg msg;
+struct channel_msg {
     struct list_head item;
     struct channel_msghdr hdr;
 };
 
 #define list_for_each_channel_msg_safe(pos, next, head)			\
-    list_for_each_entry_safe(pos, next, head, struct channel_msg_item, item)
+    list_for_each_entry_safe(pos, next, head, struct channel_msg, item)
 
 
 #endif

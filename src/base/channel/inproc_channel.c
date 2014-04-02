@@ -257,29 +257,27 @@ static int inproc_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-
-static struct channel_msg *channel_pop_rcvmsg(struct channel *cn) {
-    struct channel_msg_item *mi = NULL;
-    struct channel_msg *msg = NULL;
+static char *channel_pop_rcvmsg(struct channel *cn) {
+    struct channel_msg *msg;
 
     if (!list_empty(&cn->rcv_head)) {
-	mi = list_first(&cn->rcv_head, struct channel_msg_item, item);
-	list_del_init(&mi->item);
-	msg = &mi->msg;
+	msg = list_first(&cn->rcv_head, struct channel_msg, item);
+	list_del_init(&msg->item);
+	return msg->hdr.payload;
     }
-    return msg;
+    return NULL;
 }
 
 
-static int channel_push_sndmsg(struct channel *peer, struct channel_msg *msg) {
+static int channel_push_sndmsg(struct channel *peer, char *payload) {
     int rc = 0;
-    struct channel_msg_item *mi = cont_of(msg, struct channel_msg_item, msg);
-    list_add_tail(&mi->item, &peer->rcv_head);
+    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+    list_add_tail(&msg->item, &peer->rcv_head);
     return rc;
 }
 
 
-static int inproc_channel_recv(int cd, struct channel_msg **msg) {
+static int inproc_channel_recv(int cd, char **payload) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
 
@@ -292,7 +290,7 @@ static int inproc_channel_recv(int cd, struct channel_msg **msg) {
     /* Conditon race here when the peer channel shutdown
        after above checking. it's ok. */
     mutex_lock(&cn->lock);
-    while (!(*msg = channel_pop_rcvmsg(cn)) && !cn->fasync) {
+    while (!(*payload = channel_pop_rcvmsg(cn)) && !cn->fasync) {
 	cn->waiters++;
 	condition_wait(&cn->cond, &cn->lock);
 	cn->waiters--;
@@ -301,12 +299,12 @@ static int inproc_channel_recv(int cd, struct channel_msg **msg) {
     if (cn->waiters)
 	condition_signal(&cn->cond);
     mutex_unlock(&cn->lock);
-    if (!*msg)
+    if (!*payload)
 	rc = -EAGAIN;
     return rc;
 }
 
-static int inproc_channel_send(int cd, struct channel_msg *msg) {
+static int inproc_channel_send(int cd, char *payload) {
     int rc = 0;
     struct channel *peer = cid_to_channel(cd)->proc.peer_channel;
 
@@ -319,7 +317,7 @@ static int inproc_channel_send(int cd, struct channel_msg *msg) {
     /* Conditon race here when the peer channel shutdown
        after above checking. it's ok. */
     mutex_lock(&peer->lock);
-    while ((rc = channel_push_sndmsg(peer, msg)) < 0 && errno == EAGAIN) {
+    while ((rc = channel_push_sndmsg(peer, payload)) < 0 && errno == EAGAIN) {
 	peer->waiters++;
 	condition_wait(&peer->cond, &peer->lock);
 	peer->waiters--;
