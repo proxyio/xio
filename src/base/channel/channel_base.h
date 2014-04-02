@@ -70,6 +70,12 @@ struct channel {
     struct transport *tp;
 
     /* Reserved only for intern process channel */
+
+    /* Reference by self and the peer.
+     * if ref == 2, connection work in normal state
+     * if ref == 1, connection closed by peer.
+     * if ref == 0, is should destroy because no other hold it.
+     */
     int ref;
 
     /* For inproc-listener */
