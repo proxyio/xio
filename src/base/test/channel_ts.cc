@@ -18,7 +18,7 @@ static void tcp_client() {
     struct channel_msg *msg;
 
     randstr(buf, 1024);
-    ASSERT_TRUE((sfd = channel_connect(TP_TCP, "127.0.0.1:18894")) >= 0);
+    ASSERT_TRUE((sfd = channel_connect(PF_TCP, "127.0.0.1:18894")) >= 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	msg = channel_allocmsg(nbytes, nbytes);
@@ -45,7 +45,7 @@ static void tcp_server_thread() {
     struct channel_msg *msg;
 
 
-    ASSERT_TRUE((afd = channel_listen(TP_TCP, "*:18894")) >= 0);
+    ASSERT_TRUE((afd = channel_listen(PF_TCP, "*:18894")) >= 0);
     thread_start(&cli_thread, tcp_client_thread, NULL);
     ASSERT_TRUE((sfd = channel_accept(afd)) >= 0);
     

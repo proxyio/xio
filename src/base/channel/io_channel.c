@@ -8,9 +8,9 @@
 extern struct channel_global cn_global;
 
 extern struct channel *cid_to_channel(int cd);
-extern void global_put_closing_channel(struct channel *cn);
-extern int alloc_cid();
 extern struct channel_poll *pid_to_channel_poll(int pd);
+extern void free_channel(struct channel *cn);
+
 
 static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
     struct channel *cn = cont_of(io_ops, struct channel, sock_ops);
@@ -129,6 +129,9 @@ static void io_channel_destroy(int cd) {
     cn->et.f = 0;
     cn->et.data = 0;
     cn->tp = 0;
+
+    /* Destroy the channel base and free channelid. */
+    free_channel(cn);
 }
 
 static int io_channel_setopt(int cd, int opt, void *val, int valsz) {

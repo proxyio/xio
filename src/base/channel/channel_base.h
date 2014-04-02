@@ -36,6 +36,8 @@ extern struct channel_vf *io_channel_vfptr;
 extern struct channel_vf *inproc_channel_vfptr;
 
 struct channel {
+    mutex_t lock;
+    condition_t cond;
     int ty;
     int pf;
     char sock[TP_SOCKADDRLEN];
@@ -46,8 +48,6 @@ struct channel {
     int cd;
     int pollid;
     int waiters;
-    mutex_t lock;
-    condition_t cond;
     uint64_t rcv;
     uint64_t snd;
     uint64_t rcv_wnd;
@@ -70,6 +70,7 @@ struct channel {
     struct transport *tp;
 
     /* Reserved only for intern process channel */
+    int ref;
 
     /* For inproc-listener */
     struct list_head new_connectors;
@@ -82,8 +83,6 @@ struct channel {
 
 #define list_for_each_new_connector_safe(pos, nx, head)			\
     list_for_each_entry_safe(pos, nx, head, struct channel, wait_item)
-
-
 
 struct channel_poll {
     spin_t lock;

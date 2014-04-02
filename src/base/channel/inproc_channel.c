@@ -9,6 +9,23 @@ extern struct channel_global cn_global;
 
 extern struct channel *cid_to_channel(int cd);
 extern int alloc_cid();
+extern void free_channel(struct channel *cn);
+
+static int channel_get(struct channel *cn) {
+    int old;
+    mutex_lock(&cn->lock);
+    old = cn->ref++;
+    mutex_unlock(&cn->lock);
+    return old;
+}
+
+static int channel_put(struct channel *cn) {
+    int old;
+    mutex_lock(&cn->lock);
+    old = cn->ref--;
+    mutex_unlock(&cn->lock);
+    return old;
+}
 
 static struct channel *find_listener(char *sock) {
     struct ssmap_node *node;
@@ -66,22 +83,25 @@ static struct channel *pop_new_connector(struct channel *cn) {
 
 static int inproc_accepter_init(int cd) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel *new;
-    struct channel *parent = cid_to_channel(cn->parent);
+    struct channel *me = cid_to_channel(cd);
+    struct channel *peer;
+    struct channel *parent = cid_to_channel(me->parent);
 
-    if (!(new = pop_new_connector(parent)))
+    if (!(peer = pop_new_connector(parent)))
 	return -1;
-    mutex_lock(&new->lock);
+    mutex_lock(&peer->lock);
 
     /* TODO: Set the peer_channel */
-    new->peer_channel = cn;
-    cn->peer_channel = new;
+    peer->peer_channel = me;
+    me->peer_channel = peer;
+
+    /* Each channel endpoint has one ref to another endpoint */
+    me->ref = peer->ref = 2;
 
     /* Send the DONE singal to the other end. */
-    if (--new->waiters == 0)
-	condition_signal(&new->cond);
-    mutex_unlock(&new->lock);
+    if (--peer->waiters == 0)
+	condition_signal(&peer->cond);
+    mutex_unlock(&peer->lock);
     return rc;
 }
 
@@ -109,9 +129,8 @@ static int inproc_listener_destroy(int cd) {
 
     while ((new = pop_new_connector(cn))) {
 	mutex_lock(&new->lock);
-	/* Sending a ECONNREFUSED signel to the other peer. */
-	new->waiters -= 2;
-	if (new->waiters == -1)
+	/* TODO: Sending a ECONNREFUSED signel to the other peer. */
+	if (--new->waiters == 0)
 	    condition_signal(&new->cond);
 	mutex_unlock(&new->lock);
     }
@@ -140,7 +159,7 @@ static int inproc_connector_init(int cd) {
     assert(cn->waiters == 0 || cn->waiters == -1);
 
     /* If the other peer close the connection before the ESTABLISHED */
-    if (cn->waiters == -1) {
+    if (!cn->peer_channel) {
 	errno = ECONNREFUSED;
 	return -1;
     }
@@ -148,7 +167,6 @@ static int inproc_connector_init(int cd) {
 }
 
 static int inproc_connector_destroy(int cd) {
-    /* TODO: do something here */
     return 0;
 }
 
@@ -171,13 +189,19 @@ static void inproc_channel_destroy(int cd) {
     struct channel *cn = cid_to_channel(cd);
 
     switch (cn->ty) {
+    case CHANNEL_ACCEPTER:
     case CHANNEL_CONNECTOR:
 	inproc_connector_destroy(cd);
 	break;
     case CHANNEL_LISTENER:
 	inproc_listener_destroy(cd);
 	break;
+    default:
+	assert(0);
     }
+
+    /* Destroy the channel and free channel id. */
+    free_channel(cn);
 }
 
 static int inproc_channel_setopt(int cd, int opt, void *val, int valsz) {

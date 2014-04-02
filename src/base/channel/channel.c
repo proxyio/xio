@@ -75,14 +75,15 @@ struct channel *cid_to_channel(int cd) {
 
 static void channel_base_init(int cd) {
     struct channel *cn = cid_to_channel(cd);
+
+    mutex_init(&cn->lock);
+    condition_init(&cn->cond);
     cn->fasync = false;
     cn->fok = true;
     cn->parent = -1;
     cn->cd = cd;
     cn->pollid = select_a_poller(cd);
     cn->waiters = 0;
-    mutex_init(&cn->lock);
-    condition_init(&cn->cond);
     cn->rcv = 0;
     cn->snd = 0;
     cn->rcv_wnd = PIO_RCVBUFSZ;
@@ -101,14 +102,14 @@ static void channel_base_exit(int cd) {
     struct list_head head = {};
     struct channel_msg_item *pos, *nx;
     
+    mutex_destroy(&cn->lock);
+    condition_destroy(&cn->cond);
     cn->ty = -1;
     cn->pf = -1;
     cn->fasync = -1;
     cn->fok = -1;
     cn->cd = -1;
     cn->pollid = -1;
-    mutex_destroy(&cn->lock);
-    condition_destroy(&cn->cond);
     cn->rcv = -1;
     cn->snd = -1;
     cn->rcv_wnd = -1;
@@ -179,10 +180,8 @@ static inline int event_runner(void *args) {
     assert(eloop_init(&po->el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
     while (!cn_global.exiting || has_closed_channel(po)) {
 	eloop_once(&po->el);
-	while ((closing_cn = pop_closed_channel(po))) {
+	while ((closing_cn = pop_closed_channel(po)))
 	    closing_cn->vf->destroy(closing_cn->cd);
-	    free_channel(closing_cn);
-	}
     }
 
     /* Release the poll descriptor when runner exit. */

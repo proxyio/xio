@@ -5,10 +5,9 @@
 #include "transport/transport.h"
 
 
-#define PF_INPROC 1
-#define PF_TCP    2
-#define PF_IPC    3
-
+#define PF_TCP    TP_TCP
+#define PF_IPC    TP_IPC
+#define PF_INPROC TP_MOCK_INPROC
 
 /*
   The transport protocol header is 10 bytes long and looks like this:
