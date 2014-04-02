@@ -5,7 +5,7 @@
 #include "transport/transport.h"
 
 
-#define PF_TCP    TP_TCP
+#define PF_NET    TP_TCP
 #define PF_IPC    TP_IPC
 #define PF_INPROC TP_MOCK_INPROC
 
