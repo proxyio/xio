@@ -2,9 +2,13 @@
 #define _HPIO_THREAD_
 
 #include <pthread.h>
-#include <sys/syscall.h>
 #include "base.h"
 #include "os/alloc.h"
+
+/* TODO: remove platform specified code from here */
+#include <unistd.h>
+#include <sys/syscall.h>
+
 
 #define gettid() syscall(__NR_gettid)
 

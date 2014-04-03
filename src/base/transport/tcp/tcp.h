@@ -2,11 +2,7 @@
 #define _HPIO_TCP_
 
 #include <inttypes.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
 #include "transport/transport.h"
-
 
 static inline void tcp_global_init() {
 }

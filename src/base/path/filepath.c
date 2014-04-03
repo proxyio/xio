@@ -1,13 +1,14 @@
-#define __USE_GNU
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <libgen.h>
 #include "base.h"
 #include "filepath.h"
+
+/* TODO: remove platform specified code from here */
+#include <libgen.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 char *fp_join(const char *p1, const char *p2) {
     int len = strlen(p1) + strlen(p2) + 2;

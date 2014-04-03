@@ -2,9 +2,6 @@
 #define _HPIO_IPC_
 
 #include <inttypes.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
 #include "transport/transport.h"
 
 

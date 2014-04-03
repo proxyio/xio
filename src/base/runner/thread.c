@@ -1,4 +1,3 @@
-#include <unistd.h>
 #include "thread.h"
 
 static void *thread_routine (void *arg_)
