@@ -18,7 +18,7 @@ platform_code() {
 	echo -e "#define _HPIO_"$sysh"_" >> $sysh.h
 	echo -e "#endif" >> $sysh.h
 	touch $sysh.c
-	echo -e "#include <"$sysh".h>" >> $sysh.c
+	echo -e "#include \""$sysh".h\"" >> $sysh.c
     fi
 }
 
