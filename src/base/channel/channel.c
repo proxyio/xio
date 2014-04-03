@@ -195,13 +195,18 @@ static inline int event_runner(void *args) {
     return rc;
 }
 
+
+extern struct channel_vf *inproc_channel_vfptr;
+extern struct channel_vf *ipc_channel_vfptr;
+extern struct channel_vf *tcp_channel_vfptr;
+
+
 void global_channel_init() {
     int cd;
     int pd;
     int i;
 
     cn_global.exiting = false;
-
     mutex_init(&cn_global.lock);
 
     for (cd = 0; cd < PIO_MAX_CHANNELS; cd++)
@@ -214,6 +219,12 @@ void global_channel_init() {
     taskpool_start(&cn_global.tpool);
     for (i = 0; i < cn_global.cpu_cores; i++)
 	taskpool_run(&cn_global.tpool, event_runner, NULL);
+
+    /* The priority of channel_vf: inproc > ipc > tcp */
+    INIT_LIST_HEAD(&cn_global.channel_vf_head);
+    list_add(&inproc_channel_vfptr->vf_item, &cn_global.channel_vf_head);
+    list_add(&ipc_channel_vfptr->vf_item, &cn_global.channel_vf_head);
+    list_add(&tcp_channel_vfptr->vf_item, &cn_global.channel_vf_head);
 }
 
 void global_channel_exit() {
@@ -230,8 +241,8 @@ void channel_close(int cd) {
 
 int channel_accept(int cd) {
     struct channel *cn = cid_to_channel(cd);
-    struct channel_vf *vf = cn->vf;
     struct channel *new = alloc_channel();
+    struct channel_vf *vf = cn->vf;
 
     new->ty = CHANNEL_ACCEPTER;
     new->pf = cn->pf;
@@ -246,36 +257,39 @@ int channel_accept(int cd) {
 
 int channel_listen(int pf, const char *addr) {
     struct channel *new = alloc_channel();
-    struct channel_vf *vf = (pf == PF_INPROC) ? inproc_channel_vfptr :
-	io_channel_vfptr;
+    struct channel_vf *vf, *nx;
 
     new->ty = CHANNEL_LISTENER;
     new->pf = pf;
-    new->vf = vf;
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    if (vf->init(new->cd) < 0) {
-	free_channel(new);
-	return -1;
+    list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
+	if (pf == vf->pf && vf->init(new->cd) == 0) {
+	    new->vf = vf;
+	    return new->cd;
+	}
     }
-    return new->cd;
+    free_channel(new);
+    return -1;
 }
 
 int channel_connect(int pf, const char *peer) {
     struct channel *new = alloc_channel();
-    struct channel_vf *vf = (pf == PF_INPROC) ? inproc_channel_vfptr :
-	io_channel_vfptr;
+    struct channel_vf *vf, *nx;
 
     new->ty = CHANNEL_CONNECTOR;
     new->pf = pf;
-    new->vf = vf;
+
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    if (vf->init(new->cd) < 0) {
-	free_channel(new);
-	return -1;
+    list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
+	if (pf == vf->pf && vf->init(new->cd) == 0) {
+	    new->vf = vf;
+	    return new->cd;
+	}
     }
-    return new->cd;
+    free_channel(new);
+    return -1;
 }
 
 int channel_setopt(int cd, int opt, void *val, int valsz) {

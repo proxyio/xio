@@ -286,7 +286,8 @@ static int io_handler(eloop_t *el, ev_t *et) {
 
 
 
-static struct channel_vf io_channel_vf = {
+static struct channel_vf tcp_channel_vf = {
+    .pf = PF_NET,
     .init = io_channel_init,
     .destroy = io_channel_destroy,
     .recv = io_channel_recv,
@@ -295,4 +296,16 @@ static struct channel_vf io_channel_vf = {
     .getopt = io_channel_getopt,
 };
 
-struct channel_vf *io_channel_vfptr = &io_channel_vf;
+static struct channel_vf ipc_channel_vf = {
+    .pf = PF_IPC,
+    .init = io_channel_init,
+    .destroy = io_channel_destroy,
+    .recv = io_channel_recv,
+    .send = io_channel_send,
+    .setopt = io_channel_setopt,
+    .getopt = io_channel_getopt,
+};
+
+
+struct channel_vf *tcp_channel_vfptr = &tcp_channel_vf;
+struct channel_vf *ipc_channel_vfptr = &ipc_channel_vf;

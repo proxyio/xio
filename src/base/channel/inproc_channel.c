@@ -329,6 +329,7 @@ static int inproc_channel_send(int cd, char *payload) {
 }
 
 static struct channel_vf inproc_channel_vf = {
+    .pf = PF_INPROC,
     .init = inproc_channel_init,
     .destroy = inproc_channel_destroy,
     .recv = inproc_channel_recv,

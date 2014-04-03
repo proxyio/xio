@@ -3,9 +3,9 @@
 
 #include "ds/list.h"
 
-#define TP_TCP -1
-#define TP_IPC -2
-#define TP_MOCK_INPROC -3
+#define TP_TCP 1
+#define TP_IPC 2
+#define TP_MOCK_INPROC 4
 
 #define TP_LINGER 1
 #define TP_SNDBUF 2

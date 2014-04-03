@@ -31,10 +31,8 @@ struct channel_vf {
     int (*send) (int cd, char *payload);
     int (*setopt) (int cd, int opt, void *val, int valsz);
     int (*getopt) (int cd, int opt, void *val, int valsz);
+    struct list_head vf_item;
 };
-
-extern struct channel_vf *io_channel_vfptr;
-extern struct channel_vf *inproc_channel_vfptr;
 
 struct channel {
     mutex_t lock;
@@ -143,7 +141,15 @@ struct channel_global {
 
     /* INPROC global listening address mapping */
     struct ssmap inproc_listeners;
+
+    /* Channel vfptr head */
+    struct list_head channel_vf_head;
 };
+
+#define list_for_each_channel_vf_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head, struct channel_vf, vf_item)
+
+
 
 extern struct channel_global cn_global;
 
