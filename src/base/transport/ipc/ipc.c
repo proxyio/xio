@@ -11,7 +11,7 @@
 #include "ipc.h"
 #include "ds/list.h"
 
-
+#define TP_IPC_SOCKDIR "/tmp/proxyio"
 #define TP_IPC_BACKLOG 100
 
 static struct transport ipc_transport_vfptr = {
@@ -34,7 +34,12 @@ struct transport *ipc_transport = &ipc_transport_vfptr;
 
 
 void ipc_close(int fd) {
+    struct sockaddr_un addr = {};
+
+    ipc_sockname(fd, addr.sun_path, sizeof(addr.sun_path));
     close(fd);
+    if (strlen(addr.sun_path) > 0)
+	unlink(addr.sun_path);
 }
 
 
@@ -47,8 +52,9 @@ int ipc_bind(const char *sock) {
     if ((afd = socket(AF_LOCAL, SOCK_STREAM | SOCK_CLOEXEC, 0)) < 0)
 	return -1;
     addr.sun_family = AF_LOCAL;
-    strcpy(addr.sun_path, sock);
-    unlink(sock);
+    snprintf(addr.sun_path,
+	     sizeof(addr.sun_path), "%s/%s", TP_IPC_SOCKDIR, sock);
+    unlink(addr.sun_path);
     if (bind(afd, (struct sockaddr *)&addr, addr_len) < 0
 	|| listen(afd, TP_IPC_BACKLOG) < 0) {
 	close(afd);
@@ -79,7 +85,8 @@ int ipc_connect(const char *peer) {
     if ((fd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0)
 	return -1;
     addr.sun_family = AF_LOCAL;
-    strcpy(addr.sun_path, peer);
+    snprintf(addr.sun_path,
+	     sizeof(addr.sun_path), "%s/%s", TP_IPC_SOCKDIR, peer);
     if (connect(fd, (struct sockaddr *)&addr, addr_len) < 0) {
 	close(fd);
 	return -1;
@@ -113,6 +120,11 @@ int64_t ipc_write(int sockfd, const char *buf, int64_t len) {
     }
     return nbytes;
 }
+
+
+/* TODO:
+ * getsockname/getpeername doesn't support unix domain socket.
+ */
 
 int ipc_sockname(int fd, char *sock, int size) {
     struct sockaddr_un addr = {};

@@ -83,7 +83,7 @@ static void ipc_client() {
     int64_t nbytes;
     char buf[1024] = {};
 
-    if ((sfd = ipc_connect("/tmp/pio_ipc_socket")) < 0)
+    if ((sfd = ipc_connect("pio_ipc_socket")) < 0)
 	ASSERT_TRUE(0);
     randstr(buf, 1024);
     EXPECT_EQ(sizeof(buf), nbytes = ipc_write(sfd, buf, sizeof(buf)));
@@ -121,7 +121,7 @@ static void ipc_server_thread() {
     
     eloop_init(&el, 1024, 100, 10);
 
-    ASSERT_TRUE((afd = ipc_bind("/tmp/pio_ipc_socket")) > 0);
+    ASSERT_TRUE((afd = ipc_bind("pio_ipc_socket")) > 0);
     thread_start(&cli_thread, ipc_client_thread, NULL);
     ASSERT_TRUE((sfd = ipc_accept(afd)) > 0);
     et.f = ipc_client_event_handler;
