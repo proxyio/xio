@@ -242,17 +242,19 @@ void channel_close(int cd) {
 int channel_accept(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct channel *new = alloc_channel();
-    struct channel_vf *vf = cn->vf;
+    struct channel_vf *vf, *nx;
 
     new->ty = CHANNEL_ACCEPTER;
     new->pf = cn->pf;
-    new->vf = vf;
     new->parent = cd;
-    if (vf->init(new->cd) < 0) {
-	free_channel(new);
-	return -1;
+    list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
+	if ((cn->pf & vf->pf) && vf->init(new->cd) == 0) {
+	    new->vf = vf;
+	    return new->cd;
+	}
     }
-    return new->cd;
+    free_channel(new);
+    return -1;
 }
 
 int channel_listen(int pf, const char *addr) {
@@ -264,7 +266,7 @@ int channel_listen(int pf, const char *addr) {
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
-	if (pf == vf->pf && vf->init(new->cd) == 0) {
+	if ((pf & vf->pf) && vf->init(new->cd) == 0) {
 	    new->vf = vf;
 	    return new->cd;
 	}
@@ -283,7 +285,7 @@ int channel_connect(int pf, const char *peer) {
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
-	if (pf == vf->pf && vf->init(new->cd) == 0) {
+	if ((pf & vf->pf) && vf->init(new->cd) == 0) {
 	    new->vf = vf;
 	    return new->cd;
 	}

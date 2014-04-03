@@ -50,13 +50,13 @@ static void tcp_server_thread() {
     thread_start(&cli_thread, tcp_client_thread, NULL);
 
     while ((sfd = channel_accept(afd)) < 0)
-	usleep(1000);
+	usleep(10000);
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd, &payload));
 	ASSERT_TRUE(0 == channel_send(sfd, payload));
     }
     while ((sfd2 = channel_accept(afd)) < 0)
-	usleep(1000);
+	usleep(10000);
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &payload));
 	ASSERT_TRUE(0 == channel_send(sfd2, payload));
@@ -64,7 +64,7 @@ static void tcp_server_thread() {
     channel_close(sfd);
     channel_close(sfd2);
     while ((sfd2 = channel_accept(afd)) < 0)
-	usleep(1000);
+	usleep(10000);
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &payload));
 	ASSERT_TRUE(0 == channel_send(sfd2, payload));
