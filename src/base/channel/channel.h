@@ -22,4 +22,17 @@ int channel_setopt(int cd, int opt, void *val, int valsz);
 int channel_getopt(int cd, int opt, void *val, int valsz);
 void channel_close(int cd);
 
+
+struct channel_events;
+typedef void (*channel_event_func) (int cd, struct channel_events *ev);
+
+struct channel_events {
+    int events;
+    channel_event_func f;
+    void *self;
+};
+
+int channel_poll(int cd, struct channel_events *ev);
+
+
 #endif

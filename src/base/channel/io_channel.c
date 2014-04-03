@@ -7,7 +7,6 @@
 
 extern struct channel_global cn_global;
 
-extern char *channel_msgbase(char *payload);
 extern struct channel *cid_to_channel(int cd);
 extern struct channel_poll *pid_to_channel_poll(int pd);
 extern void free_channel(struct channel *cn);

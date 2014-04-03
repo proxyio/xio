@@ -81,6 +81,9 @@ static void channel_base_init(int cd) {
     cn->cd = cd;
     cn->pollid = select_a_poller(cd);
     cn->waiters = 0;
+    cn->rg.events = 0;
+    cn->rg.f = 0;
+    cn->rg.self = 0;
     cn->rcv = 0;
     cn->snd = 0;
     cn->rcv_wnd = PIO_RCVBUFSZ;
@@ -107,6 +110,10 @@ static void channel_base_exit(int cd) {
     cn->fok = -1;
     cn->cd = -1;
     cn->pollid = -1;
+    cn->waiters = -1;
+    cn->rg.events = -1;
+    cn->rg.f = 0;
+    cn->rg.self = 0;
     cn->rcv = -1;
     cn->snd = -1;
     cn->rcv_wnd = -1;
@@ -272,21 +279,66 @@ int channel_connect(int pf, const char *peer) {
 }
 
 int channel_setopt(int cd, int opt, void *val, int valsz) {
+    int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-    return cn->vf->setopt(cd, opt, val, valsz);
+
+    if (!val || valsz <= 0) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = cn->vf->setopt(cd, opt, val, valsz);
+    return rc;
 }
 
 int channel_getopt(int cd, int opt, void *val, int valsz) {
+    int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-    return cn->vf->getopt(cd, opt, val, valsz);
+
+    if (!val || valsz <= 0) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = cn->vf->getopt(cd, opt, val, valsz);
+    return rc;
 }
 
 int channel_recv(int cd, char **payload) {
+    int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-    return cn->vf->recv(cd, payload);
+
+    if (!payload) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = cn->vf->recv(cd, payload);
+    return rc;
 }
 
 int channel_send(int cd, char *payload) {
+    int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-    return cn->vf->send(cd, payload);
+
+    if (!payload) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = cn->vf->send(cd, payload);
+    return rc;
+}
+
+
+int channel_poll(int cd, struct channel_events *ev) {
+    int rc = 0;
+    struct channel *cn = cid_to_channel(cd);
+
+    if (!ev || !ev->f || !ev->events) {
+	errno = EINVAL;
+	return -1;
+    }
+    mutex_lock(&cn->lock);
+    cn->rg.events = ev->events;
+    cn->rg.f = ev->f;
+    cn->rg.self = ev->self;
+    mutex_unlock(&cn->lock);
+    return rc;
 }

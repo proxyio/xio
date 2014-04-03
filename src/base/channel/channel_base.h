@@ -24,6 +24,7 @@
 #define CHANNEL_CONNECTOR 3
 
 struct channel_vf {
+    int pf;
     int (*init) (int cd);
     void (*destroy) (int cd);
     int (*recv) (int cd, char **payload);
@@ -48,6 +49,7 @@ struct channel {
     int cd;
     int pollid;
     int waiters;
+    struct channel_events rg;
     uint64_t rcv;
     uint64_t snd;
     uint64_t rcv_wnd;

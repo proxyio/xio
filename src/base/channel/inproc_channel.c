@@ -8,7 +8,6 @@
 extern struct channel_global cn_global;
 
 extern struct channel *cid_to_channel(int cd);
-extern int alloc_cid();
 extern void free_channel(struct channel *cn);
 
 static int channel_get(struct channel *cn) {
