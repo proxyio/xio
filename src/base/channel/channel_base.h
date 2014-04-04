@@ -153,6 +153,11 @@ struct channel_global {
 
 extern struct channel_global cn_global;
 
+#define global_vf_head &cn_global.channel_vf_head
+#define global_tpool &cn_global.tpool
+#define global_inplistenrs &cn_global.inproc_listeners
+
+
 static inline void cn_global_lock() {
     mutex_lock(&cn_global.lock);
 }

@@ -47,7 +47,7 @@ void channel_freemsg(char *payload) {
     mem_free(msg, sizeof(*msg) + msg->hdr.size);
 }
 
-static int select_a_poller(int cd) {
+static int choose_backend_poll(int cd) {
     return cd % cn_global.npolls;
 }
 
@@ -79,7 +79,7 @@ static void channel_base_init(int cd) {
     cn->fok = true;
     cn->parent = -1;
     cn->cd = cd;
-    cn->pollid = select_a_poller(cd);
+    cn->pollid = choose_backend_poll(cd);
     cn->waiters = 0;
     cn->rg.events = 0;
     cn->rg.f = 0;
@@ -181,7 +181,10 @@ static inline int event_runner(void *args) {
     INIT_LIST_HEAD(&po->readyin_head);
     INIT_LIST_HEAD(&po->readyout_head);
 
-    assert(eloop_init(&po->el, 10240, 1024, PIO_POLLER_TIMEOUT) == 0);
+    /* Init eventloop */
+    rc = eloop_init(&po->el, 10240, 1024, PIO_POLLER_TIMEOUT);
+    assert(rc == 0);
+
     while (!cn_global.exiting || has_closed_channel(po)) {
 	eloop_once(&po->el);
 	while ((closing_cn = pop_closed_channel(po)))
@@ -202,8 +205,8 @@ extern struct channel_vf *tcp_channel_vfptr;
 
 
 void global_channel_init() {
-    int cd;
-    int pd;
+    int cd; /* Channel id */
+    int pd; /* Poller id */
     int i;
 
     cn_global.exiting = false;
@@ -221,10 +224,10 @@ void global_channel_init() {
 	taskpool_run(&cn_global.tpool, event_runner, NULL);
 
     /* The priority of channel_vf: inproc > ipc > tcp */
-    INIT_LIST_HEAD(&cn_global.channel_vf_head);
-    list_add(&inproc_channel_vfptr->vf_item, &cn_global.channel_vf_head);
-    list_add(&ipc_channel_vfptr->vf_item, &cn_global.channel_vf_head);
-    list_add(&tcp_channel_vfptr->vf_item, &cn_global.channel_vf_head);
+    INIT_LIST_HEAD(global_vf_head);
+    list_add_tail(&inproc_channel_vfptr->vf_item, global_vf_head);
+    list_add_tail(&ipc_channel_vfptr->vf_item, global_vf_head);
+    list_add_tail(&tcp_channel_vfptr->vf_item, global_vf_head);
 }
 
 void global_channel_exit() {
