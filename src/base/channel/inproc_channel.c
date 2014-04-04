@@ -290,12 +290,12 @@ static int inproc_channel_recv(int cd, char **payload) {
        after above checking. it's ok. */
     mutex_lock(&cn->lock);
     while (!(*payload = channel_pop_rcvmsg(cn)) && !cn->fasync) {
-	cn->waiters++;
+	cn->rcv_waiters++;
 	condition_wait(&cn->cond, &cn->lock);
-	cn->waiters--;
+	cn->rcv_waiters--;
     }
     cn->rcv--;
-    if (cn->waiters)
+    if (cn->snd_waiters)
 	condition_signal(&cn->cond);
     mutex_unlock(&cn->lock);
     if (!*payload)
@@ -317,12 +317,12 @@ static int inproc_channel_send(int cd, char *payload) {
        after above checking. it's ok. */
     mutex_lock(&peer->lock);
     while ((rc = channel_push_sndmsg(peer, payload)) < 0 && errno == EAGAIN) {
-	peer->waiters++;
+	peer->snd_waiters++;
 	condition_wait(&peer->cond, &peer->lock);
-	peer->waiters--;
+	peer->snd_waiters--;
     }
     peer->rcv++;
-    if (peer->waiters)
+    if (peer->rcv_waiters)
 	condition_signal(&peer->cond);
     mutex_unlock(&peer->lock);
     return rc;

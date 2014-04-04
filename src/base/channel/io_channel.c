@@ -161,7 +161,7 @@ static void channel_push_rcvmsg(struct channel *cn, char *payload) {
     list_add_tail(&msg->item, &cn->rcv_head);
 
     /* Wakeup the blocking waiters. */
-    if (cn->waiters > 0)
+    if (cn->rcv_waiters > 0)
 	condition_broadcast(&cn->cond);
     mutex_unlock(&cn->lock);
 }
@@ -196,7 +196,7 @@ static char *channel_pop_sndmsg(struct channel *cn) {
 	payload = msg->hdr.payload;
 
 	/* Wakeup the blocking waiters */
-	if (cn->waiters > 0)
+	if (cn->snd_waiters > 0)
 	    condition_broadcast(&cn->cond);
     }
     mutex_unlock(&cn->lock);
@@ -210,9 +210,9 @@ static int io_channel_recv(int cd, char **payload) {
 
     mutex_lock(&cn->lock);
     while (!(*payload = channel_pop_rcvmsg(cn)) && !cn->fasync) {
-	cn->waiters++;
+	cn->rcv_waiters++;
 	condition_wait(&cn->cond, &cn->lock);
-	cn->waiters--;
+	cn->rcv_waiters--;
     }
     mutex_unlock(&cn->lock);
     if (!*payload)
@@ -226,9 +226,9 @@ static int io_channel_send(int cd, char *payload) {
 
     mutex_lock(&cn->lock);
     while ((rc = channel_push_sndmsg(cn, payload)) < 0 && errno == EAGAIN) {
-	cn->waiters++;
+	cn->snd_waiters++;
 	condition_wait(&cn->cond, &cn->lock);
-	cn->waiters--;
+	cn->snd_waiters--;
     }
     mutex_unlock(&cn->lock);
     return rc;

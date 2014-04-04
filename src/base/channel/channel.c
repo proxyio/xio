@@ -80,10 +80,11 @@ static void channel_base_init(int cd) {
     cn->parent = -1;
     cn->cd = cd;
     cn->pollid = choose_backend_poll(cd);
-    cn->waiters = 0;
     cn->rg.events = 0;
     cn->rg.f = 0;
     cn->rg.self = 0;
+    cn->rcv_waiters = 0;
+    cn->snd_waiters = 0;
     cn->rcv = 0;
     cn->snd = 0;
     cn->rcv_wnd = PIO_RCVBUFSZ;
@@ -110,10 +111,11 @@ static void channel_base_exit(int cd) {
     cn->fok = -1;
     cn->cd = -1;
     cn->pollid = -1;
-    cn->waiters = -1;
     cn->rg.events = -1;
     cn->rg.f = 0;
     cn->rg.self = 0;
+    cn->rcv_waiters = -1;
+    cn->snd_waiters = -1;
     cn->rcv = -1;
     cn->snd = -1;
     cn->rcv_wnd = -1;

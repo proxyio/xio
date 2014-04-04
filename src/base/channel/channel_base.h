@@ -46,8 +46,9 @@ struct channel {
     int parent;
     int cd;
     int pollid;
-    int waiters;
     struct channel_events rg;
+    int rcv_waiters;
+    int snd_waiters;
     uint64_t rcv;
     uint64_t snd;
     uint64_t rcv_wnd;
