@@ -171,9 +171,7 @@ static int inproc_connector_init(int cd) {
     if (cn->proc.ref == 0) {
 	cn->proc.ref++;
 	condition_wait(&cn->cond, &cn->lock);
-    } else
-	assert(cn->proc.ref != 0);
-    mutex_unlock(&cn->lock);
+    }
 
     /* step3. Check the connection status.
      * Maybe the other peer close the connection before the ESTABLISHED
@@ -186,11 +184,11 @@ static int inproc_connector_init(int cd) {
 	assert(cn->proc.ref == 0);
     else if (cn->proc.ref == 2)
 	assert(cn->proc.ref == 2);
-
     if (cn->proc.ref == 0 || cn->proc.ref == -1) {
-	errno = ECONNREFUSED;
-	return -1;
+    	errno = ECONNREFUSED;
+	rc = -1;
     }
+    mutex_unlock(&cn->lock);
     return rc;
 }
 

@@ -92,8 +92,21 @@ struct channel {
     } proc;
 };
 
+// We guarantee that we can push one massage at least.
+static inline int can_send(struct channel *cn) {
+    return list_empty(&cn->snd_head) || cn->snd < cn->snd_wnd;
+}
+
+static inline int can_recv(struct channel *cn) {
+    return list_empty(&cn->rcv_head) || cn->rcv < cn->rcv_wnd;
+}
+
 #define list_for_each_new_connector_safe(pos, nx, head)			\
     list_for_each_entry_safe(pos, nx, head, struct channel, wait_item)
+
+
+
+
 
 struct channel_poll {
     spin_t lock;

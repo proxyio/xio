@@ -154,7 +154,87 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-static void channel_push_rcvmsg(struct channel *cn, char *payload) {
+static struct channel_msg *rcvhead_pop(struct channel *cn) {
+    struct channel_msg *msg = NULL;
+
+    mutex_lock(&cn->lock);
+    while (list_empty(&cn->rcv_head) && !cn->fasync) {
+	cn->rcv_waiters++;
+	condition_wait(&cn->cond, &cn->lock);
+	cn->rcv_waiters--;
+    }
+    if (!list_empty(&cn->rcv_head)) {
+	msg = list_first(&cn->rcv_head, struct channel_msg, item);
+	list_del_init(&msg->item);
+    }
+    mutex_unlock(&cn->lock);
+    return msg;
+}
+
+
+static int sndhead_push(struct channel *cn, struct channel_msg *msg) {
+    int rc = -1;
+
+    mutex_lock(&cn->lock);
+    while (!can_send(cn) && !cn->fasync) {
+	cn->snd_waiters++;
+	condition_wait(&cn->cond, &cn->lock);
+	cn->snd_waiters--;
+    }
+    if (can_send(cn)) {
+	rc = 0;
+	list_add_tail(&msg->item, &cn->snd_head);
+    }
+    mutex_unlock(&cn->lock);
+    return rc;
+}
+
+static int io_channel_recv(int cd, char **payload) {
+    int rc = -1;
+    struct channel *cn = cid_to_channel(cd);
+    struct channel_msg *msg;
+
+    errno = EAGAIN;
+    if ((msg = rcvhead_pop(cn))) {
+	rc = 0;
+	*payload = msg->hdr.payload;
+    }
+    return rc;
+}
+
+static int io_channel_send(int cd, char *payload) {
+    int rc = 0;
+    struct channel *cn = cid_to_channel(cd);
+    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+
+    if ((rc = sndhead_push(cn, msg)) < 0)
+	errno = EAGAIN;
+    return rc;
+}
+
+
+
+
+static int accept_handler(eloop_t *el, ev_t *et) {
+    int rc = 0;
+    return rc;
+}
+
+
+
+static int msg_ready(struct bio *b, int64_t *payload_sz) {
+    struct channel_msg msg = {};
+    
+    if (b->bsize < sizeof(msg.hdr))
+	return false;
+    bio_copy(b, (char *)(&msg.hdr), sizeof(msg.hdr));
+    if (b->bsize < msg_iovlen(msg.hdr.payload))
+	return false;
+    *payload_sz = msg.hdr.size;
+    return true;
+}
+
+static void rcvhead_push(struct channel *cn, char *payload) {
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
 
     mutex_lock(&cn->lock);
@@ -166,26 +246,7 @@ static void channel_push_rcvmsg(struct channel *cn, char *payload) {
     mutex_unlock(&cn->lock);
 }
 
-static char *channel_pop_rcvmsg(struct channel *cn) {
-    struct channel_msg *msg;
-
-    if (!list_empty(&cn->rcv_head)) {
-	msg = list_first(&cn->rcv_head, struct channel_msg, item);
-	list_del_init(&msg->item);
-	return msg->hdr.payload;
-    }
-    return NULL;
-}
-
-
-static int channel_push_sndmsg(struct channel *cn, char *payload) {
-    int rc = 0;
-    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
-    list_add_tail(&msg->item, &cn->snd_head);
-    return rc;
-}
-
-static char *channel_pop_sndmsg(struct channel *cn) {
+static char *sndhead_pop(struct channel *cn) {
     char *payload = NULL;
     struct channel_msg *msg;
     
@@ -204,83 +265,46 @@ static char *channel_pop_sndmsg(struct channel *cn) {
     return payload;
 }
 
-static int io_channel_recv(int cd, char **payload) {
+static int io_rcv(struct channel *cn) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
+    char *payload;
+    int64_t payload_sz;
 
-    mutex_lock(&cn->lock);
-    while (!(*payload = channel_pop_rcvmsg(cn)) && !cn->fasync) {
-	cn->rcv_waiters++;
-	condition_wait(&cn->cond, &cn->lock);
-	cn->rcv_waiters--;
+    if ((rc = bio_prefetch(&cn->sock.in, &cn->sock.ops)) < 0 && errno != EAGAIN)
+	return rc;
+    while (msg_ready(&cn->sock.in, &payload_sz)) {
+	payload = channel_allocmsg(payload_sz);
+	bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
+	rcvhead_push(cn, payload);
     }
-    mutex_unlock(&cn->lock);
-    if (!*payload)
-	rc = -EAGAIN;
     return rc;
 }
 
-static int io_channel_send(int cd, char *payload) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
+static int io_snd(struct channel *cn) {
+    int rc;
+    char *payload;
 
-    mutex_lock(&cn->lock);
-    while ((rc = channel_push_sndmsg(cn, payload)) < 0 && errno == EAGAIN) {
-	cn->snd_waiters++;
-	condition_wait(&cn->cond, &cn->lock);
-	cn->snd_waiters--;
+    while ((payload = sndhead_pop(cn)) != NULL) {
+	bio_write(&cn->sock.out, msg_iovbase(payload), msg_iovlen(payload));
+	channel_freemsg(payload);
     }
-    mutex_unlock(&cn->lock);
+    rc = bio_flush(&cn->sock.out, &cn->sock.ops);
     return rc;
 }
 
-
-
-
-static int accept_handler(eloop_t *el, ev_t *et) {
-    int rc = 0;
-    return rc;
-}
-
-
-static int msg_ready(struct bio *b, int64_t *payload_sz) {
-    struct channel_msg msg = {};
-    
-    if (b->bsize < sizeof(msg.hdr))
-	return false;
-    bio_copy(b, (char *)(&msg.hdr), sizeof(msg.hdr));
-    if (b->bsize < msg_iovlen(msg.hdr.payload))
-	return false;
-    *payload_sz = msg.hdr.size;
-    return true;
-}
 
 static int io_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     struct channel *cn = cont_of(et, struct channel, sock.et);
-    char *payload;
-    int64_t payload_sz = 0;
 
     if (et->events & EPOLLIN) {
-	if ((rc = bio_prefetch(&cn->sock.in, &cn->sock.ops)) < 0 && errno != EAGAIN)
-	    goto EXIT;
-	while (msg_ready(&cn->sock.in, &payload_sz)) {
-	    payload = channel_allocmsg(payload_sz);
-	    bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
-	    channel_push_rcvmsg(cn, payload);
-	}
+	rc = io_rcv(cn);
     }
     if (et->events & EPOLLOUT) {
-	while ((payload = channel_pop_sndmsg(cn)) != NULL) {
-	    bio_write(&cn->sock.out, msg_iovbase(payload), msg_iovlen(payload));
-	    channel_freemsg(payload);
-	}
-	if ((rc = bio_flush(&cn->sock.out, &cn->sock.ops)) < 0 && errno != EAGAIN)
-	    goto EXIT;
+	rc = io_snd(cn);
     }
     if ((rc < 0 && errno != EAGAIN) || et->events & (EPOLLERR|EPOLLRDHUP))
 	cn->fok = false;
- EXIT:
     return rc;
 }
 
