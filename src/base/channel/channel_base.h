@@ -34,6 +34,15 @@ struct channel_vf {
     struct list_head vf_item;
 };
 
+struct head_vf {
+    int (*push) (struct list_head *head);
+    int (*pop) (struct list_head *head);
+    int (*empty) (struct list_head *head);
+    int (*nonempty) (struct list_head *head);
+    int (*full) (struct list_head *head);
+    int (*nonfull) (struct list_head *head);
+};
+
 struct channel {
     mutex_t lock;
     condition_t cond;
@@ -55,6 +64,8 @@ struct channel {
     uint64_t snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
+    struct head_vf rcv_notify;
+    struct head_vf snd_notify;
     struct channel_vf *vf;
 
     struct list_head closing_link;
@@ -73,7 +84,6 @@ struct channel {
     } sock;
 
     /* Reserved only for intern process channel */
-
     struct {
 	/* Reference by self and the peer. in normal case
 	 * if ref == 2, connection work in normal state

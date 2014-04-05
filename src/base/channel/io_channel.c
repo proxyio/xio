@@ -154,7 +154,7 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-static struct channel_msg *rcvhead_pop(struct channel *cn) {
+static struct channel_msg *pop_rcv(struct channel *cn) {
     struct channel_msg *msg = NULL;
 
     mutex_lock(&cn->lock);
@@ -172,7 +172,7 @@ static struct channel_msg *rcvhead_pop(struct channel *cn) {
 }
 
 
-static int sndhead_push(struct channel *cn, struct channel_msg *msg) {
+static int push_snd(struct channel *cn, struct channel_msg *msg) {
     int rc = -1;
 
     mutex_lock(&cn->lock);
@@ -195,7 +195,7 @@ static int io_channel_recv(int cd, char **payload) {
     struct channel_msg *msg;
 
     errno = EAGAIN;
-    if ((msg = rcvhead_pop(cn))) {
+    if ((msg = pop_rcv(cn))) {
 	rc = 0;
 	*payload = msg->hdr.payload;
     }
@@ -207,7 +207,7 @@ static int io_channel_send(int cd, char *payload) {
     struct channel *cn = cid_to_channel(cd);
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
 
-    if ((rc = sndhead_push(cn, msg)) < 0)
+    if ((rc = push_snd(cn, msg)) < 0)
 	errno = EAGAIN;
     return rc;
 }
@@ -234,7 +234,7 @@ static int msg_ready(struct bio *b, int64_t *payload_sz) {
     return true;
 }
 
-static void rcvhead_push(struct channel *cn, char *payload) {
+static void push_rcv(struct channel *cn, char *payload) {
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
 
     mutex_lock(&cn->lock);
@@ -246,7 +246,7 @@ static void rcvhead_push(struct channel *cn, char *payload) {
     mutex_unlock(&cn->lock);
 }
 
-static char *sndhead_pop(struct channel *cn) {
+static char *pop_snd(struct channel *cn) {
     char *payload = NULL;
     struct channel_msg *msg;
     
@@ -275,7 +275,7 @@ static int io_rcv(struct channel *cn) {
     while (msg_ready(&cn->sock.in, &payload_sz)) {
 	payload = channel_allocmsg(payload_sz);
 	bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
-	rcvhead_push(cn, payload);
+	push_rcv(cn, payload);
     }
     return rc;
 }
@@ -284,7 +284,7 @@ static int io_snd(struct channel *cn) {
     int rc;
     char *payload;
 
-    while ((payload = sndhead_pop(cn)) != NULL) {
+    while ((payload = pop_snd(cn)) != NULL) {
 	bio_write(&cn->sock.out, msg_iovbase(payload), msg_iovlen(payload));
 	channel_freemsg(payload);
     }

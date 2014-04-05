@@ -76,8 +76,91 @@ static struct channel *pop_new_connector(struct channel *cn) {
     return new;
 }
 
+/******************************************************************************
+ *  snd_head events trigger.
+ ******************************************************************************/
 
+static int snd_head_push(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
 
+static int snd_head_pop(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int snd_head_empty(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int snd_head_nonempty(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int snd_head_full(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int snd_head_nonfull(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static struct head_vf snd_head_vf = {
+    .push = snd_head_push,
+    .pop = snd_head_pop,
+    .empty = snd_head_empty,
+    .nonempty = snd_head_nonempty,
+    .full = snd_head_full,
+    .nonfull = snd_head_nonfull,
+};
+
+/******************************************************************************
+ *  rcv_head events trigger.
+ ******************************************************************************/
+
+static int rcv_head_push(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int rcv_head_pop(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int rcv_head_empty(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int rcv_head_nonempty(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int rcv_head_full(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static int rcv_head_nonfull(struct list_head *head) {
+    int rc = 0;
+    return rc;
+}
+
+static struct head_vf rcv_head_vf = {
+    .push = rcv_head_push,
+    .pop = rcv_head_pop,
+    .empty = rcv_head_empty,
+    .nonempty = rcv_head_nonempty,
+    .full = rcv_head_full,
+    .nonfull = rcv_head_nonfull,
+};
 
 
 static int inproc_accepter_init(int cd) {
@@ -211,8 +294,12 @@ static int inproc_channel_init(int cd) {
 
     switch (cn->ty) {
     case CHANNEL_ACCEPTER:
+	cn->rcv_notify = rcv_head_vf;
+	cn->snd_notify = snd_head_vf;
 	return inproc_accepter_init(cd);
     case CHANNEL_CONNECTOR:
+	cn->rcv_notify = rcv_head_vf;
+	cn->snd_notify = snd_head_vf;
 	return inproc_connector_init(cd);
     case CHANNEL_LISTENER:
 	return inproc_listener_init(cd);
@@ -254,7 +341,7 @@ static int inproc_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-static char *channel_pop_rcvmsg(struct channel *cn) {
+static char *pop_rcv(struct channel *cn) {
     struct channel_msg *msg;
 
     if (!list_empty(&cn->rcv_head)) {
@@ -266,7 +353,7 @@ static char *channel_pop_rcvmsg(struct channel *cn) {
 }
 
 
-static int channel_push_sndmsg(struct channel *peer, char *payload) {
+static int push_snd(struct channel *peer, char *payload) {
     int rc = 0;
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
     list_add_tail(&msg->item, &peer->rcv_head);
@@ -287,7 +374,7 @@ static int inproc_channel_recv(int cd, char **payload) {
     /* Conditon race here when the peer channel shutdown
        after above checking. it's ok. */
     mutex_lock(&cn->lock);
-    while (!(*payload = channel_pop_rcvmsg(cn)) && !cn->fasync) {
+    while (!(*payload = pop_rcv(cn)) && !cn->fasync) {
 	cn->rcv_waiters++;
 	condition_wait(&cn->cond, &cn->lock);
 	cn->rcv_waiters--;
@@ -314,7 +401,7 @@ static int inproc_channel_send(int cd, char *payload) {
     /* Conditon race here when the peer channel shutdown
        after above checking. it's ok. */
     mutex_lock(&peer->lock);
-    while ((rc = channel_push_sndmsg(peer, payload)) < 0 && errno == EAGAIN) {
+    while ((rc = push_snd(peer, payload)) < 0 && errno == EAGAIN) {
 	peer->snd_waiters++;
 	condition_wait(&peer->cond, &peer->lock);
 	peer->snd_waiters--;
