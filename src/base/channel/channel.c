@@ -323,6 +323,71 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
+struct channel_msg *pop_rcv(struct channel *cn) {
+    struct channel_msg *msg = NULL;
+
+    mutex_lock(&cn->lock);
+    while (list_empty(&cn->rcv_head) && !cn->fasync) {
+	cn->rcv_waiters++;
+	condition_wait(&cn->cond, &cn->lock);
+	cn->rcv_waiters--;
+    }
+    if (!list_empty(&cn->rcv_head)) {
+	msg = list_first(&cn->rcv_head, struct channel_msg, item);
+	list_del_init(&msg->item);
+    }
+    mutex_unlock(&cn->lock);
+    if (msg && cn->rcv_notify.pop)
+	cn->rcv_notify.pop(&cn->rcv_head);
+    return msg;
+}
+
+void push_rcv(struct channel *cn, struct channel_msg *msg) {
+    mutex_lock(&cn->lock);
+    list_add_tail(&msg->item, &cn->rcv_head);
+
+    /* Wakeup the blocking waiters. */
+    if (cn->rcv_waiters > 0)
+	condition_broadcast(&cn->cond);
+    mutex_unlock(&cn->lock);
+}
+
+
+struct channel_msg *pop_snd(struct channel *cn) {
+    struct channel_msg *msg = NULL;
+
+    mutex_lock(&cn->lock);
+    if (!list_empty(&cn->snd_head)) {
+	msg = list_first(&cn->snd_head, struct channel_msg, item);
+	list_del_init(&msg->item);
+
+	/* Wakeup the blocking waiters */
+	if (cn->snd_waiters > 0)
+	    condition_broadcast(&cn->cond);
+    }
+    mutex_unlock(&cn->lock);
+    return msg;
+}
+
+int push_snd(struct channel *cn, struct channel_msg *msg) {
+    int rc = -1;
+
+    mutex_lock(&cn->lock);
+    while (!can_send(cn) && !cn->fasync) {
+	cn->snd_waiters++;
+	condition_wait(&cn->cond, &cn->lock);
+	cn->snd_waiters--;
+    }
+    if (can_send(cn)) {
+	rc = 0;
+	list_add_tail(&msg->item, &cn->snd_head);
+    }
+    mutex_unlock(&cn->lock);
+    if (rc == 0 && cn->snd_notify.push)
+	cn->snd_notify.push(&cn->snd_head);
+    return rc;
+}
+
 int channel_recv(int cd, char **payload) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
