@@ -24,12 +24,12 @@
 #define CHANNEL_CONNECTOR 3
 
 struct head_vf {
-    int (*push) (struct list_head *head);
-    int (*pop) (struct list_head *head);
-    int (*empty) (struct list_head *head);
-    int (*nonempty) (struct list_head *head);
-    int (*full) (struct list_head *head);
-    int (*nonfull) (struct list_head *head);
+    int (*push) (int cd);
+    int (*pop) (int cd);
+    int (*empty) (int cd);
+    int (*nonempty) (int cd);
+    int (*full) (int cd);
+    int (*nonfull) (int cd);
 };
 
 struct channel_vf {

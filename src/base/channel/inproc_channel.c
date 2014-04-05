@@ -79,10 +79,10 @@ static struct channel *pop_new_connector(struct channel *cn) {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_head_push(struct list_head *head) {
+static int snd_head_push(int cd) {
     int rc = 0, can = false;
     struct channel_msg *msg;
-    struct channel *cn = cont_of(head, struct channel, snd_head);
+    struct channel *cn = cid_to_channel(cd);
     struct channel *peer = cn->proc.peer_channel;
 
     // TODO: maybe the peer channel can't recv anymore after the check.
@@ -97,27 +97,27 @@ static int snd_head_push(struct list_head *head) {
     return rc;
 }
 
-static int snd_head_pop(struct list_head *head) {
+static int snd_head_pop(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_empty(struct list_head *head) {
+static int snd_head_empty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_nonempty(struct list_head *head) {
+static int snd_head_nonempty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_full(struct list_head *head) {
+static int snd_head_full(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_nonfull(struct list_head *head) {
+static int snd_head_nonfull(int cd) {
     int rc = 0;
     return rc;
 }
@@ -135,14 +135,15 @@ static int snd_head_nonfull(struct list_head *head) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_head_push(struct list_head *head) {
+static int rcv_head_push(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_pop(struct list_head *head) {
+static int rcv_head_pop(int cd) {
     int rc = 0;
-    struct channel *cn = cont_of(head, struct channel, rcv_head);
+    struct channel *cn = cid_to_channel(cd);
+
     mutex_lock(&cn->lock);
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
@@ -150,22 +151,22 @@ static int rcv_head_pop(struct list_head *head) {
     return rc;
 }
 
-static int rcv_head_empty(struct list_head *head) {
+static int rcv_head_empty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_nonempty(struct list_head *head) {
+static int rcv_head_nonempty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_full(struct list_head *head) {
+static int rcv_head_full(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_nonfull(struct list_head *head) {
+static int rcv_head_nonfull(int cd) {
     int rc = 0;
     return rc;
 }

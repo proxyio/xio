@@ -17,15 +17,15 @@ extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
 
-static int64_t io_channel_read(struct io *io_ops, char *buff, int64_t sz) {
-    struct channel *cn = cont_of(io_ops, struct channel, sock.ops);
+static int64_t io_channel_read(struct io *ops, char *buff, int64_t sz) {
+    struct channel *cn = cont_of(ops, struct channel, sock.ops);
     struct transport *tp = cn->sock.tp;
     int rc = tp->read(cn->sock.fd, buff, sz);
     return rc;
 }
 
-static int64_t io_channel_write(struct io *io_ops, char *buff, int64_t sz) {
-    struct channel *cn = cont_of(io_ops, struct channel, sock.ops);
+static int64_t io_channel_write(struct io *ops, char *buff, int64_t sz) {
+    struct channel *cn = cont_of(ops, struct channel, sock.ops);
     struct transport *tp = cn->sock.tp;
     int rc = tp->write(cn->sock.fd, buff, sz);
     return rc;
@@ -42,32 +42,32 @@ static struct io default_channel_ops = {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_head_push(struct list_head *head) {
+static int snd_head_push(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_pop(struct list_head *head) {
+static int snd_head_pop(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_empty(struct list_head *head) {
+static int snd_head_empty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_nonempty(struct list_head *head) {
+static int snd_head_nonempty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_full(struct list_head *head) {
+static int snd_head_full(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int snd_head_nonfull(struct list_head *head) {
+static int snd_head_nonfull(int cd) {
     int rc = 0;
     return rc;
 }
@@ -86,14 +86,15 @@ static int snd_head_nonfull(struct list_head *head) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_head_push(struct list_head *head) {
+static int rcv_head_push(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_pop(struct list_head *head) {
+static int rcv_head_pop(int cd) {
     int rc = 0;
-    struct channel *cn = cont_of(head, struct channel, rcv_head);
+    struct channel *cn = cid_to_channel(cd);
+
     mutex_lock(&cn->lock);
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
@@ -101,22 +102,22 @@ static int rcv_head_pop(struct list_head *head) {
     return rc;
 }
 
-static int rcv_head_empty(struct list_head *head) {
+static int rcv_head_empty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_nonempty(struct list_head *head) {
+static int rcv_head_nonempty(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_full(struct list_head *head) {
+static int rcv_head_full(int cd) {
     int rc = 0;
     return rc;
 }
 
-static int rcv_head_nonfull(struct list_head *head) {
+static int rcv_head_nonfull(int cd) {
     int rc = 0;
     return rc;
 }

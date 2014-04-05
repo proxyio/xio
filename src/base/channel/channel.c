@@ -326,6 +326,8 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
 struct channel_msg *pop_rcv(struct channel *cn) {
     struct channel_msg *msg = NULL;
     struct channel_vf *vf = cn->vf;
+    int64_t msgsz;
+    int empty = false, nonfull = false;
 
     mutex_lock(&cn->lock);
     while (list_empty(&cn->rcv_head) && !cn->fasync) {
@@ -336,43 +338,90 @@ struct channel_msg *pop_rcv(struct channel *cn) {
     if (!list_empty(&cn->rcv_head)) {
 	msg = list_first(&cn->rcv_head, struct channel_msg, item);
 	list_del_init(&msg->item);
+	msgsz = msg_iovlen(msg->hdr.payload);
+	cn->rcv -= msgsz;
+	if (cn->rcv_wnd - cn->rcv <= msgsz)
+	    nonfull = true;
+	if (list_empty(&cn->rcv_head)) {
+	    empty = true;
+	    assert(cn->rcv == 0);
+	}
     }
     mutex_unlock(&cn->lock);
     if (msg && vf->rcv_notify.pop)
-	vf->rcv_notify.pop(&cn->rcv_head);
+	vf->rcv_notify.pop(cn->cd);
+    if (empty && vf->rcv_notify.empty)
+	vf->rcv_notify.empty(cn->cd);
+    if (nonfull && vf->rcv_notify.nonfull)
+	vf->rcv_notify.nonfull(cn->cd);
     return msg;
 }
 
 void push_rcv(struct channel *cn, struct channel_msg *msg) {
+    struct channel_vf *vf = cn->vf;
+    int full = false, nonempty = false;
+    int64_t msgsz = msg_iovlen(msg->hdr.payload);
+
     mutex_lock(&cn->lock);
-    list_add_tail(&msg->item, &cn->rcv_head);
+    if (list_empty(&cn->rcv_head))
+	nonempty = true;
+    if (cn->rcv_wnd - cn->rcv <= msgsz)
+	full = true;
+    cn->rcv += msgsz;
+    list_add_tail(&msg->item, &cn->rcv_head);    
 
     /* Wakeup the blocking waiters. */
     if (cn->rcv_waiters > 0)
 	condition_broadcast(&cn->cond);
     mutex_unlock(&cn->lock);
+
+    if (vf->rcv_notify.push)
+	vf->rcv_notify.push(cn->cd);
+    if (full && vf->rcv_notify.full)
+	vf->rcv_notify.full(cn->cd);
+    if (nonempty && vf->rcv_notify.nonempty)
+	vf->rcv_notify.nonempty(cn->cd);
 }
 
 
 struct channel_msg *pop_snd(struct channel *cn) {
+    struct channel_vf *vf = cn->vf;
     struct channel_msg *msg = NULL;
+    int64_t msgsz;
+    int empty = false, nonfull = false;
 
     mutex_lock(&cn->lock);
     if (!list_empty(&cn->snd_head)) {
 	msg = list_first(&cn->snd_head, struct channel_msg, item);
 	list_del_init(&msg->item);
+	msgsz = msg_iovlen(msg->hdr.payload);
+	cn->snd -= msgsz;
+	if (cn->snd_wnd - cn->snd <= msgsz)
+	    nonfull = true;
+	if (list_empty(&cn->snd_head)) {
+	    empty = true;
+	    assert(cn->snd == 0);
+	}
 
 	/* Wakeup the blocking waiters */
 	if (cn->snd_waiters > 0)
 	    condition_broadcast(&cn->cond);
     }
     mutex_unlock(&cn->lock);
+    if (msg && vf->snd_notify.pop)
+	vf->snd_notify.pop(cn->cd);
+    if (empty && vf->snd_notify.empty)
+	vf->snd_notify.empty(cn->cd);
+    if (nonfull && vf->snd_notify.nonfull)
+	vf->snd_notify.nonfull(cn->cd);
     return msg;
 }
 
 int push_snd(struct channel *cn, struct channel_msg *msg) {
     int rc = -1;
     struct channel_vf *vf = cn->vf;
+    int full = false, nonempty = false;
+    int64_t msgsz = msg_iovlen(msg->hdr.payload);
 
     mutex_lock(&cn->lock);
     while (!can_send(cn) && !cn->fasync) {
@@ -382,11 +431,20 @@ int push_snd(struct channel *cn, struct channel_msg *msg) {
     }
     if (can_send(cn)) {
 	rc = 0;
+	if (list_empty(&cn->snd_head))
+	    nonempty = true;
+	if (cn->snd_wnd - cn->snd <= msgsz)
+	    full = true;
+	cn->snd += msgsz;
 	list_add_tail(&msg->item, &cn->snd_head);
     }
     mutex_unlock(&cn->lock);
     if (rc == 0 && vf->snd_notify.push)
-	vf->snd_notify.push(&cn->snd_head);
+	vf->snd_notify.push(cn->cd);
+    if (full && vf->snd_notify.full)
+	vf->snd_notify.full(cn->cd);
+    if (nonempty && vf->snd_notify.nonempty)
+	vf->snd_notify.nonempty(cn->cd);
     return rc;
 }
 
