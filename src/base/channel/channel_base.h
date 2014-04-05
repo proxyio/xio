@@ -23,23 +23,21 @@
 #define CHANNEL_ACCEPTER 2
 #define CHANNEL_CONNECTOR 3
 
-struct head_vf {
-    int (*push) (int cd);
-    int (*pop) (int cd);
-    int (*empty) (int cd);
-    int (*nonempty) (int cd);
-    int (*full) (int cd);
-    int (*nonfull) (int cd);
-};
+#define MQ_PUSH         0x01
+#define MQ_POP          0x02
+#define MQ_EMPTY        0x04
+#define MQ_NONEMPTY     0x08
+#define MQ_FULL         0x10
+#define MQ_NONFULL      0x20
 
 struct channel_vf {
     int pf;
     int (*init) (int cd);
     void (*destroy) (int cd);
+    void (*snd_notify) (int cd, uint32_t events);
+    void (*rcv_notify) (int cd, uint32_t events);
     int (*setopt) (int cd, int opt, void *val, int valsz);
     int (*getopt) (int cd, int opt, void *val, int valsz);
-    struct head_vf rcv_notify;
-    struct head_vf snd_notify;
     struct list_head vf_item;
 };
 

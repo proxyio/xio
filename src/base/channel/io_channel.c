@@ -42,99 +42,50 @@ static struct io default_channel_ops = {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_head_push(int cd) {
-    int rc = 0;
-    return rc;
-}
+static void snd_empty_event(int cd) {
+    struct channel *cn = cid_to_channel(cd);
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
 
-static int snd_head_pop(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_empty(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_nonempty(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_full(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_nonfull(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-#define snd_head_vf {				\
-	.push = snd_head_push,			\
-	.pop = snd_head_pop,			\
-	.empty = snd_head_empty,		\
-	.nonempty = snd_head_nonempty,		\
-	.full = snd_head_full,			\
-	.nonfull = snd_head_nonfull,		\
+    // Disable POLLOUT event when snd_head is empty
+    mutex_lock(&cn->lock);
+    if (cn->sock.et.events & EPOLLOUT) {
+	cn->sock.et.events &= ~EPOLLOUT;
+	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
     }
+    mutex_unlock(&cn->lock);
+}
+
+static void snd_nonempty_event(int cd) {
+    struct channel *cn = cid_to_channel(cd);
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+
+    // Enable POLLOUT event when snd_head isn't empty
+    mutex_lock(&cn->lock);
+    if (!(cn->sock.et.events & EPOLLOUT)) {
+	cn->sock.et.events |= EPOLLOUT;
+	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+    }
+    mutex_unlock(&cn->lock);
+}
 
 
 /******************************************************************************
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_head_push(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int rcv_head_pop(int cd) {
-    int rc = 0;
+static void rcv_pop_event(int cd) {
     struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
     mutex_unlock(&cn->lock);
-    return rc;
 }
 
-static int rcv_head_empty(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int rcv_head_nonempty(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int rcv_head_full(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int rcv_head_nonfull(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-#define rcv_head_vf {				\
-	.push = rcv_head_push,			\
-	.pop = rcv_head_pop,			\
-	.empty = rcv_head_empty,		\
-	.nonempty = rcv_head_nonempty,		\
-	.full = rcv_head_full,			\
-	.nonfull = rcv_head_nonfull,		\
-    }
 
 
 static int accept_handler(eloop_t *el, ev_t *et);
 static int io_handler(eloop_t *el, ev_t *et);
-
 
 static int io_accepter_init(int cd) {
     int rc = 0;
@@ -237,6 +188,20 @@ static void io_channel_destroy(int cd) {
     free_channel(cn);
 }
 
+
+static void io_rcv_notify(int cd, uint32_t events) {
+    if (events & MQ_POP)
+	rcv_pop_event(cd);
+}
+
+static void io_snd_notify(int cd, uint32_t events) {
+    if (events & MQ_EMPTY)
+	snd_empty_event(cd);
+    else if (events & MQ_NONEMPTY)
+	snd_nonempty_event(cd);
+}
+
+
 static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
@@ -327,20 +292,20 @@ static struct channel_vf tcp_channel_vf = {
     .pf = PF_NET,
     .init = io_channel_init,
     .destroy = io_channel_destroy,
+    .rcv_notify = io_rcv_notify,
+    .snd_notify = io_snd_notify,
     .setopt = io_channel_setopt,
     .getopt = io_channel_getopt,
-    .rcv_notify = rcv_head_vf,
-    .snd_notify = snd_head_vf,
 };
 
 static struct channel_vf ipc_channel_vf = {
     .pf = PF_IPC,
     .init = io_channel_init,
     .destroy = io_channel_destroy,
+    .rcv_notify = io_rcv_notify,
+    .snd_notify = io_snd_notify,
     .setopt = io_channel_setopt,
     .getopt = io_channel_getopt,
-    .rcv_notify = rcv_head_vf,
-    .snd_notify = snd_head_vf,
 };
 
 

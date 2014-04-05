@@ -79,7 +79,7 @@ static struct channel *pop_new_connector(struct channel *cn) {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_head_push(int cd) {
+static int snd_push_event(int cd) {
     int rc = 0, can = false;
     struct channel_msg *msg;
     struct channel *cn = cid_to_channel(cd);
@@ -97,50 +97,11 @@ static int snd_head_push(int cd) {
     return rc;
 }
 
-static int snd_head_pop(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_empty(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_nonempty(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_full(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int snd_head_nonfull(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-#define snd_head_vf {				\
-	.push = snd_head_push,			\
-	.pop = snd_head_pop,			\
-	.empty = snd_head_empty,		\
-	.nonempty = snd_head_nonempty,		\
-	.full = snd_head_full,			\
-	.nonfull = snd_head_nonfull,		\
-    }
-
 /******************************************************************************
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_head_push(int cd) {
-    int rc = 0;
-    return rc;
-}
-
-static int rcv_head_pop(int cd) {
+static int rcv_pop_event(int cd) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
 
@@ -151,34 +112,10 @@ static int rcv_head_pop(int cd) {
     return rc;
 }
 
-static int rcv_head_empty(int cd) {
-    int rc = 0;
-    return rc;
-}
 
-static int rcv_head_nonempty(int cd) {
-    int rc = 0;
-    return rc;
-}
 
-static int rcv_head_full(int cd) {
-    int rc = 0;
-    return rc;
-}
 
-static int rcv_head_nonfull(int cd) {
-    int rc = 0;
-    return rc;
-}
 
-#define rcv_head_vf {				\
-	.push = rcv_head_push,			\
-	.pop = rcv_head_pop,			\
-	.empty = rcv_head_empty,		\
-	.nonempty = rcv_head_nonempty,		\
-	.full = rcv_head_full,			\
-	.nonfull = rcv_head_nonfull,		\
-    }
 
 
 static int inproc_accepter_init(int cd) {
@@ -337,6 +274,16 @@ static void inproc_channel_destroy(int cd) {
     }
 }
 
+static void inproc_snd_notify(int cd, uint32_t events) {
+    if (events & MQ_PUSH)
+	snd_push_event(cd);
+}
+
+static void inproc_rcv_notify(int cd, uint32_t events) {
+    if (events & MQ_POP)
+	rcv_pop_event(cd);
+}
+
 static int inproc_channel_setopt(int cd, int opt, void *val, int valsz) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
@@ -359,10 +306,10 @@ static struct channel_vf inproc_channel_vf = {
     .pf = PF_INPROC,
     .init = inproc_channel_init,
     .destroy = inproc_channel_destroy,
+    .snd_notify = inproc_snd_notify,
+    .rcv_notify = inproc_rcv_notify,
     .setopt = inproc_channel_setopt,
     .getopt = inproc_channel_getopt,
-    .rcv_notify = rcv_head_vf,
-    .snd_notify = snd_head_vf,
 };
 
 struct channel_vf *inproc_channel_vfptr = &inproc_channel_vf;
