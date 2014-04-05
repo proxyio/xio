@@ -9,7 +9,7 @@ extern "C" {
 
 extern int randstr(char *buf, int len);
 
-static int cnt = 10;
+static int cnt = 100;
 static int pf;
 
 static void tcp_client() {

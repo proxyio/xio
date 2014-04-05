@@ -10,18 +10,11 @@ extern struct channel_global cn_global;
 extern struct channel *cid_to_channel(int cd);
 extern void free_channel(struct channel *cn);
 
-static int channel_get(struct channel *cn) {
-    int ref;
-    mutex_lock(&cn->lock);
-    ref = cn->proc.ref;
-    mutex_unlock(&cn->lock);
-    return ref;
-}
-
 static int channel_put(struct channel *cn) {
     int old;
     mutex_lock(&cn->lock);
     old = cn->proc.ref--;
+    cn->fok = false;
     mutex_unlock(&cn->lock);
     return old;
 }
@@ -80,8 +73,47 @@ static struct channel *pop_new_connector(struct channel *cn) {
  *  snd_head events trigger.
  ******************************************************************************/
 
+static struct channel_msg *pop_snd(struct channel *cn) {
+    struct channel_msg *msg = NULL;
+    
+    mutex_lock(&cn->lock);
+    if (!list_empty(&cn->snd_head)) {
+	msg = list_first(&cn->snd_head, struct channel_msg, item);
+	list_del_init(&msg->item);
+
+	/* Wakeup the blocking waiters */
+	if (cn->snd_waiters > 0)
+	    condition_broadcast(&cn->cond);
+    }
+    mutex_unlock(&cn->lock);
+    return msg;
+}
+
+static void push_rcv(struct channel *cn, struct channel_msg *msg) {
+    mutex_lock(&cn->lock);
+    list_add_tail(&msg->item, &cn->rcv_head);
+
+    /* Wakeup the blocking waiters. */
+    if (cn->rcv_waiters > 0)
+	condition_broadcast(&cn->cond);
+    mutex_unlock(&cn->lock);
+}
+
 static int snd_head_push(struct list_head *head) {
-    int rc = 0;
+    int rc = 0, can = false;
+    struct channel_msg *msg;
+    struct channel *cn = cont_of(head, struct channel, snd_head);
+    struct channel *peer = cn->proc.peer_channel;
+
+    // TODO: maybe the peer channel can't recv anymore after the check.
+    mutex_lock(&peer->lock);
+    if (can_recv(peer))
+	can = true;
+    mutex_unlock(&peer->lock);
+    if (!can)
+	return -1;
+    if ((msg = pop_snd(cn)))
+	push_rcv(peer, msg);
     return rc;
 }
 
@@ -130,6 +162,11 @@ static int rcv_head_push(struct list_head *head) {
 
 static int rcv_head_pop(struct list_head *head) {
     int rc = 0;
+    struct channel *cn = cont_of(head, struct channel, rcv_head);
+    mutex_lock(&cn->lock);
+    if (cn->snd_waiters)
+	condition_signal(&cn->cond);
+    mutex_unlock(&cn->lock);
     return rc;
 }
 
@@ -341,75 +378,79 @@ static int inproc_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-static char *pop_rcv(struct channel *cn) {
-    struct channel_msg *msg;
+static struct channel_msg *pop_rcv(struct channel *cn) {
+    struct channel_msg *msg = NULL;
 
+    mutex_lock(&cn->lock);
+    while (list_empty(&cn->rcv_head) && !cn->fasync) {
+	cn->rcv_waiters++;
+	condition_wait(&cn->cond, &cn->lock);
+	cn->rcv_waiters--;
+    }
     if (!list_empty(&cn->rcv_head)) {
 	msg = list_first(&cn->rcv_head, struct channel_msg, item);
 	list_del_init(&msg->item);
-	return msg->hdr.payload;
     }
-    return NULL;
-}
-
-
-static int push_snd(struct channel *peer, char *payload) {
-    int rc = 0;
-    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
-    list_add_tail(&msg->item, &peer->rcv_head);
-    return rc;
+    mutex_unlock(&cn->lock);
+    if (msg && cn->rcv_notify.pop)
+	cn->rcv_notify.pop(&cn->rcv_head);
+    return msg;
 }
 
 
 static int inproc_channel_recv(int cd, char **payload) {
     int rc = 0;
+    struct channel_msg *msg;
     struct channel *cn = cid_to_channel(cd);
 
-    /* Only i hold the channel, the other peer shutdown. */
-    if (channel_get(cn) == 1) {
+    if (!cn->fok) {
+	/* Only i hold the channel, the other peer shutdown. */
 	errno = EPIPE;
-	return -1;
-    }
+	rc = -1;
+    } else if (!(msg = pop_rcv(cn))) {
+	/* Conditon race here when the peer channel shutdown
+	   after above checking. it's ok. */
+	errno = EAGAIN;
+	rc = -1;
+    } else
+	*payload = msg->hdr.payload;
+    return rc;
+}
 
-    /* Conditon race here when the peer channel shutdown
-       after above checking. it's ok. */
+
+static int push_snd(struct channel *cn, struct channel_msg *msg) {
+    int rc = -1;
+
     mutex_lock(&cn->lock);
-    while (!(*payload = pop_rcv(cn)) && !cn->fasync) {
-	cn->rcv_waiters++;
+    while (!can_send(cn) && !cn->fasync) {
+	cn->snd_waiters++;
 	condition_wait(&cn->cond, &cn->lock);
-	cn->rcv_waiters--;
+	cn->snd_waiters--;
     }
-    cn->rcv--;
-    if (cn->snd_waiters)
-	condition_signal(&cn->cond);
+    if (can_send(cn)) {
+	rc = 0;
+	list_add_tail(&msg->item, &cn->snd_head);
+    }
     mutex_unlock(&cn->lock);
-    if (!*payload)
-	rc = -EAGAIN;
+    if (rc == 0 && cn->snd_notify.push)
+	cn->snd_notify.push(&cn->snd_head);
     return rc;
 }
 
 static int inproc_channel_send(int cd, char *payload) {
     int rc = 0;
-    struct channel *peer = cid_to_channel(cd)->proc.peer_channel;
+    struct channel *cn = cid_to_channel(cd);
+    struct channel_msg *msg;
 
+    msg = cont_of(payload, struct channel_msg, hdr.payload);
     /* Only i hold the channel, the other peer shutdown. */
-    if (channel_get(peer) == 1) {
+    if (!cn->fok) {
 	errno = EPIPE;
 	return -1;
     }
-
     /* Conditon race here when the peer channel shutdown
        after above checking. it's ok. */
-    mutex_lock(&peer->lock);
-    while ((rc = push_snd(peer, payload)) < 0 && errno == EAGAIN) {
-	peer->snd_waiters++;
-	condition_wait(&peer->cond, &peer->lock);
-	peer->snd_waiters--;
-    }
-    peer->rcv++;
-    if (peer->rcv_waiters)
-	condition_signal(&peer->cond);
-    mutex_unlock(&peer->lock);
+    rc = push_snd(cn, msg);
     return rc;
 }
 
