@@ -265,25 +265,28 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
 }
 
 static int io_channel_recv(int cd, char **payload) {
-    int rc = -1;
-    struct channel *cn = cid_to_channel(cd);
+    int rc = 0;
     struct channel_msg *msg;
+    struct channel *cn = cid_to_channel(cd);
 
-    errno = EAGAIN;
-    if ((msg = pop_rcv(cn))) {
-	rc = 0;
+    if (!(msg = pop_rcv(cn))) {
+	errno = cn->fok ? EAGAIN : EPIPE;
+	rc = -1;
+    } else
 	*payload = msg->hdr.payload;
-    }
     return rc;
 }
 
 static int io_channel_send(int cd, char *payload) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+    struct channel_msg *msg;
 
-    if ((rc = push_snd(cn, msg)) < 0)
-	errno = EAGAIN;
+    msg = cont_of(payload, struct channel_msg, hdr.payload);
+    if ((rc = push_snd(cn, msg)) < 0) {
+	errno = cn->fok ? EAGAIN : EPIPE;
+	rc = -1;
+    }
     return rc;
 }
 

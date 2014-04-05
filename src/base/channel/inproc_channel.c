@@ -363,14 +363,8 @@ static int inproc_channel_recv(int cd, char **payload) {
     struct channel_msg *msg;
     struct channel *cn = cid_to_channel(cd);
 
-    if (!cn->fok) {
-	/* Only i hold the channel, the other peer shutdown. */
-	errno = EPIPE;
-	rc = -1;
-    } else if (!(msg = pop_rcv(cn))) {
-	/* Conditon race here when the peer channel shutdown
-	   after above checking. it's ok. */
-	errno = EAGAIN;
+    if (!(msg = pop_rcv(cn))) {
+	errno = cn->fok ? EAGAIN : EPIPE;
 	rc = -1;
     } else
 	*payload = msg->hdr.payload;
@@ -384,14 +378,10 @@ static int inproc_channel_send(int cd, char *payload) {
     struct channel_msg *msg;
 
     msg = cont_of(payload, struct channel_msg, hdr.payload);
-    /* Only i hold the channel, the other peer shutdown. */
-    if (!cn->fok) {
-	errno = EPIPE;
-	return -1;
+    if ((rc = push_snd(cn, msg)) < 0) {
+	errno = cn->fok ? EAGAIN : EPIPE;
+	rc = -1;
     }
-    /* Conditon race here when the peer channel shutdown
-       after above checking. it's ok. */
-    rc = push_snd(cn, msg);
     return rc;
 }
 
