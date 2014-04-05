@@ -122,14 +122,14 @@ static int snd_head_nonfull(struct list_head *head) {
     return rc;
 }
 
-static struct head_vf snd_head_vf = {
-    .push = snd_head_push,
-    .pop = snd_head_pop,
-    .empty = snd_head_empty,
-    .nonempty = snd_head_nonempty,
-    .full = snd_head_full,
-    .nonfull = snd_head_nonfull,
-};
+#define snd_head_vf {				\
+	.push = snd_head_push,			\
+	.pop = snd_head_pop,			\
+	.empty = snd_head_empty,		\
+	.nonempty = snd_head_nonempty,		\
+	.full = snd_head_full,			\
+	.nonfull = snd_head_nonfull,		\
+    }
 
 /******************************************************************************
  *  rcv_head events trigger.
@@ -170,14 +170,14 @@ static int rcv_head_nonfull(struct list_head *head) {
     return rc;
 }
 
-static struct head_vf rcv_head_vf = {
-    .push = rcv_head_push,
-    .pop = rcv_head_pop,
-    .empty = rcv_head_empty,
-    .nonempty = rcv_head_nonempty,
-    .full = rcv_head_full,
-    .nonfull = rcv_head_nonfull,
-};
+#define rcv_head_vf {				\
+	.push = rcv_head_push,			\
+	.pop = rcv_head_pop,			\
+	.empty = rcv_head_empty,		\
+	.nonempty = rcv_head_nonempty,		\
+	.full = rcv_head_full,			\
+	.nonfull = rcv_head_nonfull,		\
+    }
 
 
 static int inproc_accepter_init(int cd) {
@@ -311,12 +311,8 @@ static int inproc_channel_init(int cd) {
 
     switch (cn->ty) {
     case CHANNEL_ACCEPTER:
-	cn->rcv_notify = rcv_head_vf;
-	cn->snd_notify = snd_head_vf;
 	return inproc_accepter_init(cd);
     case CHANNEL_CONNECTOR:
-	cn->rcv_notify = rcv_head_vf;
-	cn->snd_notify = snd_head_vf;
 	return inproc_connector_init(cd);
     case CHANNEL_LISTENER:
 	return inproc_listener_init(cd);
@@ -358,41 +354,14 @@ static int inproc_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-static int inproc_channel_recv(int cd, char **payload) {
-    int rc = 0;
-    struct channel_msg *msg;
-    struct channel *cn = cid_to_channel(cd);
-
-    if (!(msg = pop_rcv(cn))) {
-	errno = cn->fok ? EAGAIN : EPIPE;
-	rc = -1;
-    } else
-	*payload = msg->hdr.payload;
-    return rc;
-}
-
-
-static int inproc_channel_send(int cd, char *payload) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_msg *msg;
-
-    msg = cont_of(payload, struct channel_msg, hdr.payload);
-    if ((rc = push_snd(cn, msg)) < 0) {
-	errno = cn->fok ? EAGAIN : EPIPE;
-	rc = -1;
-    }
-    return rc;
-}
-
 static struct channel_vf inproc_channel_vf = {
     .pf = PF_INPROC,
     .init = inproc_channel_init,
     .destroy = inproc_channel_destroy,
-    .recv = inproc_channel_recv,
-    .send = inproc_channel_send,
     .setopt = inproc_channel_setopt,
     .getopt = inproc_channel_getopt,
+    .rcv_notify = rcv_head_vf,
+    .snd_notify = snd_head_vf,
 };
 
 struct channel_vf *inproc_channel_vfptr = &inproc_channel_vf;

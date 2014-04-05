@@ -23,17 +23,6 @@
 #define CHANNEL_ACCEPTER 2
 #define CHANNEL_CONNECTOR 3
 
-struct channel_vf {
-    int pf;
-    int (*init) (int cd);
-    void (*destroy) (int cd);
-    int (*recv) (int cd, char **payload);
-    int (*send) (int cd, char *payload);
-    int (*setopt) (int cd, int opt, void *val, int valsz);
-    int (*getopt) (int cd, int opt, void *val, int valsz);
-    struct list_head vf_item;
-};
-
 struct head_vf {
     int (*push) (struct list_head *head);
     int (*pop) (struct list_head *head);
@@ -41,6 +30,17 @@ struct head_vf {
     int (*nonempty) (struct list_head *head);
     int (*full) (struct list_head *head);
     int (*nonfull) (struct list_head *head);
+};
+
+struct channel_vf {
+    int pf;
+    int (*init) (int cd);
+    void (*destroy) (int cd);
+    int (*setopt) (int cd, int opt, void *val, int valsz);
+    int (*getopt) (int cd, int opt, void *val, int valsz);
+    struct head_vf rcv_notify;
+    struct head_vf snd_notify;
+    struct list_head vf_item;
 };
 
 struct channel {
@@ -64,8 +64,6 @@ struct channel {
     uint64_t snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    struct head_vf rcv_notify;
-    struct head_vf snd_notify;
     struct channel_vf *vf;
 
     struct list_head closing_link;

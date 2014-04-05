@@ -325,6 +325,7 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
 
 struct channel_msg *pop_rcv(struct channel *cn) {
     struct channel_msg *msg = NULL;
+    struct channel_vf *vf = cn->vf;
 
     mutex_lock(&cn->lock);
     while (list_empty(&cn->rcv_head) && !cn->fasync) {
@@ -337,8 +338,8 @@ struct channel_msg *pop_rcv(struct channel *cn) {
 	list_del_init(&msg->item);
     }
     mutex_unlock(&cn->lock);
-    if (msg && cn->rcv_notify.pop)
-	cn->rcv_notify.pop(&cn->rcv_head);
+    if (msg && vf->rcv_notify.pop)
+	vf->rcv_notify.pop(&cn->rcv_head);
     return msg;
 }
 
@@ -371,6 +372,7 @@ struct channel_msg *pop_snd(struct channel *cn) {
 
 int push_snd(struct channel *cn, struct channel_msg *msg) {
     int rc = -1;
+    struct channel_vf *vf = cn->vf;
 
     mutex_lock(&cn->lock);
     while (!can_send(cn) && !cn->fasync) {
@@ -383,32 +385,42 @@ int push_snd(struct channel *cn, struct channel_msg *msg) {
 	list_add_tail(&msg->item, &cn->snd_head);
     }
     mutex_unlock(&cn->lock);
-    if (rc == 0 && cn->snd_notify.push)
-	cn->snd_notify.push(&cn->snd_head);
+    if (rc == 0 && vf->snd_notify.push)
+	vf->snd_notify.push(&cn->snd_head);
     return rc;
 }
 
 int channel_recv(int cd, char **payload) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
+    struct channel_msg *msg;
 
     if (!payload) {
 	errno = EINVAL;
 	return -1;
     }
-    rc = cn->vf->recv(cd, payload);
+    if (!(msg = pop_rcv(cn))) {
+	errno = cn->fok ? EAGAIN : EPIPE;
+	rc = -1;
+    } else
+	*payload = msg->hdr.payload;
     return rc;
 }
 
 int channel_send(int cd, char *payload) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
-
+    struct channel_msg *msg;
+    
     if (!payload) {
 	errno = EINVAL;
 	return -1;
     }
-    rc = cn->vf->send(cd, payload);
+    msg = cont_of(payload, struct channel_msg, hdr.payload);
+    if ((rc = push_snd(cn, msg)) < 0) {
+	errno = cn->fok ? EAGAIN : EPIPE;
+	rc = -1;
+    }
     return rc;
 }
 

@@ -72,14 +72,14 @@ static int snd_head_nonfull(struct list_head *head) {
     return rc;
 }
 
-static struct head_vf snd_head_vf = {
-    .push = snd_head_push,
-    .pop = snd_head_pop,
-    .empty = snd_head_empty,
-    .nonempty = snd_head_nonempty,
-    .full = snd_head_full,
-    .nonfull = snd_head_nonfull,
-};
+#define snd_head_vf {				\
+	.push = snd_head_push,			\
+	.pop = snd_head_pop,			\
+	.empty = snd_head_empty,		\
+	.nonempty = snd_head_nonempty,		\
+	.full = snd_head_full,			\
+	.nonfull = snd_head_nonfull,		\
+    }
 
 
 /******************************************************************************
@@ -121,20 +121,14 @@ static int rcv_head_nonfull(struct list_head *head) {
     return rc;
 }
 
-static struct head_vf rcv_head_vf = {
-    .push = rcv_head_push,
-    .pop = rcv_head_pop,
-    .empty = rcv_head_empty,
-    .nonempty = rcv_head_nonempty,
-    .full = rcv_head_full,
-    .nonfull = rcv_head_nonfull,
-};
-
-
-
-
-
-
+#define rcv_head_vf {				\
+	.push = rcv_head_push,			\
+	.pop = rcv_head_pop,			\
+	.empty = rcv_head_empty,		\
+	.nonempty = rcv_head_nonempty,		\
+	.full = rcv_head_full,			\
+	.nonfull = rcv_head_nonfull,		\
+    }
 
 
 static int accept_handler(eloop_t *el, ev_t *et);
@@ -213,12 +207,8 @@ static int io_channel_init(int cd) {
 
     switch (cn->ty) {
     case CHANNEL_ACCEPTER:
-	cn->rcv_notify = rcv_head_vf;
-	cn->snd_notify = snd_head_vf;
 	return io_accepter_init(cd);
     case CHANNEL_CONNECTOR:
-	cn->rcv_notify = rcv_head_vf;
-	cn->snd_notify = snd_head_vf;
 	return io_connector_init(cd);
     case CHANNEL_LISTENER:
 	return io_listener_init(cd);
@@ -264,40 +254,11 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-static int io_channel_recv(int cd, char **payload) {
-    int rc = 0;
-    struct channel_msg *msg;
-    struct channel *cn = cid_to_channel(cd);
-
-    if (!(msg = pop_rcv(cn))) {
-	errno = cn->fok ? EAGAIN : EPIPE;
-	rc = -1;
-    } else
-	*payload = msg->hdr.payload;
-    return rc;
-}
-
-static int io_channel_send(int cd, char *payload) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_msg *msg;
-
-    msg = cont_of(payload, struct channel_msg, hdr.payload);
-    if ((rc = push_snd(cn, msg)) < 0) {
-	errno = cn->fok ? EAGAIN : EPIPE;
-	rc = -1;
-    }
-    return rc;
-}
-
-
-
 
 static int accept_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     return rc;
 }
-
 
 
 static int msg_ready(struct bio *b, int64_t *payload_sz) {
@@ -365,20 +326,20 @@ static struct channel_vf tcp_channel_vf = {
     .pf = PF_NET,
     .init = io_channel_init,
     .destroy = io_channel_destroy,
-    .recv = io_channel_recv,
-    .send = io_channel_send,
     .setopt = io_channel_setopt,
     .getopt = io_channel_getopt,
+    .rcv_notify = rcv_head_vf,
+    .snd_notify = snd_head_vf,
 };
 
 static struct channel_vf ipc_channel_vf = {
     .pf = PF_IPC,
     .init = io_channel_init,
     .destroy = io_channel_destroy,
-    .recv = io_channel_recv,
-    .send = io_channel_send,
     .setopt = io_channel_setopt,
     .getopt = io_channel_getopt,
+    .rcv_notify = rcv_head_vf,
+    .snd_notify = snd_head_vf,
 };
 
 
