@@ -7,6 +7,7 @@
 
 /* Backend poller wait kernel timeout msec */
 #define PIO_POLLER_TIMEOUT 1
+#define PIO_POLLER_IOMAX 100
 
 /* Default input/output buffer size */
 static int PIO_SNDBUFSZ = 10485760;
@@ -185,7 +186,7 @@ static inline int event_runner(void *args) {
     INIT_LIST_HEAD(&po->readyout_head);
 
     /* Init eventloop */
-    rc = eloop_init(&po->el, 10240, 1, PIO_POLLER_TIMEOUT);
+    rc = eloop_init(&po->el, 10240, PIO_POLLER_IOMAX, PIO_POLLER_TIMEOUT);
     assert(rc == 0);
 
     while (!cn_global.exiting || has_closed_channel(po)) {
