@@ -21,16 +21,18 @@ int channel_send(int cd, char *payload);
 void channel_close(int cd);
 
 
-int channel_setopt(int cd, int opt, void *val, int valsz);
-int channel_getopt(int cd, int opt, void *val, int valsz);
-
 #define CHANNEL_POLL   1
 #define CHANNEL_SNDBUF 2
 #define CHANNEL_RCVBUF 4
+int channel_setopt(int cd, int opt, void *val, int valsz);
+int channel_getopt(int cd, int opt, void *val, int valsz);
 
 struct channel_events;
 typedef void (*channel_event_func) (int cd, struct channel_events *ev);
 
+#define CHANNEL_POLLIN   1
+#define CHANNEL_POLLOUT  2
+#define CHANNEL_POLLERR  4
 struct channel_events {
     int events;
     channel_event_func f;

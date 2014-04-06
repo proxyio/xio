@@ -186,7 +186,8 @@ static inline int event_runner(void *args) {
     INIT_LIST_HEAD(&po->readyout_head);
 
     /* Init eventloop */
-    rc = eloop_init(&po->el, 10240, PIO_POLLER_IOMAX, PIO_POLLER_TIMEOUT);
+    rc = eloop_init(&po->el, PIO_MAX_CHANNELS/PIO_MAX_CPUS, PIO_POLLER_IOMAX,
+		    PIO_POLLER_TIMEOUT);
     assert(rc == 0);
 
     while (!cn_global.exiting || has_closed_channel(po)) {
@@ -349,7 +350,12 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
     switch (opt) {
     case CHANNEL_POLL:
 	mutex_lock(&cn->lock);
-	*((struct channel_events *)val) = cn->ev;
+	if (cn->ev.events)
+	    *((struct channel_events *)val) = cn->ev;
+	else {
+	    errno = ENOENT;
+	    rc = -1;
+	}
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_SNDBUF:
@@ -430,7 +436,7 @@ struct channel_msg *pop_snd(struct channel *cn) {
     struct channel_msg *msg = NULL;
     int64_t msgsz;
     uint32_t events = 0;
-
+    
     mutex_lock(&cn->lock);
     if (!list_empty(&cn->snd_head)) {
 	msg = list_first(&cn->snd_head, struct channel_msg, item);
