@@ -81,9 +81,9 @@ static void channel_base_init(int cd) {
     cn->parent = -1;
     cn->cd = cd;
     cn->pollid = choose_backend_poll(cd);
-    cn->rg.events = 0;
-    cn->rg.f = 0;
-    cn->rg.self = 0;
+    cn->ev.events = 0;
+    cn->ev.f = 0;
+    cn->ev.self = 0;
     cn->rcv_waiters = 0;
     cn->snd_waiters = 0;
     cn->rcv = 0;
@@ -112,9 +112,9 @@ static void channel_base_exit(int cd) {
     cn->fok = -1;
     cn->cd = -1;
     cn->pollid = -1;
-    cn->rg.events = -1;
-    cn->rg.f = 0;
-    cn->rg.self = 0;
+    cn->ev.events = -1;
+    cn->ev.f = 0;
+    cn->ev.self = 0;
     cn->rcv_waiters = -1;
     cn->snd_waiters = -1;
     cn->rcv = -1;
@@ -315,6 +315,9 @@ int channel_setopt(int cd, int opt, void *val, int valsz) {
     }
     switch (opt) {
     case CHANNEL_POLL:
+	mutex_lock(&cn->lock);
+	cn->ev = *((struct channel_events *)val);
+	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_SNDBUF:
 	assert(valsz == sizeof(int));
@@ -345,15 +348,16 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
     }
     switch (opt) {
     case CHANNEL_POLL:
+	mutex_lock(&cn->lock);
+	*((struct channel_events *)val) = cn->ev;
+	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_SNDBUF:
-	assert(valsz == sizeof(int));
 	mutex_lock(&cn->lock);
 	*(int *)val = cn->snd_wnd;
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_RCVBUF:
-	assert(valsz == sizeof(int));
 	mutex_lock(&cn->lock);
 	*(int *)val = cn->rcv_wnd;
 	mutex_unlock(&cn->lock);
@@ -512,22 +516,5 @@ int channel_send(int cd, char *payload) {
 	errno = cn->fok ? EAGAIN : EPIPE;
 	rc = -1;
     }
-    return rc;
-}
-
-
-int channel_poll(int cd, struct channel_events *ev) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-
-    if (!ev || !ev->f || !ev->events) {
-	errno = EINVAL;
-	return -1;
-    }
-    mutex_lock(&cn->lock);
-    cn->rg.events = ev->events;
-    cn->rg.f = ev->f;
-    cn->rg.self = ev->self;
-    mutex_unlock(&cn->lock);
     return rc;
 }
