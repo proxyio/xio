@@ -85,6 +85,9 @@ static int snd_push_event(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct channel *peer = cn->proc.peer_channel;
 
+    // Unlock myself first because i hold the lock
+    mutex_unlock(&cn->lock);
+
     // TODO: maybe the peer channel can't recv anymore after the check.
     mutex_lock(&peer->lock);
     if (can_recv(peer))
@@ -94,6 +97,8 @@ static int snd_push_event(int cd) {
 	return -1;
     if ((msg = pop_snd(cn)))
 	push_rcv(peer, msg);
+
+    mutex_lock(&cn->lock);
     return rc;
 }
 
@@ -105,10 +110,8 @@ static int rcv_pop_event(int cd) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
 
-    mutex_lock(&cn->lock);
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
-    mutex_unlock(&cn->lock);
     return rc;
 }
 
@@ -287,32 +290,12 @@ static void inproc_rcv_notify(int cd, uint32_t events) {
 	rcv_pop_event(cd);
 }
 
-static int inproc_channel_setopt(int cd, int opt, void *val, int valsz) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-
-    mutex_lock(&cn->lock);
-    mutex_unlock(&cn->lock);
-    return rc;
-}
-
-static int inproc_channel_getopt(int cd, int opt, void *val, int valsz) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-
-    mutex_lock(&cn->lock);
-    mutex_unlock(&cn->lock);
-    return rc;
-}
-
 static struct channel_vf inproc_channel_vf = {
     .pf = PF_INPROC,
     .init = inproc_channel_init,
     .destroy = inproc_channel_destroy,
     .snd_notify = inproc_snd_notify,
     .rcv_notify = inproc_rcv_notify,
-    .setopt = inproc_channel_setopt,
-    .getopt = inproc_channel_getopt,
 };
 
 struct channel_vf *inproc_channel_vfptr = &inproc_channel_vf;

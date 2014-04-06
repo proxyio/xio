@@ -47,12 +47,10 @@ static void snd_empty_event(int cd) {
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
 
     // Disable POLLOUT event when snd_head is empty
-    mutex_lock(&cn->lock);
     if (cn->sock.et.events & EPOLLOUT) {
 	cn->sock.et.events &= ~EPOLLOUT;
 	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
     }
-    mutex_unlock(&cn->lock);
 }
 
 static void snd_nonempty_event(int cd) {
@@ -60,12 +58,10 @@ static void snd_nonempty_event(int cd) {
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
 
     // Enable POLLOUT event when snd_head isn't empty
-    mutex_lock(&cn->lock);
     if (!(cn->sock.et.events & EPOLLOUT)) {
 	cn->sock.et.events |= EPOLLOUT;
 	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
     }
-    mutex_unlock(&cn->lock);
 }
 
 
@@ -76,11 +72,33 @@ static void snd_nonempty_event(int cd) {
 static void rcv_pop_event(int cd) {
     struct channel *cn = cid_to_channel(cd);
 
-    mutex_lock(&cn->lock);
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
-    mutex_unlock(&cn->lock);
 }
+
+static void rcv_full_event(int cd) {
+    struct channel *cn = cid_to_channel(cd);    
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+
+    // Enable POLLOUT event when snd_head isn't empty
+    if ((cn->sock.et.events & EPOLLIN)) {
+	cn->sock.et.events &= ~EPOLLIN;
+	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+    }
+}
+
+static void rcv_nonfull_event(int cd) {
+    struct channel *cn = cid_to_channel(cd);    
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+
+    // Enable POLLOUT event when snd_head isn't empty
+    if (!(cn->sock.et.events & EPOLLIN)) {
+	cn->sock.et.events |= EPOLLIN;
+	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+    }
+}
+
+
 
 
 
@@ -99,7 +117,7 @@ static int io_accepter_init(int cd) {
     if ((s = tp->accept(parent->sock.fd)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &fnb, sizeof(fnb));
-    cn->sock.et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
+    cn->sock.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = io_handler;
     cn->sock.et.data = cn;
@@ -120,7 +138,7 @@ static int io_listener_init(int cd) {
     if ((s = tp->bind(cn->addr)) < 0)
 	return s;
     // TODO: async accept the new connection by using EPOLLIN
-    cn->sock.et.events = EPOLLERR;
+    cn->sock.et.events = EPOLLIN|EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = accept_handler;
     cn->sock.et.data = cn;
@@ -141,7 +159,7 @@ static int io_connector_init(int cd) {
     if ((s = tp->connect(cn->peer)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &fnb, sizeof(fnb));
-    cn->sock.et.events = EPOLLIN|EPOLLOUT|EPOLLRDHUP|EPOLLERR;
+    cn->sock.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = io_handler;
     cn->sock.et.data = cn;
@@ -198,6 +216,10 @@ static void io_channel_destroy(int cd) {
 static void io_rcv_notify(int cd, uint32_t events) {
     if (events & MQ_POP)
 	rcv_pop_event(cd);
+    if (events & MQ_FULL)
+	rcv_full_event(cd);
+    else if (events & MQ_NONFULL)
+	rcv_nonfull_event(cd);
 }
 
 static void io_snd_notify(int cd, uint32_t events) {
@@ -205,25 +227,6 @@ static void io_snd_notify(int cd, uint32_t events) {
 	snd_empty_event(cd);
     else if (events & MQ_NONEMPTY)
 	snd_nonempty_event(cd);
-}
-
-
-static int io_channel_setopt(int cd, int opt, void *val, int valsz) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-
-    mutex_lock(&cn->lock);
-    mutex_unlock(&cn->lock);
-    return rc;
-}
-
-static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
-    int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-
-    mutex_lock(&cn->lock);
-    mutex_unlock(&cn->lock);
-    return rc;
 }
 
 
@@ -304,8 +307,6 @@ static struct channel_vf tcp_channel_vf = {
     .destroy = io_channel_destroy,
     .rcv_notify = io_rcv_notify,
     .snd_notify = io_snd_notify,
-    .setopt = io_channel_setopt,
-    .getopt = io_channel_getopt,
 };
 
 static struct channel_vf ipc_channel_vf = {
@@ -314,8 +315,6 @@ static struct channel_vf ipc_channel_vf = {
     .destroy = io_channel_destroy,
     .rcv_notify = io_rcv_notify,
     .snd_notify = io_snd_notify,
-    .setopt = io_channel_setopt,
-    .getopt = io_channel_getopt,
 };
 
 

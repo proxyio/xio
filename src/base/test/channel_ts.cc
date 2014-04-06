@@ -14,12 +14,15 @@ static int pf;
 
 static void tcp_client() {
     int sfd, i;
+    int buf_sz = 0;
     int64_t nbytes;
     char buf[1024] = {};
     char *payload;
 
     randstr(buf, 1024);
     ASSERT_TRUE((sfd = channel_connect(pf, "127.0.0.1:18894")) >= 0);
+    channel_setopt(sfd, CHANNEL_SNDBUF, &buf_sz, sizeof(buf_sz));
+    channel_setopt(sfd, CHANNEL_RCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	payload = channel_allocmsg(nbytes);
@@ -41,6 +44,7 @@ static int tcp_client_thread(void *arg) {
 
 static void tcp_server_thread() {
     int i;
+    int buf_sz = 0;
     int afd, sfd, sfd2;
     thread_t cli_thread = {};
     char *payload;
@@ -51,12 +55,16 @@ static void tcp_server_thread() {
 
     while ((sfd = channel_accept(afd)) < 0)
 	usleep(10000);
+    channel_setopt(sfd, CHANNEL_SNDBUF, &buf_sz, sizeof(buf_sz));
+    channel_setopt(sfd, CHANNEL_RCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd, &payload));
 	ASSERT_TRUE(0 == channel_send(sfd, payload));
     }
     while ((sfd2 = channel_accept(afd)) < 0)
 	usleep(10000);
+    channel_setopt(sfd2, CHANNEL_SNDBUF, &buf_sz, sizeof(buf_sz));
+    channel_setopt(sfd2, CHANNEL_RCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &payload));
 	ASSERT_TRUE(0 == channel_send(sfd2, payload));
@@ -65,6 +73,8 @@ static void tcp_server_thread() {
     channel_close(sfd2);
     while ((sfd2 = channel_accept(afd)) < 0)
 	usleep(10000);
+    channel_setopt(sfd2, CHANNEL_SNDBUF, &buf_sz, sizeof(buf_sz));
+    channel_setopt(sfd2, CHANNEL_RCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == channel_recv(sfd2, &payload));
 	ASSERT_TRUE(0 == channel_send(sfd2, payload));

@@ -261,7 +261,6 @@ int channel_accept(int cd) {
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
 	new->vf = vf;
 	if ((cn->pf & vf->pf) && vf->init(new->cd) == 0) {
-	    vf->snd_notify(new->cd, MQ_EMPTY|MQ_NONFULL);
 	    return new->cd;
 	}
     }
@@ -299,7 +298,6 @@ int channel_connect(int pf, const char *peer) {
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
 	new->vf = vf;
 	if ((pf & vf->pf) && vf->init(new->cd) == 0) {
-	    vf->snd_notify(new->cd, MQ_EMPTY|MQ_NONFULL);
 	    return new->cd;
 	}
     }
@@ -315,7 +313,25 @@ int channel_setopt(int cd, int opt, void *val, int valsz) {
 	errno = EINVAL;
 	return -1;
     }
-    rc = cn->vf->setopt(cd, opt, val, valsz);
+    switch (opt) {
+    case CHANNEL_POLL:
+	break;
+    case CHANNEL_SNDBUF:
+	assert(valsz == sizeof(int));
+	mutex_lock(&cn->lock);
+	cn->snd_wnd = (*(int *)val);
+	mutex_unlock(&cn->lock);
+	break;
+    case CHANNEL_RCVBUF:
+	assert(valsz == sizeof(int));
+	mutex_lock(&cn->lock);
+	cn->rcv_wnd = (*(int *)val);
+	mutex_unlock(&cn->lock);
+	break;
+    default:
+	errno = EINVAL;
+	return -1;
+    }
     return rc;
 }
 
@@ -327,7 +343,25 @@ int channel_getopt(int cd, int opt, void *val, int valsz) {
 	errno = EINVAL;
 	return -1;
     }
-    rc = cn->vf->getopt(cd, opt, val, valsz);
+    switch (opt) {
+    case CHANNEL_POLL:
+	break;
+    case CHANNEL_SNDBUF:
+	assert(valsz == sizeof(int));
+	mutex_lock(&cn->lock);
+	*(int *)val = cn->snd_wnd;
+	mutex_unlock(&cn->lock);
+	break;
+    case CHANNEL_RCVBUF:
+	assert(valsz == sizeof(int));
+	mutex_lock(&cn->lock);
+	*(int *)val = cn->rcv_wnd;
+	mutex_unlock(&cn->lock);
+	break;
+    default:
+	errno = EINVAL;
+	return -1;
+    }
     return rc;
 }
 
@@ -356,8 +390,10 @@ struct channel_msg *pop_rcv(struct channel *cn) {
 	    assert(cn->rcv == 0);
 	}
     }
+
+    if (events)
+	vf->rcv_notify(cn->cd, events);
     mutex_unlock(&cn->lock);
-    vf->rcv_notify(cn->cd, events);
     return msg;
 }
 
@@ -378,8 +414,10 @@ void push_rcv(struct channel *cn, struct channel_msg *msg) {
     /* Wakeup the blocking waiters. */
     if (cn->rcv_waiters > 0)
 	condition_broadcast(&cn->cond);
+
+    if (events)
+	vf->rcv_notify(cn->cd, events);
     mutex_unlock(&cn->lock);
-    vf->rcv_notify(cn->cd, events);
 }
 
 
@@ -407,8 +445,10 @@ struct channel_msg *pop_snd(struct channel *cn) {
 	if (cn->snd_waiters > 0)
 	    condition_broadcast(&cn->cond);
     }
+
+    if (events)
+	vf->snd_notify(cn->cd, events);
     mutex_unlock(&cn->lock);
-    vf->snd_notify(cn->cd, events);
     return msg;
 }
 
@@ -434,9 +474,10 @@ int push_snd(struct channel *cn, struct channel_msg *msg) {
 	cn->snd += msgsz;
 	list_add_tail(&msg->item, &cn->snd_head);
     }
-    mutex_unlock(&cn->lock);
+
     if (events)
 	vf->snd_notify(cn->cd, events);
+    mutex_unlock(&cn->lock);
     return rc;
 }
 

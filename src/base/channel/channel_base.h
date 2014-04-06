@@ -34,10 +34,10 @@ struct channel_vf {
     int pf;
     int (*init) (int cd);
     void (*destroy) (int cd);
+
+    /* The lock is hold by the caller */
     void (*snd_notify) (int cd, uint32_t events);
     void (*rcv_notify) (int cd, uint32_t events);
-    int (*setopt) (int cd, int opt, void *val, int valsz);
-    int (*getopt) (int cd, int opt, void *val, int valsz);
     struct list_head vf_item;
 };
 
