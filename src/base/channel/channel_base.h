@@ -11,6 +11,7 @@
 #include "sync/condition.h"
 #include "runner/taskpool.h"
 #include "channel.h"
+#include "poll.h"
 
 /* Max number of concurrent channels. */
 #define PIO_MAX_CHANNELS 10240
@@ -41,6 +42,7 @@ struct channel_vf {
     struct list_head vf_item;
 };
 
+
 struct channel {
     mutex_t lock;
     condition_t cond;
@@ -63,11 +65,8 @@ struct channel {
     struct list_head rcv_head;
     struct list_head snd_head;
     struct channel_vf *vf;
-
+    struct list_head upoll_entries;
     struct list_head closing_link;
-    struct list_head err_link;
-    struct list_head in_link;
-    struct list_head out_link;
 
     /* Only for transport channel */
     struct {
@@ -111,6 +110,8 @@ static inline int can_recv(struct channel *cn) {
     list_for_each_entry_safe(pos, nx, head, struct channel, wait_item)
 
 
+void channel_add_upoll_entry(struct upoll_entry *ent);
+void channel_rm_upoll_entry(struct upoll_entry *ent);
 
 
 
@@ -122,11 +123,6 @@ struct channel_poll {
 
     /* Waiting for closed channel will be attached here */
     struct list_head closing_head;
-
-    /* Channel state list CHANNEL_ERROR|CHANNEL_MSGIN|CHANNEL_MSGOUT */
-    struct list_head error_head;
-    struct list_head readyin_head;
-    struct list_head readyout_head;
 };
 
 

@@ -92,11 +92,8 @@ static void channel_base_init(int cd) {
     cn->snd_wnd = PIO_SNDBUFSZ;
     INIT_LIST_HEAD(&cn->rcv_head);
     INIT_LIST_HEAD(&cn->snd_head);
-
+    INIT_LIST_HEAD(&cn->upoll_entries);
     INIT_LIST_HEAD(&cn->closing_link);
-    INIT_LIST_HEAD(&cn->err_link);
-    INIT_LIST_HEAD(&cn->in_link);
-    INIT_LIST_HEAD(&cn->out_link);
 }
 
 static void channel_base_exit(int cd) {
@@ -128,16 +125,8 @@ static void channel_base_exit(int cd) {
     list_for_each_channel_msg_safe(pos, nx, &head) {
 	channel_freemsg(pos->hdr.payload);
     }
-
     assert(!attached(&cn->closing_link));
-
-    /* Detach from all poll status head */
-    if (attached(&cn->err_link))
-	list_del_init(&cn->err_link);
-    if (attached(&cn->in_link))
-	list_del_init(&cn->in_link);
-    if (attached(&cn->out_link))
-	list_del_init(&cn->out_link);
+    /* Detach from upoll_table */
 }
 
 
@@ -181,9 +170,6 @@ static inline int event_runner(void *args) {
 
     spin_init(&po->lock);
     INIT_LIST_HEAD(&po->closing_head);
-    INIT_LIST_HEAD(&po->error_head);
-    INIT_LIST_HEAD(&po->readyin_head);
-    INIT_LIST_HEAD(&po->readyout_head);
 
     /* Init eventloop */
     rc = eloop_init(&po->el, PIO_MAX_CHANNELS/PIO_MAX_CPUS, PIO_POLLER_IOMAX,
@@ -523,4 +509,19 @@ int channel_send(int cd, char *payload) {
 	rc = -1;
     }
     return rc;
+}
+
+
+void channel_add_upoll_entry(struct upoll_entry *ent) {
+    struct channel *cn = cid_to_channel(ent->cn.cd);
+    mutex_lock(&cn->lock);
+    list_add_tail(&ent->channel_link, &cn->upoll_entries);
+    mutex_unlock(&cn->lock);
+}
+
+void channel_rm_upoll_entry(struct upoll_entry *ent) {
+    struct channel *cn = cid_to_channel(ent->cn.cd);
+    mutex_lock(&cn->lock);
+    list_del_init(&ent->channel_link);
+    mutex_unlock(&cn->lock);
 }
