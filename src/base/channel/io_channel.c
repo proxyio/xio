@@ -119,7 +119,8 @@ static int io_listener_init(int cd) {
 
     if ((s = tp->bind(cn->addr)) < 0)
 	return s;
-    cn->sock.et.events = EPOLLIN|EPOLLERR;
+    // TODO: async accept the new connection by using EPOLLIN
+    cn->sock.et.events = EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = accept_handler;
     cn->sock.et.data = cn;
@@ -168,11 +169,16 @@ static int io_channel_init(int cd) {
     return -EINVAL;
 }
 
+static int io_snd(struct channel *cn);
+
 static void io_channel_destroy(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = cn->sock.tp;
-    
+
+    /* Try flush buf massage into network before close */
+    io_snd(cn);
+
     /* Detach channel low-level file descriptor from poller */
     assert(eloop_del(&po->el, &cn->sock.et) == 0);
     tp->close(cn->sock.fd);
@@ -223,6 +229,10 @@ static int io_channel_getopt(int cd, int opt, void *val, int valsz) {
 
 static int accept_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
+    struct channel *cn = cont_of(et, struct channel, sock.et);
+
+    if (et->happened & EPOLLERR)
+	cn->fok = false;
     return rc;
 }
 
@@ -275,13 +285,13 @@ static int io_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     struct channel *cn = cont_of(et, struct channel, sock.et);
 
-    if (et->events & EPOLLIN) {
+    if (et->happened & EPOLLIN) {
 	rc = io_rcv(cn);
     }
-    if (et->events & EPOLLOUT) {
+    if (et->happened & EPOLLOUT) {
 	rc = io_snd(cn);
     }
-    if ((rc < 0 && errno != EAGAIN) || et->events & (EPOLLERR|EPOLLRDHUP))
+    if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP))
 	cn->fok = false;
     return rc;
 }

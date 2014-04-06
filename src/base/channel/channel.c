@@ -124,8 +124,9 @@ static void channel_base_exit(int cd) {
     INIT_LIST_HEAD(&head);
     list_splice(&cn->rcv_head, &head);
     list_splice(&cn->snd_head, &head);
-    list_for_each_channel_msg_safe(pos, nx, &head)
+    list_for_each_channel_msg_safe(pos, nx, &head) {
 	channel_freemsg(pos->hdr.payload);
+    }
 
     assert(!attached(&cn->closing_link));
 
@@ -184,7 +185,7 @@ static inline int event_runner(void *args) {
     INIT_LIST_HEAD(&po->readyout_head);
 
     /* Init eventloop */
-    rc = eloop_init(&po->el, 10240, 1024, PIO_POLLER_TIMEOUT);
+    rc = eloop_init(&po->el, 10240, 1, PIO_POLLER_TIMEOUT);
     assert(rc == 0);
 
     while (!cn_global.exiting || has_closed_channel(po)) {
@@ -249,14 +250,21 @@ int channel_accept(int cd) {
     struct channel *new = alloc_channel();
     struct channel_vf *vf, *nx;
 
+    if (!cn->fok) {
+	errno = EPIPE;
+	goto EXIT;
+    }
     new->ty = CHANNEL_ACCEPTER;
     new->pf = cn->pf;
     new->parent = cd;
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
 	new->vf = vf;
-	if ((cn->pf & vf->pf) && vf->init(new->cd) == 0)
+	if ((cn->pf & vf->pf) && vf->init(new->cd) == 0) {
+	    vf->snd_notify(new->cd, MQ_EMPTY|MQ_NONFULL);
 	    return new->cd;
+	}
     }
+ EXIT:
     free_channel(new);
     return -1;
 }
@@ -289,8 +297,10 @@ int channel_connect(int pf, const char *peer) {
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
 	new->vf = vf;
-	if ((pf & vf->pf) && vf->init(new->cd) == 0)
+	if ((pf & vf->pf) && vf->init(new->cd) == 0) {
+	    vf->snd_notify(new->cd, MQ_EMPTY|MQ_NONFULL);
 	    return new->cd;
+	}
     }
     free_channel(new);
     return -1;
@@ -424,7 +434,8 @@ int push_snd(struct channel *cn, struct channel_msg *msg) {
 	list_add_tail(&msg->item, &cn->snd_head);
     }
     mutex_unlock(&cn->lock);
-    vf->snd_notify(cn->cd, events);
+    if (events)
+	vf->snd_notify(cn->cd, events);
     return rc;
 }
 

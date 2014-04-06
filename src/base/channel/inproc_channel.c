@@ -191,9 +191,10 @@ static int inproc_connector_init(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct channel *listener = find_listener(cn->peer);
 
-    errno = ENOENT;
-    if (!listener)
+    if (!listener) {
+	errno = ENOENT;	
 	return -1;
+    }
     cn->proc.ref = 0;
     cn->proc.peer_channel = NULL;
 
@@ -236,10 +237,12 @@ static int inproc_connector_destroy(int cd) {
     struct channel *peer = cn->proc.peer_channel;
 
     /* Destroy the channel and free channel id if i hold the last ref. */
-    if (channel_put(peer) == 1)
+    if (channel_put(peer) == 1) {
 	free_channel(peer);
-    if (channel_put(cn) == 1)
+    }
+    if (channel_put(cn) == 1) {
 	free_channel(cn);
+    }
     return rc;
 }
 
