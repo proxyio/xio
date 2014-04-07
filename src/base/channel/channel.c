@@ -93,7 +93,7 @@ static void channel_base_init(int cd) {
     cn->snd_wnd = PIO_SNDBUFSZ;
     INIT_LIST_HEAD(&cn->rcv_head);
     INIT_LIST_HEAD(&cn->snd_head);
-    INIT_LIST_HEAD(&cn->upoll_entries);
+    INIT_LIST_HEAD(&cn->upoll_head);
     INIT_LIST_HEAD(&cn->closing_link);
 }
 
@@ -101,6 +101,7 @@ static void channel_base_exit(int cd) {
     struct channel *cn = cid_to_channel(cd);
     struct list_head head = {};
     struct channel_msg *pos, *nx;
+    struct upoll_entry *ent, *tmp;
     
     mutex_destroy(&cn->lock);
     condition_destroy(&cn->cond);
@@ -128,7 +129,14 @@ static void channel_base_exit(int cd) {
 	channel_freemsg(pos->hdr.payload);
     }
     BUG_ON(attached(&cn->closing_link));
-    /* Detach from upoll_table */
+
+    list_for_each_channel_ent(ent, tmp, &cn->upoll_head) {
+	spin_lock(&ent->lock);
+	ent->eflags |= UPOLLSTATE_CLOSED;
+	list_del_init(&ent->channel_link);
+	spin_unlock(&ent->lock);
+	entry_put(ent);
+    }
 }
 
 
@@ -162,6 +170,39 @@ void free_pid(int pd) {
 
 struct channel_poll *pid_to_channel_poll(int pd) {
     return &cn_global.polls[pd];
+}
+
+
+int has_closed_channel(struct channel_poll *po) {
+    int has = true;
+    spin_lock(&po->lock);
+    if (list_empty(&po->closing_head))
+	has = false;
+    spin_unlock(&po->lock);
+    return has;
+}
+
+void push_closed_channel(struct channel *cn) {
+    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    
+    spin_lock(&po->lock);
+    if (!cn->fclosed && !attached(&cn->closing_link)) {
+	cn->fclosed = true;
+	list_add_tail(&cn->closing_link, &po->closing_head);
+    }
+    spin_unlock(&po->lock);
+}
+
+struct channel *pop_closed_channel(struct channel_poll *po) {
+    struct channel *cn = NULL;
+
+    spin_lock(&po->lock);
+    if (!list_empty(&po->closing_head)) {
+	cn = list_first(&po->closing_head, struct channel, closing_link);
+	list_del_init(&cn->closing_link);
+    }
+    spin_unlock(&po->lock);
+    return cn;
 }
 
 static inline int event_runner(void *args) {
@@ -506,4 +547,36 @@ int channel_send(int cd, char *payload) {
 	errno = cn->fok ? EAGAIN : EPIPE;
     }
     return rc;
+}
+
+void check_upoll_events(struct channel *cn) {
+    int upoll_events = 0;
+    struct upoll_entry *ent, *nx;
+    struct list_head upoll_head;
+
+    INIT_LIST_HEAD(&upoll_head);
+    mutex_lock(&cn->lock);
+    if (!list_empty(&cn->rcv_head))
+	upoll_events |= UPOLLIN;
+    if (can_send(cn))
+	upoll_events |= UPOLLOUT;
+    if (!cn->fok)
+	upoll_events |= UPOLLERR;
+    if (upoll_events)
+	list_splice(&cn->upoll_head, &upoll_head);
+    mutex_unlock(&cn->lock);
+    if (!upoll_events)
+	return;
+
+    /* Enter here. each upoll_entry maybe release in the event callback.
+     * we should check the temp upoll_head again that contain the rest
+     * upoll_entry which havn't released. and then move into channel table.
+     */
+    list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
+	ent->event.happened = upoll_events;
+	ent->notify->event(ent->notify, ent);
+    }
+    mutex_lock(&cn->lock);
+    list_splice(&upoll_head, &cn->upoll_head);
+    mutex_unlock(&cn->lock);
 }

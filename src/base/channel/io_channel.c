@@ -16,6 +16,9 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
+extern void check_upoll_events(struct channel *cn);
+
+
 
 static int64_t io_channel_read(struct io *ops, char *buff, int64_t sz) {
     struct channel *cn = cont_of(ops, struct channel, sock.ops);
@@ -108,7 +111,7 @@ static int io_handler(eloop_t *el, ev_t *et);
 static int io_accepter_init(int cd) {
     int rc = 0;
     int s;
-    int fnb = 1;
+    int on = 1;
     struct channel *cn = cid_to_channel(cd);
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
@@ -116,7 +119,7 @@ static int io_accepter_init(int cd) {
 
     if ((s = tp->accept(parent->sock.fd)) < 0)
 	return s;
-    tp->setopt(s, TP_NOBLOCK, &fnb, sizeof(fnb));
+    tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
     cn->sock.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = io_handler;
@@ -151,14 +154,14 @@ static int io_listener_init(int cd) {
 static int io_connector_init(int cd) {
     int rc = 0;
     int s;
-    int fnb = 1;
+    int on = 1;
     struct channel *cn = cid_to_channel(cd);
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->connect(cn->peer)) < 0)
 	return s;
-    tp->setopt(s, TP_NOBLOCK, &fnb, sizeof(fnb));
+    tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
     cn->sock.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = io_handler;
@@ -283,7 +286,6 @@ static int io_snd(struct channel *cn) {
     return rc;
 }
 
-
 static int io_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     struct channel *cn = cont_of(et, struct channel, sock.et);
@@ -296,6 +298,9 @@ static int io_handler(eloop_t *el, ev_t *et) {
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP))
 	cn->fok = false;
+
+    /* Check events for upoll */
+    check_upoll_events(cn);
     return rc;
 }
 

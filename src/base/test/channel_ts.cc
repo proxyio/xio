@@ -3,16 +3,17 @@
 #include <time.h>
 #include <string.h>
 extern "C" {
-#include "channel/channel.h"
-#include "runner/thread.h"
+#include <sync/spin.h>
+#include <channel/channel.h>
+#include <runner/thread.h>
 }
 
 extern int randstr(char *buf, int len);
 
-static int cnt = 100;
+static int cnt = 10;
 static int pf;
 
-static void tcp_client() {
+static void channel_client() {
     int sfd, i;
     int buf_sz = 0;
     int64_t nbytes;
@@ -35,14 +36,14 @@ static void tcp_client() {
     channel_close(sfd);
 }
 
-static int tcp_client_thread(void *arg) {
-    tcp_client();
-    tcp_client();
-    tcp_client();
+static int channel_client_thread(void *arg) {
+    channel_client();
+    channel_client();
+    channel_client();
     return 0;
 }
 
-static void tcp_server_thread() {
+static void channel_server_thread() {
     int i;
     int buf_sz = 0;
     int afd, sfd, sfd2;
@@ -51,7 +52,7 @@ static void tcp_server_thread() {
 
 
     ASSERT_TRUE((afd = channel_listen(pf, "127.0.0.1:18894")) >= 0);
-    thread_start(&cli_thread, tcp_client_thread, NULL);
+    thread_start(&cli_thread, channel_client_thread, NULL);
 
     while ((sfd = channel_accept(afd)) < 0)
 	usleep(10000);
@@ -84,16 +85,89 @@ static void tcp_server_thread() {
     channel_close(afd);
 }
 
-TEST(channel, vf) {
-    pf = PF_NET;
-    tcp_server_thread();
-    pf = PF_INPROC;
-    tcp_server_thread();
-    pf = PF_IPC;
-    tcp_server_thread();
+
+struct upoll_table *ut;
+spin_t lock;
+
+static void channel_client2() {
+    int i;
+    int sfd[cnt];
+    struct upoll_event event[cnt];
+
+    for (i = 0; i < cnt; i++) {
+	ASSERT_TRUE((sfd[i] = channel_connect(pf, "127.0.0.1:18895")) >= 0);
+	event[i].cd = sfd[i];
+	event[i].self = ut;
+	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;
+	spin_lock(&lock);
+	assert(upoll_ctl(ut, UPOLL_ADD, &event[i]) == 0);
+	spin_unlock(&lock);
+    }
+    for (i = 0; i < cnt; i++)
+	channel_close(sfd[i]);
 }
 
-static int cnt2 = 1000;
+static int channel_client_thread2(void *arg) {
+    channel_client2();
+    return 0;
+}
+
+static void channel_server_thread2() {
+    int i, mycnt;
+    int afd, sfd[cnt];
+    thread_t cli_thread = {};
+    struct upoll_event event[cnt];
+
+    ut = upoll_create();
+    spin_init(&lock);
+
+    ASSERT_TRUE((afd = channel_listen(pf, "127.0.0.1:18895")) >= 0);
+    thread_start(&cli_thread, channel_client_thread2, NULL);
+    for (i = 0; i < cnt; i++) {
+	while ((sfd[i] = channel_accept(afd)) < 0)
+	    usleep(10000);
+	event[i].cd = sfd[i];
+	event[i].self = ut;
+	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;
+	spin_lock(&lock);
+	assert(upoll_ctl(ut, UPOLL_ADD, &event[i]) == 0);
+	spin_unlock(&lock);
+    }
+    mycnt = rand() % cnt;
+    for (i = 0; i < 0; i++) {
+	event[i].cd = sfd[i];
+	event[i].self = ut;
+	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;
+	spin_lock(&lock);
+	assert(upoll_ctl(ut, UPOLL_DEL, &event[i]) == 0);
+	assert(upoll_ctl(ut, UPOLL_DEL, &event[i]) == -1);
+	spin_unlock(&lock);
+    }
+    for (i = 0; i < cnt; i++)
+	channel_close(sfd[i]);
+    thread_stop(&cli_thread);
+    spin_destroy(&lock);
+    upoll_close(ut);
+    channel_close(afd);
+}
+
+TEST(channel, vf) {
+    pf = PF_NET;
+    channel_server_thread();
+    channel_server_thread2();
+    pf = PF_INPROC;
+    channel_server_thread();
+    //channel_server_thread2();
+    pf = PF_IPC;
+    channel_server_thread();
+    channel_server_thread2();
+}
+
+
+
+
+
+static int cnt2 = 100;
 
 static void inproc_client2() {
     int sfd, i;

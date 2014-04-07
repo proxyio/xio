@@ -1,7 +1,7 @@
 # Object files
 *.o
 *.ko
-
+*.patch
 # Libraries
 *.lib
 *.a

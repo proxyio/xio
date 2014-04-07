@@ -70,7 +70,7 @@ static void bufio_fetch_flush_test() {
 	if ((rc =  bio_prefetch(&b, &tio.io_ops)) > 0)
 	    nbytes += rc;
     }
-    alen = nbytes;
+    alen = nbytes < 4 * PAGE_SIZE ? nbytes : 4 * PAGE_SIZE;
     bio_copy(&b, buf2, nbytes);
     EXPECT_TRUE(memcmp(buf1, buf2, alen) == 0);
     bio_copy(&b, buf2, nbytes);

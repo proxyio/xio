@@ -15,6 +15,7 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
+extern void check_upoll_events(struct channel *cn);
 
 static int channel_put(struct channel *cn) {
     int old;
@@ -98,6 +99,12 @@ static int snd_push_event(int cd) {
     if ((msg = pop_snd(cn)))
 	push_rcv(peer, msg);
 
+    /* Check for new UPOLL events */
+    check_upoll_events(cn);
+
+    /* Check for new UPOLL events for peer channel */
+    check_upoll_events(peer);
+    
     mutex_lock(&cn->lock);
     return rc;
 }

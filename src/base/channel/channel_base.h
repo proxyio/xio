@@ -66,9 +66,8 @@ struct channel {
     struct list_head rcv_head;
     struct list_head snd_head;
     struct channel_vf *vf;
-#define UPOLLCLOSED 0x08
-    struct list_head upoll_entries;
     struct list_head closing_link;
+    struct list_head upoll_head;
 
     /* Only for transport channel */
     struct {
