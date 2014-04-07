@@ -40,14 +40,14 @@ struct channel *pop_closed_channel(struct channel_poll *po) {
 
 
 /* The channel kernel will hold the channel's lock when call this */
-static void uupoll_event(struct upoll_notify *un, struct upoll_entry *ent) {
-    uint32_t happened = ent->pev.events_happened;
+static void uupoll_event(struct upoll_notify *un, struct upoll_entry *ue) {
+    uint32_t happened = ue->event.happened;
     struct upoll_table *ut = cont_of(un, struct upoll_table, notify);
 
     /* If any happened, insert it into happened_entries list */
     mutex_lock(&ut->lock);
-    if (happened && !attached(&ent->happened_link)) {
-	list_add_tail(&ent->happened_link, &ut->happened_entries);
+    if (happened && !attached(&ue->happened_link)) {
+	list_add_tail(&ue->happened_link, &ut->happened_entries);
 	if (ut->uwaiters)
 	    condition_broadcast(&ut->cond);
     }
@@ -68,38 +68,37 @@ struct upoll_table *upoll_create() {
     return ut;
 }
 
+/*
+ * upoll_table->lock must be held
+ */
 static struct upoll_entry *upoll_find(struct upoll_table *ut, int cd) {
-    struct upoll_entry *ent = NULL, *pos, *nx;
+    struct upoll_entry *ue = NULL, *nx;
 
-    mutex_lock(&ut->lock);
     /* TODO: we can use a rbtree make better performance */
-    list_for_each_upollentry(pos, nx, &ut->poll_entries) {
-	if (pos->pev.cd == cd) {
-	    ent = pos;
-	    break;
-	}
+    list_for_each_upollentry(ue, nx, &ut->poll_entries) {
+	if (ue->event.cd == cd)
+	    return ue;
     }
-    mutex_unlock(&ut->lock);
-    return ent;
+    return NULL;
 }
 
-static int upoll_add(struct upoll_table *ut, struct upoll_event *pev) {
+static int upoll_add(struct upoll_table *ut, struct upoll_event *event) {
     int rc = -1;
-    struct upoll_entry *ent = (struct upoll_entry *)mem_zalloc(sizeof(*ent));    
-    struct channel *cn = cid_to_channel(pev->cd);
+    struct upoll_entry *ue = (struct upoll_entry *)mem_zalloc(sizeof(*ue));    
+    struct channel *cn = cid_to_channel(event->cd);
 
-    if (ent) {
-	INIT_LIST_HEAD(&ent->channel_link);
-	INIT_LIST_HEAD(&ent->polltable_link);
-	INIT_LIST_HEAD(&ent->happened_link);
-	ent->pev = *pev;
-	ent->notify = &ut->notify;
+    if (ue) {
+	INIT_LIST_HEAD(&ue->channel_link);
+	INIT_LIST_HEAD(&ue->polltable_link);
+	INIT_LIST_HEAD(&ue->happened_link);
+	ue->event = *event;
+	ue->notify = &ut->notify;
 	mutex_lock(&ut->lock);
 	ut->ent_size++;
-	list_add_tail(&ent->polltable_link, &ut->poll_entries);
+	list_add_tail(&ue->polltable_link, &ut->poll_entries);
 
 	mutex_lock(&cn->lock);
-	list_add_tail(&ent->channel_link, &cn->upoll_entries);
+	list_add_tail(&ue->channel_link, &cn->upoll_entries);
 	mutex_unlock(&cn->lock);
 
 	mutex_unlock(&ut->lock);
@@ -109,43 +108,63 @@ static int upoll_add(struct upoll_table *ut, struct upoll_event *pev) {
 }
 
 
-static int upoll_rm(struct upoll_table *ut, struct upoll_event *pev) {
-    int rc = 0;
-    struct upoll_entry *ent = upoll_find(ut, pev->cd);
-    struct channel *cn = cid_to_channel(pev->cd);
-    
-    mutex_lock(&ut->lock);
+/*
+ * upoll_table->lock must be held
+ */
+static void __upoll_rm(struct upoll_table *ut, struct upoll_entry *ue) {
+    struct channel *cn = cid_to_channel(ue->event.cd);
+
     ut->ent_size--;
-    list_del_init(&ent->polltable_link);
+    list_del_init(&ue->polltable_link);
     mutex_lock(&cn->lock);
-    list_del_init(&ent->channel_link);
+    list_del_init(&ue->channel_link);
     mutex_unlock(&cn->lock);
-    mutex_unlock(&ut->lock);
-    return rc;
 }
 
-static int upoll_mod(struct upoll_table *ut, struct upoll_event *pev) {
+static int upoll_rm(struct upoll_table *ut, struct upoll_event *event) {
     int rc = 0;
-    struct upoll_entry *ent = upoll_find(ut, pev->cd);
+    struct upoll_entry *ue;
 
     mutex_lock(&ut->lock);
-    ent->pev.events = pev->events;
+    ue = upoll_find(ut, event->cd);
+    __upoll_rm(ut, ue);
     mutex_unlock(&ut->lock);
     return rc;
 }
 
-int upoll_ctl(struct upoll_table *ut, int op, struct upoll_event *pev) {
+/*
+ * upoll_table->lock must be held
+ */
+static void __upoll_mod(struct upoll_entry *ue, struct upoll_event *ev) {
+    struct channel *cn = cid_to_channel(ue->event.cd);
+    mutex_lock(&cn->lock);
+    ue->event.care = ev->care;
+    mutex_unlock(&cn->lock);
+}
+
+static int upoll_mod(struct upoll_table *ut, struct upoll_event *event) {
+    int rc = 0;
+    struct upoll_entry *ue;
+
+    mutex_lock(&ut->lock);
+    ue = upoll_find(ut, event->cd);
+    __upoll_mod(ue, event);
+    mutex_unlock(&ut->lock);
+    return rc;
+}
+
+int upoll_ctl(struct upoll_table *ut, int op, struct upoll_event *event) {
     int rc = -1;
 
     switch (op) {
     case UPOLL_ADD:
-	rc = upoll_add(ut, pev);
+	rc = upoll_add(ut, event);
 	break;
     case UPOLL_DEL:
-	rc = upoll_rm(ut, pev);
+	rc = upoll_rm(ut, event);
 	break;
     case UPOLL_MOD:
-	rc = upoll_mod(ut, pev);
+	rc = upoll_mod(ut, event);
 	break;
     default:
 	errno = EINVAL;
@@ -158,7 +177,7 @@ int upoll_wait(struct upoll_table *ut, struct upoll_event *vec,
     int n = 0;
     int64_t end = rt_mstime() + timeout;
     struct upoll_event *cn = vec;
-    struct upoll_entry *ent, *nx;
+    struct upoll_entry *ue, *nx;
     
     mutex_lock(&ut->lock);
     while (ut->cur_happened_events < 0 && rt_mstime() < end) {
@@ -170,15 +189,15 @@ int upoll_wait(struct upoll_table *ut, struct upoll_event *vec,
 	if (vec_sz > ut->cur_happened_events)
 	    vec_sz = ut->cur_happened_events;
 	n = vec_sz;
-	list_for_each_upollentry(ent, nx, &ut->happened_entries) {
+	list_for_each_upollentry(ue, nx, &ut->happened_entries) {
 	    if (vec_sz <= 0)
 		break;
-	    BUG_ON(!ent->pev.events_happened);
-	    list_del_init(&ent->happened_link);
+	    BUG_ON(!ue->event.happened);
+	    list_del_init(&ue->happened_link);
 
 	    /* Copy events detail into user-space buf and then clear */
-	    *vec = ent->pev;
-	    ent->pev.events_happened = 0;
+	    *vec = ue->event;
+	    ue->event.happened = 0;
 	    vec_sz--;
 	    vec++;
 	}
@@ -189,9 +208,11 @@ int upoll_wait(struct upoll_table *ut, struct upoll_event *vec,
 }
 
 void upoll_close(struct upoll_table *ut) {
-    struct upoll_entry *ent, *nx;
+    struct upoll_entry *ue, *nx;
 
-    /* TODO: BUGON here */
-    list_for_each_upollentry(ent, nx, &ut->poll_entries) {
+    mutex_lock(&ut->lock);
+    list_for_each_upollentry(ue, nx, &ut->poll_entries) {
+	__upoll_rm(ut, ue);
     }
+    mutex_unlock(&ut->lock);
 }

@@ -10,8 +10,12 @@
 
 struct upoll_event {
     int cd;
-    uint32_t events;
-    uint32_t events_happened;
+
+    /* What events i care about ... */
+    uint32_t care;
+
+    /* What events happened now */
+    uint32_t happened;
 };
 
 struct upoll_entry;
@@ -30,7 +34,7 @@ struct upoll_entry {
     struct list_head happened_link;
 
     /* struct upoll_event contain the register poll events and what happened */
-    struct upoll_event pev;
+    struct upoll_event event;
     struct upoll_notify *notify;
 };
 
@@ -64,9 +68,9 @@ void upoll_close(struct upoll_table *ut);
 /* All channel must be remove from upoll before closed
  * Can't modify an unexist channel.
  */
-int upoll_ctl(struct upoll_table *ut, int op, struct upoll_event *pev);
+int upoll_ctl(struct upoll_table *ut, int op, struct upoll_event *ue);
 
-int upoll_wait(struct upoll_table *ut, struct upoll_event *pev_set, int n, int timeout);
+int upoll_wait(struct upoll_table *ut, struct upoll_event *events, int n, int timeout);
 
 
 
