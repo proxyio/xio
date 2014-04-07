@@ -157,7 +157,7 @@ TEST(channel, vf) {
     channel_server_thread2();
     pf = PF_INPROC;
     channel_server_thread();
-    //channel_server_thread2();
+    channel_server_thread2();
     pf = PF_IPC;
     channel_server_thread();
     channel_server_thread2();

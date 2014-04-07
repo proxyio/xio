@@ -130,6 +130,11 @@ static void channel_base_exit(int cd) {
     }
     BUG_ON(attached(&cn->closing_link));
 
+    /* BUG: once we free the channel id. here we just only decr
+     * the ref hold by channel. but not release the ref hold by
+     * upoll_table. the two stop are async. that is the problem.
+     * the upoll_entry probably existing in the upoll_table yet!
+     */
     list_for_each_channel_ent(ent, tmp, &cn->upoll_head) {
 	spin_lock(&ent->lock);
 	ent->eflags |= UPOLLSTATE_CLOSED;
