@@ -52,6 +52,7 @@ struct channel {
     char peer[TP_SOCKADDRLEN];
     uint64_t fasync:1;
     uint64_t fok:1;
+    uint64_t fclosed:1;
     int parent;
     int cd;
     int pollid;
@@ -65,6 +66,7 @@ struct channel {
     struct list_head rcv_head;
     struct list_head snd_head;
     struct channel_vf *vf;
+#define UPOLLCLOSED 0x08
     struct list_head upoll_entries;
     struct list_head closing_link;
 

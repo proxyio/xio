@@ -8,7 +8,7 @@
 #define UPOLLOUT  2
 #define UPOLLERR  4
 
-struct pollcn {
+struct upoll_event {
     int cd;
     uint32_t events;
     uint32_t events_happened;
@@ -29,8 +29,8 @@ struct upoll_entry {
     /* List item for linked other upoll_entry that has any event happened */
     struct list_head happened_link;
 
-    /* struct pollcn contain the register poll events and what happened */
-    struct pollcn cn;
+    /* struct upoll_event contain the register poll events and what happened */
+    struct upoll_event pev;
     struct upoll_notify *notify;
 };
 
@@ -40,6 +40,7 @@ struct upoll_table {
     int uwaiters;
     mutex_t lock;
     condition_t cond;
+
     /* List header used to save all happened upoll_entry */
     int cur_happened_events;
     struct list_head happened_entries;
@@ -55,8 +56,17 @@ struct upoll_table {
 
 struct upoll_table *upoll_create();
 void upoll_close(struct upoll_table *ut);
-int upoll_ctl(struct upoll_table *ut, struct pollcn *cn);
-int upoll_wait(struct upoll_table *ut, struct pollcn *cns, int ncn, int timeout);
+
+#define UPOLL_ADD 1
+#define UPOLL_DEL 2
+#define UPOLL_MOD 3
+
+/* All channel must be remove from upoll before closed
+ * Can't modify an unexist channel.
+ */
+int upoll_ctl(struct upoll_table *ut, int op, struct upoll_event *pev);
+
+int upoll_wait(struct upoll_table *ut, struct upoll_event *pev_set, int n, int timeout);
 
 
 

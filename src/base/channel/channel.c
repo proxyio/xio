@@ -78,6 +78,7 @@ static void channel_base_init(int cd) {
     condition_init(&cn->cond);
     cn->fasync = false;
     cn->fok = true;
+    cn->fclosed = false;
     cn->parent = -1;
     cn->cd = cd;
     cn->pollid = choose_backend_poll(cd);
@@ -105,8 +106,9 @@ static void channel_base_exit(int cd) {
     condition_destroy(&cn->cond);
     cn->ty = -1;
     cn->pf = -1;
-    cn->fasync = -1;
-    cn->fok = -1;
+    cn->fasync = 0;
+    cn->fok = 0;
+    cn->fclosed = 0;
     cn->cd = -1;
     cn->pollid = -1;
     cn->ev.events = -1;
@@ -502,22 +504,6 @@ int channel_send(int cd, char *payload) {
     msg = cont_of(payload, struct channel_msg, hdr.payload);
     if ((rc = push_snd(cn, msg)) < 0) {
 	errno = cn->fok ? EAGAIN : EPIPE;
-	rc = -1;
     }
     return rc;
-}
-
-
-void channel_add_upoll_entry(struct upoll_entry *ent) {
-    struct channel *cn = cid_to_channel(ent->cn.cd);
-    mutex_lock(&cn->lock);
-    list_add_tail(&ent->channel_link, &cn->upoll_entries);
-    mutex_unlock(&cn->lock);
-}
-
-void channel_rm_upoll_entry(struct upoll_entry *ent) {
-    struct channel *cn = cid_to_channel(ent->cn.cd);
-    mutex_lock(&cn->lock);
-    list_del_init(&ent->channel_link);
-    mutex_unlock(&cn->lock);
 }
