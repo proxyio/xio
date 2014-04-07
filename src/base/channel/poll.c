@@ -152,7 +152,7 @@ int upoll_wait(struct upoll_table *ut, struct pollcn *cns, int ncn, int timeout)
 	list_for_each_upollentry(ent, nx, &ut->happened_entries) {
 	    if (ncn <= 0)
 		break;
-	    assert(ent->cn.events_happened);
+	    BUG_ON(!ent->cn.events_happened);
 	    list_del_init(&ent->happened_link);
 
 	    /* Copy events detail into user-space buf and then clear */
@@ -161,7 +161,7 @@ int upoll_wait(struct upoll_table *ut, struct pollcn *cns, int ncn, int timeout)
 	    ncn--;
 	    cns++;
 	}
-	assert(cns - cn == n);
+	BUG_ON(cns - cn != n);
     }
     mutex_unlock(&ut->lock);
     return n;

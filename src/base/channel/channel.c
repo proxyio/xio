@@ -55,7 +55,7 @@ static int choose_backend_poll(int cd) {
 int alloc_cid() {
     int cd;
     mutex_lock(&cn_global.lock);
-    assert(cn_global.nchannels < PIO_MAX_CHANNELS);
+    BUG_ON(cn_global.nchannels >= PIO_MAX_CHANNELS);
     cd = cn_global.unused[cn_global.nchannels++];
     mutex_unlock(&cn_global.lock);
     return cd;
@@ -125,7 +125,7 @@ static void channel_base_exit(int cd) {
     list_for_each_channel_msg_safe(pos, nx, &head) {
 	channel_freemsg(pos->hdr.payload);
     }
-    assert(!attached(&cn->closing_link));
+    BUG_ON(attached(&cn->closing_link));
     /* Detach from upoll_table */
 }
 
@@ -146,7 +146,7 @@ void free_channel(struct channel *cn) {
 int alloc_pid() {
     int pd;
     mutex_lock(&cn_global.lock);
-    assert(cn_global.npolls < PIO_MAX_CPUS);
+    BUG_ON(cn_global.npolls >= PIO_MAX_CPUS);
     pd = cn_global.poll_unused[cn_global.npolls++];
     mutex_unlock(&cn_global.lock);
     return pd;
@@ -172,10 +172,8 @@ static inline int event_runner(void *args) {
     INIT_LIST_HEAD(&po->closing_head);
 
     /* Init eventloop */
-    rc = eloop_init(&po->el, PIO_MAX_CHANNELS/PIO_MAX_CPUS, PIO_POLLER_IOMAX,
-		    PIO_POLLER_TIMEOUT);
-    assert(rc == 0);
-
+    BUG_ON(eloop_init(&po->el, PIO_MAX_CHANNELS/PIO_MAX_CPUS,
+		      PIO_POLLER_IOMAX, PIO_POLLER_TIMEOUT) != 0);
     while (!cn_global.exiting || has_closed_channel(po)) {
 	eloop_once(&po->el);
 	while ((closing_cn = pop_closed_channel(po)))
@@ -307,13 +305,11 @@ int channel_setopt(int cd, int opt, void *val, int valsz) {
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_SNDBUF:
-	assert(valsz == sizeof(int));
 	mutex_lock(&cn->lock);
 	cn->snd_wnd = (*(int *)val);
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_RCVBUF:
-	assert(valsz == sizeof(int));
 	mutex_lock(&cn->lock);
 	cn->rcv_wnd = (*(int *)val);
 	mutex_unlock(&cn->lock);
@@ -382,8 +378,8 @@ struct channel_msg *pop_rcv(struct channel *cn) {
 	if (cn->rcv_wnd - cn->rcv <= msgsz)
 	    events |= MQ_NONFULL;
 	if (list_empty(&cn->rcv_head)) {
+	    BUG_ON(cn->rcv);
 	    events |= MQ_EMPTY;
-	    assert(cn->rcv == 0);
 	}
     }
 
@@ -433,8 +429,8 @@ struct channel_msg *pop_snd(struct channel *cn) {
 	if (cn->snd_wnd - cn->snd <= msgsz)
 	    events |= MQ_NONFULL;
 	if (list_empty(&cn->snd_head)) {
+	    BUG_ON(cn->snd);
 	    events |= MQ_EMPTY;
-	    assert(cn->snd == 0);
 	}
 
 	/* Wakeup the blocking waiters */

@@ -49,7 +49,7 @@ static void snd_empty_event(int cd) {
     // Disable POLLOUT event when snd_head is empty
     if (cn->sock.et.events & EPOLLOUT) {
 	cn->sock.et.events &= ~EPOLLOUT;
-	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+	BUG_ON(eloop_mod(&po->el, &cn->sock.et) != 0);
     }
 }
 
@@ -60,7 +60,7 @@ static void snd_nonempty_event(int cd) {
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLOUT)) {
 	cn->sock.et.events |= EPOLLOUT;
-	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+	BUG_ON(eloop_mod(&po->el, &cn->sock.et) != 0);
     }
 }
 
@@ -83,7 +83,7 @@ static void rcv_full_event(int cd) {
     // Enable POLLOUT event when snd_head isn't empty
     if ((cn->sock.et.events & EPOLLIN)) {
 	cn->sock.et.events &= ~EPOLLIN;
-	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+	BUG_ON(eloop_mod(&po->el, &cn->sock.et) != 0);
     }
 }
 
@@ -94,7 +94,7 @@ static void rcv_nonfull_event(int cd) {
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLIN)) {
 	cn->sock.et.events |= EPOLLIN;
-	assert(eloop_mod(&po->el, &cn->sock.et) == 0);
+	BUG_ON(eloop_mod(&po->el, &cn->sock.et) != 0);
     }
 }
 
@@ -124,7 +124,7 @@ static int io_accepter_init(int cd) {
     cn->sock.fd = s;
     cn->sock.tp = tp;
     cn->sock.ops = default_channel_ops;
-    assert(eloop_add(&po->el, &cn->sock.et) == 0);
+    BUG_ON(eloop_add(&po->el, &cn->sock.et) != 0);
     return rc;
 }
 
@@ -144,7 +144,7 @@ static int io_listener_init(int cd) {
     cn->sock.et.data = cn;
     cn->sock.fd = s;
     cn->sock.tp = tp;
-    assert(eloop_add(&po->el, &cn->sock.et) == 0);
+    BUG_ON(eloop_add(&po->el, &cn->sock.et) != 0);
     return rc;
 }
 
@@ -166,7 +166,7 @@ static int io_connector_init(int cd) {
     cn->sock.fd = s;
     cn->sock.tp = tp;
     cn->sock.ops = default_channel_ops;
-    assert(eloop_add(&po->el, &cn->sock.et) == 0);
+    BUG_ON(eloop_add(&po->el, &cn->sock.et) != 0);
     return rc;
 }
 
@@ -198,7 +198,7 @@ static void io_channel_destroy(int cd) {
     io_snd(cn);
 
     /* Detach channel low-level file descriptor from poller */
-    assert(eloop_del(&po->el, &cn->sock.et) == 0);
+    BUG_ON(eloop_del(&po->el, &cn->sock.et) != 0);
     tp->close(cn->sock.fd);
 
     cn->sock.fd = -1;

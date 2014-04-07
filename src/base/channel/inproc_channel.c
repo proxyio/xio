@@ -144,7 +144,7 @@ static int inproc_accepter_init(int cd) {
      * 2. if peer->proc.ref == 1. the peer is waiting and we should
      *    wakeup him when we done the connect work.
      */
-    assert(peer->proc.ref == 0 || peer->proc.ref == 1);
+    BUG_ON(peer->proc.ref != 0 && peer->proc.ref != 1);
     if (peer->proc.ref == 1)
 	condition_signal(&peer->cond);
     me->proc.ref = peer->proc.ref = 2;
@@ -221,11 +221,11 @@ static int inproc_connector_init(int cd) {
      * if cn->proc.ref == 2. the connect was established.
      */
     if (cn->proc.ref == -1)
-	assert(cn->proc.ref == -1);
+	BUG_ON(cn->proc.ref != -1);
     else if (cn->proc.ref == 0)
-	assert(cn->proc.ref == 0);
+	BUG_ON(cn->proc.ref != 0);
     else if (cn->proc.ref == 2)
-	assert(cn->proc.ref == 2);
+	BUG_ON(cn->proc.ref != 2);
     if (cn->proc.ref == 0 || cn->proc.ref == -1) {
     	errno = ECONNREFUSED;
 	rc = -1;
@@ -276,7 +276,7 @@ static void inproc_channel_destroy(int cd) {
 	inproc_listener_destroy(cd);
 	break;
     default:
-	assert(0);
+	BUG_ON(1);
     }
 }
 
