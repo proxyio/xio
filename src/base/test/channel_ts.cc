@@ -86,7 +86,7 @@ static void channel_server_thread() {
 }
 
 
-struct upoll_table *ut;
+struct upoll_tb *tb;
 spin_t lock;
 
 static void channel_client2() {
@@ -97,10 +97,10 @@ static void channel_client2() {
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE((sfd[i] = channel_connect(pf, "127.0.0.1:18895")) >= 0);
 	event[i].cd = sfd[i];
-	event[i].self = ut;
+	event[i].self = tb;
 	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;
 	spin_lock(&lock);
-	assert(upoll_ctl(ut, UPOLL_ADD, &event[i]) == 0);
+	assert(upoll_ctl(tb, UPOLL_ADD, &event[i]) == 0);
 	spin_unlock(&lock);
     }
     for (i = 0; i < cnt; i++)
@@ -118,7 +118,7 @@ static void channel_server_thread2() {
     thread_t cli_thread = {};
     struct upoll_event event[cnt];
 
-    ut = upoll_create();
+    tb = upoll_create();
     spin_init(&lock);
 
     ASSERT_TRUE((afd = channel_listen(pf, "127.0.0.1:18895")) >= 0);
@@ -127,28 +127,28 @@ static void channel_server_thread2() {
 	while ((sfd[i] = channel_accept(afd)) < 0)
 	    usleep(10000);
 	event[i].cd = sfd[i];
-	event[i].self = ut;
+	event[i].self = tb;
 	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;
 	spin_lock(&lock);
-	assert(upoll_ctl(ut, UPOLL_ADD, &event[i]) == 0);
+	assert(upoll_ctl(tb, UPOLL_ADD, &event[i]) == 0);
 	spin_unlock(&lock);
     }
     mycnt = rand() % cnt;
     for (i = 0; i < 0; i++) {
 	event[i].cd = sfd[i];
-	event[i].self = ut;
+	event[i].self = tb;
 	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;
 	spin_lock(&lock);
-	assert(upoll_ctl(ut, UPOLL_DEL, &event[i]) == 0);
-	assert(upoll_ctl(ut, UPOLL_DEL, &event[i]) == -1);
+	assert(upoll_ctl(tb, UPOLL_DEL, &event[i]) == 0);
+	assert(upoll_ctl(tb, UPOLL_DEL, &event[i]) == -1);
 	spin_unlock(&lock);
     }
     for (i = 0; i < cnt; i++)
 	channel_close(sfd[i]);
     thread_stop(&cli_thread);
     spin_destroy(&lock);
-    upoll_close(ut);
     channel_close(afd);
+    upoll_close(tb);
 }
 
 TEST(channel, vf) {
