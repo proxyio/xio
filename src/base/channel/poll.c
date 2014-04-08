@@ -4,125 +4,65 @@
 
 extern struct channel *cid_to_channel(int cd);
 
-static struct upoll_entry *entry_new(struct upoll_event *event) {
-    struct upoll_entry *ent = (struct upoll_entry *)mem_zalloc(sizeof(*ent));
-    if (ent) {
-	INIT_LIST_HEAD(&ent->channel_link);
-	INIT_LIST_HEAD(&ent->lru_link);
-	spin_init(&ent->lock);
-	ent->ref = 0;
-	ent->eflags = UPOLLSTATE_NEW|UPOLLSTATE_DEL|UPOLLSTATE_CLOSED;
-	ent->event = *event;
-    }
-    return ent;
-}
-
-static void entry_destroy(struct upoll_entry *ent) {
-    struct upoll_table *ut = cont_of(ent->notify, struct upoll_table, notify);
-
-    BUG_ON(ent->ref != 0);
-    spin_destroy(&ent->lock);
-    if (ent->notify)
-	upoll_put(ut);
-    mem_free(ent, sizeof(*ent));
-}
-
-
-int entry_get(struct upoll_entry *ent) {
-    int ref;
-    spin_lock(&ent->lock);
-    ref = ent->ref++;
-    /* open for debuging
-    if (ent->i_idx < sizeof(ent->incr_tid))
-	ent->incr_tid[ent->i_idx++] = gettid();
-    */
-    spin_unlock(&ent->lock);
-    return ref;
-}
-
-int entry_put(struct upoll_entry *ent) {
-    int ref;
-    spin_lock(&ent->lock);
-    ref = ent->ref--;
-    BUG_ON(ent->ref < 0);
-    /* open for debuging
-    if (ent->d_idx < sizeof(ent->desc_tid))
-	ent->desc_tid[ent->d_idx++] = gettid();
-    */
-    spin_unlock(&ent->lock);
-    if (ref == 1) {
-	BUG_ON(attached(&ent->lru_link));
-	BUG_ON(attached(&ent->channel_link));
-	entry_destroy(ent);
-    }
-    return ref;
-}
-
 static void event_notify(struct upoll_notify *un, struct upoll_entry *ent);
-
-static struct upoll_table *upoll_new() {
-    struct upoll_table *ut = (struct upoll_table *)mem_zalloc(sizeof(*ut));
-    if (ut) {
-	ut->notify.event = event_notify;
-	ut->uwaiters = 0;
-	ut->ref = 0;
-	mutex_init(&ut->lock);
-	INIT_LIST_HEAD(&ut->lru_entries);
-    }
-    return ut;
-}
-
-static void upoll_destroy(struct upoll_table *ut) {
-    mutex_destroy(&ut->lock);
-    mem_free(ut, sizeof(struct upoll_table));
-}
-
-int upoll_get(struct upoll_table *ut) {
-    int ref;
-    mutex_lock(&ut->lock);
-    ref = ut->ref++;
-    mutex_unlock(&ut->lock);
-    return ref;
-}
-
-int upoll_put(struct upoll_table *ut) {
-    int ref;
-    mutex_lock(&ut->lock);
-    ref = ut->ref--;
-    BUG_ON(ut->ref < 0);
-    mutex_unlock(&ut->lock);
-    if (ref == 1)
-	upoll_destroy(ut);
-    return ref;
-}
 
 struct upoll_table *upoll_create() {
     struct upoll_table *ut = upoll_new();
     /* This one is hold by user caller and will be released after
      * user call upoll_close
      */
-    if (ut)
+    if (ut) {
+	ut->notify.event = event_notify;	
 	upoll_get(ut);
+    }
     return ut;
 }
 
-static struct upoll_entry *__find(struct upoll_table *ut, int cd) {
-    struct upoll_entry *ent, *nx;
+/* Remove a upoll_entry from upoll_table. The caller must hold the
+ * upoll_table's lock and entry's lock */
+static void __rm(struct upoll_table *ut, struct upoll_entry *ent) {
+    BUG_ON(!(ent->ref == 1 || ent->ref == 2));
 
-    /* TODO: we can use a rbtree make better performance */
+    ut->tb_size--;
+    ent->eflags |= UPOLLSTATE_DEL;
+    list_del_init(&ent->lru_link);
+}
+
+/* Find an upoll_entry by channel id and remove it if channel is closed */
+static struct upoll_entry *__find(struct upoll_table *ut, int cd, int lock) {
+    struct upoll_entry *ent, *nx;
     list_for_each_upoll_ent(ent, nx, &ut->lru_entries) {
-	if (ent->event.cd == cd)
+	spin_lock(&ent->lock);
+	if (ent->eflags & UPOLLSTATE_CLOSED) {
+	    __rm(ut, ent);
+	    spin_unlock(&ent->lock);
+	    continue;
+	}
+	if (ent->event.cd == cd) {
+	    if (!lock)
+		spin_unlock(&ent->lock);
 	    return ent;
+	}
+	spin_unlock(&ent->lock);
     }
     return NULL;
 }
 
+static inline
+struct upoll_entry *__find_no_lock(struct upoll_table *ut, int cd) {
+    return __find(ut, cd, false);
+}
+
+static inline
+struct upoll_entry *__find_and_lock(struct upoll_table *ut, int cd) {
+    return __find(ut, cd, true);
+}
 
 /* The channel backend thread was remove the entry from channel table. */
 static void event_notify(struct upoll_notify *un, struct upoll_entry *ent) {
     uint32_t happened = ent->event.happened;
     struct upoll_table *ut = cont_of(un, struct upoll_table, notify);
-
+    
     /* In normal case we have three cases here.
      * case 1: ref == 1. upoll_rm this entry or upoll_add not done
      * case 2: ref == 2. normal state
@@ -160,7 +100,7 @@ static int upoll_add(struct upoll_table *ut, struct upoll_event *event) {
     mutex_lock(&ut->lock);
     /* Nobody know this entry at this time. so we doesn't lock it */
     /* Check exist entry */
-    if ((ent = __find(ut, event->cd))) {
+    if ((ent = __find_no_lock(ut, event->cd))) {
 	mutex_unlock(&ut->lock);
 	errno = EEXIST;
 	return -1;
@@ -209,18 +149,6 @@ static int upoll_add(struct upoll_table *ut, struct upoll_event *event) {
     return rc;
 }
 
-/* Remove a upoll_entry from upoll_table. The caller must hold the
- * upoll_table's lock */
-static void __rm(struct upoll_table *ut, struct upoll_entry *ent) {
-    spin_lock(&ent->lock);
-    BUG_ON(!(ent->ref == 1 || ent->ref == 2));
-
-    ut->tb_size--;
-    ent->eflags |= UPOLLSTATE_DEL;
-    list_del_init(&ent->lru_link);
-    spin_unlock(&ent->lock);
-}
-
 /* WARNING: upoll_rm the same entry twice is a FATAL error */
 static int upoll_rm(struct upoll_table *ut, struct upoll_event *event) {
     int rc = 0;
@@ -231,12 +159,13 @@ static int upoll_rm(struct upoll_table *ut, struct upoll_event *event) {
      * case 2: ref == 2. normal state or UPOLLSTATE_NEW
      */
     mutex_lock(&ut->lock);
-    if (!(ent = __find(ut, event->cd))) {
+    if (!(ent = __find_and_lock(ut, event->cd))) {
 	mutex_unlock(&ut->lock);
 	errno = ENOENT;
 	return -1;
     }
     __rm(ut, ent);
+    spin_unlock(&ent->lock);
     mutex_unlock(&ut->lock);
 
     /* Release the ref hold by upoll_table*/
@@ -253,7 +182,7 @@ static int upoll_mod(struct upoll_table *ut, struct upoll_event *event) {
      * case 2: ref == 2. normal state or UPOLLSTATE_NEW
      */
     mutex_lock(&ut->lock);
-    if (!(ent = __find(ut, event->cd))) {
+    if (!(ent = __find_and_lock(ut, event->cd))) {
 	mutex_unlock(&ut->lock);
 	errno = ENOENT;
 	return -1;
@@ -326,7 +255,9 @@ void upoll_close(struct upoll_table *ut) {
     /* Remove all upoll_entry from upoll_table and then destroy them. */
     mutex_lock(&ut->lock);
     list_for_each_upoll_ent(ent, nx, &ut->lru_entries) {
+	spin_lock(&ent->lock);
 	__rm(ut, ent);
+	spin_unlock(&ent->lock);
 	list_add(&ent->lru_link, &destroy_head);
     }
     mutex_unlock(&ut->lock);

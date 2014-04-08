@@ -45,7 +45,7 @@ struct upoll_entry {
 #define list_for_each_channel_ent(pos, nx, head)			\
     list_for_each_entry_safe(pos, nx, head, struct upoll_entry, channel_link)
 
-
+struct upoll_entry *entry_new();
 int entry_get(struct upoll_entry *ent);
 int entry_put(struct upoll_entry *ent);
 
@@ -60,6 +60,7 @@ struct upoll_table {
     struct list_head lru_entries;
 };
 
+struct upoll_table *upoll_new();
 int upoll_get(struct upoll_table *ut);
 int upoll_put(struct upoll_table *ut);
 
