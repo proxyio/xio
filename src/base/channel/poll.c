@@ -45,6 +45,7 @@ static int upoll_add(struct upoll_tb *tb, struct upoll_event *event) {
     entry_get(ent);
 
     /* We hold a ref here. it is used for channel */
+    /* BUG case 1: it's possible that this entry was deleted by upoll_rm() */
     entry_attach_to_channel(ent, cn->cd);
 
     /* Release caller's ref after work done. */
