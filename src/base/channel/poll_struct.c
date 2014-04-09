@@ -11,15 +11,19 @@ struct upoll_entry *entry_new() {
 	INIT_LIST_HEAD(&ent->lru_link);
 	spin_init(&ent->lock);
 	ent->ref = 0;
-	ent->eflags = UPOLLSTATE_NEW|UPOLLSTATE_DEL|UPOLLSTATE_CLOSED;
     }
     return ent;
 }
 
+int tb_put(struct upoll_tb *tb);
+
 static void entry_destroy(struct upoll_entry *ent) {
+    struct upoll_tb *tb = cont_of(ent->notify, struct upoll_tb, notify);
+
     BUG_ON(ent->ref != 0);
     spin_destroy(&ent->lock);
     mem_free(ent, sizeof(*ent));
+    tb_put(tb);
 }
 
 
@@ -37,6 +41,7 @@ int entry_get(struct upoll_entry *ent) {
 
 int entry_put(struct upoll_entry *ent) {
     int ref;
+
     spin_lock(&ent->lock);
     ref = ent->ref--;
     BUG_ON(ent->ref < 0);
@@ -110,34 +115,18 @@ struct upoll_entry *tb_find(struct upoll_tb *tb, int cd) {
 }
 
 
-void __entry_attach_to_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
+void __attach_to_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
     BUG_ON(attached(&ent->lru_link));
     tb->size++;
     list_add_tail(&ent->lru_link, &tb->lru_head);
 }
 
-void entry_attach_to_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
-    mutex_lock(&tb->lock);
-    __entry_attach_to_tb(ent, tb);
-    mutex_unlock(&tb->lock);
-}
-
-void __entry_detach_from_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
-    /* We locking here because of upoll_rm will check ent is attached
-     * to upoll_tb
-     */
-    spin_lock(&ent->lock);
+void __detach_from_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
     BUG_ON(!attached(&ent->lru_link));
     tb->size--;
     list_del_init(&ent->lru_link);
-    spin_unlock(&ent->lock);
 }
 
-void entry_detach_from_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
-    mutex_lock(&tb->lock);
-    __entry_detach_from_tb(ent, tb);
-    mutex_unlock(&tb->lock);
-}
 
 /* Create a new upoll_entry if the cd doesn't exist and get one ref for
  * caller. upoll_add() call this.
@@ -165,7 +154,7 @@ struct upoll_entry *tb_getent(struct upoll_tb *tb, int cd) {
     tb->ref++;
 
     ent->event.cd = cd;
-    __entry_attach_to_tb(ent, tb);
+    __attach_to_tb(ent, tb);
     mutex_unlock(&tb->lock);
 
     return ent;
@@ -184,11 +173,12 @@ struct upoll_entry *tb_putent(struct upoll_tb *tb, int cd) {
 	errno = ENOENT;
 	return NULL;
     }
-    __entry_detach_from_tb(ent, tb);
+    __detach_from_tb(ent, tb);
     mutex_unlock(&tb->lock);
 
-    /* Release the upoll_tb's ref hold by upoll_entry */
-    tb_put(tb);
+    /* Release the upoll_tb's ref hold by upoll_entry
+     * tb_put(tb);
+     */
     return ent;
 }
 
@@ -207,48 +197,28 @@ struct upoll_entry *tb_popent(struct upoll_tb *tb) {
 	return NULL;
     }
     ent = list_first(&tb->lru_head, struct upoll_entry, lru_link);
-    __entry_detach_from_tb(ent, tb);
+    __detach_from_tb(ent, tb);
     mutex_unlock(&tb->lock);
 
     /* Release the upoll_tb's ref hold by upoll_entry. remember that this
      * is an cycle ref
+     * tb_put(tb);
      */
-    tb_put(tb);
     return ent;
 }
 
 
-void entry_attach_to_channel(struct upoll_entry *ent, int cd) {
+void attach_to_channel(struct upoll_entry *ent, int cd) {
     struct channel *cn = cid_to_channel(cd);
 
     mutex_lock(&cn->lock);
-
-    /* See the BUG case 1 of upoll_rm for more details
-     * the upoll_entry will be destroy immediately when return.
-     */
-    spin_lock(&ent->lock);
-
-    if (!attached(&ent->lru_link)) {
-	spin_unlock(&ent->lock);
-	mutex_unlock(&cn->lock);
-	return;
-    }
     BUG_ON(attached(&ent->channel_link));
     list_add_tail(&ent->channel_link, &cn->upoll_head);
-
-    spin_unlock(&ent->lock);
     mutex_unlock(&cn->lock);
 }
 
 
-void entry_detach_from_channel(struct upoll_entry *ent, int cd) {
-    struct channel *cn = cid_to_channel(cd);
-
-    mutex_lock(&cn->lock);
-
-    /* See the BUG case 1 of upoll_rm for more details */
-    if (attached(&ent->channel_link))
-	list_del_init(&ent->channel_link);
-
-    mutex_unlock(&cn->lock);
+void __detach_from_channel(struct upoll_entry *ent) {
+    BUG_ON(!attached(&ent->channel_link));
+    list_del_init(&ent->channel_link);
 }

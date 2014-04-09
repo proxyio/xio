@@ -128,6 +128,12 @@ static void channel_base_exit(int cd) {
 	channel_freemsg(pos->hdr.payload);
     }
     BUG_ON(attached(&cn->closing_link));
+
+    /* It's possible that user call channel_close() and upoll_add()
+     * at the same time. and attach_to_channel() happen after channel_close().
+     * this is a user's bug.
+     */
+    BUG_ON(!list_empty(&cn->upoll_head));
 }
 
 
@@ -262,26 +268,17 @@ void global_channel_exit() {
 
 void channel_close(int cd) {
     struct channel *cn = cid_to_channel(cd);
-    struct list_head upoll_head;
     struct upoll_tb *tb;
     struct upoll_entry *ent, *nx;
     
-    INIT_LIST_HEAD(&upoll_head);
     mutex_lock(&cn->lock);
-    list_splice(&cn->upoll_head, &upoll_head);
-    mutex_unlock(&cn->lock);
-    
-    /* WARNING: we remove the channel's upoll_head to a temporary
-     * head here and then release the channel's lock. be sure to keep
-     * in mind that upoll_rm() will do an detach_from_channel list_head
-     * operation. don't worry about this. because the temporary head
-     * is protect by channel's lock and no one can touch it anymore!
-     */
-    list_for_each_channel_ent(ent, nx, &upoll_head) {
+    list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
 	tb = cont_of(ent->notify, struct upoll_tb, notify);
 	upoll_ctl(tb, UPOLL_DEL, &ent->event);
+	__detach_from_channel(ent);
+	entry_put(ent);
     }
-
+    mutex_unlock(&cn->lock);
     /* Let backend thread do the last destroy() */
     push_closed_channel(cn);
 }
@@ -561,34 +558,19 @@ int channel_send(int cd, char *payload) {
     return rc;
 }
 
-void check_upoll_events(struct channel *cn) {
-    int upoll_events = 0;
+void update_upoll_tb(struct channel *cn) {
+    int events = 0;
     struct upoll_entry *ent, *nx;
-    struct list_head upoll_head;
 
-    INIT_LIST_HEAD(&upoll_head);
     mutex_lock(&cn->lock);
-    if (!list_empty(&cn->rcv_head))
-	upoll_events |= UPOLLIN;
-    if (can_send(cn))
-	upoll_events |= UPOLLOUT;
-    if (!cn->fok)
-	upoll_events |= UPOLLERR;
-    if (upoll_events)
-	list_splice(&cn->upoll_head, &upoll_head);
-    mutex_unlock(&cn->lock);
-    if (!upoll_events)
-	return;
-
-    /* Enter here. each upoll_entry maybe release in the event callback.
-     * we should check the temp upoll_head again that contain the rest
-     * upoll_entry which havn't released. and then move into channel table.
-     */
-    list_for_each_channel_ent(ent, nx, &upoll_head) {
-	ent->event.happened = upoll_events;
-	ent->notify->event(ent->notify, ent);
+    events |= !list_empty(&cn->rcv_head) ? UPOLLIN : 0;
+    events |= can_send(cn) ? UPOLLOUT : 0;
+    events |= !cn->fok ? UPOLLERR : 0;
+    list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
+	if (events) {
+	    ent->event.happened = events;
+	    ent->notify->event(ent->notify, ent);
+	}
     }
-    mutex_lock(&cn->lock);
-    list_splice(&upoll_head, &cn->upoll_head);
     mutex_unlock(&cn->lock);
 }

@@ -143,12 +143,12 @@ static void channel_server_thread2() {
 	assert(upoll_ctl(tb, UPOLL_DEL, &event[i]) == -1);
 	spin_unlock(&lock);
     }
+    upoll_close(tb);
     for (i = 0; i < cnt; i++)
 	channel_close(sfd[i]);
     thread_stop(&cli_thread);
     spin_destroy(&lock);
     channel_close(afd);
-    upoll_close(tb);
 }
 
 TEST(channel, vf) {

@@ -10,10 +10,6 @@ struct upoll_notify {
     void (*event) (struct upoll_notify *un, struct upoll_entry *ent);
 };
 
-#define UPOLLSTATE_NEW    0x01
-#define UPOLLSTATE_DEL    0x02
-#define UPOLLSTATE_CLOSED 0x04
-
 struct upoll_entry {
     /* List item for linked other upoll_entry of the same channel */
     struct list_head channel_link;
@@ -23,8 +19,6 @@ struct upoll_entry {
 
     spin_t lock;
 
-    /* This entry is normal Only when eflags == 0 && ref >= 2 */
-    uint32_t eflags;
     /* Reference hold by channel/upoll_tb */
     int ref;
 
@@ -64,13 +58,14 @@ struct upoll_tb {
 struct upoll_tb *tb_new();
 int tb_get(struct upoll_tb *ut);
 int tb_put(struct upoll_tb *ut);
+
 struct upoll_entry *tb_find(struct upoll_tb *tb, int cd);
 struct upoll_entry *tb_popent(struct upoll_tb *tb);
 struct upoll_entry *tb_getent(struct upoll_tb *tb, int cd);
 struct upoll_entry *tb_putent(struct upoll_tb *tb, int cd);
 
-void entry_attach_to_channel(struct upoll_entry *ent, int cd);
-void entry_detach_from_channel(struct upoll_entry *ent, int cd);
+void attach_to_channel(struct upoll_entry *ent, int cd);
+void __detach_from_channel(struct upoll_entry *ent);
 
 
 #endif

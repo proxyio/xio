@@ -20,11 +20,20 @@ static void event_notify(struct upoll_notify *un, struct upoll_entry *ent) {
     struct upoll_tb *tb = cont_of(un, struct upoll_tb, notify);
 
     mutex_lock(&tb->lock);
-    if (ent->event.happened) {
+    BUG_ON(!ent->event.care);
+    if (!attached(&ent->lru_link)) {
+	__detach_from_channel(ent);
+	mutex_unlock(&tb->lock);
+	entry_put(ent);
+	return;
+    }
+    spin_lock(&ent->lock);
+    if (ent->event.happened && (ent->event.care & ent->event.happened)) {
 	list_move(&ent->lru_link, &tb->lru_head);
 	if (tb->uwaiters)
 	    condition_broadcast(&tb->cond);
     }
+    spin_unlock(&ent->lock);
     mutex_unlock(&tb->lock);
 }
 
@@ -41,33 +50,19 @@ static int upoll_add(struct upoll_tb *tb, struct upoll_event *event) {
     ent->notify = &tb->notify;
     spin_unlock(&ent->lock);
 
-    /* Incr one ref for caller before other thread can touch it. */
-    entry_get(ent);
-
     /* We hold a ref here. it is used for channel */
     /* BUG case 1: it's possible that this entry was deleted by upoll_rm() */
-    entry_attach_to_channel(ent, cn->cd);
-
-    /* Release caller's ref after work done. */
-    entry_put(ent);
+    attach_to_channel(ent, cn->cd);
     return 0;
 }
 
-/* WARNING: upoll_rm the same entry twice is a FATAL error */
 static int upoll_rm(struct upoll_tb *tb, struct upoll_event *event) {
     struct upoll_entry *ent = tb_putent(tb, event->cd);
 
     if (!ent)
 	return -1;
 
-    /* BUG case 1:
-     * maybe the upoll_add not done. ent only attached to upoll_tb
-     * haven't attached to channel yet. event_notify process the case.
-     */
-    entry_detach_from_channel(ent, event->cd);
-
-    /* Release the ref hold by upoll_tb and channel */
-    entry_put(ent);
+    /* Release the ref hold by upoll_tb */
     entry_put(ent);
     return 0;
 }
@@ -136,17 +131,12 @@ int upoll_wait(struct upoll_tb *tb, struct upoll_event *events,
 
 
 void upoll_close(struct upoll_tb *tb) {
-    struct list_head lru_head;
-    struct upoll_entry *ent, *nx;
+    struct upoll_entry *ent;
 
-    INIT_LIST_HEAD(&lru_head);
-    mutex_lock(&tb->lock);
-    list_splice(&tb->lru_head, &lru_head);
-    mutex_unlock(&tb->lock);
-
-    list_for_each_upoll_ent(ent, nx, &lru_head)
-	upoll_ctl(tb, UPOLL_DEL, &ent->event);
-
+    while ((ent = tb_popent(tb))) {
+	/* Release the ref hold by upoll_tb */
+	entry_put(ent);
+    }
     /* Release the ref hold by user-caller */
     tb_put(tb);
 }

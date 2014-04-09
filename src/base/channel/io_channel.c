@@ -16,7 +16,7 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
-extern void check_upoll_events(struct channel *cn);
+extern void update_upoll_tb(struct channel *cn);
 
 
 
@@ -300,7 +300,7 @@ static int io_handler(eloop_t *el, ev_t *et) {
 	cn->fok = false;
 
     /* Check events for upoll */
-    check_upoll_events(cn);
+    update_upoll_tb(cn);
     return rc;
 }
 
