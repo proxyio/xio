@@ -113,7 +113,7 @@ int upoll_wait(struct upoll_tb *tb, struct upoll_event *events,
     ent = list_first(&tb->lru_head, struct upoll_entry, lru_link);
     if (!ent->event.happened && timeout != 0) {
 	tb->uwaiters++;
-	condition_wait(&tb->cond, &tb->lock);
+	condition_timewait(&tb->cond, &tb->lock, timeout);
 	tb->uwaiters--;
     }
     list_for_each_upoll_ent(ent, nx, &tb->lru_head) {
