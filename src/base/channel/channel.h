@@ -12,6 +12,7 @@
 
 char *channel_allocmsg(uint32_t size);
 void channel_freemsg(char *payload);
+uint32_t channel_msglen(char *payload);
 
 int channel_listen(int pf, const char *sock);
 int channel_connect(int pf, const char *peer);

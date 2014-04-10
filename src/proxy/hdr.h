@@ -84,20 +84,21 @@ static inline void tr_back_cost(struct gsm *s, int64_t now) {
 int tr_append_and_go(struct gsm *s, struct tr *r, int64_t now);
 void tr_shrink_and_back(struct gsm *s, int64_t now);
 
-static inline struct gsm *gsm_new() {
+static inline struct gsm *gsm_new(char *payload) {
     struct gsm *s = (struct gsm *)mem_zalloc(sizeof(*s));
+    if (s) {
+	INIT_LIST_HEAD(&s->link);
+	s->payload = payload;
+	s->h = (struct rdh *)payload;
+	s->r = payload + s->h->size;
+    }
     return s;
 }
 
 static inline void gsm_free(struct gsm *s) {
+    channel_freemsg(s->payload);
     mem_free(s, sizeof(struct gsm));
 }
-
-static inline void gsm_free_with_payload(struct gsm *s) {
-    channel_freemsg(s->payload);
-    gsm_free(s);
-}
-
 
 
 #endif

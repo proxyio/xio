@@ -48,6 +48,12 @@ void channel_freemsg(char *payload) {
     mem_free(msg, sizeof(*msg) + msg->hdr.size);
 }
 
+uint32_t channel_msglen(char *payload) {
+    struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
+    return msg->hdr.size;
+}
+
+
 static int choose_backend_poll(int cd) {
     return cd % cn_global.npolls;
 }

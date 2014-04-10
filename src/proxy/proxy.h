@@ -3,21 +3,21 @@
 
 #include <channel/channel.h>
 
-struct proxyio;
+struct pyio;
 
-struct proxyio *proxyio_new();
-int proxy_close(struct proxyio *py);
+struct pyio *pyio_new();
+int pyio_close(struct pyio *py);
 
-int proxy_bind(struct proxyio *py, const char *addr);
-int proxy_connect(struct proxyio *py, const char *addr);
-char *proxy_recv(struct proxyio *py);
-int proxy_send(struct proxyio *py, char *payload);
+int pyio_bind(struct pyio *py, const char *addr);
+int pyio_connect(struct pyio *py, const char *addr);
+char *pyio_recv(struct pyio *py);
+int pyio_send(struct pyio *py, char *payload);
 
-static inline char *proxy_allocmsg(uint32_t size) {
+static inline char *pyio_allocmsg(uint32_t size) {
     return channel_allocmsg(size);
 }
 
-static inline void proxy_freemsg(char *payload) {
+static inline void pyio_freemsg(char *payload) {
     return channel_freemsg(payload);
 }
 
