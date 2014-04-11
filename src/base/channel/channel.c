@@ -216,13 +216,14 @@ static inline int event_runner(void *args) {
     struct channel *closing_cn;
     struct channel_poll *po = pid_to_channel_poll(pd);
 
-    waitgroup_done(wg);
     spin_init(&po->lock);
     INIT_LIST_HEAD(&po->closing_head);
 
-    /* Init eventloop */
+    /* Init eventloop and wakeup parent */
     BUG_ON(eloop_init(&po->el, PIO_MAX_CHANNELS/PIO_MAX_CPUS,
 		      PIO_POLLER_IOMAX, PIO_POLLER_TIMEOUT) != 0);
+    waitgroup_done(wg);
+
     while (!cn_global.exiting || has_closed_channel(po)) {
 	eloop_once(&po->el);
 	while ((closing_cn = pop_closed_channel(po)))

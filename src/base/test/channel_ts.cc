@@ -134,7 +134,7 @@ static void channel_server_thread2() {
 	spin_unlock(&lock);
     }
     mycnt = rand() % cnt;
-    for (i = 0; i < 0; i++) {
+    for (i = 0; i < mycnt; i++) {
 	event[i].cd = sfd[i];
 	event[i].self = tb;
 	event[i].care = UPOLLIN|UPOLLOUT|UPOLLERR;

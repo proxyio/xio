@@ -28,20 +28,6 @@ if (DEBUG_mode)
    target_link_libraries( unit_test gcov )
 endif()
 
-
-## compile core
-aux_source_directory( core CORE )
-add_library( core STATIC ${CORE} )
-target_link_libraries( core base uuid pthread)
-
-## compile core_test
-aux_source_directory( core/test CORE_TEST )
-add_executable( core_test ${CORE_TEST} )
-target_link_libraries( core_test core pioc gtest )
-if (DEBUG_mode)
-   target_link_libraries( core_test gcov )
-endif()
-
 ## compile proxy
 aux_source_directory( proxy PROXY )
 add_library( proxy STATIC ${PROXY} )
@@ -50,24 +36,24 @@ target_link_libraries( proxy base uuid)
 
 ## compile sdk for c/c++
 aux_source_directory( sdk/c CSDK )
-add_library( pioc ${CSDK} )
-target_link_libraries( pioc base core )
+##add_library( pioc ${CSDK} )
+##target_link_libraries( pioc base core )
 
 
 
 ## compile pio daemon
 aux_source_directory( service/piod PIOD )
-add_executable( piod ${PIOD} )
-target_link_libraries( piod base core pioc)
-if (DEBUG_mode)
-   target_link_libraries( piod gcov profiler)
-endif()
+## add_executable( piod ${PIOD} )
+## target_link_libraries( piod base core pioc)
+##if (DEBUG_mode)
+##   target_link_libraries( piod gcov profiler)
+##endif()
 
 
 ## compile pio benchmark
 aux_source_directory( service/benchmark PIOBENCHMARK )
-add_executable( pio_benchmark ${PIOBENCHMARK} )
-target_link_libraries( pio_benchmark base pioc pthread uuid)
-if (DEBUG_mode)
-   target_link_libraries( pio_benchmark gcov )
-endif()
+##add_executable( pio_benchmark ${PIOBENCHMARK} )
+##target_link_libraries( pio_benchmark base pioc pthread uuid)
+##if (DEBUG_mode)
+##   target_link_libraries( pio_benchmark gcov )
+##endif()
