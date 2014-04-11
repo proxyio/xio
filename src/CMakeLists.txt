@@ -18,12 +18,14 @@ aux_source_directory( base/stats BASE )
 aux_source_directory( base/sync BASE )
 add_library( base STATIC ${BASE} )
 
-## compile base_test
-aux_source_directory( base/test BASE_TEST )
-add_executable( base_test ${BASE_TEST} )
-target_link_libraries( base_test base gtest pthread)
+## compile unit_test
+aux_source_directory( test UNIT_TEST )
+aux_source_directory( base/test UNIT_TEST )
+aux_source_directory( proxy/test UNIT_TEST )
+add_executable( unit_test ${UNIT_TEST} )
+target_link_libraries( unit_test base proxy gtest pthread)
 if (DEBUG_mode)
-   target_link_libraries( base_test gcov )
+   target_link_libraries( unit_test gcov )
 endif()
 
 
@@ -39,6 +41,11 @@ target_link_libraries( core_test core pioc gtest )
 if (DEBUG_mode)
    target_link_libraries( core_test gcov )
 endif()
+
+## compile proxy
+aux_source_directory( proxy PROXY )
+add_library( proxy STATIC ${PROXY} )
+target_link_libraries( proxy base uuid)
 
 
 ## compile sdk for c/c++

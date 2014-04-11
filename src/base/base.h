@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
 
 
 void base_init();
@@ -40,21 +41,21 @@ typedef struct io {
 } io_t;
 
 
-typedef i8   int8_t;
+typedef int8_t i8;
 
-typedef i16  int16_t;
+typedef int16_t i16;
 
-typedef i32  int32_t;
+typedef int32_t i32;
 
-typedef i64  int64_t;
+typedef int64_t i64;
 
-typedef u8   uint8_t;
+typedef uint8_t u8;
 
-typedef u16  uint16_t;
+typedef uint16_t u16;
 
-typedef u32  uint32_t;
+typedef uint32_t u32;
 
-typedef u64  uint64_t;
+typedef uint64_t u64;
 
 
 #endif

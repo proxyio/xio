@@ -3,18 +3,15 @@
 
 #include <errno.h>
 #include <uuid/uuid.h>
-#include "channel/channel.h"
 #include "ds/list.h"
-#include "hash/crc.h"
+#include "ep.h"
 
-#define PROXYNAME_MAX 128
-#define PIO_RCVER  1
-#define PIO_SNDER  2
+#define GROUPNAME_MAX 128
 
 struct hgr {
     uint32_t type;
     uuid_t id;
-    char proxyname[PROXYNAME_MAX];
+    char group[GROUPNAME_MAX];
 };
 
 struct tr {
@@ -51,16 +48,13 @@ static inline uint32_t tr_size(struct rdh *h) {
     return ttl * sizeof(struct tr);
 }
 
-static inline uint32_t gsm_size(struct rdh *h) {
-    return sizeof(struct rdh) + h->size + tr_size(h);
-}
-
-static inline int gsm_timeout(struct rdh *h, int64_t now) {
+static inline int gsm_timeout(struct gsm *s, int64_t now) {
+    struct rdh *h = s->h;
     return h->timeout && (h->sendstamp + h->timeout < now);
 }
 
-int gsm_validate(struct rdh *h);
-void gsm_gensum(struct rdh *h);
+int gsm_validate(struct gsm *s);
+void gsm_gensum(struct gsm *s);
 
 
 #define list_for_each_msg_safe(s, nx, head)			\
@@ -84,21 +78,9 @@ static inline void tr_back_cost(struct gsm *s, int64_t now) {
 int tr_append_and_go(struct gsm *s, struct tr *r, int64_t now);
 void tr_shrink_and_back(struct gsm *s, int64_t now);
 
-static inline struct gsm *gsm_new(char *payload) {
-    struct gsm *s = (struct gsm *)mem_zalloc(sizeof(*s));
-    if (s) {
-	INIT_LIST_HEAD(&s->link);
-	s->payload = payload;
-	s->h = (struct rdh *)payload;
-	s->r = payload + s->h->size;
-    }
-    return s;
-}
+struct gsm *gsm_new(char *payload);
+void gsm_free(struct gsm *s);
 
-static inline void gsm_free(struct gsm *s) {
-    channel_freemsg(s->payload);
-    mem_free(s, sizeof(struct gsm));
-}
 
 
 #endif

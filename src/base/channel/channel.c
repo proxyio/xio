@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sync/waitgroup.h>
 #include "runner/taskpool.h"
 #include "channel_base.h"
 
@@ -209,11 +210,13 @@ struct channel *pop_closed_channel(struct channel_poll *po) {
 }
 
 static inline int event_runner(void *args) {
+    waitgroup_t *wg = (waitgroup_t *)args;
     int rc = 0;
     int pd = alloc_pid();
     struct channel *closing_cn;
     struct channel_poll *po = pid_to_channel_poll(pd);
 
+    waitgroup_done(wg);
     spin_init(&po->lock);
     INIT_LIST_HEAD(&po->closing_head);
 
@@ -240,10 +243,12 @@ extern struct channel_vf *tcp_channel_vfptr;
 
 
 void global_channel_init() {
+    waitgroup_t wg;
     int cd; /* Channel id */
     int pd; /* Poller id */
     int i;
 
+    waitgroup_init(&wg);
     cn_global.exiting = false;
     mutex_init(&cn_global.lock);
 
@@ -255,9 +260,13 @@ void global_channel_init() {
     cn_global.cpu_cores = 2;
     taskpool_init(&cn_global.tpool, cn_global.cpu_cores);
     taskpool_start(&cn_global.tpool);
+    waitgroup_adds(&wg, cn_global.cpu_cores);
     for (i = 0; i < cn_global.cpu_cores; i++)
-	taskpool_run(&cn_global.tpool, event_runner, NULL);
-
+	taskpool_run(&cn_global.tpool, event_runner, &wg);
+    /* Waiting all poll's event_runner start properly */
+    waitgroup_wait(&wg);
+    waitgroup_destroy(&wg);
+    
     /* The priority of channel_vf: inproc > ipc > tcp */
     INIT_LIST_HEAD(global_vf_head);
     list_add_tail(&inproc_channel_vfptr->vf_item, global_vf_head);
