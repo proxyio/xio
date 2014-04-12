@@ -35,7 +35,7 @@ struct fd {
     list_for_each_entry_safe(f, nx, head, struct fd, link)
 
 struct xg {
-    char group[GROUPNAME_MAX];
+    char group[URLNAME_MAX];
     int ref;
     ssmap_node_t pxy_rb_link;
     ssmap_t fdmap;

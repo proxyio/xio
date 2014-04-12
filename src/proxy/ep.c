@@ -29,41 +29,63 @@ void ep_close(struct ep *ep) {
     mem_free(ep, sizeof(*ep));
 }
 
-/* url example : group@net:/182.33.49.10 */
+/* URL example : 
+ * net    group@net://182.33.49.10
+ * ipc    group@ipc://xxxxxxxxxxxxxxxxxx
+ * inproc group@inproc://xxxxxxxxxxxxxxxxxxxx
+ */
+static int url_parse_group(const char *url, char *buff, u32 size) {
+    char *at = strchr(url, '@');;
+
+    if (!at) {
+	errno = EINVAL;
+	return -1;
+    }
+    strncpy(buff, url, size <= at - url ? size : at - url);
+    return 0;
+}
+
+static int url_parse_pf(const char *url) {
+    char *at = strchr(url, '@');;
+    char *pf = strstr(url, "://");;
+
+    if (!at || !pf || at >= pf) {
+	errno = EINVAL;
+	return -1;
+    }
+    ++at;
+    if (strncmp(at, "net", pf - at) == 0)
+	return PF_NET;
+    else if (strncmp(at, "ipc", pf - at) == 0)
+	return PF_IPC;
+    else if (strncmp(at, "inproc", pf - at) == 0)
+	return PF_INPROC;
+    errno = EINVAL;
+    return -1;
+}
+
+static int url_parse_sockaddr(const char *url, char *buff, u32 size) {
+    char *tok = "://";
+    char *sock = strstr(url, tok);
+
+    if (!sock) {
+	errno = EINVAL;
+	return -1;
+    }
+    sock += strlen(tok);
+    strncpy(buff, sock, size);
+    return 0;
+}
+
 
 int ep_connect(struct ep *ep, const char *url) {
-    int rc, pf;
-    char *pos, *url2, *url3;
+    int pf = url_parse_pf(url);
+    char sockaddr[URLNAME_MAX] = {};
 
-    url2 = url3 = strdup(url);
-
-    /* Parse group name */
-    if ((pos = strchr(url2, '@'))) {
-	pos[0] = '\0';
-	strcpy(ep->h.group, url2);
-	url2 = ++pos;
-    }
-    if (!(pos = strstr(url2, "://"))) {
-	errno = EINVAL;
-	free(url3);
+    if (pf < 0 || url_parse_group(url, ep->h.group, URLNAME_MAX) < 0
+	|| url_parse_sockaddr(url, sockaddr, URLNAME_MAX) < 0)
 	return -1;
-    }
-    pos[0] = '\0';
-    if (strcmp(url2, "net") == 0)
-	pf = PF_NET;
-    else if (strcmp(url2, "inp") == 0)
-	pf = PF_INPROC;
-    else if (strcmp(url2, "ipc") == 0)
-	pf = PF_IPC;
-    else {
-	errno = EINVAL;
-	free(url3);
-	return -1;
-    }
-    url2 = pos + 3;
-    rc = pxy_connect(ep->y, &ep->h, pf, url2);
-    free(url3);
-    return rc;
+    return pxy_connect(ep->y, &ep->h, pf, sockaddr);
 }
 
 char *ep_recv(struct ep *ep) {
@@ -77,7 +99,7 @@ char *ep_recv(struct ep *ep) {
 int ep_send(struct ep *ep, char *payload) {
     if (ep->h.type & (PRODUCER|COMSUMER)) {
 	errno = EINVAL;
-	return 0;
+	return -1;
     }
     return 0;
 }

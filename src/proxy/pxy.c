@@ -30,7 +30,7 @@ static struct xg *xg_new() {
 	g->ref = 0;
 	ssmap_init(&g->fdmap);
 	g->pxy_rb_link.key = g->group;
-	g->pxy_rb_link.keylen = GROUPNAME_MAX;
+	g->pxy_rb_link.keylen = URLNAME_MAX;
 	INIT_LIST_HEAD(&g->rcver_head);
 	INIT_LIST_HEAD(&g->snder_head);
 	INIT_LIST_HEAD(&g->link);

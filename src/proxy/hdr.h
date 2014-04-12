@@ -6,12 +6,12 @@
 #include "ds/list.h"
 #include "ep.h"
 
-#define GROUPNAME_MAX 128
+#define URLNAME_MAX 128
 
 struct hgr {
     uint32_t type;
     uuid_t id;
-    char group[GROUPNAME_MAX];
+    char group[URLNAME_MAX];
 };
 
 struct tr {
