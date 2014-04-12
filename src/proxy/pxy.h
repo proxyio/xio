@@ -10,10 +10,6 @@
 #include <sync/spin.h>
 #include "hdr.h"
 
-
-#define PXY_LISTENER   1
-#define PXY_CONNECTOR  2
-
 struct fd;
 struct xg;
 struct pxy;

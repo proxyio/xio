@@ -16,7 +16,7 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
-extern void update_upoll_tb(struct channel *cn);
+extern void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec);
 
 
 
@@ -134,13 +134,14 @@ static int io_accepter_init(int cd) {
 static int io_listener_init(int cd) {
     int rc = 0;
     int s;
+    int on = 1;
     struct channel *cn = cid_to_channel(cd);
     struct channel_poll *po = pid_to_channel_poll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->bind(cn->addr)) < 0)
 	return s;
-    // TODO: async accept the new connection by using EPOLLIN
+    tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
     cn->sock.et.events = EPOLLIN|EPOLLERR;
     cn->sock.et.fd = s;
     cn->sock.et.f = accept_handler;
@@ -239,6 +240,9 @@ static int accept_handler(eloop_t *el, ev_t *et) {
 
     if (et->happened & EPOLLERR)
 	cn->fok = false;
+    /* A new connection */
+    else if (et->happened & EPOLLIN)
+	generic_upoll_tb_notify(cn, UPOLLIN);
     return rc;
 }
 
@@ -300,7 +304,7 @@ static int io_handler(eloop_t *el, ev_t *et) {
 	cn->fok = false;
 
     /* Check events for upoll */
-    update_upoll_tb(cn);
+    generic_upoll_tb_notify(cn, 0);
     return rc;
 }
 

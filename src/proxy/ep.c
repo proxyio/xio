@@ -29,7 +29,7 @@ void ep_close(struct ep *ep) {
     mem_free(ep, sizeof(*ep));
 }
 
-/* url example : group@net:://182.33.49.10 */
+/* url example : group@net:/182.33.49.10 */
 
 int ep_connect(struct ep *ep, const char *url) {
     int rc, pf;
@@ -43,7 +43,7 @@ int ep_connect(struct ep *ep, const char *url) {
 	strcpy(ep->h.group, url2);
 	url2 = ++pos;
     }
-    if (!(pos = strstr(url2, ":://"))) {
+    if (!(pos = strstr(url2, "://"))) {
 	errno = EINVAL;
 	free(url3);
 	return -1;
@@ -60,7 +60,7 @@ int ep_connect(struct ep *ep, const char *url) {
 	free(url3);
 	return -1;
     }
-    url2 = pos + 4;
+    url2 = pos + 3;
     rc = pxy_connect(ep->y, &ep->h, pf, url2);
     free(url3);
     return rc;

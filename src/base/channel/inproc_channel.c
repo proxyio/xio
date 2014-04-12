@@ -15,7 +15,7 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
-extern void update_upoll_tb(struct channel *cn);
+extern void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec);
 
 static int channel_put(struct channel *cn) {
     int old;
@@ -25,6 +25,11 @@ static int channel_put(struct channel *cn) {
     mutex_unlock(&cn->lock);
     return old;
 }
+
+
+/******************************************************************************
+ *  channel's proc field operation.
+ ******************************************************************************/
 
 static struct channel *find_listener(char *addr) {
     struct ssmap_node *node;
@@ -100,10 +105,10 @@ static int snd_push_event(int cd) {
 	push_rcv(peer, msg);
 
     /* Check for new UPOLL events */
-    update_upoll_tb(cn);
+    generic_upoll_tb_notify(cn, 0);
 
     /* Check for new UPOLL events for peer channel */
-    update_upoll_tb(peer);
+    generic_upoll_tb_notify(peer, 0);
     
     mutex_lock(&cn->lock);
     return rc;
@@ -125,8 +130,9 @@ static int rcv_pop_event(int cd) {
 
 
 
-
-
+/******************************************************************************
+ *  channel_vfptr
+ ******************************************************************************/
 
 static int inproc_accepter_init(int cd) {
     int rc = 0;
@@ -209,8 +215,10 @@ static int inproc_connector_init(int cd) {
     cn->proc.peer_channel = NULL;
 
     /* step1. Push the new connector into listener's new_connectors
-       queue */
+     * queue and update_upoll_tb for user-state poll
+     */
     push_new_connector(listener, cn);
+    generic_upoll_tb_notify(listener, UPOLLIN);
 
     /* step2. Hold lock and waiting for the connection established
      * if need. here only has two possible state too:

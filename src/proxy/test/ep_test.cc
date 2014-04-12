@@ -5,8 +5,7 @@ extern "C" {
 #include <runner/thread.h>
 }
 
-#define LISTEN_HOST1 "127.0.0.1:18800"
-#define LISTEN_HOST2 "127.0.0.1:18801"
+static const char **url;
 static int pf = 0;
 static int cnt = 10;
 
@@ -16,11 +15,11 @@ static int test_producer(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(!(producers[i] = ep_new(PRODUCER)));
-	BUG_ON((ep_connect(producers[i], "group1@net:://"LISTEN_HOST1)) != 0);
-	printf("producer %d connect ok\n", i);
+	BUG_ON((ep_connect(producers[i], url[1])) != 0);
+	//printf("producer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
-	printf("producer %d connect closed\n", i);
+	//printf("producer %d connect closed\n", i);
 	ep_close(producers[i]);
     }
     return 0;
@@ -32,11 +31,11 @@ static int test_comsumer(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(!(comsumers[i] = ep_new(COMSUMER)));
-	BUG_ON((ep_connect(comsumers[i], "group1@net:://"LISTEN_HOST1)) != 0);
-	printf("comsumer %d connect ok\n", i);
+	BUG_ON((ep_connect(comsumers[i], url[1])) != 0);
+	//printf("comsumer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
-	printf("comsumer %d connect closed\n", i);
+	//printf("comsumer %d connect closed\n", i);
 	ep_close(comsumers[i]);
     }
     return 0;
@@ -51,7 +50,7 @@ static void test_proxy() {
     thread_t t[3];
     struct pxy *y = pxy_new();
 
-    BUG_ON(pxy_listen(y, pf, LISTEN_HOST1) != 0);
+    BUG_ON(pxy_listen(y, pf, url[0]) != 0);
     thread_start(&t[0], test_producer, NULL);
     thread_start(&t[1], test_comsumer, NULL);
     thread_start(&t[2], test_pxy, y);
@@ -63,7 +62,32 @@ static void test_proxy() {
 }
 
 
-TEST(proxy, pxy) {
+TEST(proxy, net) {
+    const char *url1[2] = {
+	"127.0.0.1:18800",
+	"group1@net://127.0.0.1:18800",
+    };
     pf = PF_NET;
+    url = url1;
+    test_proxy();
+}
+
+TEST(proxy, inproc) {
+    const char *url2[2] = {
+	"xxxxxxxxxxxxxxx",
+	"group1@inp://xxxxxxxxxxxxxxx",
+    };
+    pf = PF_INPROC;
+    url = url2;
+    test_proxy();
+}
+
+TEST(proxy, ipc) {
+    const char *url3[2] = {
+	"group1.sock",
+	"group1@ipc://group1.sock",
+    };
+    pf = PF_IPC;
+    url = url3;
     test_proxy();
 }

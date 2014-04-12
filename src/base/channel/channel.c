@@ -89,9 +89,6 @@ static void channel_base_init(int cd) {
     cn->parent = -1;
     cn->cd = cd;
     cn->pollid = choose_backend_poll(cd);
-    cn->ev.events = 0;
-    cn->ev.f = 0;
-    cn->ev.self = 0;
     cn->rcv_waiters = 0;
     cn->snd_waiters = 0;
     cn->rcv = 0;
@@ -118,9 +115,6 @@ static void channel_base_exit(int cd) {
     cn->fclosed = 0;
     cn->cd = -1;
     cn->pollid = -1;
-    cn->ev.events = -1;
-    cn->ev.f = 0;
-    cn->ev.self = 0;
     cn->rcv_waiters = -1;
     cn->snd_waiters = -1;
     cn->rcv = -1;
@@ -358,28 +352,28 @@ int channel_connect(int pf, const char *peer) {
     return -1;
 }
 
-int channel_setopt(int cd, int opt, void *val, int valsz) {
+int channel_setopt(int cd, int opt, void *on, int size) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
 
-    if (!val || valsz <= 0) {
+    if (!on || size <= 0) {
 	errno = EINVAL;
 	return -1;
     }
     switch (opt) {
-    case CHANNEL_POLL:
+    case CHANNEL_NOBLOCK:
 	mutex_lock(&cn->lock);
-	cn->ev = *((struct channel_events *)val);
+	cn->fasync = *(int *)on ? true : false;
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_SNDBUF:
 	mutex_lock(&cn->lock);
-	cn->snd_wnd = (*(int *)val);
+	cn->snd_wnd = (*(int *)on);
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_RCVBUF:
 	mutex_lock(&cn->lock);
-	cn->rcv_wnd = (*(int *)val);
+	cn->rcv_wnd = (*(int *)on);
 	mutex_unlock(&cn->lock);
 	break;
     default:
@@ -389,33 +383,28 @@ int channel_setopt(int cd, int opt, void *val, int valsz) {
     return rc;
 }
 
-int channel_getopt(int cd, int opt, void *val, int valsz) {
+int channel_getopt(int cd, int opt, void *on, int size) {
     int rc = 0;
     struct channel *cn = cid_to_channel(cd);
 
-    if (!val || valsz <= 0) {
+    if (!on || size <= 0) {
 	errno = EINVAL;
 	return -1;
     }
     switch (opt) {
-    case CHANNEL_POLL:
+    case CHANNEL_NOBLOCK:
 	mutex_lock(&cn->lock);
-	if (cn->ev.events)
-	    *((struct channel_events *)val) = cn->ev;
-	else {
-	    errno = ENOENT;
-	    rc = -1;
-	}
+	*(int *)on = cn->fasync ? true : false;
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_SNDBUF:
 	mutex_lock(&cn->lock);
-	*(int *)val = cn->snd_wnd;
+	*(int *)on = cn->snd_wnd;
 	mutex_unlock(&cn->lock);
 	break;
     case CHANNEL_RCVBUF:
 	mutex_lock(&cn->lock);
-	*(int *)val = cn->rcv_wnd;
+	*(int *)on = cn->rcv_wnd;
 	mutex_unlock(&cn->lock);
 	break;
     default:
@@ -574,19 +563,29 @@ int channel_send(int cd, char *payload) {
     return rc;
 }
 
-void update_upoll_tb(struct channel *cn) {
+
+/* Generic upoll_tb notify function. always called by channel_vf
+ * when has any message come or can send any massage into network
+ * or has a new connection wait for established.
+ * here we only check the mq events and vf_spec saved the other
+ * events gived by channel_vf
+ */
+void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec) {
     int events = 0;
     struct upoll_entry *ent, *nx;
 
     mutex_lock(&cn->lock);
+    // channel_vf specified events
+    events |= vf_spec;
     events |= !list_empty(&cn->rcv_head) ? UPOLLIN : 0;
     events |= can_send(cn) ? UPOLLOUT : 0;
     events |= !cn->fok ? UPOLLERR : 0;
+    if (!events)
+	goto EXIT;
     list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
-	if (events) {
-	    ent->event.happened = events;
+	if ((ent->event.happened = events & ent->event.care))
 	    ent->notify->event(ent->notify, ent);
-	}
     }
+ EXIT:
     mutex_unlock(&cn->lock);
 }

@@ -35,10 +35,9 @@ struct channel_vf {
     int pf;
     int (*init) (int cd);
     void (*destroy) (int cd);
-
     /* The lock is hold by the caller */
-    void (*snd_notify) (int cd, uint32_t events);
-    void (*rcv_notify) (int cd, uint32_t events);
+    void (*snd_notify) (int cd, u32 events);
+    void (*rcv_notify) (int cd, u32 events);
     struct list_head vf_item;
 };
 
@@ -56,7 +55,6 @@ struct channel {
     int parent;
     int cd;
     int pollid;
-    struct channel_events ev;
     int rcv_waiters;
     int snd_waiters;
     uint64_t rcv;
@@ -198,7 +196,7 @@ static inline void cn_global_unlock() {
 
 struct channel_msghdr {
     uint16_t checksum;
-    uint32_t size;
+    u32 size;
     char payload[0];
 };
 
@@ -207,7 +205,7 @@ struct channel_msg {
     struct channel_msghdr hdr;
 };
 
-uint32_t msg_iovlen(char *payload);
+u32 msg_iovlen(char *payload);
 char *msg_iovbase(char *payload);
 
 #define list_for_each_channel_msg_safe(pos, next, head)			\

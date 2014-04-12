@@ -8,6 +8,7 @@
 static struct fd *fd_new() {
     struct fd *f = (struct fd *)mem_zalloc(sizeof(*f));
     if (f) {
+	f->ok = true;
 	f->cd = -1;
 	INIT_LIST_HEAD(&f->mq);
 	INIT_LIST_HEAD(&f->link);
@@ -277,6 +278,7 @@ void rcver_send(struct fd *f) {
     tr_shrink_and_back(s, now);
     if (channel_send(f->cd, s->payload) < 0 && errno != EAGAIN)
 	f->ok = false;
+    gsm_free(s);
 }
 
 
@@ -368,6 +370,8 @@ void pxy_connector_rgs(struct fd *f, uint32_t events) {
 	uuid_copy(f->uuid, h->id);
 	BUG_ON(!(f->g = pxy_get(y, h->group)));
 	xg_add(f->g, f);
+    } else if (errno != EAGAIN) {
+	f->ok = false;
     }
 }
 
@@ -392,23 +396,28 @@ void pxy_connector_handler(struct fd *f, uint32_t events) {
 
 void pxy_listener_handler(struct fd *f, uint32_t events) {
     struct pxy *y = f->y;
+    int on = 1;
     int new_cd;
     struct fd *newf;
     
     BUG_ON(events & UPOLLOUT);
     if (events & UPOLLIN) {
-	if ((new_cd = channel_accept(f->cd)) < 0)
-	    return;
-	if (!(newf = fd_new()))
-	    return;
-	newf->event.cd = new_cd;
-	newf->event.care = UPOLLIN|UPOLLOUT|UPOLLERR;
-	newf->event.self = newf;
-	newf->h = pxy_connector_handler;
-	newf->cd = new_cd;
-	newf->y = y;
-	list_add_tail(&newf->link, &y->unknown_head);
-	BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
+	while ((new_cd = channel_accept(f->cd)) >= 0) {
+	    if (!(newf = fd_new())) {
+		channel_close(new_cd);
+		break;
+	    }
+	    /* NOBLOCKING */
+	    channel_setopt(new_cd, CHANNEL_NOBLOCK, &on, sizeof(on));
+	    newf->h = pxy_connector_handler;
+	    newf->y = y;
+	    newf->event.cd = new_cd;
+	    newf->event.care = UPOLLIN|UPOLLOUT|UPOLLERR;
+	    newf->event.self = newf;
+	    newf->cd = new_cd;
+	    list_add_tail(&newf->link, &y->unknown_head);
+	    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
+	}
     }
 
     /* If listener fd status bad. destroy it and we should relisten */
@@ -420,17 +429,22 @@ void pxy_listener_handler(struct fd *f, uint32_t events) {
 
 int pxy_listen(struct pxy *y, int pf, const char *sock) {
     struct fd *f = fd_new();
-
+    int on = 1;
+    
     if (!f)
 	return -1;
     if ((f->cd = channel_listen(pf, sock)) < 0) {
 	fd_free(f);
 	return -1;
     }
+    /* NOBLOCKING */
+    channel_setopt(f->cd, CHANNEL_NOBLOCK, &on, sizeof(on));
     list_add(&f->link, &y->listener_head);
     f->event.cd = f->cd;
     f->event.care = UPOLLIN|UPOLLERR;
     f->event.self = f;
+    f->y = y;
+    f->h = pxy_listener_handler;
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
     return 0;
 }
@@ -491,7 +505,6 @@ int pxy_onceloop(struct pxy *y) {
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
 	f->h(f, ev[i].happened);
-	printf("%d happen %u events\n", f->cd, ev[i].happened);
     }
     return 0;
 }
