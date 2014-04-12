@@ -34,6 +34,10 @@ struct fd {
 #define list_for_each_fd(f, nx, head)				\
     list_for_each_entry_safe(f, nx, head, struct fd, link)
 
+struct fd *fd_new();
+void fd_free(struct fd *f);
+
+
 struct xg {
     char group[URLNAME_MAX];
     int ref;
@@ -50,6 +54,15 @@ struct xg {
 #define list_for_each_xg(g, ng, head)				\
     list_for_each_entry_safe(g, ng, head, struct xg, link)
 
+struct xg *xg_new();
+void xg_free(struct xg *g);
+struct fd *xg_find(struct xg *g, uuid_t ud);
+int xg_add(struct xg *g, struct fd *f);
+int xg_rm(struct xg *g, struct fd *f);
+struct fd *xg_rrbin_go(struct xg *g);
+struct fd *xg_route_back(struct xg *g, uuid_t ud);
+
+
 
 struct pxy {
     spin_t lock;
@@ -64,10 +77,21 @@ struct pxy {
     struct list_head unknown_head;
 };
 
+/* URL example : 
+ * net    group@net://182.33.49.10
+ * ipc    group@ipc://xxxxxxxxxxxx
+ * inproc group@inproc://xxxxxxxxxxx
+ */
+int url_parse_group(const char *url, char *buff, u32 size);
+int url_parse_pf(const char *url);
+int url_parse_sockaddr(const char *url, char *buff, u32 size);
+
+
 struct pxy *pxy_new();
 void pxy_free(struct pxy *y);
-int pxy_listen(struct pxy *y, int pf, const char *sock);
-int pxy_connect(struct pxy *y, struct hgr *h, int pf, const char *sock);
+
+int pxy_listen(struct pxy *y, const char *url);
+int pxy_connect(struct pxy *y, const char *url);
 
 int pxy_onceloop(struct pxy *y);
 int pxy_startloop(struct pxy *y);

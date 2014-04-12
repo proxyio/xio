@@ -5,8 +5,7 @@ extern "C" {
 #include <runner/thread.h>
 }
 
-static const char **url;
-static int pf = 0;
+static const char *url;
 static int cnt = 10;
 
 static int test_producer(void *args) {
@@ -15,7 +14,7 @@ static int test_producer(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(!(producers[i] = ep_new(PRODUCER)));
-	BUG_ON((ep_connect(producers[i], url[1])) != 0);
+	BUG_ON((ep_connect(producers[i], url)) != 0);
 	//printf("producer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
@@ -31,7 +30,7 @@ static int test_comsumer(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(!(comsumers[i] = ep_new(COMSUMER)));
-	BUG_ON((ep_connect(comsumers[i], url[1])) != 0);
+	BUG_ON((ep_connect(comsumers[i], url)) != 0);
 	//printf("comsumer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
@@ -50,7 +49,7 @@ static void test_proxy() {
     thread_t t[3];
     struct pxy *y = pxy_new();
 
-    BUG_ON(pxy_listen(y, pf, url[0]) != 0);
+    BUG_ON(pxy_listen(y, url) != 0);
     thread_start(&t[0], test_producer, NULL);
     thread_start(&t[1], test_comsumer, NULL);
     thread_start(&t[2], test_pxy, y);
@@ -63,32 +62,17 @@ static void test_proxy() {
 
 
 TEST(proxy, net) {
-    const char *url1[2] = {
-	"127.0.0.1:18800",
-	"group1@net://127.0.0.1:18800",
-    };
-    pf = PF_NET;
-    url = url1;
+    url = "group1@net://127.0.0.1:18800";
     test_proxy();
 }
 
 TEST(proxy, inproc) {
-    const char *url2[2] = {
-	"xxxxxxxxxxxxxxx",
-	"group1@inp://xxxxxxxxxxxxxxx",
-    };
-    pf = PF_INPROC;
-    url = url2;
+    url = "group1@inp://xxxxxxxxxxxxxxx";
     test_proxy();
 }
 
 TEST(proxy, ipc) {
-    const char *url3[2] = {
-	"group1.sock",
-	"group1@ipc://group1.sock",
-    };
-    pf = PF_IPC;
-    url = url3;
+    url = "group1@ipc://group1.sock";
     test_proxy();
 }
 
@@ -98,7 +82,7 @@ static int test_producer2(void *args) {
     struct ep *producer;
 
     BUG_ON(!(producer = ep_new(PRODUCER)));
-    BUG_ON((ep_connect(producer, url[1])) != 0);
+    BUG_ON((ep_connect(producer, url)) != 0);
     for (i = 0; i < cnt; i++) {
     }
     for (i = 0; i < cnt; i++) {
@@ -111,7 +95,7 @@ static int test_comsumer2(void *args) {
     int i;
     struct ep *comsumer = ep_new(COMSUMER);
 
-    BUG_ON((ep_connect(comsumer, url[1])) != 0);
+    BUG_ON((ep_connect(comsumer, url)) != 0);
     for (i = 0; i < cnt; i++) {
     }
     for (i = 0; i < cnt; i++) {
@@ -132,7 +116,7 @@ static void test_proxy2() {
     thread_t pxy_thread;
     struct pxy *y = pxy_new();
 
-    BUG_ON(pxy_listen(y, pf, url[0]) != 0);
+    BUG_ON(pxy_listen(y, url) != 0);
     thread_start(&pxy_thread, test_pxy2, y);
     for (i = 0; i < cnt; i++)
 	thread_start(&comsumer[i], test_comsumer2, NULL);
@@ -149,31 +133,16 @@ static void test_proxy2() {
 
 
 TEST(proxy, net2) {
-    const char *url1[2] = {
-	"127.0.0.1:18802",
-	"group1@net://127.0.0.1:18802",
-    };
-    pf = PF_NET;
-    url = url1;
+    url = "group1@net://127.0.0.1:18802";
     test_proxy2();
 }
 
 TEST(proxy, inproc2) {
-    const char *url2[2] = {
-	"xxxxxxxxxxxxxx2",
-	"group1@inp://xxxxxxxxxxxxxx2",
-    };
-    pf = PF_INPROC;
-    url = url2;
+    url = "group1@inp://xxxxxxxxxxxxxx2";
     test_proxy2();
 }
 
 TEST(proxy, ipc2) {
-    const char *url3[2] = {
-	"group2.sock",
-	"group1@ipc://group2.sock",
-    };
-    pf = PF_IPC;
-    url = url3;
+    url = "group1@ipc://group2.sock";
     test_proxy2();
 }

@@ -3,9 +3,59 @@
 #include <os/timesz.h>
 #include "pxy.h"
 
+/* URL example : 
+ * net    group@net://182.33.49.10
+ * ipc    group@ipc://xxxxxxxxxxxxxxxxxx
+ * inproc group@inproc://xxxxxxxxxxxxxxxxxxxx
+ */
+int url_parse_group(const char *url, char *buff, u32 size) {
+    char *at = strchr(url, '@');;
+
+    if (!at) {
+	errno = EINVAL;
+	return -1;
+    }
+    strncpy(buff, url, size <= at - url ? size : at - url);
+    return 0;
+}
+
+int url_parse_pf(const char *url) {
+    char *at = strchr(url, '@');;
+    char *pf = strstr(url, "://");;
+
+    if (!pf || at >= pf) {
+	errno = EINVAL;
+	return -1;
+    }
+    if (at)
+	++at;
+    else
+	at = (char *)url;
+    if (strncmp(at, "net", pf - at) == 0)
+	return PF_NET;
+    else if (strncmp(at, "ipc", pf - at) == 0)
+	return PF_IPC;
+    else if (strncmp(at, "inproc", pf - at) == 0)
+	return PF_INPROC;
+    errno = EINVAL;
+    return -1;
+}
+
+int url_parse_sockaddr(const char *url, char *buff, u32 size) {
+    char *tok = "://";
+    char *sock = strstr(url, tok);
+
+    if (!sock) {
+	errno = EINVAL;
+	return -1;
+    }
+    sock += strlen(tok);
+    strncpy(buff, sock, size);
+    return 0;
+}
 
 
-static struct fd *fd_new() {
+struct fd *fd_new() {
     struct fd *f = (struct fd *)mem_zalloc(sizeof(*f));
     if (f) {
 	f->ok = true;
@@ -18,13 +68,13 @@ static struct fd *fd_new() {
     return f;
 }
 
-static void fd_free(struct fd *f) {
+void fd_free(struct fd *f) {
     if (f->cd >= 0)
 	channel_close(f->cd);
     mem_free(f, sizeof(*f));
 }
 
-static struct xg *xg_new() {
+struct xg *xg_new() {
     struct xg *g = (struct xg *)mem_zalloc(sizeof(*g));
     if (g) {
 	g->ref = 0;
@@ -38,9 +88,7 @@ static struct xg *xg_new() {
     return g;
 }
 
-static int xg_rm(struct xg *g, struct fd *f);
-
-static void xg_free(struct xg *g) {
+void xg_free(struct xg *g) {
     struct fd *f, *nf;
 
     list_for_each_fd(f, nf, &g->rcver_head) {
@@ -71,7 +119,7 @@ struct pxy *pxy_new() {
     return y;
 }
 
-static int pxy_put(struct pxy *y, struct xg *g);
+int pxy_put(struct pxy *y, struct xg *g);
 
 void pxy_free(struct pxy *y) {
     struct xg *g, *ng;
@@ -98,7 +146,7 @@ void pxy_free(struct pxy *y) {
 }
 
 
-static struct fd *xg_find(struct xg *g, uuid_t ud) {
+struct fd *xg_find(struct xg *g, uuid_t ud) {
     ssmap_node_t *node;
 
     if ((node = ssmap_find(&g->fdmap, (char *)ud, sizeof(ud))))
@@ -106,7 +154,7 @@ static struct fd *xg_find(struct xg *g, uuid_t ud) {
     return 0;
 }
 
-static int xg_add(struct xg *g, struct fd *f) {
+int xg_add(struct xg *g, struct fd *f) {
     struct fd *of = xg_find(g, f->uuid);
 
     if (of) {
@@ -129,7 +177,7 @@ static int xg_add(struct xg *g, struct fd *f) {
     return 0;
 }
 
-static int xg_rm(struct xg *g, struct fd *f) {
+int xg_rm(struct xg *g, struct fd *f) {
     switch (f->ty) {
     case PRODUCER:
 	g->rsz--;
@@ -145,7 +193,7 @@ static int xg_rm(struct xg *g, struct fd *f) {
     return 0;
 }
 
-static struct fd *xg_rrbin_go(struct xg *g) {
+struct fd *xg_rrbin_go(struct xg *g) {
     struct fd *f;
 
     if (g->ssz <= 0)
@@ -155,7 +203,7 @@ static struct fd *xg_rrbin_go(struct xg *g) {
     return f;
 }
 
-static struct fd *xg_route_back(struct xg *g, uuid_t ud) {
+struct fd *xg_route_back(struct xg *g, uuid_t ud) {
     return xg_find(g, ud);
 }
 
@@ -203,7 +251,7 @@ static int mq_push(struct fd *f, struct gsm *s) {
     return 0;
 }
 
-static struct xg *pxy_get(struct pxy *y, char *group) {
+struct xg *pxy_get(struct pxy *y, char *group) {
     ssmap_node_t *node;
     struct xg *g;
 
@@ -220,7 +268,7 @@ static struct xg *pxy_get(struct pxy *y, char *group) {
     return g;
 }
 
-static int pxy_put(struct pxy *y, struct xg *g) {
+int pxy_put(struct pxy *y, struct xg *g) {
     g->ref--;
     if (g->ref == 0) {
 	list_del_init(&g->link);
@@ -234,8 +282,8 @@ static int pxy_put(struct pxy *y, struct xg *g) {
 
 
 /* Receive one request from frontend channel */
-void rcver_recv(struct fd *f) {
-    int64_t now = rt_mstime();
+static void rcver_recv(struct fd *f) {
+    i64 now = rt_mstime();
     struct fd *gof;
     struct gsm *s;
     char *payload;
@@ -269,7 +317,7 @@ void rcver_recv(struct fd *f) {
 }
 
 /* Send one response to frontend channel */
-void rcver_send(struct fd *f) {
+static void rcver_send(struct fd *f) {
     int64_t now = rt_mstime();
     struct gsm *s;
 
@@ -283,7 +331,7 @@ void rcver_send(struct fd *f) {
 
 
 /* Dispatch one request to backend channel */
-void snder_recv(struct fd *f) {
+static void snder_recv(struct fd *f) {
     int64_t now = rt_mstime();
     struct fd *backf;
     struct gsm *s;
@@ -319,7 +367,7 @@ void snder_recv(struct fd *f) {
 
 
 /* Receive one response from backend channel */
-void snder_send(struct fd *f) {
+static void snder_send(struct fd *f) {
     int64_t now = rt_mstime();
     struct gsm *s;
     struct tr r = {};
@@ -336,21 +384,21 @@ void snder_send(struct fd *f) {
 }
 
 
-void rcver_event_handler(struct fd *f, uint32_t events) {
+static void rcver_event_handler(struct fd *f, uint32_t events) {
     if (f->ok && (events & UPOLLIN))
 	rcver_recv(f);
     if (f->ok && (events & UPOLLOUT))
 	rcver_send(f);
 }
 
-void snder_event_handler(struct fd *f, uint32_t events) {
+static void snder_event_handler(struct fd *f, uint32_t events) {
     if (f->ok && (events & UPOLLIN))
 	snder_recv(f);
     if (f->ok && (events & UPOLLOUT))
 	snder_send(f);
 }
 
-void pxy_connector_rgs(struct fd *f, uint32_t events) {
+static void pxy_connector_rgs(struct fd *f, uint32_t events) {
     struct hgr *h;
     struct pxy *y = f->y;
 
@@ -368,6 +416,7 @@ void pxy_connector_rgs(struct fd *f, uint32_t events) {
 	/* Detach from pxy's unknown_head */
 	list_del_init(&f->link);
 	uuid_copy(f->uuid, h->id);
+	f->ty = h->type;
 	BUG_ON(!(f->g = pxy_get(y, h->group)));
 	xg_add(f->g, f);
     } else if (errno != EAGAIN) {
@@ -375,7 +424,7 @@ void pxy_connector_rgs(struct fd *f, uint32_t events) {
     }
 }
 
-void pxy_connector_handler(struct fd *f, uint32_t events) {
+static void pxy_connector_handler(struct fd *f, uint32_t events) {
     switch (f->ty) {
     case PRODUCER:
 	rcver_event_handler(f, events);
@@ -394,7 +443,7 @@ void pxy_connector_handler(struct fd *f, uint32_t events) {
     }
 }
 
-void pxy_listener_handler(struct fd *f, uint32_t events) {
+static void pxy_listener_handler(struct fd *f, uint32_t events) {
     struct pxy *y = f->y;
     int on = 1;
     int new_cd;
@@ -427,13 +476,20 @@ void pxy_listener_handler(struct fd *f, uint32_t events) {
 }
 
 
-int pxy_listen(struct pxy *y, int pf, const char *sock) {
+int pxy_listen(struct pxy *y, const char *url) {
     struct fd *f = fd_new();
     int on = 1;
-    
+    int pf = url_parse_pf(url);
+    char sockaddr[URLNAME_MAX] = {};
+
     if (!f)
 	return -1;
-    if ((f->cd = channel_listen(pf, sock)) < 0) {
+    if (pf < 0 || url_parse_sockaddr(url, sockaddr, URLNAME_MAX) < 0) {
+	fd_free(f);
+	errno = EINVAL;
+	return -1;
+    }
+    if ((f->cd = channel_listen(pf, sockaddr)) < 0) {
 	fd_free(f);
 	return -1;
     }
@@ -449,42 +505,57 @@ int pxy_listen(struct pxy *y, int pf, const char *sock) {
     return 0;
 }
 
-
-
-int pxy_connect(struct pxy *y, struct hgr *h, int pf, const char *sock) {
+int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
     struct fd *f = fd_new();
-    struct hgr *copyh;
+    struct hgr *h;
+    int on = 1;
+    int pf = url_parse_pf(url);
+    char sockaddr[URLNAME_MAX] = {}, group[URLNAME_MAX] = {};
     
     if (!f)
 	return -1;
-    if (!(copyh = (struct hgr *)channel_allocmsg(sizeof(*copyh)))) {
+    if (pf < 0 || url_parse_group(url, group, URLNAME_MAX) < 0
+	|| url_parse_sockaddr(url, sockaddr, URLNAME_MAX) < 0) {
+	fd_free(f);
+	errno = EINVAL;
+	return -1;
+    }
+    if (!(h = (struct hgr *)channel_allocmsg(sizeof(*h)))) {
 	fd_free(f);
 	return -1;
     }
-    if ((f->cd = channel_connect(pf, sock)) < 0) {
+    if ((f->cd = channel_connect(pf, sockaddr)) < 0) {
     EXIT:
 	fd_free(f);
-	channel_freemsg((char *)copyh);
+	channel_freemsg((char *)h);
 	return -1;
     }
-    uuid_copy(f->uuid, copyh->id);
-    if (channel_send(f->cd, (char *)copyh) < 0)
+    /* NOBLOCKING */
+    channel_setopt(f->cd, CHANNEL_NOBLOCK, &on, sizeof(on));
+
+    /* Generate register header for gofd */
+    strcpy(h->group, group);
+    uuid_generate(f->uuid);
+    uuid_copy(h->id, f->uuid);
+    f->ty = h->type = ty;
+
+    if (channel_send(f->cd, (char *)h) < 0)
 	goto EXIT;
-    /* If this is a proxy internal connection. the other peer COMSUMER
-     * is reference to local PRODUCER
-     */
-    f->ty = h->type;
     f->event.cd = f->cd;
-    f->event.care = UPOLLIN|UPOLLOUT|UPOLLERR;
+    f->event.care = ev;
     f->event.self = f;
     f->h = pxy_connector_handler;
     f->y = y;
-    BUG_ON(!(f->g = pxy_get(y, copyh->group)));
+    BUG_ON(!(f->g = pxy_get(y, h->group)));
     xg_add(f->g, f);
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
     return 0;
 }
 
+
+int pxy_connect(struct pxy *y, const char *url) {
+    return __pxy_connect(y, COMSUMER, UPOLLIN|UPOLLOUT|UPOLLERR, url);
+}
 
 static int pxy_stopped(struct pxy *y) {
     int stopped;

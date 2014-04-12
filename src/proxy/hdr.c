@@ -11,15 +11,18 @@ struct gsm *gsm_new(char *payload) {
     struct gsm *s = (struct gsm *)mem_zalloc(sizeof(*s));
     if (s) {
 	INIT_LIST_HEAD(&s->link);
-	s->payload = payload;
-	s->h = (struct rdh *)payload;
-	s->r = (struct tr *)(payload + sizeof(*s->h) + s->h->size);
+	if (payload) {
+	    s->payload = payload;
+	    s->h = (struct rdh *)payload;
+	    s->r = (struct tr *)(payload + sizeof(*s->h) + s->h->size);
+	}
     }
     return s;
 }
 
 void gsm_free(struct gsm *s) {
-    channel_freemsg(s->payload);
+    if (s->payload)
+	channel_freemsg(s->payload);
     mem_free(s, sizeof(struct gsm));
 }
 

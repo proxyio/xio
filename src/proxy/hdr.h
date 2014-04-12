@@ -9,31 +9,31 @@
 #define URLNAME_MAX 128
 
 struct hgr {
-    uint32_t type;
+    u32 type;
     uuid_t id;
     char group[URLNAME_MAX];
 };
 
 struct tr {
     uuid_t uuid;
-    uint8_t ip[4];
-    uint16_t port;
-    uint16_t begin[2];
-    uint16_t cost[2];
-    uint16_t stay[2];
+    u8 ip[4];
+    u16 port;
+    u16 begin[2];
+    u16 cost[2];
+    u16 stay[2];
 };
 
 struct rdh {
-    uint8_t version;
-    uint16_t ttl:4;
-    uint16_t end_ttl:4;
-    uint16_t go:1;
-    uint16_t icmp:1;
-    uint32_t size;
-    uint16_t timeout;
-    uint16_t checksum;
-    uint64_t seqid;
-    int64_t sendstamp;
+    u8 version;
+    u16 ttl:4;
+    u16 end_ttl:4;
+    u16 go:1;
+    u16 icmp:1;
+    u32 size;
+    u16 timeout;
+    u16 checksum;
+    u64 seqid;
+    i64 sendstamp;
 };
 
 struct gsm {
