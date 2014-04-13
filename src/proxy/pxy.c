@@ -470,27 +470,29 @@ static void snder_event_handler(struct fd *f, u32 events) {
 }
 
 static void pxy_connector_rgs(struct fd *f, u32 events) {
-    struct hgr *h;
+    struct ep_syn *syn;
     struct pxy *y = f->y;
 
     if (!(events & UPOLLIN))
 	return;
-    if (channel_recv(f->cd, (char **)&h) == 0) {
-	/* If the unregister channel's first message invalid, set bad status */
-	if (channel_msglen((char *)h) != sizeof(*h)
-	    || !(h->type & (PRODUCER|COMSUMER))) {
-	    channel_freemsg((char *)h);
+    if (channel_recv(f->cd, (char **)&syn) == 0) {
+	/* Recv syn */
+	if (channel_msglen((char *)syn) != sizeof(*syn)
+	    || !(syn->type & (PRODUCER|COMSUMER))) {
+	    channel_freemsg((char *)syn);
 	    f->ok = false;
 	    return;
 	}
 
 	/* Detach from pxy's unknown_head */
 	list_del_init(&f->link);
-	uuid_copy(f->uuid, h->id);
-	f->ty = h->type;
-	BUG_ON(!(f->g = pxy_get(y, h->group)));
+	uuid_copy(f->uuid, syn->id);
+	f->ty = syn->type;
+	BUG_ON(!(f->g = pxy_get(y, syn->group)));
 	BUG_ON(xg_add(f->g, f) != 0);
-	channel_freemsg((char *)h);
+
+	/* Send synack */
+	BUG_ON(channel_send(f->cd, (char *)syn) != 0);
 
 	DEBUG_ON("register an %s", py_tystr[f->ty]);
     } else if (errno != EAGAIN) {
@@ -589,7 +591,7 @@ int pxy_listen(struct pxy *y, const char *url) {
 /* Export this api for ep.c. the most code are the same */
 int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
     struct fd *f = fd_new();
-    struct hgr *h;
+    struct ep_syn *syn;
     int on = 1;
     int pf = url_parse_pf(url);
     char sockaddr[URLNAME_MAX] = {}, group[URLNAME_MAX] = {};
@@ -602,34 +604,39 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!(h = (struct hgr *)channel_allocmsg(sizeof(*h)))) {
+    if (!(syn = (struct ep_syn *)channel_allocmsg(sizeof(*syn)))) {
 	fd_free(f);
 	return -1;
     }
     if ((f->cd = channel_connect(pf, sockaddr)) < 0) {
     EXIT:
 	fd_free(f);
-	channel_freemsg((char *)h);
+	channel_freemsg((char *)syn);
 	return -1;
     }
-    /* NOBLOCKING */
-    channel_setopt(f->cd, CHANNEL_NOBLOCK, &on, sizeof(on));
-
     /* Generate register header for gofd */
-    strcpy(h->group, group);
+    strcpy(syn->group, group);
     uuid_generate(f->uuid);
-    uuid_copy(h->id, f->uuid);
-    h->type = ty;
-    if (channel_send(f->cd, (char *)h) < 0)
+    uuid_copy(syn->id, f->uuid);
+    syn->type = ty;
+    /* syn-send state */
+    if (channel_send(f->cd, (char *)syn) < 0)
 	goto EXIT;
 
-    f->ty = (h->type == PRODUCER) ? DISPATCHER : RECEIVER;
+    /* syn-ack state */
+    if (channel_recv(f->cd, (char **)&syn) < 0) {
+	return -1;
+    }
+
+    /* NOBLOCKING */
+    channel_setopt(f->cd, CHANNEL_NOBLOCK, &on, sizeof(on));
+    f->ty = (syn->type == PRODUCER) ? DISPATCHER : RECEIVER;
     f->event.cd = f->cd;
     f->event.care = ev;
     f->event.self = f;
     f->h = pxy_connector_handler;
     f->y = y;
-    BUG_ON(!(f->g = pxy_get(y, h->group)));
+    BUG_ON(!(f->g = pxy_get(y, syn->group)));
     BUG_ON(xg_add(f->g, f) != 0);
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
     return 0;

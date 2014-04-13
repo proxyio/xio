@@ -16,6 +16,16 @@
 
 extern const char *py_tystr[3];
 
+struct ep {
+    struct ep_syn syn;
+    struct xg *g;
+    struct pxy *y;
+};
+
+
+
+
+
 struct fd;
 struct xg;
 struct pxy;

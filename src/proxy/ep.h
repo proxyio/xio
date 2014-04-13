@@ -6,8 +6,6 @@ struct ep;
 #define PRODUCER    1
 #define COMSUMER    2
 
-extern const char *ep_tystr[3];
-
 struct ep *ep_new(int ty);
 void ep_close(struct ep *ep);
 

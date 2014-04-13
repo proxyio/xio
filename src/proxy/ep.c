@@ -16,12 +16,6 @@ const char *ep_tystr[3] = {
 };
 
 
-struct ep {
-    struct hgr h;
-    struct xg *g;
-    struct pxy *y;
-};
-
 extern struct fd *xg_rrbin_go(struct xg *g);
 extern struct xg *pxy_get(struct pxy *y, char *group);
 extern int pxy_put(struct pxy *y, struct xg *g);
@@ -34,9 +28,9 @@ struct ep *ep_new(int ty) {
 	    mem_free(ep, sizeof(*ep));
 	    return 0;
 	}
-	uuid_generate(ep->h.id);
-	ep->h.type = ty;
-	strcpy(ep->h.group, DEFAULT_GROUP);
+	uuid_generate(ep->syn.id);
+	ep->syn.type = ty;
+	strcpy(ep->syn.group, DEFAULT_GROUP);
 	ep->g = pxy_get(ep->y, DEFAULT_GROUP);
     }
     return ep;
@@ -56,7 +50,7 @@ int ep_connect(struct ep *ep, const char *url) {
      * producer   ---   comsumer
      * comsumer   ---   producer
      */
-    return __pxy_connect(ep->y, ep->h.type, UPOLLERR|UPOLLIN, url);
+    return __pxy_connect(ep->y, ep->syn.type, UPOLLERR|UPOLLIN, url);
 }
 
 /* Producer endpoint api : send_req and recv_resp */
@@ -67,7 +61,7 @@ int ep_send_req(struct ep *ep, char *req) {
     struct tr *r;
     struct fd *f;
 
-    if ((ep->h.type & COMSUMER)) {
+    if ((ep->syn.type & COMSUMER)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -111,7 +105,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     struct pxy *y = ep->y;
     struct upoll_event ev = {};
 
-    if ((ep->h.type & COMSUMER)) {
+    if ((ep->syn.type & COMSUMER)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -169,7 +163,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
     struct pxy *y = ep->y;
     struct upoll_event ev = {};
 
-    if ((ep->h.type & PRODUCER)) {
+    if ((ep->syn.type & PRODUCER)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -229,7 +223,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     struct fd *f;
     struct tr *cr;
 
-    if ((ep->h.type & PRODUCER)
+    if ((ep->syn.type & PRODUCER)
 	|| channel_msglen(r) != tr_size(h) + sizeof(*h)) {
 	errno = EINVAL;
 	return -1;
