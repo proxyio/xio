@@ -2,10 +2,11 @@
 #define _HPIO_TIMESTAMP_
 
 #include <inttypes.h>
+#include "base.h"
 
-int64_t rt_mstime();
-int64_t rt_ustime();
-int64_t rt_nstime();
-int rt_usleep(int64_t usec);
+i64 rt_mstime();
+i64 rt_ustime();
+i64 rt_nstime();
+int rt_usleep(i64 usec);
 
 #endif

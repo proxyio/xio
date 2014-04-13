@@ -72,10 +72,20 @@ static int upoll_mod(struct upoll_tb *tb, struct upoll_event *event) {
 
     if (!ent)
 	return -1;
+    mutex_lock(&tb->lock);
     spin_lock(&ent->lock);
     ent->event.care = event->care;
-    spin_unlock(&ent->lock);
 
+    /* If we mod the care events. we should notice user's backend
+     * poll thread.
+     */
+    ent->event.happened = ent->event.care;
+    list_move(&ent->lru_link, &tb->lru_head);
+    if (tb->uwaiters)
+	condition_broadcast(&tb->cond);
+    spin_unlock(&ent->lock);
+    mutex_unlock(&tb->lock);
+    
     /* Release the ref hold by caller */
     entry_put(ent);
     return 0;
@@ -101,7 +111,7 @@ int upoll_ctl(struct upoll_tb *tb, int op, struct upoll_event *event) {
 }
 
 int upoll_wait(struct upoll_tb *tb, struct upoll_event *events,
-	       int size, int timeout) {
+	       int size, u32 timeout) {
     int n = 0;
     struct list_head head;
     struct upoll_entry *ent, *nx;
@@ -111,9 +121,9 @@ int upoll_wait(struct upoll_tb *tb, struct upoll_event *events,
 
     /* If havn't any events here. we wait */
     ent = list_first(&tb->lru_head, struct upoll_entry, lru_link);
-    if (!ent->event.happened && timeout != 0) {
+    if (!ent->event.happened && timeout > 0) {
 	tb->uwaiters++;
-	condition_timewait(&tb->cond, &tb->lock, timeout);
+	condition_timedwait(&tb->cond, &tb->lock, timeout);
 	tb->uwaiters--;
     }
     list_for_each_upoll_ent(ent, nx, &tb->lru_head) {

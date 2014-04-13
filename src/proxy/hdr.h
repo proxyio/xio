@@ -43,12 +43,12 @@ struct gsm {
     struct list_head link;
 };
 
-static inline uint32_t tr_size(struct rdh *h) {
-    uint32_t ttl = h->go ? h->ttl : h->end_ttl;
+static inline u32 tr_size(struct rdh *h) {
+    u32 ttl = h->go ? h->ttl : h->end_ttl;
     return ttl * sizeof(struct tr);
 }
 
-static inline int gsm_timeout(struct gsm *s, int64_t now) {
+static inline int gsm_timeout(struct gsm *s, i64 now) {
     struct rdh *h = s->h;
     return h->timeout && (h->sendstamp + h->timeout < now);
 }
@@ -63,20 +63,20 @@ void gsm_gensum(struct gsm *s);
 #define tr_cur(s) (&(s)->r[(s)->h->ttl - 1])
 #define tr_prev(s) (&(s)->r[(s)->h->ttl - 2])
 
-static inline void tr_go_cost(struct gsm *s, int64_t now) {
+static inline void tr_go_cost(struct gsm *s, i64 now) {
     struct rdh *h = s->h;
     struct tr *r = tr_cur(s);
-    r->stay[0] = (uint16_t)(now - h->sendstamp - r->begin[0]);
+    r->stay[0] = (u16)(now - h->sendstamp - r->begin[0]);
 }
 
-static inline void tr_back_cost(struct gsm *s, int64_t now) {
+static inline void tr_back_cost(struct gsm *s, i64 now) {
     struct rdh *h = s->h;
     struct tr *r = tr_cur(s);
-    r->cost[1] = (uint16_t)(now - h->sendstamp - r->begin[1]);
+    r->cost[1] = (u16)(now - h->sendstamp - r->begin[1]);
 }
 
-int tr_append_and_go(struct gsm *s, struct tr *r, int64_t now);
-void tr_shrink_and_back(struct gsm *s, int64_t now);
+int tr_append_and_go(struct gsm *s, struct tr *r, i64 now);
+void tr_shrink_and_back(struct gsm *s, i64 now);
 
 struct gsm *gsm_new(char *payload);
 void gsm_free(struct gsm *s);

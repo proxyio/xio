@@ -68,3 +68,18 @@ TEST(sync, waitgroup_single_thread) {
 TEST(sync, waitgroup_multi_threads) {
     test_waitgroup_multi_threads();
 }
+
+TEST(sync, condition_timedwait) {
+    condition_t cond;
+    mutex_t lock;
+
+    mutex_init(&lock);
+    condition_init(&cond);
+
+    mutex_lock(&lock);
+    condition_timedwait(&cond, &lock, 10);
+    mutex_unlock(&lock);
+
+    mutex_destroy(&lock);
+    condition_destroy(&cond);
+}

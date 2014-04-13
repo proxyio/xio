@@ -59,7 +59,7 @@ void upoll_close(struct upoll_tb *tb);
  */
 int upoll_ctl(struct upoll_tb *ut, int op, struct upoll_event *ue);
 int upoll_wait(struct upoll_tb *ut, struct upoll_event *events, int n,
-        int timeout);
+	       u32 timeout);
 
 
 #endif

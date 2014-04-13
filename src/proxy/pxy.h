@@ -8,7 +8,11 @@
 #include <ds/list.h>
 #include <runner/thread.h>
 #include <sync/spin.h>
+#include "ep.h"
 #include "hdr.h"
+
+#define RECEIVER PRODUCER
+#define DISPATCHER COMSUMER
 
 struct fd;
 struct xg;

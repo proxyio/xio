@@ -11,7 +11,7 @@ typedef struct condition {
 int condition_init(condition_t *cond);
 int condition_destroy(condition_t *cond);
 int condition_wait(condition_t *cond, mutex_t *mutex);
-int condition_timewait(condition_t *cond, mutex_t *mutex, int to);
+int condition_timedwait(condition_t *cond, mutex_t *mutex, int to);
 int condition_signal(condition_t *cond);
 int condition_broadcast(condition_t *cond);
 

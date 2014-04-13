@@ -1,3 +1,4 @@
+#include <os/timesz.h>
 #include "condition.h"
 
 int condition_init(condition_t *cond) {
@@ -8,11 +9,13 @@ int condition_destroy(condition_t *cond) {
     return pthread_cond_destroy(&cond->_cond);
 }
 
-int condition_timewait(condition_t *cond, mutex_t *mutex, int to) {
+int condition_timedwait(condition_t *cond, mutex_t *mutex, int to) {
     struct timespec ts;
-
-    ts.tv_sec = to / 1000;
-    ts.tv_nsec = (to % 1000) * 1000000;
+    u64 endlife = rt_nstime() + (u64)to * 1000000;
+    
+    /* Abstime for pthread timedwait */
+    ts.tv_sec = endlife / 1000000000;
+    ts.tv_nsec = endlife % 1000000000;
     return pthread_cond_timedwait(&cond->_cond, &mutex->_mutex, &ts);
 }
 

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <libgen.h>
 #include <inttypes.h>
 
 
@@ -21,6 +22,15 @@ void base_exit();
 	    abort();						\
 	}							\
     } while (0)
+
+#if defined TRACE_DEBUG
+#define DEBUG_ON(fmt, ...) do {						\
+	fprintf(stdout, "%s:%d %s "#fmt"\n", basename(__FILE__),	\
+		__LINE__, __func__, ##__VA_ARGS__);			\
+    }while(0)
+#else
+#define DEBUG_ON(fmt, ...)
+#endif
 
 #define PATH_MAX 4096
 #define PAGE_SIZE 4096
