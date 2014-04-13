@@ -14,6 +14,8 @@
 #define RECEIVER PRODUCER
 #define DISPATCHER COMSUMER
 
+extern const char *py_tystr[3];
+
 struct fd;
 struct xg;
 struct pxy;
@@ -43,6 +45,7 @@ void fd_free(struct fd *f);
 
 
 struct xg {
+    struct pxy *y;
     char group[URLNAME_MAX];
     int ref;
     ssmap_node_t pxy_rb_link;
@@ -61,6 +64,7 @@ struct xg {
 struct xg *xg_new();
 void xg_free(struct xg *g);
 struct fd *xg_find(struct xg *g, uuid_t ud);
+void xg_clean_allfd(struct xg *g);
 int xg_add(struct xg *g, struct fd *f);
 int xg_rm(struct xg *g, struct fd *f);
 struct fd *xg_rrbin_go(struct xg *g);
@@ -70,6 +74,8 @@ struct fd *xg_route_back(struct xg *g, uuid_t ud);
 
 struct pxy {
     spin_t lock;
+
+#define PXY_LOOPSTOP 1
     int flags;
     thread_t backend;
 
@@ -93,6 +99,9 @@ int url_parse_sockaddr(const char *url, char *buff, u32 size);
 
 struct pxy *pxy_new();
 void pxy_free(struct pxy *y);
+struct xg *pxy_get(struct pxy *y, char *group);
+int pxy_put(struct pxy *y, struct xg *g);
+
 
 int pxy_listen(struct pxy *y, const char *url);
 int pxy_connect(struct pxy *y, const char *url);

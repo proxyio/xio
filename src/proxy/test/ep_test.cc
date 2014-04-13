@@ -66,11 +66,11 @@ static void test_proxy() {
 
 
 TEST(proxy, listen_connect) {
-    url = "group1@net://127.0.0.1:18800";
+    url = "default@net://127.0.0.1:18800";
     test_proxy();
-    url = "group1@inp://xxxxxxxxxxxxxxx";
+    url = "default@inp://xxxxxxxxxxxxxxx";
     test_proxy();
-    url = "group1@ipc://group1.sock";
+    url = "default@ipc://group1.sock";
     test_proxy();
 }
 
@@ -100,6 +100,7 @@ static int test_producer2(void *args) {
 	DEBUG_ON("producer recv one resp");
 	BUG_ON(sizeof(buf) != channel_msglen(payload2));
 	BUG_ON(0 != memcmp(buf, payload2, sizeof(buf)));
+	channel_freemsg(payload2);
     }
     ep_close(producer);
     return 0;
@@ -163,7 +164,7 @@ static void test_proxy2() {
 TEST(proxy, send_recv) {
     DEBUG_ON("testing inproc proxy");
     url1 = "default@inp://xxxxxxxxxxxxxx2";
-    test_proxy2();
+    //test_proxy2();
 
     DEBUG_ON("testing net proxy");
     url1 = "default@net://127.0.0.1:18802";
@@ -171,5 +172,5 @@ TEST(proxy, send_recv) {
 
     DEBUG_ON("testing ipc proxy");
     url1 = "default@ipc://group2.sock";
-    test_proxy2();
+    //test_proxy2();
 }

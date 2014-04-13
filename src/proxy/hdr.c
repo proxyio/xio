@@ -6,16 +6,20 @@
 #include "ds/list.h"
 #include "hash/crc.h"
 
+
+void gsm_init(struct gsm *s, char *payload) {
+    INIT_LIST_HEAD(&s->link);
+    if (payload) {
+	s->payload = payload;
+	s->h = (struct rdh *)payload;
+	s->r = (struct tr *)(payload + sizeof(*s->h) + s->h->size);
+    }
+}
+
 struct gsm *gsm_new(char *payload) {
     struct gsm *s = (struct gsm *)mem_zalloc(sizeof(*s));
-    if (s) {
-	INIT_LIST_HEAD(&s->link);
-	if (payload) {
-	    s->payload = payload;
-	    s->h = (struct rdh *)payload;
-	    s->r = (struct tr *)(payload + sizeof(*s->h) + s->h->size);
-	}
-    }
+    if (s)
+	gsm_init(s, payload);
     return s;
 }
 

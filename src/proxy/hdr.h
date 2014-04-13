@@ -43,6 +43,9 @@ struct gsm {
     struct list_head link;
 };
 
+#define list_for_each_gsm(s, ns, head)				\
+    list_for_each_entry_safe(s, ns, head, struct gsm, link)
+
 static inline u32 tr_size(struct rdh *h) {
     u32 ttl = h->go ? h->ttl : h->end_ttl;
     return ttl * sizeof(struct tr);
@@ -66,7 +69,7 @@ void gsm_gensum(struct gsm *s);
 static inline void tr_go_cost(struct gsm *s, i64 now) {
     struct rdh *h = s->h;
     struct tr *r = tr_cur(s);
-    r->stay[0] = (u16)(now - h->sendstamp - r->begin[0]);
+    r->cost[0] = (u16)(now - h->sendstamp - r->begin[0]);
 }
 
 static inline void tr_back_cost(struct gsm *s, i64 now) {
@@ -79,6 +82,7 @@ int tr_append_and_go(struct gsm *s, struct tr *r, i64 now);
 void tr_shrink_and_back(struct gsm *s, i64 now);
 
 struct gsm *gsm_new(char *payload);
+void gsm_init(struct gsm *s, char *payload);
 void gsm_free(struct gsm *s);
 
 

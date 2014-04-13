@@ -5,6 +5,14 @@
 #include <os/timesz.h>
 #include "pxy.h"
 
+
+const char *py_tystr[3] = {
+    "",
+    "RECEIVER",
+    "DISPATCHER",
+};
+
+
 /* URL example : 
  * net    group@net://182.33.49.10
  * ipc    group@ipc://xxxxxxxxxxxxxxxxxx
@@ -71,14 +79,22 @@ struct fd *fd_new() {
 }
 
 void fd_free(struct fd *f) {
+    struct gsm *s, *ns;
+
+    BUG_ON(attached(&f->link));
     if (f->cd >= 0)
 	channel_close(f->cd);
+    list_for_each_gsm(s, ns, &f->mq) {
+	list_del_init(&s->link);
+	gsm_free(s);
+    }
     mem_free(f, sizeof(*f));
 }
 
 struct xg *xg_new() {
     struct xg *g = (struct xg *)mem_zalloc(sizeof(*g));
     if (g) {
+	DEBUG_ON("%p", g);
 	g->ref = 0;
 	ssmap_init(&g->fdmap);
 	g->pxy_rb_link.key = g->group;
@@ -90,20 +106,14 @@ struct xg *xg_new() {
 }
 
 void xg_free(struct xg *g) {
-    struct fd *f, *nf;
-
-    list_for_each_fd(f, nf, &g->rcver_head) {
-	xg_rm(g, f);
-	fd_free(f);
-    }
-    list_for_each_fd(f, nf, &g->snder_head) {
-	xg_rm(g, f);
-	fd_free(f);
-    }
+    DEBUG_ON("%p", g);
+    BUG_ON(g->ref != 0);
+    BUG_ON(g->rsz != 0);
+    BUG_ON(g->ssz != 0);
+    BUG_ON(!list_empty(&g->snder_head));
+    BUG_ON(!list_empty(&g->rcver_head));
     mem_free(g, sizeof(*g));
 }
-
-#define PXY_LOOPSTOP 1
 
 struct pxy *pxy_new() {
     struct pxy *y = (struct pxy *)mem_zalloc(sizeof(*y));
@@ -120,7 +130,7 @@ struct pxy *pxy_new() {
     return y;
 }
 
-int pxy_put(struct pxy *y, struct xg *g);
+
 
 void pxy_free(struct pxy *y) {
     struct xg *g, *ng;
@@ -133,6 +143,9 @@ void pxy_free(struct pxy *y) {
     spin_destroy(&y->lock);
     upoll_close(y->tb);
     list_for_each_xg(g, ng, &y->g_head) {
+	/* Avoiding freed when iterate */
+	g->ref++;
+	xg_clean_allfd(g);
 	pxy_put(y, g);
     }
     list_for_each_fd(f, nf, &y->listener_head) {
@@ -153,6 +166,24 @@ struct fd *xg_find(struct xg *g, uuid_t ud) {
     if ((node = ssmap_find(&g->fdmap, (char *)ud, sizeof(uuid_t))))
 	return cont_of(node, struct fd, rb_link);
     return 0;
+}
+
+void xg_clean_allfd(struct xg *g) {
+    struct fd *f, *nf;
+
+    /* Avoiding xg freed by pxy_put() */
+    list_for_each_fd(f, nf, &g->rcver_head) {
+	BUG_ON(g->ref <= 0);
+	xg_rm(g, f);
+	pxy_put(f->y, g);
+	fd_free(f);
+    }
+    list_for_each_fd(f, nf, &g->snder_head) {
+	BUG_ON(g->ref <= 0);
+	xg_rm(g, f);
+	pxy_put(f->y, g);
+	fd_free(f);
+    }
 }
 
 int xg_add(struct xg *g, struct fd *f) {
@@ -184,7 +215,7 @@ int xg_rm(struct xg *g, struct fd *f) {
 	g->rsz--;
 	break;
     case DISPATCHER:
-	g->rsz--;
+	g->ssz--;
 	break;
     default:
 	BUG_ON(1);
@@ -258,13 +289,16 @@ struct xg *pxy_get(struct pxy *y, char *group) {
     ssmap_node_t *node;
     struct xg *g;
 
+
     if ((node = ssmap_find(&y->gmap, group, strlen(group)))) {
 	g = cont_of(node, struct xg, pxy_rb_link);
 	g->ref++;
+	DEBUG_ON("%p ref %d", g, g->ref);
 	return g;
     }
     if (!(g = xg_new()))
 	return 0;
+    g->y = y;
     g->ref++;
     list_add(&y->g_head, &g->link);
 
@@ -272,12 +306,16 @@ struct xg *pxy_get(struct pxy *y, char *group) {
     strcpy(g->group, group);
     g->pxy_rb_link.keylen = strlen(group);
     ssmap_insert(&y->gmap, &g->pxy_rb_link);
+    DEBUG_ON("%p ref %d", g, g->ref);
     return g;
 }
 
 int pxy_put(struct pxy *y, struct xg *g) {
+    BUG_ON(g->ref <= 0);
+    DEBUG_ON("%p putted %d", g, g->ref);
     g->ref--;
     if (g->ref == 0) {
+	BUG_ON(!ssmap_empty(&g->fdmap));
 	list_del_init(&g->link);
 	ssmap_delete(&y->gmap, &g->pxy_rb_link);
 	xg_free(g);
@@ -439,7 +477,8 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	return;
     if (channel_recv(f->cd, (char **)&h) == 0) {
 	/* If the unregister channel's first message invalid, set bad status */
-	if (channel_msglen((char *)h) != sizeof(*h) || !(h->type & (PRODUCER|COMSUMER))) {
+	if (channel_msglen((char *)h) != sizeof(*h)
+	    || !(h->type & (PRODUCER|COMSUMER))) {
 	    channel_freemsg((char *)h);
 	    f->ok = false;
 	    return;
@@ -450,9 +489,10 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	uuid_copy(f->uuid, h->id);
 	f->ty = h->type;
 	BUG_ON(!(f->g = pxy_get(y, h->group)));
-	xg_add(f->g, f);
-	DEBUG_ON("register an %s",
-		 (f->ty == PRODUCER) ? "RECEIVER" : "COMSUMER");
+	BUG_ON(xg_add(f->g, f) != 0);
+	channel_freemsg((char *)h);
+
+	DEBUG_ON("register an %s", py_tystr[f->ty]);
     } else if (errno != EAGAIN) {
 	f->ok = false;
     }
@@ -503,6 +543,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 	    newf->cd = new_cd;
 	    list_add_tail(&newf->link, &y->unknown_head);
 	    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
+	    DEBUG_ON("listener create a new channel %d", new_cd);
 	}
     }
 
@@ -540,6 +581,7 @@ int pxy_listen(struct pxy *y, const char *url) {
     f->y = y;
     f->h = pxy_listener_handler;
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
+    DEBUG_ON("channel %d listen on sockaddr %s", f->cd, url);
     return 0;
 }
 
@@ -588,7 +630,7 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
     f->h = pxy_connector_handler;
     f->y = y;
     BUG_ON(!(f->g = pxy_get(y, h->group)));
-    xg_add(f->g, f);
+    BUG_ON(xg_add(f->g, f) != 0);
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
     return 0;
 }
