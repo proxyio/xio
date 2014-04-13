@@ -1,3 +1,4 @@
+// #define __TRACE_ON
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -580,6 +581,7 @@ void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec) {
     events |= !list_empty(&cn->rcv_head) ? UPOLLIN : 0;
     events |= can_send(cn) ? UPOLLOUT : 0;
     events |= !cn->fok ? UPOLLERR : 0;
+    DEBUG_ON("%d channel upoll events %d happen", cn->cd, events);
     if (!events)
 	goto EXIT;
     list_for_each_channel_ent(ent, nx, &cn->upoll_head) {

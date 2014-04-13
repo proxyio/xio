@@ -1,5 +1,5 @@
 /* Open for DEBUGGING */
-// #define TRACE_DEBUG
+// #define __TRACE_ON
 #include <os/alloc.h>
 #include <channel/channel.h>
 #include <os/timesz.h>
@@ -120,7 +120,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	return -1;
     }
     /* TODO: The timeout see ep_setopt for more details */
-    if ((n = upoll_wait(y->tb, &ev, 1, 0x7fff)) < 0)
+    if ((n = upoll_wait(y->tb, &ev, 1, 0xffff)) < 0)
 	return -1;
     BUG_ON(ev.happened & UPOLLOUT);
     if (!(ev.happened & UPOLLIN))
@@ -176,7 +176,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	return -1;
     }
     /* TODO: The timeout see ep_setopt for more details */
-    if ((n = upoll_wait(y->tb, &ev, 1, 0x7fff)) < 0)
+    if ((n = upoll_wait(y->tb, &ev, 1, 0xffff)) < 0)
 	return -1;
     BUG_ON(ev.happened & UPOLLOUT);
     if (!(ev.happened & UPOLLIN))

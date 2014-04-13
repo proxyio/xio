@@ -1,4 +1,4 @@
-// #define TRACE_DEBUG
+// #define __TRACE_ON
 #include <gtest/gtest.h>
 extern "C" {
 #include <proxy/ep.h>
@@ -84,11 +84,11 @@ static int test_producer2(void *args) {
     char buf[16];
     char *payload, *payload2;
     struct ep *producer;
-    
+
     BUG_ON(!(producer = ep_new(PRODUCER)));
     BUG_ON((ep_connect(producer, url1)) != 0);
     waitgroup_done(wg);
-    
+
     for (i = 0; i < cnt; i++) {
 	randstr(buf, sizeof(buf));
 	BUG_ON(!(payload = channel_allocmsg(sizeof(buf))));
@@ -161,12 +161,14 @@ static void test_proxy2() {
 
 
 TEST(proxy, send_recv) {
-    DEBUG_ON("testing net proxy");
-    url1 = "default@net://127.0.0.1:18802";
-    test_proxy2();
     DEBUG_ON("testing inproc proxy");
     url1 = "default@inp://xxxxxxxxxxxxxx2";
     test_proxy2();
+
+    DEBUG_ON("testing net proxy");
+    url1 = "default@net://127.0.0.1:18802";
+    test_proxy2();
+
     DEBUG_ON("testing ipc proxy");
     url1 = "default@ipc://group2.sock";
     test_proxy2();

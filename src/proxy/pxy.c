@@ -1,5 +1,5 @@
 /* Open for DEBUGGING */
-#define TRACE_DEBUG
+#define __TRACE_ON
 #include <os/alloc.h>
 #include <channel/channel.h>
 #include <os/timesz.h>
@@ -451,7 +451,8 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	f->ty = h->type;
 	BUG_ON(!(f->g = pxy_get(y, h->group)));
 	xg_add(f->g, f);
-	DEBUG_ON("register an %s", (h->type == PRODUCER) ? "RECEIVER" : "COMSUMER");
+	DEBUG_ON("register an %s",
+		 (f->ty == PRODUCER) ? "RECEIVER" : "COMSUMER");
     } else if (errno != EAGAIN) {
 	f->ok = false;
     }
@@ -473,6 +474,8 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 
     /* If fd status bad. destroy it */
     if (!f->ok) {
+	DEBUG_ON("%s endpoint %d EPIPE",
+		 (f->ty == PRODUCER) ? "RECEIVER" : "COMSUMER", f->cd);
 	/* do something here */
     }
 }
@@ -505,6 +508,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 
     /* If listener fd status bad. destroy it and we should relisten */
     if (!f->ok) {
+	DEBUG_ON("listener endpoint %d EPIPE", f->cd);
 	/* do something here */
     }
 }
@@ -608,7 +612,7 @@ int pxy_onceloop(struct pxy *y) {
     struct upoll_event ev[100] = {};
 
     /* Default io events buf is 100 and timeout is 1ms */
-    if ((n = upoll_wait(y->tb, ev, 100, 10)) <= 0)
+    if ((n = upoll_wait(y->tb, ev, 100, 1)) <= 0)
 	return -1;
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
