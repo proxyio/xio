@@ -481,8 +481,10 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	    || !(syn->type & (PRODUCER|COMSUMER))) {
 	    channel_freemsg((char *)syn);
 	    f->ok = false;
+	    DEBUG_ON("recv invalid syn from channel %d", f->cd);
 	    return;
 	}
+	DEBUG_ON("recv syn from channel %d", f->cd);
 
 	/* Detach from pxy's unknown_head */
 	list_del_init(&f->link);
@@ -493,9 +495,11 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 
 	/* Send synack */
 	BUG_ON(channel_send(f->cd, (char *)syn) != 0);
-
+	DEBUG_ON("send syn to channel %d", f->cd);
+	
 	DEBUG_ON("register an %s", py_tystr[f->ty]);
     } else if (errno != EAGAIN) {
+	DEBUG_ON("unregister channel %d EPIPE", f->cd);
 	f->ok = false;
     }
 }
@@ -516,9 +520,7 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 
     /* If fd status bad. destroy it */
     if (!f->ok) {
-	DEBUG_ON("%s endpoint %d EPIPE",
-		 (f->ty == PRODUCER) ? "RECEIVER" : "COMSUMER", f->cd);
-	/* do something here */
+	DEBUG_ON("%s channel %d EPIPE", py_tystr[f->ty], f->cd);
     }
 }
 
@@ -546,13 +548,15 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 	    list_add_tail(&newf->link, &y->unknown_head);
 	    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
 	    DEBUG_ON("listener create a new channel %d", new_cd);
+
+	    /* Maybe syn was cacheing in the low-level channel buff */
+	    // pxy_connector_rgs(f, events);
 	}
     }
 
     /* If listener fd status bad. destroy it and we should relisten */
     if (!f->ok) {
 	DEBUG_ON("listener endpoint %d EPIPE", f->cd);
-	/* do something here */
     }
 }
 
