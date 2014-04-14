@@ -34,6 +34,8 @@ int channel_getopt(int cd, int opt, void *val, int valsz);
 #define UPOLLOUT  2
 #define UPOLLERR  4
 
+extern const char *upoll_str[];
+
 struct upoll_event {
     int cd;
     void *self;

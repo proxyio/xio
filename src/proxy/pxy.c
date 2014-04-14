@@ -1,12 +1,14 @@
 /* Open for DEBUGGING */
 #define __TRACE_ON
 #include <os/alloc.h>
-#include <channel/channel.h>
+#include <channel/channel_base.h>
 #include <os/timesz.h>
 #include "pxy.h"
 
 
-const char *py_tystr[3] = {
+extern struct channel *cid_to_channel(int cd);
+
+const char *py_str[] = {
     "",
     "RECEIVER",
     "DISPATCHER",
@@ -94,7 +96,7 @@ void fd_free(struct fd *f) {
 struct xg *xg_new() {
     struct xg *g = (struct xg *)mem_zalloc(sizeof(*g));
     if (g) {
-	DEBUG_ON("%p", g);
+	DEBUG_OFF("%p", g);
 	g->ref = 0;
 	ssmap_init(&g->fdmap);
 	g->pxy_rb_link.key = g->group;
@@ -106,7 +108,7 @@ struct xg *xg_new() {
 }
 
 void xg_free(struct xg *g) {
-    DEBUG_ON("%p", g);
+    DEBUG_OFF("%p", g);
     BUG_ON(g->ref != 0);
     BUG_ON(g->rsz != 0);
     BUG_ON(g->ssz != 0);
@@ -244,7 +246,7 @@ static int try_disable_eventout(struct fd *f) {
     struct pxy *y = f->y;
 
     if (f->event.care & UPOLLOUT) {
-	DEBUG_ON("disable %d UPOLLOUT", f->cd);
+	DEBUG_OFF("disable %d UPOLLOUT", f->cd);
 	f->event.care &= ~UPOLLOUT;
 	BUG_ON((rc = upoll_ctl(y->tb, UPOLL_MOD, &f->event)) != 0);
 	return rc;
@@ -257,7 +259,7 @@ static int try_enable_eventout(struct fd *f) {
     struct pxy *y = f->y;
 
     if (!(f->event.care & UPOLLOUT)) {
-	DEBUG_ON("enable %d UPOLLOUT", f->cd);
+	DEBUG_OFF("enable %d UPOLLOUT", f->cd);
 	f->event.care |= UPOLLOUT;
 	BUG_ON((rc = upoll_ctl(y->tb, UPOLL_MOD, &f->event)) != 0);
 	return rc;
@@ -293,7 +295,7 @@ struct xg *pxy_get(struct pxy *y, char *group) {
     if ((node = ssmap_find(&y->gmap, group, strlen(group)))) {
 	g = cont_of(node, struct xg, pxy_rb_link);
 	g->ref++;
-	DEBUG_ON("%p ref %d", g, g->ref);
+	DEBUG_OFF("%p ref %d", g, g->ref);
 	return g;
     }
     if (!(g = xg_new()))
@@ -306,13 +308,13 @@ struct xg *pxy_get(struct pxy *y, char *group) {
     strcpy(g->group, group);
     g->pxy_rb_link.keylen = strlen(group);
     ssmap_insert(&y->gmap, &g->pxy_rb_link);
-    DEBUG_ON("%p ref %d", g, g->ref);
+    DEBUG_OFF("%p ref %d", g, g->ref);
     return g;
 }
 
 int pxy_put(struct pxy *y, struct xg *g) {
     BUG_ON(g->ref <= 0);
-    DEBUG_ON("%p putted %d", g, g->ref);
+    DEBUG_OFF("%p putted %d", g, g->ref);
     g->ref--;
     if (g->ref == 0) {
 	BUG_ON(!ssmap_empty(&g->fdmap));
@@ -338,20 +340,20 @@ static void rcver_recv(struct fd *f) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
 	if (g->ssz <= 0 || !(s = gsm_new(payload))) {
 	    channel_freemsg(payload);
-	    DEBUG_ON("no any dispatchers");
+	    DEBUG_OFF("no any dispatchers");
 	    continue;
 	}
 	/* Drop the timeout massage */
 	if (gsm_timeout(s, now) < 0) {
 	    gsm_free(s);
-	    DEBUG_ON("message is timeout");
+	    DEBUG_OFF("message is timeout");
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
 	if (gsm_validate(s) < 0) {
 	    gsm_free(s);
 	    f->ok = false;
-	    DEBUG_ON("invalid message's checksum");
+	    DEBUG_OFF("invalid message's checksum");
 	    break;
 	}
 	tr_go_cost(s, now);
@@ -360,7 +362,7 @@ static void rcver_recv(struct fd *f) {
 	BUG_ON((gof = xg_rrbin_go(g)) == 0);
 	mq_push(gof, s);
 
-	DEBUG_ON("%d recv one req and push into %d", f->cd, gof->cd);
+	DEBUG_OFF("%d recv one req and push into %d", f->cd, gof->cd);
     }
 
     /* EPIPE */
@@ -374,7 +376,7 @@ static void rcver_send(struct fd *f) {
 
     if (!(s = mq_pop(f)))
 	return;
-    DEBUG_ON("%d pop one resp and send into network", f->cd);
+    DEBUG_OFF("%d pop one resp and send into network", f->cd);
 
     tr_shrink_and_back(s, now);
     if (channel_send(f->cd, s->payload) < 0) {
@@ -436,10 +438,10 @@ static void snder_send(struct fd *f) {
 	return;
     uuid_copy(r.uuid, f->uuid);
     if (tr_append_and_go(s, &r, now) < 0) {
-	DEBUG_ON("error on appending route chunk");
+	DEBUG_OFF("error on appending route chunk");
 	goto EXIT;
     }
-    DEBUG_ON("%d pop req and send into network", f->cd);
+    DEBUG_OFF("%d pop req and send into network", f->cd);
     if (channel_send(f->cd, s->payload) < 0) {
 	if (errno != EAGAIN)
 	    f->ok = false;
@@ -454,7 +456,10 @@ static void snder_send(struct fd *f) {
 
 
 static void rcver_event_handler(struct fd *f, u32 events) {
-    DEBUG_ON("%d receiver has events %u", f->cd, events);
+    struct channel *cn = cid_to_channel(f->cd);
+
+    DEBUG_ON("%d receiver has events %s and recv-Q:%ld send-Q:%ld",
+	     f->cd, upoll_str[events], cn->rcv, cn->snd);
     if (f->ok && (events & UPOLLIN))
 	rcver_recv(f);
     if (f->ok && (events & UPOLLOUT))
@@ -464,7 +469,10 @@ static void rcver_event_handler(struct fd *f, u32 events) {
 }
 
 static void snder_event_handler(struct fd *f, u32 events) {
-    DEBUG_ON("%d dispatcher has events %u", f->cd, events);
+    struct channel *cn = cid_to_channel(f->cd);
+
+    DEBUG_ON("%d dispatcher has events %s and recv-Q:%ld send-Q:%ld",
+	     f->cd, upoll_str[events], cn->rcv, cn->snd);
     if (f->ok && (events & UPOLLIN))
 	snder_recv(f);
     if (f->ok && (events & UPOLLOUT))
@@ -485,7 +493,7 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	    || !(syn->type & (PRODUCER|COMSUMER))) {
 	    channel_freemsg((char *)syn);
 	    f->ok = false;
-	    DEBUG_ON("recv invalid syn from channel %d", f->cd);
+	    DEBUG_OFF("recv invalid syn from channel %d", f->cd);
 	    return;
 	}
 	DEBUG_ON("recv syn from channel %d", f->cd);
@@ -501,9 +509,9 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	BUG_ON(channel_send(f->cd, (char *)syn) != 0);
 	DEBUG_ON("send syn to channel %d", f->cd);
 	
-	DEBUG_ON("register an %s", py_tystr[f->ty]);
+	DEBUG_OFF("register an %s", py_str[f->ty]);
     } else if (errno != EAGAIN) {
-	DEBUG_ON("unregister channel %d EPIPE", f->cd);
+	DEBUG_OFF("unregister channel %d EPIPE", f->cd);
 	f->ok = false;
     }
 }
@@ -524,7 +532,7 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 
     /* If fd status bad. destroy it */
     if (!f->ok) {
-	DEBUG_ON("%s channel %d EPIPE", py_tystr[f->ty], f->cd);
+	DEBUG_OFF("%s channel %d EPIPE", py_str[f->ty], f->cd);
     }
 }
 
@@ -551,7 +559,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 	    newf->cd = new_cd;
 	    list_add_tail(&newf->link, &y->unknown_head);
 	    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
-	    DEBUG_ON("listener create a new channel %d", new_cd);
+	    DEBUG_OFF("listener create a new channel %d", new_cd);
 
 	    /* Maybe syn was cacheing in the low-level channel buff */
 	    // pxy_connector_rgs(f, events);
@@ -560,7 +568,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 
     /* If listener fd status bad. destroy it and we should relisten */
     if (!f->ok || (events & UPOLLERR)) {
-	DEBUG_ON("listener endpoint %d EPIPE", f->cd);
+	DEBUG_OFF("listener endpoint %d EPIPE", f->cd);
     }
 }
 
@@ -591,7 +599,7 @@ int pxy_listen(struct pxy *y, const char *url) {
     f->y = y;
     f->h = pxy_listener_handler;
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
-    DEBUG_ON("channel %d listen on sockaddr %s", f->cd, url);
+    DEBUG_OFF("channel %d listen on sockaddr %s", f->cd, url);
     return 0;
 }
 

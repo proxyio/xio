@@ -1,5 +1,3 @@
-/* Open for DEBUGGING */
-// #define __TRACE_ON
 #include <os/alloc.h>
 #include <channel/channel.h>
 #include <os/timesz.h>
@@ -9,7 +7,7 @@
 
 #define DEFAULT_GROUP "default"
 
-const char *ep_tystr[3] = {
+const char *ep_str[] = {
     "",
     "PRODUCER",
     "COMSUMER",
@@ -66,7 +64,7 @@ int ep_send_req(struct ep *ep, char *req) {
 	return -1;
     }
     if (!(s.payload = channel_allocmsg(channel_msglen(req) + sizeof(*h)
-        + sizeof(*r)))) {
+				       + sizeof(*r)))) {
 	return -1;
     }
     /* Append gsm header and route. The proxy package frame header */
@@ -117,7 +115,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	goto AGAIN;
     f = (struct fd *)ev.self;
     if (channel_recv(f->cd, &payload) == 0) {
-	DEBUG_ON("%s", payload + sizeof(*h));
+	DEBUG_OFF("%s", payload + sizeof(*h));
 	gsm_init(&s, payload);
 
 	/* Drop the timeout message */
@@ -254,7 +252,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
 
     cr = tr_cur(&s);
     BUG_ON(!(f = xg_route_back(ep->g, cr->uuid)));
-    DEBUG_ON("response %d", h->size);
+    DEBUG_OFF("response %d", h->size);
     rc = channel_send(f->cd, s.payload);
     return rc;
 }

@@ -1,4 +1,3 @@
-// #define __TRACE_ON
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <string.h>
@@ -99,7 +98,7 @@ static int __eloop_wait(eloop_t *el) {
     else if ((n = epoll_wait(el->efd, ev_buf, size, max_to/1000000)) < 0)
 	n = 0;
     while (ev_buf < el->ev_buf + n) {
-	DEBUG_ON("fd %d happen with events", ev_buf->events);
+	DEBUG_OFF("fd %d happen with events", ev_buf->events);
 	eloop_update_timer(el, (ev_t *)ev_buf->data.ptr, _cur_nsec);
 	ev_buf++;
     }
@@ -128,11 +127,11 @@ int eloop_once(eloop_t *el) {
     
     if ((n = __eloop_wait(el)) < 0)
 	return -1;
-    DEBUG_ON("%d fd has events", n);
+    DEBUG_OFF("%d fd has events", n);
     while (ev_buf < el->ev_buf + n) {
 	et = (ev_t *)ev_buf->data.ptr;
 	et->happened = ev_buf->events;
-	DEBUG_ON("fd %d eventloop with events %d", et->fd, et->happened);
+	DEBUG_OFF("fd %d eventloop with events %d", et->fd, et->happened);
 	et->f(el, et);
 	ev_buf++;
     }

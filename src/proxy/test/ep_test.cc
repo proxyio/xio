@@ -66,10 +66,13 @@ static void test_proxy() {
 
 
 TEST(proxy, listen_connect) {
+    DEBUG_ON("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     url = "default@net://127.0.0.1:18800";
     test_proxy();
+    DEBUG_ON("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
     url = "default@inp://xxxxxxxxxxxxxxx";
     test_proxy();
+    DEBUG_ON("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     url = "default@ipc://group1.sock";
     test_proxy();
 }
@@ -166,7 +169,7 @@ TEST(proxy, send_recv) {
     url1 = "default@inp://xxxxxxxxxxxxxx2";
     //test_proxy2();
 
-    DEBUG_ON("testing net proxy");
+    DEBUG_ON("testing net proxy xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     url1 = "default@net://127.0.0.1:18802";
     test_proxy2();
 

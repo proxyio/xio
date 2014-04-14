@@ -1,4 +1,3 @@
-// #define __TRACE_ON
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -428,6 +427,7 @@ struct channel_msg *pop_rcv(struct channel *cn) {
 	cn->rcv_waiters--;
     }
     if (!list_empty(&cn->rcv_head)) {
+	DEBUG_ON("channel %d", cn->cd);
 	msg = list_first(&cn->rcv_head, struct channel_msg, item);
 	list_del_init(&msg->item);
 	msgsz = msg_iovlen(msg->hdr.payload);
@@ -460,6 +460,7 @@ void push_rcv(struct channel *cn, struct channel_msg *msg) {
     events |= MQ_PUSH;
     cn->rcv += msgsz;
     list_add_tail(&msg->item, &cn->rcv_head);    
+    DEBUG_ON("channel %d", cn->cd);
 
     /* Wakeup the blocking waiters. */
     if (cn->rcv_waiters > 0)
@@ -479,6 +480,7 @@ struct channel_msg *pop_snd(struct channel *cn) {
     
     mutex_lock(&cn->lock);
     if (!list_empty(&cn->snd_head)) {
+	DEBUG_ON("channel %d", cn->cd);
 	msg = list_first(&cn->snd_head, struct channel_msg, item);
 	list_del_init(&msg->item);
 	msgsz = msg_iovlen(msg->hdr.payload);
@@ -523,6 +525,7 @@ int push_snd(struct channel *cn, struct channel_msg *msg) {
 	events |= MQ_PUSH;
 	cn->snd += msgsz;
 	list_add_tail(&msg->item, &cn->snd_head);
+	DEBUG_ON("channel %d", cn->cd);
     }
 
     if (events)
@@ -581,7 +584,7 @@ void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec) {
     events |= !list_empty(&cn->rcv_head) ? UPOLLIN : 0;
     events |= can_send(cn) ? UPOLLOUT : 0;
     events |= !cn->fok ? UPOLLERR : 0;
-    DEBUG_ON("%d channel upoll events %d happen", cn->cd, events);
+    DEBUG_OFF("%d channel upoll events %d happen", cn->cd, events);
     if (!events)
 	goto EXIT;
     list_for_each_channel_ent(ent, nx, &cn->upoll_head) {

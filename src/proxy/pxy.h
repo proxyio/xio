@@ -14,7 +14,7 @@
 #define RECEIVER PRODUCER
 #define DISPATCHER COMSUMER
 
-extern const char *py_tystr[3];
+extern const char *py_str[3];
 
 struct ep {
     struct ep_syn syn;
@@ -22,22 +22,18 @@ struct ep {
     struct pxy *y;
 };
 
-
-
-
-
 struct fd;
 struct xg;
 struct pxy;
 
-typedef void (*event_handler) (struct fd *f, uint32_t events);
+typedef void (*tb_event_handler) (struct fd *f, uint32_t events);
 
 struct fd {
     struct upoll_event event;
     int cd;
     int ty;
     uint32_t ok:1;
-    event_handler h;
+    tb_event_handler h;
     struct pxy *y;
     struct xg *g;
     uint64_t mq_size;

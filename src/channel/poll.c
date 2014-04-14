@@ -4,6 +4,20 @@
 
 extern struct channel *cid_to_channel(int cd);
 
+
+
+const char *upoll_str[] = {
+    "",
+    "UPOLLIN",
+    "UPOLLOUT",
+    "UPOLLIN|UPOLLOUT",
+    "UPOLLERR",
+    "UPOLLIN|UPOLLERR",
+    "UPOLLOUT|UPOLLERR",
+    "UPOLLIN|UPOLLOUT|UPOLLERR",
+};
+
+
 static void event_notify(struct upoll_notify *un, struct upoll_entry *ent);
 
 struct upoll_tb *upoll_create() {

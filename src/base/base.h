@@ -23,14 +23,12 @@ void base_exit();
 	}							\
     } while (0)
 
-#if defined __TRACE_ON
 #define DEBUG_ON(fmt, ...) do {						\
 	fprintf(stdout, "%s:%d %s "#fmt"\n", basename(__FILE__),	\
 		__LINE__, __func__, ##__VA_ARGS__);			\
     }while(0)
-#else
-#define DEBUG_ON(fmt, ...)
-#endif
+
+#define DEBUG_OFF(fmt, ...)
 
 #define PATH_MAX 4096
 #define PAGE_SIZE 4096

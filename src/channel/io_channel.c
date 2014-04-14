@@ -1,4 +1,3 @@
-// #define __TRACE_ON
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +51,7 @@ static void snd_empty_event(int cd) {
 
     // Disable POLLOUT event when snd_head is empty
     if (cn->sock.et.events & EPOLLOUT) {
-	DEBUG_ON("%d disable EPOLLOUT", cd);
+	DEBUG_OFF("%d disable EPOLLOUT", cd);
 	cn->sock.et.events &= ~EPOLLOUT;
 	BUG_ON(eloop_mod(&po->el, &cn->sock.et) != 0);
     }
@@ -64,7 +63,7 @@ static void snd_nonempty_event(int cd) {
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLOUT)) {
-	DEBUG_ON("%d enable EPOLLOUT", cd);
+	DEBUG_OFF("%d enable EPOLLOUT", cd);
 	cn->sock.et.events |= EPOLLOUT;
 	BUG_ON(eloop_mod(&po->el, &cn->sock.et) != 0);
     }
@@ -272,7 +271,7 @@ static int io_rcv(struct channel *cn) {
     if (rc < 0 && errno != EAGAIN)
 	return rc;
     while (msg_ready(&cn->sock.in, &payload_sz)) {
-	DEBUG_ON("%d channel recv one message", cn->cd);
+	DEBUG_OFF("%d channel recv one message", cn->cd);
 	payload = channel_allocmsg(payload_sz);
 	bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
 	msg = cont_of(payload, struct channel_msg, hdr.payload);
@@ -300,15 +299,15 @@ static int io_handler(eloop_t *el, ev_t *et) {
     struct channel *cn = cont_of(et, struct channel, sock.et);
 
     if (et->happened & EPOLLIN) {
-	DEBUG_ON("io channel %d EPOLLIN", cn->cd);
+	DEBUG_OFF("io channel %d EPOLLIN", cn->cd);
 	rc = io_rcv(cn);
     }
     if (et->happened & EPOLLOUT) {
-	DEBUG_ON("io channel %d EPOLLOUT", cn->cd);
+	DEBUG_OFF("io channel %d EPOLLOUT", cn->cd);
 	rc = io_snd(cn);
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
-	DEBUG_ON("io channel %d EPIPE", cn->cd);
+	DEBUG_OFF("io channel %d EPIPE", cn->cd);
 	cn->fok = false;
     }
 
