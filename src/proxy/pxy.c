@@ -459,6 +459,8 @@ static void rcver_event_handler(struct fd *f, u32 events) {
 	rcver_recv(f);
     if (f->ok && (events & UPOLLOUT))
 	rcver_send(f);
+    if (f->ok && (events & UPOLLERR))
+	f->ok = false;
 }
 
 static void snder_event_handler(struct fd *f, u32 events) {
@@ -467,6 +469,8 @@ static void snder_event_handler(struct fd *f, u32 events) {
 	snder_recv(f);
     if (f->ok && (events & UPOLLOUT))
 	snder_send(f);
+    if (f->ok && (events & UPOLLERR))
+	f->ok = false;
 }
 
 static void pxy_connector_rgs(struct fd *f, u32 events) {
@@ -555,7 +559,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
     }
 
     /* If listener fd status bad. destroy it and we should relisten */
-    if (!f->ok) {
+    if (!f->ok || (events & UPOLLERR)) {
 	DEBUG_ON("listener endpoint %d EPIPE", f->cd);
     }
 }
