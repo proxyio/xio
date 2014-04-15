@@ -16,7 +16,7 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
-extern void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec);
+extern void upoll_tb_notify(struct channel *cn, u32 vf_spec);
 
 
 
@@ -243,8 +243,10 @@ static int accept_handler(eloop_t *el, ev_t *et) {
     if (et->happened & EPOLLERR)
 	cn->fok = false;
     /* A new connection */
-    else if (et->happened & EPOLLIN)
-	generic_upoll_tb_notify(cn, UPOLLIN);
+    else if (et->happened & EPOLLIN) {
+	DEBUG_OFF("channel listener %d events %d", cn->cd, et->happened);
+	upoll_tb_notify(cn, UPOLLIN);
+    }
     return rc;
 }
 
@@ -312,7 +314,7 @@ static int io_handler(eloop_t *el, ev_t *et) {
     }
 
     /* Check events for upoll */
-    generic_upoll_tb_notify(cn, 0);
+    upoll_tb_notify(cn, 0);
     return rc;
 }
 

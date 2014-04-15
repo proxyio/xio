@@ -22,6 +22,8 @@ extern int has_closed_channel(struct channel_poll *po);
 extern void push_closed_channel(struct channel *cn);
 extern struct channel *pop_closed_channel(struct channel_poll *po);
 
+void __tb_notify(struct channel *cn, u32 vf_spec);
+void upoll_tb_notify(struct channel *cn, u32 vf_spec);
 
 uint32_t msg_iovlen(char *payload) {
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
@@ -305,6 +307,7 @@ int channel_accept(int cd) {
     new->ty = CHANNEL_ACCEPTER;
     new->pf = cn->pf;
     new->parent = cd;
+    upoll_tb_notify(cn, 0);
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
 	new->vf = vf;
 	if ((cn->pf & vf->pf) && vf->init(new->cd) == 0) {
@@ -312,6 +315,7 @@ int channel_accept(int cd) {
 	}
     }
  EXIT:
+    DEBUG_OFF("%d failed with errno %d", cd, errno);
     free_channel(new);
     return -1;
 }
@@ -414,6 +418,7 @@ int channel_getopt(int cd, int opt, void *on, int size) {
     return rc;
 }
 
+
 struct channel_msg *pop_rcv(struct channel *cn) {
     struct channel_msg *msg = NULL;
     struct channel_vf *vf = cn->vf;
@@ -427,7 +432,7 @@ struct channel_msg *pop_rcv(struct channel *cn) {
 	cn->rcv_waiters--;
     }
     if (!list_empty(&cn->rcv_head)) {
-	DEBUG_ON("channel %d", cn->cd);
+	DEBUG_OFF("channel %d", cn->cd);
 	msg = list_first(&cn->rcv_head, struct channel_msg, item);
 	list_del_init(&msg->item);
 	msgsz = msg_iovlen(msg->hdr.payload);
@@ -443,6 +448,7 @@ struct channel_msg *pop_rcv(struct channel *cn) {
 
     if (events)
 	vf->rcv_notify(cn->cd, events);
+
     mutex_unlock(&cn->lock);
     return msg;
 }
@@ -460,7 +466,8 @@ void push_rcv(struct channel *cn, struct channel_msg *msg) {
     events |= MQ_PUSH;
     cn->rcv += msgsz;
     list_add_tail(&msg->item, &cn->rcv_head);    
-    DEBUG_ON("channel %d", cn->cd);
+    __tb_notify(cn, 0);
+    DEBUG_OFF("channel %d", cn->cd);
 
     /* Wakeup the blocking waiters. */
     if (cn->rcv_waiters > 0)
@@ -480,7 +487,7 @@ struct channel_msg *pop_snd(struct channel *cn) {
     
     mutex_lock(&cn->lock);
     if (!list_empty(&cn->snd_head)) {
-	DEBUG_ON("channel %d", cn->cd);
+	DEBUG_OFF("channel %d", cn->cd);
 	msg = list_first(&cn->snd_head, struct channel_msg, item);
 	list_del_init(&msg->item);
 	msgsz = msg_iovlen(msg->hdr.payload);
@@ -500,6 +507,8 @@ struct channel_msg *pop_snd(struct channel *cn) {
 
     if (events)
 	vf->snd_notify(cn->cd, events);
+
+    __tb_notify(cn, 0);
     mutex_unlock(&cn->lock);
     return msg;
 }
@@ -525,11 +534,12 @@ int push_snd(struct channel *cn, struct channel_msg *msg) {
 	events |= MQ_PUSH;
 	cn->snd += msgsz;
 	list_add_tail(&msg->item, &cn->snd_head);
-	DEBUG_ON("channel %d", cn->cd);
+	DEBUG_OFF("channel %d", cn->cd);
     }
 
     if (events)
 	vf->snd_notify(cn->cd, events);
+
     mutex_unlock(&cn->lock);
     return rc;
 }
@@ -574,23 +584,23 @@ int channel_send(int cd, char *payload) {
  * here we only check the mq events and vf_spec saved the other
  * events gived by channel_vf
  */
-void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec) {
+void __tb_notify(struct channel *cn, u32 vf_spec) {
     int events = 0;
     struct upoll_entry *ent, *nx;
 
-    mutex_lock(&cn->lock);
-    // channel_vf specified events
     events |= vf_spec;
     events |= !list_empty(&cn->rcv_head) ? UPOLLIN : 0;
     events |= can_send(cn) ? UPOLLOUT : 0;
     events |= !cn->fok ? UPOLLERR : 0;
     DEBUG_OFF("%d channel upoll events %d happen", cn->cd, events);
-    if (!events)
-	goto EXIT;
     list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
-	if ((ent->event.happened = events & ent->event.care))
-	    ent->notify->event(ent->notify, ent);
+	ent->notify->event(ent->notify, ent, ent->event.care & events);
     }
- EXIT:
+}
+
+void upoll_tb_notify(struct channel *cn, u32 vf_spec) {
+    mutex_lock(&cn->lock);
+    __tb_notify(cn, vf_spec);
     mutex_unlock(&cn->lock);
 }
+

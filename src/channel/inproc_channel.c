@@ -15,7 +15,7 @@ extern void push_rcv(struct channel *cn, struct channel_msg *msg);
 extern struct channel_msg *pop_snd(struct channel *cn);
 extern int push_snd(struct channel *cn, struct channel_msg *msg);
 
-extern void generic_upoll_tb_notify(struct channel *cn, u32 vf_spec);
+extern void upoll_tb_notify(struct channel *cn, u32 vf_spec);
 
 static int channel_put(struct channel *cn) {
     int old;
@@ -104,12 +104,6 @@ static int snd_push_event(int cd) {
     if ((msg = pop_snd(cn)))
 	push_rcv(peer, msg);
 
-    /* Check for new UPOLL events */
-    generic_upoll_tb_notify(cn, 0);
-
-    /* Check for new UPOLL events for peer channel */
-    generic_upoll_tb_notify(peer, 0);
-    
     mutex_lock(&cn->lock);
     return rc;
 }
@@ -218,7 +212,7 @@ static int inproc_connector_init(int cd) {
      * queue and update_upoll_tb for user-state poll
      */
     push_new_connector(listener, cn);
-    generic_upoll_tb_notify(listener, UPOLLIN);
+    upoll_tb_notify(listener, UPOLLIN);
 
     /* step2. Hold lock and waiting for the connection established
      * if need. here only has two possible state too:

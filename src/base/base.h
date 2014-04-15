@@ -24,9 +24,9 @@ void base_exit();
     } while (0)
 
 #define DEBUG_ON(fmt, ...) do {						\
-	fprintf(stdout, "%s:%d %s "#fmt"\n", basename(__FILE__),	\
-		__LINE__, __func__, ##__VA_ARGS__);			\
-    }while(0)
+	fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),		\
+		basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__);	\
+    } while(0)
 
 #define DEBUG_OFF(fmt, ...)
 

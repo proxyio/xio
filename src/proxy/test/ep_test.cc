@@ -1,4 +1,3 @@
-// #define __TRACE_ON
 #include <gtest/gtest.h>
 extern "C" {
 #include <proxy/ep.h>
@@ -54,11 +53,13 @@ static void test_proxy() {
     struct pxy *y = pxy_new();
 
     BUG_ON(pxy_listen(y, url) != 0);
+    thread_start(&t[2], test_pxy, y);
+
     thread_start(&t[0], test_producer, NULL);
     thread_start(&t[1], test_comsumer, NULL);
-    thread_start(&t[2], test_pxy, y);
     thread_stop(&t[0]);
     thread_stop(&t[1]);
+
     thread_stop(&t[2]);
     pxy_stoploop(y);
     pxy_free(y);
@@ -92,6 +93,7 @@ static int test_producer2(void *args) {
     BUG_ON((ep_connect(producer, url1)) != 0);
     waitgroup_done(wg);
 
+    DEBUG_ON();
     for (i = 0; i < cnt; i++) {
 	randstr(buf, sizeof(buf));
 	BUG_ON(!(payload = channel_allocmsg(sizeof(buf))));
@@ -148,10 +150,9 @@ static void test_proxy2() {
     for (i = 0; i < cnt; i++) {
 	thread_start(&comsumer[i], test_comsumer2, &wg);
     }
-    waitgroup_adds(&wg, cnt);
+    waitgroup_wait(&wg);
     for (i = 0; i < cnt; i++)
 	thread_start(&producer[i], test_producer2, &wg);
-    waitgroup_wait(&wg);
 
     for (i = 0; i < cnt; i++)
 	thread_stop(&comsumer[i]);
@@ -167,7 +168,7 @@ static void test_proxy2() {
 TEST(proxy, send_recv) {
     DEBUG_ON("testing inproc proxy");
     url1 = "default@inp://xxxxxxxxxxxxxx2";
-    //test_proxy2();
+    test_proxy2();
 
     DEBUG_ON("testing net proxy xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     url1 = "default@net://127.0.0.1:18802";
@@ -175,5 +176,5 @@ TEST(proxy, send_recv) {
 
     DEBUG_ON("testing ipc proxy");
     url1 = "default@ipc://group2.sock";
-    //test_proxy2();
+    test_proxy2();
 }

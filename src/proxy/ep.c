@@ -58,13 +58,14 @@ int ep_send_req(struct ep *ep, char *req) {
     struct rdh *h;
     struct tr *r;
     struct fd *f;
+    u32 hdr_and_rt_len = sizeof(*h) + sizeof(*r);
 
     if ((ep->syn.type & COMSUMER)) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!(s.payload = channel_allocmsg(channel_msglen(req) + sizeof(*h)
-				       + sizeof(*r)))) {
+    s.payload = channel_allocmsg(channel_msglen(req) + hdr_and_rt_len);
+    if (!s.payload) {
 	return -1;
     }
     /* Append gsm header and route. The proxy package frame header */
@@ -91,6 +92,7 @@ int ep_send_req(struct ep *ep, char *req) {
     BUG_ON(!(f = xg_rrbin_go(ep->g)));
     uuid_copy(r->uuid, f->uuid);
     rc = channel_send(f->cd, s.payload);
+    DEBUG_OFF("channel %d send req into network", f->cd);
     return rc;
 }
 
@@ -108,26 +110,28 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	return -1;
     }
     /* TODO: The timeout see ep_setopt for more details */
-    if ((n = upoll_wait(y->tb, &ev, 1, 0xfffff)) < 0)
+    if ((n = upoll_wait(y->tb, &ev, 1, 0x7fff)) < 0)
 	return -1;
+    DEBUG_ON("%s", upoll_str[ev.happened]);
     BUG_ON(ev.happened & UPOLLOUT);
     if (!(ev.happened & UPOLLIN))
 	goto AGAIN;
     f = (struct fd *)ev.self;
     if (channel_recv(f->cd, &payload) == 0) {
-	DEBUG_OFF("%s", payload + sizeof(*h));
+	DEBUG_ON("channel %d recv resp", f->cd);
 	gsm_init(&s, payload);
 
 	/* Drop the timeout message */
 	if (gsm_timeout(&s, rt_mstime()) < 0) {
+	    DEBUG_ON("message is timeout");
 	    channel_freemsg(payload);
 	    goto AGAIN;
 	}
 
 	/* If message has invalid header checkusm. return error */
 	if (gsm_validate(&s) < 0) {
+	    DEBUG_ON("invalid message's checksum");
 	    channel_freemsg(payload);
-	    /* Set fd bad status */
 	    f->ok = false;
 	    goto AGAIN;
 	}
@@ -141,8 +145,11 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 
 	/* Payload was copy into user-space. */
 	channel_freemsg(payload);
+
+	DEBUG_ON("channel %d send req into network", f->cd);
 	return 0;
     } else if (errno != EAGAIN) {
+	DEBUG_ON("channel %d on bad status", f->cd);
 	f->ok = false;
     }
     /* TODO: cleanup the bad status fd here */
@@ -166,24 +173,27 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	return -1;
     }
     /* TODO: The timeout see ep_setopt for more details */
-    if ((n = upoll_wait(y->tb, &ev, 1, 0xfffff)) < 0)
+    if ((n = upoll_wait(y->tb, &ev, 1, 0x7fff)) < 0)
 	return -1;
+    DEBUG_ON("%s", upoll_str[ev.happened]);
     BUG_ON(ev.happened & UPOLLOUT);
     if (!(ev.happened & UPOLLIN))
 	goto AGAIN;
+
     f = (struct fd *)ev.self;
     if (channel_recv(f->cd, &payload) == 0) {
 	gsm_init(&s, payload);
 
 	/* Drop the timeout message */
 	if (gsm_timeout(&s, rt_mstime()) < 0) {
+	    DEBUG_ON("message is timeout");
 	    channel_freemsg(payload);
 	    goto AGAIN;
 	}
 	/* If message has invalid header checkusm. return error */
 	if (gsm_validate(&s) < 0) {
+	    DEBUG_ON("invalid message's checksum");
 	    channel_freemsg(payload);
-	    /* Set fd bad status */
 	    f->ok = false;
 	    goto AGAIN;
 	}
@@ -204,8 +214,11 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 
 	/* Payload was copy into user-space. */
 	channel_freemsg(payload);
+
+	DEBUG_ON("channel %d recv req from network", f->cd);
 	return 0;
     } else if (errno != EAGAIN) {
+	DEBUG_ON("channel %d on bad status", f->cd);
 	f->ok = false;
     }
     /* TODO: cleanup the bad status fd here */
@@ -252,7 +265,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
 
     cr = tr_cur(&s);
     BUG_ON(!(f = xg_route_back(ep->g, cr->uuid)));
-    DEBUG_OFF("response %d", h->size);
+    DEBUG_OFF("channel %d send resp into network", f->cd);
     rc = channel_send(f->cd, s.payload);
     return rc;
 }

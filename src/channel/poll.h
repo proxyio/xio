@@ -7,7 +7,7 @@
 
 struct upoll_entry;
 struct upoll_notify {
-    void (*event) (struct upoll_notify *un, struct upoll_entry *ent);
+    void (*event) (struct upoll_notify *un, struct upoll_entry *ent, u32 ev);
 };
 
 struct upoll_entry {

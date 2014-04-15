@@ -9,7 +9,6 @@
 #define PF_IPC    TP_IPC
 #define PF_INPROC TP_MOCK_INPROC
 
-
 char *channel_allocmsg(uint32_t size);
 void channel_freemsg(char *payload);
 uint32_t channel_msglen(char *payload);
@@ -21,9 +20,12 @@ int channel_recv(int cd, char **payload);
 int channel_send(int cd, char *payload);
 void channel_close(int cd);
 
+
+
 #define CHANNEL_NOBLOCK 1
 #define CHANNEL_SNDBUF  2
 #define CHANNEL_RCVBUF  4
+
 int channel_setopt(int cd, int opt, void *val, int valsz);
 int channel_getopt(int cd, int opt, void *val, int valsz);
 

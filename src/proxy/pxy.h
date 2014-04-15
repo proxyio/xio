@@ -7,7 +7,7 @@
 #include <ds/map.h>
 #include <ds/list.h>
 #include <runner/thread.h>
-#include <sync/spin.h>
+#include <sync/mutex.h>
 #include "ep.h"
 #include "hdr.h"
 
@@ -79,7 +79,7 @@ struct fd *xg_route_back(struct xg *g, uuid_t ud);
 
 
 struct pxy {
-    spin_t lock;
+    mutex_t mtx;
 
 #define PXY_LOOPSTOP 1
     int flags;

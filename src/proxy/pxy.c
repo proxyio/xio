@@ -1,5 +1,3 @@
-/* Open for DEBUGGING */
-#define __TRACE_ON
 #include <os/alloc.h>
 #include <channel/channel_base.h>
 #include <os/timesz.h>
@@ -13,59 +11,6 @@ const char *py_str[] = {
     "RECEIVER",
     "DISPATCHER",
 };
-
-
-/* URL example : 
- * net    group@net://182.33.49.10
- * ipc    group@ipc://xxxxxxxxxxxxxxxxxx
- * inproc group@inproc://xxxxxxxxxxxxxxxxxxxx
- */
-int url_parse_group(const char *url, char *buff, u32 size) {
-    char *at = strchr(url, '@');;
-
-    if (!at) {
-	errno = EINVAL;
-	return -1;
-    }
-    strncpy(buff, url, size <= at - url ? size : at - url);
-    return 0;
-}
-
-int url_parse_pf(const char *url) {
-    char *at = strchr(url, '@');;
-    char *pf = strstr(url, "://");;
-
-    if (!pf || at >= pf) {
-	errno = EINVAL;
-	return -1;
-    }
-    if (at)
-	++at;
-    else
-	at = (char *)url;
-    if (strncmp(at, "net", pf - at) == 0)
-	return PF_NET;
-    else if (strncmp(at, "ipc", pf - at) == 0)
-	return PF_IPC;
-    else if (strncmp(at, "inproc", pf - at) == 0)
-	return PF_INPROC;
-    errno = EINVAL;
-    return -1;
-}
-
-int url_parse_sockaddr(const char *url, char *buff, u32 size) {
-    char *tok = "://";
-    char *sock = strstr(url, tok);
-
-    if (!sock) {
-	errno = EINVAL;
-	return -1;
-    }
-    sock += strlen(tok);
-    strncpy(buff, sock, size);
-    return 0;
-}
-
 
 struct fd *fd_new() {
     struct fd *f = (struct fd *)mem_zalloc(sizeof(*f));
@@ -120,7 +65,7 @@ void xg_free(struct xg *g) {
 struct pxy *pxy_new() {
     struct pxy *y = (struct pxy *)mem_zalloc(sizeof(*y));
     if (y) {
-	spin_init(&y->lock);
+	mutex_init(&y->mtx);
 	y->flags = PXY_LOOPSTOP;
 	y->tb = upoll_create();
 	y->gsz = 0;
@@ -142,7 +87,7 @@ void pxy_free(struct pxy *y) {
 	errno = EINVAL;
 	return;
     }
-    spin_destroy(&y->lock);
+    mutex_destroy(&y->mtx);
     upoll_close(y->tb);
     list_for_each_xg(g, ng, &y->g_head) {
 	/* Avoiding freed when iterate */
@@ -326,8 +271,6 @@ int pxy_put(struct pxy *y, struct xg *g) {
 }
 
 
-
-
 /* Receive one request from frontend channel */
 static void rcver_recv(struct fd *f) {
     i64 now = rt_mstime();
@@ -339,21 +282,21 @@ static void rcver_recv(struct fd *f) {
     while (channel_recv(f->cd, &payload) == 0) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
 	if (g->ssz <= 0 || !(s = gsm_new(payload))) {
-	    channel_freemsg(payload);
 	    DEBUG_OFF("no any dispatchers");
+	    channel_freemsg(payload);
 	    continue;
 	}
 	/* Drop the timeout massage */
 	if (gsm_timeout(s, now) < 0) {
-	    gsm_free(s);
 	    DEBUG_OFF("message is timeout");
+	    gsm_free(s);
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
 	if (gsm_validate(s) < 0) {
+	    DEBUG_OFF("invalid message's checksum");
 	    gsm_free(s);
 	    f->ok = false;
-	    DEBUG_OFF("invalid message's checksum");
 	    break;
 	}
 	tr_go_cost(s, now);
@@ -362,11 +305,13 @@ static void rcver_recv(struct fd *f) {
 	BUG_ON((gof = xg_rrbin_go(g)) == 0);
 	mq_push(gof, s);
 
-	DEBUG_OFF("%d recv one req and push into %d", f->cd, gof->cd);
+	DEBUG_OFF("%d recv req and push into %d", f->cd, gof->cd);
     }
 
     /* EPIPE */
-    f->ok = (errno == EAGAIN) ? true : false;
+    if (!(f->ok = (errno == EAGAIN) ? true : false)) {
+	DEBUG_OFF("EPIPE");
+    }
 }
 
 /* Send one response to frontend channel */
@@ -376,7 +321,7 @@ static void rcver_send(struct fd *f) {
 
     if (!(s = mq_pop(f)))
 	return;
-    DEBUG_OFF("%d pop one resp and send into network", f->cd);
+    DEBUG_OFF("%d pop resp and send into network", f->cd);
 
     tr_shrink_and_back(s, now);
     if (channel_send(f->cd, s->payload) < 0) {
@@ -402,16 +347,19 @@ static void snder_recv(struct fd *f) {
 
     while (channel_recv(f->cd, &payload) == 0) {
 	if (g->rsz <= 0 || !(s = gsm_new(payload))) {
+	    DEBUG_OFF("no any receivers");
 	    channel_freemsg(payload);
 	    continue;
 	}
 	/* Drop the timeout massage */
 	if (gsm_timeout(s, now) < 0) {
+	    DEBUG_OFF("message is timeout");
 	    gsm_free(s);
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
 	if (gsm_validate(s) < 0) {
+	    DEBUG_OFF("invalid message's checksum");
 	    gsm_free(s);
 	    f->ok = false;
 	    break;
@@ -421,10 +369,13 @@ static void snder_recv(struct fd *f) {
 	/* TODO: if not found any backfd. drop this response */
 	BUG_ON(!(backf = xg_route_back(g, r->uuid)));
 	mq_push(backf, s);
+
+	DEBUG_OFF("%d recv resp and push into %d", f->cd, backf->cd);
     }
 
     /* EPIPE */
-    f->ok = (errno == EAGAIN) ? true : false;
+    if (!(f->ok = (errno == EAGAIN) ? true : false))
+	DEBUG_OFF("EPIPE");
 }
 
 
@@ -436,17 +387,19 @@ static void snder_send(struct fd *f) {
     
     if (!(s = mq_pop(f)))
 	return;
+    
     uuid_copy(r.uuid, f->uuid);
     if (tr_append_and_go(s, &r, now) < 0) {
 	DEBUG_OFF("error on appending route chunk");
 	goto EXIT;
     }
-    DEBUG_OFF("%d pop req and send into network", f->cd);
     if (channel_send(f->cd, s->payload) < 0) {
 	if (errno != EAGAIN)
 	    f->ok = false;
 	goto EXIT;
     }
+    DEBUG_OFF("%d pop req and send into network", f->cd);
+
     /* payload was send into network. */
     s->payload = 0;
 
@@ -458,27 +411,31 @@ static void snder_send(struct fd *f) {
 static void rcver_event_handler(struct fd *f, u32 events) {
     struct channel *cn = cid_to_channel(f->cd);
 
-    DEBUG_ON("%d receiver has events %s and recv-Q:%ld send-Q:%ld",
-	     f->cd, upoll_str[events], cn->rcv, cn->snd);
+    DEBUG_OFF("%d receiver has events %s and recv-Q:%ld send-Q:%ld",
+	      f->cd, upoll_str[events], cn->rcv, cn->snd);
     if (f->ok && (events & UPOLLIN))
 	rcver_recv(f);
     if (f->ok && (events & UPOLLOUT))
 	rcver_send(f);
-    if (f->ok && (events & UPOLLERR))
+    if (f->ok && (events & UPOLLERR)) {
 	f->ok = false;
+	DEBUG_OFF("%d bad status", f->cd);
+    }
 }
 
 static void snder_event_handler(struct fd *f, u32 events) {
     struct channel *cn = cid_to_channel(f->cd);
 
-    DEBUG_ON("%d dispatcher has events %s and recv-Q:%ld send-Q:%ld",
-	     f->cd, upoll_str[events], cn->rcv, cn->snd);
+    DEBUG_OFF("%d dispatcher has events %s and recv-Q:%ld send-Q:%ld",
+	      f->cd, upoll_str[events], cn->rcv, cn->snd);
     if (f->ok && (events & UPOLLIN))
 	snder_recv(f);
     if (f->ok && (events & UPOLLOUT))
 	snder_send(f);
-    if (f->ok && (events & UPOLLERR))
+    if (f->ok && (events & UPOLLERR)) {
 	f->ok = false;
+	DEBUG_OFF("%d bad status", f->cd);
+    }
 }
 
 static void pxy_connector_rgs(struct fd *f, u32 events) {
@@ -496,7 +453,7 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	    DEBUG_OFF("recv invalid syn from channel %d", f->cd);
 	    return;
 	}
-	DEBUG_ON("recv syn from channel %d", f->cd);
+	DEBUG_OFF("recv syn from channel %d", f->cd);
 
 	/* Detach from pxy's unknown_head */
 	list_del_init(&f->link);
@@ -507,9 +464,9 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 
 	/* Send synack */
 	BUG_ON(channel_send(f->cd, (char *)syn) != 0);
-	DEBUG_ON("send syn to channel %d", f->cd);
-	
-	DEBUG_OFF("register an %s", py_str[f->ty]);
+	DEBUG_OFF("send syn to channel %d", f->cd);
+
+	DEBUG_OFF("pxy register an %s", py_str[f->ty]);
     } else if (errno != EAGAIN) {
 	DEBUG_OFF("unregister channel %d EPIPE", f->cd);
 	f->ok = false;
@@ -517,6 +474,8 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 }
 
 static void pxy_connector_handler(struct fd *f, u32 events) {
+    struct pxy *y = f->y;
+
     if (!f->ty)
 	/* Siteup channel */
 	pxy_connector_rgs(f, events);
@@ -533,6 +492,10 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
     /* If fd status bad. destroy it */
     if (!f->ok) {
 	DEBUG_OFF("%s channel %d EPIPE", py_str[f->ty], f->cd);
+	xg_rm(f->g, f);
+	BUG_ON(upoll_ctl(y->tb, UPOLL_DEL, &f->event) != 0);
+	pxy_put(f->y, f->g);
+	fd_free(f);
     }
 }
 
@@ -542,7 +505,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
     int new_cd;
     struct fd *newf;
     
-    BUG_ON(events & UPOLLOUT);
+    DEBUG_OFF("listener events %s", upoll_str[events]);
     if (events & UPOLLIN) {
 	while ((new_cd = channel_accept(f->cd)) >= 0) {
 	    if (!(newf = fd_new())) {
@@ -560,9 +523,6 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 	    list_add_tail(&newf->link, &y->unknown_head);
 	    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
 	    DEBUG_OFF("listener create a new channel %d", new_cd);
-
-	    /* Maybe syn was cacheing in the low-level channel buff */
-	    // pxy_connector_rgs(f, events);
 	}
     }
 
@@ -655,6 +615,9 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
     BUG_ON(!(f->g = pxy_get(y, syn->group)));
     BUG_ON(xg_add(f->g, f) != 0);
     BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
+
+    /* Free syn-ack */
+    channel_freemsg((char *)syn);
     return 0;
 }
 
@@ -665,9 +628,9 @@ int pxy_connect(struct pxy *y, const char *url) {
 
 static int pxy_stopped(struct pxy *y) {
     int stopped;
-    spin_lock(&y->lock);
+    mutex_lock(&y->mtx);
     stopped = y->flags & PXY_LOOPSTOP;
-    spin_unlock(&y->lock);
+    mutex_unlock(&y->mtx);
     return stopped;
 }
 
@@ -677,11 +640,14 @@ int pxy_onceloop(struct pxy *y) {
     struct upoll_event ev[100] = {};
 
     /* Default io events buf is 100 and timeout is 1ms */
-    if ((n = upoll_wait(y->tb, ev, 100, 1)) <= 0)
+    if ((n = upoll_wait(y->tb, ev, 100, 1)) <= 0) {
+	DEBUG_OFF("upoll wait with no events and errno %d", errno);
 	return -1;
+    }
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
 	f->h(f, ev[i].happened);
+	DEBUG_OFF("%d %s", f->cd, upoll_str[ev[i].happened]);
     }
     return 0;
 }
@@ -698,26 +664,26 @@ static int pxy_loop_thread(void *args) {
 int pxy_startloop(struct pxy *y) {
     int rc;
     
-    spin_lock(&y->lock);
+    mutex_lock(&y->mtx);
     /* Backend loop thread running */
     if (!(y->flags & PXY_LOOPSTOP)) {
-	spin_unlock(&y->lock);
+	mutex_unlock(&y->mtx);
 	return -1;
     }
     y->flags &= ~PXY_LOOPSTOP;
-    spin_unlock(&y->lock);
+    mutex_unlock(&y->mtx);
     BUG_ON((rc = thread_start(&y->backend, pxy_loop_thread, y) != 0));
     return rc;
 }
 
 void pxy_stoploop(struct pxy *y) {
-    spin_lock(&y->lock);
+    mutex_lock(&y->mtx);
     /* Backend loop thread already stopped */
     if (y->flags & PXY_LOOPSTOP) {
-	spin_unlock(&y->lock);
+	mutex_unlock(&y->mtx);
 	return;
     }
     y->flags |= PXY_LOOPSTOP;
-    spin_unlock(&y->lock);
+    mutex_unlock(&y->mtx);
     thread_stop(&y->backend);
 }
