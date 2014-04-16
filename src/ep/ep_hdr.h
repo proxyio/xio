@@ -5,7 +5,7 @@
 #include <uuid/uuid.h>
 #include <ds/list.h>
 #include <os/timesz.h>
-
+#include <x/xsock.h>
 
 struct ep_rt {
     uuid_t uuid;
@@ -31,6 +31,23 @@ struct ep_hdr {
     } u;
     struct ep_rt rt[0];
 };
+
+static inline struct ep_hdr *ep_allochdr(u32 size) {
+    return (struct ep_hdr *)xallocmsg(size);
+}
+
+static inline void ep_freehdr(struct ep_hdr *h) {
+    xfreemsg((char *)h);
+}
+
+static inline struct ep_hdr *ep_mergehdr(char *r, char *xbuf) {
+    struct ep_hdr *nh = ep_allochdr(xmsglen(r) + xmsglen(xbuf));
+    if (nh) {
+	memcpy(nh, r, xmsglen(r));
+	memcpy((char *)nh + xmsglen(r), xbuf, xmsglen(xbuf));
+    }
+    return nh;
+}
 
 #define list_for_each_ep_hdr(h, nh, head)				\
     list_for_each_entry_safe(h, nh, head, struct ep_hdr, u.link)
@@ -62,5 +79,48 @@ static inline void rt_back_cost(struct ep_hdr *h) {
 
 struct ep_hdr *rt_append_and_go(struct ep_hdr *h, struct ep_rt *r);
 void rt_shrink_and_back(struct ep_hdr *h);
+
+
+
+static inline int ep_recv(int xd, struct ep_hdr **h) {
+    if (xrecv(xd, (char **)h) < 0)
+	return -1;
+    if (ep_hdr_timeout(*h) < 0) {
+	errno = EAGAIN;
+	xfreemsg(*(char **)h);
+	DEBUG_OFF("message is timeout");
+	return -1;
+    }
+    if (ep_hdr_validate(*h) < 0) {
+	errno = EPIPE;
+	xfreemsg(*(char **)h);
+	DEBUG_OFF("invalid message's checksum");
+	return -1;
+    }
+    return 0;
+}
+
+
+static inline int ep_send(int xd, struct ep_hdr *h) {
+    return xsend(xd, (char *)h);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif

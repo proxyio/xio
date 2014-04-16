@@ -86,25 +86,12 @@ static void rcver_recv(struct fd *f) {
     struct ep_hdr *h;
     struct xg *g = f->g;
 
-    while (xrecv(f->xd, (char **)&h) == 0) {
+    while (ep_recv(f->xd, &h) == 0) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
 	if (g->ssz <= 0) {
 	    DEBUG_OFF("no any dispatchers");
 	    xfreemsg((char *)h);
 	    continue;
-	}
-	/* Drop the timeout massage */
-	if (ep_hdr_timeout(h) < 0) {
-	    DEBUG_OFF("message is timeout");
-	    xfreemsg((char *)h);
-	    continue;
-	}
-	/* If massage has invalid checksum. set fd in bad status */
-	if (ep_hdr_validate(h) < 0) {
-	    DEBUG_OFF("invalid message's checksum");
-	    xfreemsg((char *)h);
-	    f->fok = false;
-	    break;
 	}
 	rt_go_cost(h);
 
@@ -142,27 +129,15 @@ static void snder_recv(struct fd *f) {
     struct ep_rt *cr;
     struct xg *g = f->g;
 
-    while (xrecv(f->xd, (char **)&h) == 0) {
+    while (ep_recv(f->xd, &h) == 0) {
 	if (g->rsz <= 0) {
 	    DEBUG_OFF("no any receivers");
 	    xfreemsg((char *)h);
 	    continue;
 	}
-	/* Drop the timeout massage */
-	if (ep_hdr_timeout(h) < 0) {
-	    DEBUG_OFF("message is timeout");
-	    xfreemsg((char *)h);
-	    continue;
-	}
-	/* If massage has invalid checksum. set fd in bad status */
-	if (ep_hdr_validate(h) < 0) {
-	    DEBUG_OFF("invalid message's checksum");
-	    xfreemsg((char *)h);
-	    f->fok = false;
-	    break;
-	}
 	rt_back_cost(h);
 	cr = rt_prev(h);
+
 	/* TODO: if not found any backfd. drop this response */
 	BUG_ON(!(backf = xg_route_back(g, cr->uuid)));
 	mq_push(backf, h);

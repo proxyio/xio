@@ -13,6 +13,7 @@
 
 extern const char *py_str[2];
 
+
 struct pxy {
     u32 fstopped:1;
     mutex_t mtx;
@@ -31,5 +32,14 @@ int pxy_connect(struct pxy *y, const char *url);
 int pxy_onceloop(struct pxy *y);
 int pxy_startloop(struct pxy *y);
 void pxy_stoploop(struct pxy *y);
+
+
+struct ep {
+    int type;
+    struct pxy y;
+};
+
+
+
 
 #endif
