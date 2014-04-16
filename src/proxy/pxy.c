@@ -458,8 +458,8 @@ int pxy_onceloop(struct pxy *y) {
     }
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
-	f->h(f, ev[i].happened);
 	DEBUG_ON("%d %s", f->cd, upoll_str[ev[i].happened]);
+	f->h(f, ev[i].happened);
     }
     return 0;
 }
