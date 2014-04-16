@@ -10,22 +10,18 @@ const char *ep_str[] = {
     "DISPATCHER",
 };
 
-struct pxy *pxy_new() {
-    struct pxy *y = (struct pxy *)mem_zalloc(sizeof(*y));
-    if (y) {
-	mutex_init(&y->mtx);
-	y->fstopped = true;
-	rtb_init(&y->tb);
-	y->po = upoll_create();
-	INIT_LIST_HEAD(&y->listener);
-	INIT_LIST_HEAD(&y->unknown);
-    }
-    return y;
+void pxy_init(struct pxy *y) {
+    mutex_init(&y->mtx);
+    y->fstopped = true;
+    rtb_init(&y->tb);
+    y->po = upoll_create();
+    INIT_LIST_HEAD(&y->listener);
+    INIT_LIST_HEAD(&y->unknown);
 }
 
 
 
-void pxy_free(struct pxy *y) {
+void pxy_destroy(struct pxy *y) {
     struct fd *f, *nf;
 
     BUG_ON(!y->fstopped);
@@ -40,7 +36,6 @@ void pxy_free(struct pxy *y) {
 	list_del_init(&f->link);
 	fd_free(f);
     }
-    mem_free(y, sizeof(*y));
 }
 
 static void try_disable_eventout(struct fd *f) {
@@ -87,7 +82,6 @@ static int mq_push(struct fd *f, struct ep_msg *s) {
 
 /* Receive one request from frontend channel */
 static void rcver_recv(struct fd *f) {
-    i64 now = rt_mstime();
     struct fd *gof;
     struct ep_msg *s;
     char *payload;
@@ -101,7 +95,7 @@ static void rcver_recv(struct fd *f) {
 	    continue;
 	}
 	/* Drop the timeout massage */
-	if (ep_msg_timeout(s, now) < 0) {
+	if (ep_msg_timeout(s) < 0) {
 	    DEBUG_OFF("message is timeout");
 	    ep_msg_free(s);
 	    continue;
@@ -113,7 +107,7 @@ static void rcver_recv(struct fd *f) {
 	    f->fok = false;
 	    break;
 	}
-	rt_go_cost(s, now);
+	rt_go_cost(s);
 
 	/* Round robin algo, selete a gof */
 	BUG_ON((gof = xg_rrbin_go(g)) == 0);
@@ -130,14 +124,13 @@ static void rcver_recv(struct fd *f) {
 
 /* Send one response to frontend channel */
 static void rcver_send(struct fd *f) {
-    i64 now = rt_mstime();
     struct ep_msg *s;
 
     if (!(s = mq_pop(f)))
 	return;
     DEBUG_OFF("%d pop resp and send into network", f->cd);
 
-    rt_shrink_and_back(s, now);
+    rt_shrink_and_back(s);
     if (channel_send(f->cd, s->payload) < 0) {
 	f->fok = (errno == EAGAIN) ? true : false;
 	goto EXIT;
@@ -152,7 +145,6 @@ static void rcver_send(struct fd *f) {
 
 /* Dispatch one request to backend channel */
 static void snder_recv(struct fd *f) {
-    i64 now = rt_mstime();
     struct fd *backf;
     struct ep_msg *s;
     struct ep_rt *r;
@@ -166,7 +158,7 @@ static void snder_recv(struct fd *f) {
 	    continue;
 	}
 	/* Drop the timeout massage */
-	if (ep_msg_timeout(s, now) < 0) {
+	if (ep_msg_timeout(s) < 0) {
 	    DEBUG_OFF("message is timeout");
 	    ep_msg_free(s);
 	    continue;
@@ -178,7 +170,7 @@ static void snder_recv(struct fd *f) {
 	    f->fok = false;
 	    break;
 	}
-	rt_back_cost(s, now);
+	rt_back_cost(s);
 	r = rt_prev(s);
 	/* TODO: if not found any backfd. drop this response */
 	BUG_ON(!(backf = xg_route_back(g, r->uuid)));
@@ -195,7 +187,6 @@ static void snder_recv(struct fd *f) {
 
 /* Receive one response from backend channel */
 static void snder_send(struct fd *f) {
-    i64 now = rt_mstime();
     struct ep_msg *s;
     struct ep_rt r = {};
     
@@ -203,7 +194,7 @@ static void snder_send(struct fd *f) {
 	return;
     
     uuid_copy(r.uuid, f->st.ud);
-    if (rt_append_and_go(s, &r, now) < 0) {
+    if (rt_append_and_go(s, &r) < 0) {
 	DEBUG_OFF("error on appending route chunk");
 	goto EXIT;
     }

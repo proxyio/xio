@@ -52,10 +52,11 @@ static int test_pxy(void *args) {
 
 static void test_proxy() {
     thread_t t[3];
-    struct pxy *y = pxy_new();
+    struct pxy y;
 
-    BUG_ON(pxy_listen(y, url) != 0);
-    thread_start(&t[2], test_pxy, y);
+    pxy_init(&y);
+    BUG_ON(pxy_listen(&y, url) != 0);
+    thread_start(&t[2], test_pxy, &y);
 
     thread_start(&t[0], test_producer, NULL);
     thread_start(&t[1], test_comsumer, NULL);
@@ -63,8 +64,8 @@ static void test_proxy() {
     thread_stop(&t[1]);
 
     thread_stop(&t[2]);
-    pxy_stoploop(y);
-    pxy_free(y);
+    pxy_stoploop(&y);
+    pxy_destroy(&y);
 }
 
 
@@ -143,11 +144,12 @@ static void test_proxy2() {
     thread_t comsumer[cnt];
     thread_t producer[cnt];
     thread_t pxy_thread;
-    struct pxy *y = pxy_new();
+    struct pxy y;
 
+    pxy_init(&y);
     waitgroup_init(&wg);
-    BUG_ON(pxy_listen(y, url1) != 0);
-    thread_start(&pxy_thread, test_pxy2, y);
+    BUG_ON(pxy_listen(&y, url1) != 0);
+    thread_start(&pxy_thread, test_pxy2, &y);
     waitgroup_adds(&wg, cnt);
     for (i = 0; i < cnt; i++) {
 	thread_start(&comsumer[i], test_comsumer2, &wg);
@@ -161,8 +163,8 @@ static void test_proxy2() {
     for (i = 0; i < cnt; i++)
 	thread_stop(&producer[i]);
     thread_stop(&pxy_thread);
-    pxy_stoploop(y);
-    pxy_free(y);
+    pxy_stoploop(&y);
+    pxy_destroy(&y);
     waitgroup_destroy(&wg);
 }
 

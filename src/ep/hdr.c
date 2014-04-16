@@ -48,9 +48,10 @@ void ep_msg_gensum(struct ep_msg *s) {
     h->checksum = crc16((char *)&copyheader, sizeof(*h));
 }
 
-int rt_append_and_go(struct ep_msg *s, struct ep_rt *r, i64 now) {
+int rt_append_and_go(struct ep_msg *s, struct ep_rt *r) {
     struct ep_rt *cr;
     struct ep_hdr *h = s->h;
+    u64 now = rt_mstime();
     char *new_payload, *payload_end;
     
     cr = rt_cur(s);
@@ -76,9 +77,11 @@ int rt_append_and_go(struct ep_msg *s, struct ep_rt *r, i64 now) {
     return 0;
 }
 
-void rt_shrink_and_back(struct ep_msg *s, i64 now) {
+void rt_shrink_and_back(struct ep_msg *s) {
     struct ep_rt *r = rt_cur(s);
     struct ep_hdr *h = s->h;
+    u64 now = rt_mstime();
+
     r->stay[1] = (now - h->sendstamp - r->begin[1] - r->cost[1]);
     h->ttl--;
     ep_msg_gensum(s);

@@ -13,11 +13,6 @@
 
 extern const char *py_str[2];
 
-struct ep {
-    int type;
-    struct pxy *y;
-};
-
 struct pxy {
     u32 fstopped:1;
     mutex_t mtx;
@@ -28,8 +23,9 @@ struct pxy {
     struct list_head unknown;
 };
 
-struct pxy *pxy_new();
-void pxy_free(struct pxy *y);
+
+void pxy_init(struct pxy *y);
+void pxy_destroy(struct pxy *y);
 int pxy_listen(struct pxy *y, const char *url);
 int pxy_connect(struct pxy *y, const char *url);
 int pxy_onceloop(struct pxy *y);

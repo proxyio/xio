@@ -7,33 +7,37 @@
 
 #define DEFAULT_GROUP "default"
 
+
+struct ep {
+    int type;
+    struct pxy y;
+};
+
+
 struct ep *ep_new(int ty) {
     struct ep *ep = (struct ep *)mem_zalloc(sizeof(*ep));
     if (ep) {
-	if (!(ep->y = pxy_new())) {
-	    mem_free(ep, sizeof(*ep));
-	    return 0;
-	}
+	pxy_init(&ep->y);
 	ep->type = ty;
     }
     return ep;
 }
 
 void ep_close(struct ep *ep) {
-    pxy_free(ep->y);
+    pxy_destroy(&ep->y);
     mem_free(ep, sizeof(*ep));
 }
 
 extern int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url);
 
 int ep_connect(struct ep *ep, const char *url) {
-    return __pxy_connect(ep->y, ep->type, UPOLLERR|UPOLLIN, url);
+    return __pxy_connect(&ep->y, ep->type, UPOLLERR|UPOLLIN, url);
 }
 
 /* Producer endpoint api : send_req and recv_resp */
 int ep_send_req(struct ep *ep, char *req) {
     int rc;
-    struct pxy *y = ep->y;
+    struct pxy *y = &ep->y;
     struct ep_msg s;
     struct ep_hdr *h;
     struct ep_rt *r;
@@ -54,11 +58,9 @@ int ep_send_req(struct ep *ep, char *req) {
     h->ttl = 1;
     h->end_ttl = 0;
     h->go = true;
-    h->icmp = false;
     h->size = channel_msglen(req);
     h->timeout = 0;
     h->checksum = 0;
-    h->seqid = 0;
     h->sendstamp = rt_mstime();
 
     memcpy(s.payload + sizeof(*h), req, channel_msglen(req));
@@ -82,7 +84,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     char *payload;
     struct ep_msg s;
     struct ep_hdr *h;
-    struct pxy *y = ep->y;
+    struct pxy *y = &ep->y;
     struct upoll_event ev = {};
 
     if ((ep->type & RECEIVER)) {
@@ -102,7 +104,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
-	if (ep_msg_timeout(&s, rt_mstime()) < 0) {
+	if (ep_msg_timeout(&s) < 0) {
 	    DEBUG_ON("message is timeout");
 	    channel_freemsg(payload);
 	    goto AGAIN;
@@ -145,7 +147,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
     char *payload;
     struct ep_msg s;
     struct ep_hdr *h;
-    struct pxy *y = ep->y;
+    struct pxy *y = &ep->y;
     struct upoll_event ev = {};
 
     if ((ep->type & DISPATCHER)) {
@@ -165,7 +167,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
-	if (ep_msg_timeout(&s, rt_mstime()) < 0) {
+	if (ep_msg_timeout(&s) < 0) {
 	    DEBUG_ON("message is timeout");
 	    channel_freemsg(payload);
 	    goto AGAIN;
@@ -213,7 +215,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     struct ep_hdr *h = (struct ep_hdr *)r;
     struct fd *f;
     struct ep_rt *cr;
-    struct pxy *y = ep->y;
+    struct pxy *y = &ep->y;
 
     if ((ep->type & DISPATCHER)
 	|| channel_msglen(r) != rt_size(h) + sizeof(*h)) {
