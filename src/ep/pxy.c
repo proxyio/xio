@@ -65,19 +65,19 @@ static void try_enable_eventout(struct fd *f) {
     }
 }
 
-static struct gsm *mq_pop(struct fd *f) {
-    struct gsm *s = 0;
+static struct ep_msg *mq_pop(struct fd *f) {
+    struct ep_msg *s = 0;
 
     if (!list_empty(&f->mq)) {
 	f->mq_size--;
-	s = list_first(&f->mq, struct gsm, link);
+	s = list_first(&f->mq, struct ep_msg, link);
 	list_del_init(&s->link);
     } else if (list_empty(&f->mq))
 	try_disable_eventout(f);
     return s;
 }
 
-static int mq_push(struct fd *f, struct gsm *s) {
+static int mq_push(struct fd *f, struct ep_msg *s) {
     f->mq_size++;
     list_add_tail(&s->link, &f->mq);
     if (!list_empty(&f->mq))
@@ -89,7 +89,7 @@ static int mq_push(struct fd *f, struct gsm *s) {
 static void rcver_recv(struct fd *f) {
     i64 now = rt_mstime();
     struct fd *gof;
-    struct gsm *s;
+    struct ep_msg *s;
     char *payload;
     struct xg *g = f->g;
 
@@ -113,7 +113,7 @@ static void rcver_recv(struct fd *f) {
 	    f->fok = false;
 	    break;
 	}
-	tr_go_cost(s, now);
+	rt_go_cost(s, now);
 
 	/* Round robin algo, selete a gof */
 	BUG_ON((gof = xg_rrbin_go(g)) == 0);
@@ -131,13 +131,13 @@ static void rcver_recv(struct fd *f) {
 /* Send one response to frontend channel */
 static void rcver_send(struct fd *f) {
     i64 now = rt_mstime();
-    struct gsm *s;
+    struct ep_msg *s;
 
     if (!(s = mq_pop(f)))
 	return;
     DEBUG_OFF("%d pop resp and send into network", f->cd);
 
-    tr_shrink_and_back(s, now);
+    rt_shrink_and_back(s, now);
     if (channel_send(f->cd, s->payload) < 0) {
 	f->fok = (errno == EAGAIN) ? true : false;
 	goto EXIT;
@@ -154,8 +154,8 @@ static void rcver_send(struct fd *f) {
 static void snder_recv(struct fd *f) {
     i64 now = rt_mstime();
     struct fd *backf;
-    struct gsm *s;
-    struct tr *r;
+    struct ep_msg *s;
+    struct ep_rt *r;
     char *payload;
     struct xg *g = f->g;
 
@@ -178,8 +178,8 @@ static void snder_recv(struct fd *f) {
 	    f->fok = false;
 	    break;
 	}
-	tr_back_cost(s, now);
-	r = tr_prev(s);
+	rt_back_cost(s, now);
+	r = rt_prev(s);
 	/* TODO: if not found any backfd. drop this response */
 	BUG_ON(!(backf = xg_route_back(g, r->uuid)));
 	mq_push(backf, s);
@@ -196,14 +196,14 @@ static void snder_recv(struct fd *f) {
 /* Receive one response from backend channel */
 static void snder_send(struct fd *f) {
     i64 now = rt_mstime();
-    struct gsm *s;
-    struct tr r = {};
+    struct ep_msg *s;
+    struct ep_rt r = {};
     
     if (!(s = mq_pop(f)))
 	return;
     
     uuid_copy(r.uuid, f->st.ud);
-    if (tr_append_and_go(s, &r, now) < 0) {
+    if (rt_append_and_go(s, &r, now) < 0) {
 	DEBUG_OFF("error on appending route chunk");
 	goto EXIT;
     }

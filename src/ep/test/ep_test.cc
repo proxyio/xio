@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 extern "C" {
-#include <proxy/ep.h>
-#include <proxy/pxy.h>
+#include <ep/ep.h>
+#include <ep/pxy.h>
 #include <runner/thread.h>
 #include <sync/waitgroup.h>
 }

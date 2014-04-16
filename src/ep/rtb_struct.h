@@ -8,8 +8,15 @@
 #include <ds/list.h>
 #include <runner/thread.h>
 #include <sync/mutex.h>
-#include "ep.h"
 #include "hdr.h"
+
+#define URLNAME_MAX 128
+
+struct ep_stat {
+    u32 type;
+    uuid_t ud;
+    char group[URLNAME_MAX];
+};
 
 #define RECEIVER 1
 #define DISPATCHER 2

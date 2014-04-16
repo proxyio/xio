@@ -36,9 +36,9 @@ int ep_connect(struct ep *ep, const char *url) {
 int ep_send_req(struct ep *ep, char *req) {
     int rc;
     struct pxy *y = ep->y;
-    struct gsm s;
-    struct rdh *h;
-    struct tr *r;
+    struct ep_msg s;
+    struct ep_hdr *h;
+    struct ep_rt *r;
     struct fd *f;
     u32 hdr_and_rt_len = sizeof(*h) + sizeof(*r);
 
@@ -51,7 +51,7 @@ int ep_send_req(struct ep *ep, char *req) {
 	return -1;
     }
     /* Append gsm header and route. The proxy package frame header */
-    h = s.h = (struct rdh *)s.payload;
+    h = s.h = (struct ep_hdr *)s.payload;
     h->version = 0;
     h->ttl = 1;
     h->end_ttl = 0;
@@ -65,7 +65,7 @@ int ep_send_req(struct ep *ep, char *req) {
 
     memcpy(s.payload + sizeof(*h), req, channel_msglen(req));
     channel_freemsg(req);
-    r = s.r = (struct tr *)(s.payload + sizeof(*h) + h->size);
+    r = s.r = (struct ep_rt *)(s.payload + sizeof(*h) + h->size);
 
     /* Update header checksum */
     gsm_gensum(&s);
@@ -82,8 +82,8 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     struct fd *f;
     int n;
     char *payload;
-    struct gsm s;
-    struct rdh *h;
+    struct ep_msg s;
+    struct ep_hdr *h;
     struct pxy *y = ep->y;
     struct upoll_event ev = {};
 
@@ -145,8 +145,8 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
     struct fd *f;
     int n;
     char *payload;
-    struct gsm s;
-    struct rdh *h;
+    struct ep_msg s;
+    struct ep_hdr *h;
     struct pxy *y = ep->y;
     struct upoll_event ev = {};
 
@@ -184,7 +184,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	    channel_freemsg(payload);
 	    goto AGAIN;
 	}
-	if (!(*r = channel_allocmsg(sizeof(*h) + tr_size(h)))) {
+	if (!(*r = channel_allocmsg(sizeof(*h) + rt_size(h)))) {
 	    channel_freemsg(payload);
 	    channel_freemsg(*req);
 	    goto AGAIN;
@@ -192,7 +192,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	/* Copy req into user-space */
 	memcpy(*req, payload + sizeof(*h), h->size);
 	memcpy(*r, h, sizeof(*h));
-	memcpy((*r) + sizeof(*h), s.r, tr_size(h));
+	memcpy((*r) + sizeof(*h), s.r, rt_size(h));
 
 	/* Payload was copy into user-space. */
 	channel_freemsg(payload);
@@ -211,14 +211,14 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 
 int ep_send_resp(struct ep *ep, char *resp, char *r) {
     int rc;
-    struct gsm s;
-    struct rdh *h = (struct rdh *)r;
+    struct ep_msg s;
+    struct ep_hdr *h = (struct ep_hdr *)r;
     struct fd *f;
-    struct tr *cr;
+    struct ep_rt *cr;
     struct pxy *y = ep->y;
 
     if ((ep->type & DISPATCHER)
-	|| channel_msglen(r) != tr_size(h) + sizeof(*h)) {
+	|| channel_msglen(r) != rt_size(h) + sizeof(*h)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -231,14 +231,14 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     h->go = false;
     h->size = channel_msglen(resp);
     memcpy(s.payload, (char *)h, sizeof(*h));
-    h = s.h = (struct rdh *)s.payload;
+    h = s.h = (struct ep_hdr *)s.payload;
 
     /* Copy response payload */
     memcpy(s.payload + sizeof(*h), resp, h->size);
 
     /* Copy route */
-    s.r = (struct tr *)(s.payload + sizeof(*h) + h->size);
-    memcpy(s.r, r + sizeof(*h), tr_size(h));
+    s.r = (struct ep_rt *)(s.payload + sizeof(*h) + h->size);
+    memcpy(s.r, r + sizeof(*h), rt_size(h));
 
     channel_freemsg(r);
     channel_freemsg(resp);
@@ -246,7 +246,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     /* Update header checksum */
     gsm_gensum(&s);
 
-    cr = tr_cur(&s);
+    cr = rt_cur(&s);
     BUG_ON(!(f = rtb_route_back(&y->tb, cr->uuid)));
     DEBUG_OFF("channel %d send resp into network", f->cd);
     rc = channel_send(f->cd, s.payload);

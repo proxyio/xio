@@ -17,7 +17,7 @@ struct fd *fd_new() {
 }
 
 void fd_free(struct fd *f) {
-    struct gsm *s, *ns;
+    struct ep_msg *s, *ns;
 
     BUG_ON(attached(&f->link));
     if (f->cd >= 0)

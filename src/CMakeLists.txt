@@ -24,20 +24,20 @@ add_library( channel STATIC ${CHANNEL} )
 target_link_libraries( channel base uuid )
 
 
-## compile proxy
-aux_source_directory( proxy PROXY )
-add_library( proxy STATIC ${PROXY} )
-target_link_libraries( proxy base channel )
+## compile ep
+aux_source_directory( ep EP )
+add_library( ep STATIC ${EP} )
+target_link_libraries( ep base channel )
 
 
 
 ## compile unit_test
 aux_source_directory( test UNIT_TEST )
 aux_source_directory( base/test UNIT_TEST )
-aux_source_directory( proxy/test UNIT_TEST )
+aux_source_directory( ep/test UNIT_TEST )
 aux_source_directory( channel/test UNIT_TEST )
 add_executable( unit_test ${UNIT_TEST} )
-target_link_libraries( unit_test base channel proxy gtest pthread)
+target_link_libraries( unit_test base channel ep gtest pthread)
 if (DEBUG_mode)
    target_link_libraries( unit_test gcov )
 endif()
