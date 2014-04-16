@@ -3,7 +3,7 @@
 
 #include <uuid/uuid.h>
 #include <base.h>
-#include <channel/channel.h>
+#include <x/xsock.h>
 #include <ds/map.h>
 #include <ds/list.h>
 #include <runner/thread.h>
@@ -17,7 +17,7 @@ struct pxy {
     u32 fstopped:1;
     mutex_t mtx;
     thread_t backend;
-    struct upoll_t *po;
+    struct xpoll_t *po;
     struct rtb tb;
     struct list_head listener;
     struct list_head unknown;

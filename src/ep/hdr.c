@@ -1,7 +1,7 @@
 #include <errno.h>
 #include <uuid/uuid.h>
 #include <os/alloc.h>
-#include <channel/channel.h>
+#include <x/xsock.h>
 #include "hdr.h"
 #include "ds/list.h"
 #include "hash/crc.h"
@@ -25,7 +25,7 @@ struct ep_msg *ep_msg_new(char *payload) {
 
 void ep_msg_free(struct ep_msg *s) {
     if (s->payload)
-	channel_freemsg(s->payload);
+	xfreemsg(s->payload);
     mem_free(s, sizeof(struct ep_msg));
 }
 
@@ -56,16 +56,16 @@ int rt_append_and_go(struct ep_msg *s, struct ep_rt *r) {
     
     cr = rt_cur(s);
     cr->stay[0] = (u16)(now - h->sendstamp - cr->begin[0]);
-    new_payload = channel_allocmsg(channel_msglen(s->payload) + sizeof(*r));
+    new_payload = xallocmsg(xmsglen(s->payload) + sizeof(*r));
     if (!new_payload)
 	return -1;
-    memcpy(new_payload, s->payload, channel_msglen(s->payload));
-    channel_freemsg(s->payload);
+    memcpy(new_payload, s->payload, xmsglen(s->payload));
+    xfreemsg(s->payload);
     s->payload = new_payload;
 
     /* The new header and route */
     h = s->h = (struct ep_hdr *)s->payload;
-    payload_end = s->payload + channel_msglen(s->payload);
+    payload_end = s->payload + xmsglen(s->payload);
     h->ttl++;
     s->r = (struct ep_rt *)(payload_end - rt_size(s->h));
 

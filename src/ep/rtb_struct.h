@@ -3,7 +3,7 @@
 
 #include <uuid/uuid.h>
 #include <base.h>
-#include <channel/channel.h>
+#include <x/xsock.h>
 #include <ds/map.h>
 #include <ds/list.h>
 #include <runner/thread.h>
@@ -30,7 +30,7 @@ typedef void (*tb_event_handler) (struct fd *f, u32 events);
 struct fd {
     void *self;
     int cd;
-    struct upoll_event event;
+    struct xpoll_event event;
     tb_event_handler h;
     u32 fok:1;
     u64 mq_size;

@@ -1,5 +1,5 @@
 #include <os/alloc.h>
-#include <channel/channel_base.h>
+#include <x/xsock.h>
 #include <os/timesz.h>
 #include "rtb_struct.h"
 
@@ -21,7 +21,7 @@ void fd_free(struct fd *f) {
 
     BUG_ON(attached(&f->link));
     if (f->cd >= 0)
-	channel_close(f->cd);
+	xclose(f->cd);
     list_for_each_ep_msg(s, ns, &f->mq) {
 	list_del_init(&s->link);
 	ep_msg_free(s);

@@ -99,16 +99,16 @@ static int test_producer2(void *args) {
     DEBUG_ON();
     for (i = 0; i < cnt; i++) {
 	randstr(buf, sizeof(buf));
-	BUG_ON(!(payload = channel_allocmsg(sizeof(buf))));
+	BUG_ON(!(payload = xallocmsg(sizeof(buf))));
 	memcpy(payload, buf, sizeof(buf));
 	BUG_ON(ep_send_req(producer, payload));
 	DEBUG_ON("producer send one req");
 
 	BUG_ON(ep_recv_resp(producer, &payload2));
 	DEBUG_ON("producer recv one resp");
-	BUG_ON(sizeof(buf) != channel_msglen(payload2));
+	BUG_ON(sizeof(buf) != xmsglen(payload2));
 	BUG_ON(0 != memcmp(buf, payload2, sizeof(buf)));
-	channel_freemsg(payload2);
+	xfreemsg(payload2);
     }
     ep_close(producer);
     return 0;
