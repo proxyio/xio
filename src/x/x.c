@@ -18,9 +18,9 @@ static int PIO_RCVBUFSZ = 10485760;
 struct xglobal xglobal = {};
 
 
-extern int has_closed_channel(struct xpoll *po);
+extern int has_closed_channel(struct xtaskor *po);
 extern void push_closed_channel(struct xsock *xs);
-extern struct xsock *pop_closed_channel(struct xpoll *po);
+extern struct xsock *pop_closed_channel(struct xtaskor *po);
 
 void __po_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
@@ -61,23 +61,23 @@ static int choose_backend_poll(int cd) {
     return cd % xglobal.npolls;
 }
 
-int alloc_cid() {
+int xd_alloc() {
     int cd;
     mutex_lock(&xglobal.lock);
-    BUG_ON(xglobal.nchannels >= PIO_MAX_CHANNELS);
-    cd = xglobal.unused[xglobal.nchannels++];
+    BUG_ON(xglobal.nsocks >= PIO_MAX_SOCKS);
+    cd = xglobal.unused[xglobal.nsocks++];
     mutex_unlock(&xglobal.lock);
     return cd;
 }
 
-void free_cid(int cd) {
+void xd_free(int cd) {
     mutex_lock(&xglobal.lock);
-    xglobal.unused[--xglobal.nchannels] = cd;
+    xglobal.unused[--xglobal.nsocks] = cd;
     mutex_unlock(&xglobal.lock);
 }
 
 struct xsock *cid_to_channel(int cd) {
-    return &xglobal.channels[cd];
+    return &xglobal.socks[cd];
 }
 
 static void xbase_init(int cd) {
@@ -140,17 +140,17 @@ static void xbase_exit(int cd) {
 }
 
 
-struct xsock *alloc_channel() {
-    int cd = alloc_cid();
+struct xsock *xsock_alloc() {
+    int cd = xd_alloc();
     struct xsock *xs = cid_to_channel(cd);
     xbase_init(cd);
     return xs;
 }
 
-void free_channel(struct xsock *xs) {
+void xsock_free(struct xsock *xs) {
     int cd = xs->cd;
     xbase_exit(cd);
-    free_cid(cd);
+    xd_free(cd);
 }
 
 int alloc_pid() {
@@ -168,12 +168,12 @@ void free_pid(int pd) {
     mutex_unlock(&xglobal.lock);
 }
 
-struct xpoll *pid_to_xpoll(int pd) {
+struct xtaskor *pid_to_xtaskor(int pd) {
     return &xglobal.polls[pd];
 }
 
 
-int has_closed_channel(struct xpoll *po) {
+int has_closed_channel(struct xtaskor *po) {
     int has = true;
     spin_lock(&po->lock);
     if (list_empty(&po->closing_head))
@@ -183,7 +183,7 @@ int has_closed_channel(struct xpoll *po) {
 }
 
 void push_closed_channel(struct xsock *xs) {
-    struct xpoll *po = pid_to_xpoll(xs->pollid);
+    struct xtaskor *po = pid_to_xtaskor(xs->pollid);
     
     spin_lock(&po->lock);
     if (!xs->fclosed && !attached(&xs->closing_link)) {
@@ -193,7 +193,7 @@ void push_closed_channel(struct xsock *xs) {
     spin_unlock(&po->lock);
 }
 
-struct xsock *pop_closed_channel(struct xpoll *po) {
+struct xsock *pop_closed_channel(struct xtaskor *po) {
     struct xsock *xs = NULL;
 
     spin_lock(&po->lock);
@@ -210,13 +210,13 @@ static inline int event_runner(void *args) {
     int rc = 0;
     int pd = alloc_pid();
     struct xsock *closing_xs;
-    struct xpoll *po = pid_to_xpoll(pd);
+    struct xtaskor *po = pid_to_xtaskor(pd);
 
     spin_init(&po->lock);
     INIT_LIST_HEAD(&po->closing_head);
 
     /* Init eventloop and wakeup parent */
-    BUG_ON(eloop_init(&po->el, PIO_MAX_CHANNELS/PIO_MAX_CPUS,
+    BUG_ON(eloop_init(&po->el, PIO_MAX_SOCKS/PIO_MAX_CPUS,
 		      PIO_POLLER_IOMAX, PIO_POLLER_TIMEOUT) != 0);
     waitgroup_done(wg);
 
@@ -249,7 +249,7 @@ void global_xinit() {
     xglobal.exiting = false;
     mutex_init(&xglobal.lock);
 
-    for (cd = 0; cd < PIO_MAX_CHANNELS; cd++)
+    for (cd = 0; cd < PIO_MAX_SOCKS; cd++)
 	xglobal.unused[cd] = cd;
     for (pd = 0; pd < PIO_MAX_CPUS; pd++)
 	xglobal.poll_unused[pd] = pd;
@@ -280,13 +280,13 @@ void global_xexit() {
 
 void xclose(int cd) {
     struct xsock *xs = cid_to_channel(cd);
-    struct xpoll_t *upo;
+    struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
     
     mutex_lock(&xs->lock);
     list_for_each_xent(ent, nx, &xs->xpoll_head) {
-	upo = cont_of(ent->notify, struct xpoll_t, notify);
-	xpoll_ctl(upo, XPOLL_DEL, &ent->event);
+	po = cont_of(ent->notify, struct xpoll_t, notify);
+	xpoll_ctl(po, XPOLL_DEL, &ent->event);
 	__detach_from_channel(ent);
 	entry_put(ent);
     }
@@ -297,7 +297,7 @@ void xclose(int cd) {
 
 int xaccept(int cd) {
     struct xsock *xs = cid_to_channel(cd);
-    struct xsock *new = alloc_channel();
+    struct xsock *new = xsock_alloc();
     struct xsock_vf *vf, *nx;
 
     if (!xs->fok) {
@@ -316,12 +316,12 @@ int xaccept(int cd) {
     }
  EXIT:
     DEBUG_OFF("%d failed with errno %d", cd, errno);
-    free_channel(new);
+    xsock_free(new);
     return -1;
 }
 
 int xlisten(int pf, const char *addr) {
-    struct xsock *new = alloc_channel();
+    struct xsock *new = xsock_alloc();
     struct xsock_vf *vf, *nx;
 
     new->ty = XLISTENER;
@@ -333,12 +333,12 @@ int xlisten(int pf, const char *addr) {
 	if ((pf & vf->pf) && vf->init(new->cd) == 0)
 	    return new->cd;
     }
-    free_channel(new);
+    xsock_free(new);
     return -1;
 }
 
 int xconnect(int pf, const char *peer) {
-    struct xsock *new = alloc_channel();
+    struct xsock *new = xsock_alloc();
     struct xsock_vf *vf, *nx;
 
     new->ty = XCONNECTOR;
@@ -352,7 +352,7 @@ int xconnect(int pf, const char *peer) {
 	    return new->cd;
 	}
     }
-    free_channel(new);
+    xsock_free(new);
     return -1;
 }
 

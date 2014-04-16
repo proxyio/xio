@@ -13,8 +13,8 @@
 #include "xsock.h"
 #include "xpoll.h"
 
-/* Max number of concurrent channels. */
-#define PIO_MAX_CHANNELS 10240
+/* Max number of concurrent socks. */
+#define PIO_MAX_SOCKS 10240
 
 /* Max number of cpu core */
 #define PIO_MAX_CPUS 32
@@ -109,7 +109,7 @@ static inline int can_recv(struct xsock *cn) {
     list_for_each_entry_safe(pos, nx, head, struct xsock, wait_item)
 
 
-struct xpoll {
+struct xtaskor {
     spin_t lock;
 
     /* Backend eventloop for io runner. */
@@ -128,16 +128,16 @@ struct xglobal {
        the channel is the index to this table. This pointer is also used to
        find out whether context is initialised. If it is NULL, context is
        uninitialised. */
-    struct xsock channels[PIO_MAX_CHANNELS];
+    struct xsock socks[PIO_MAX_SOCKS];
 
     /* Stack of unused channel descriptors.  */
-    int unused[PIO_MAX_CHANNELS];
+    int unused[PIO_MAX_SOCKS];
 
-    /* Number of actual channels. */
-    size_t nchannels;
+    /* Number of actual socks. */
+    size_t nsocks;
     
 
-    struct xpoll polls[PIO_MAX_CPUS];
+    struct xtaskor polls[PIO_MAX_CPUS];
 
     /* Stack of unused channel descriptors.  */
     int poll_unused[PIO_MAX_CPUS];

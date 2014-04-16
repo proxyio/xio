@@ -8,7 +8,7 @@
 extern struct xglobal xglobal;
 
 extern struct xsock *cid_to_channel(int cd);
-extern void free_channel(struct xsock *cn);
+extern void xsock_free(struct xsock *cn);
 
 extern struct xmsg *pop_rcv(struct xsock *cn);
 extern void push_rcv(struct xsock *cn, struct xmsg *msg);
@@ -191,7 +191,7 @@ static int inproc_listener_destroy(int cd) {
     }
 
     /* Destroy the channel and free channel id. */
-    free_channel(cn);
+    xsock_free(cn);
     return rc;
 }
 
@@ -250,10 +250,10 @@ static int inproc_connector_destroy(int cd) {
 
     /* Destroy the channel and free channel id if i hold the last ref. */
     if (xput(peer) == 1) {
-	free_channel(peer);
+	xsock_free(peer);
     }
     if (xput(cn) == 1) {
-	free_channel(cn);
+	xsock_free(cn);
     }
     return rc;
 }
