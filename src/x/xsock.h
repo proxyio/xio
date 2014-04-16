@@ -16,8 +16,8 @@ uint32_t xmsglen(char *xbuf);
 int xlisten(int pf, const char *sock);
 int xconnect(int pf, const char *peer);
 int xaccept(int xd);
-int xrecv(int xd, char **payload);
-int xsend(int xd, char *payload);
+int xrecv(int xd, char **xbuf);
+int xsend(int xd, char *xbuf);
 void xclose(int xd);
 
 
