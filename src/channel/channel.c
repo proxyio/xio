@@ -280,13 +280,13 @@ void global_channel_exit() {
 
 void channel_close(int cd) {
     struct channel *cn = cid_to_channel(cd);
-    struct upoll_t *po;
+    struct upoll_t *upo;
     struct upoll_entry *ent, *nx;
     
     mutex_lock(&cn->lock);
     list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
-	po = cont_of(ent->notify, struct upoll_t, notify);
-	upoll_ctl(po, UPOLL_DEL, &ent->event);
+	upo = cont_of(ent->notify, struct upoll_t, notify);
+	upoll_ctl(upo, UPOLL_DEL, &ent->event);
 	__detach_from_channel(ent);
 	entry_put(ent);
     }
