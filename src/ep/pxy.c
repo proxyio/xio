@@ -5,7 +5,7 @@
 
 extern struct channel *cid_to_channel(int cd);
 
-const char *py_str[] = {
+const char *ep_str[] = {
     "RECEIVER",
     "DISPATCHER",
 };
@@ -95,21 +95,21 @@ static void rcver_recv(struct fd *f) {
 
     while (channel_recv(f->cd, &payload) == 0) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
-	if (g->ssz <= 0 || !(s = gsm_new(payload))) {
+	if (g->ssz <= 0 || !(s = ep_msg_new(payload))) {
 	    DEBUG_OFF("no any dispatchers");
 	    channel_freemsg(payload);
 	    continue;
 	}
 	/* Drop the timeout massage */
-	if (gsm_timeout(s, now) < 0) {
+	if (ep_msg_timeout(s, now) < 0) {
 	    DEBUG_OFF("message is timeout");
-	    gsm_free(s);
+	    ep_msg_free(s);
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
-	if (gsm_validate(s) < 0) {
+	if (ep_msg_validate(s) < 0) {
 	    DEBUG_OFF("invalid message's checksum");
-	    gsm_free(s);
+	    ep_msg_free(s);
 	    f->fok = false;
 	    break;
 	}
@@ -146,7 +146,7 @@ static void rcver_send(struct fd *f) {
     /* payload was send into network. */
     s->payload = 0;
  EXIT:
-    gsm_free(s);
+    ep_msg_free(s);
 }
 
 
@@ -160,21 +160,21 @@ static void snder_recv(struct fd *f) {
     struct xg *g = f->g;
 
     while (channel_recv(f->cd, &payload) == 0) {
-	if (g->rsz <= 0 || !(s = gsm_new(payload))) {
+	if (g->rsz <= 0 || !(s = ep_msg_new(payload))) {
 	    DEBUG_OFF("no any receivers");
 	    channel_freemsg(payload);
 	    continue;
 	}
 	/* Drop the timeout massage */
-	if (gsm_timeout(s, now) < 0) {
+	if (ep_msg_timeout(s, now) < 0) {
 	    DEBUG_OFF("message is timeout");
-	    gsm_free(s);
+	    ep_msg_free(s);
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
-	if (gsm_validate(s) < 0) {
+	if (ep_msg_validate(s) < 0) {
 	    DEBUG_OFF("invalid message's checksum");
-	    gsm_free(s);
+	    ep_msg_free(s);
 	    f->fok = false;
 	    break;
 	}
@@ -218,7 +218,7 @@ static void snder_send(struct fd *f) {
     s->payload = 0;
 
  EXIT:
-    gsm_free(s);
+    ep_msg_free(s);
 }
 
 
@@ -278,7 +278,7 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	/* Send synack */
 	BUG_ON(channel_send(f->cd, (char *)syn) != 0);
 	DEBUG_OFF("send syn to channel %d", f->cd);
-	DEBUG_ON("pxy register an %s", py_str[f->st.type]);
+	DEBUG_ON("pxy register an %s", ep_str[f->st.type]);
     } else if (errno != EAGAIN) {
 	DEBUG_ON("unregister channel %d EPIPE", f->cd);
 	f->fok = false;
@@ -303,7 +303,7 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 
     /* If fd status bad. destroy it */
     if (!f->fok) {
-	DEBUG_OFF("%s channel %d EPIPE", py_str[f->st.type], f->cd);
+	DEBUG_OFF("%s channel %d EPIPE", ep_str[f->st.type], f->cd);
 	rtb_unmapfd(&y->tb, f);
 	BUG_ON(upoll_ctl(y->po, UPOLL_DEL, &f->event) != 0);
 	fd_free(f);

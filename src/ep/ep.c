@@ -7,8 +7,6 @@
 
 #define DEFAULT_GROUP "default"
 
-struct fd *xg_rrbin_go(struct xg *g);
-
 struct ep *ep_new(int ty) {
     struct ep *ep = (struct ep *)mem_zalloc(sizeof(*ep));
     if (ep) {
@@ -50,7 +48,7 @@ int ep_send_req(struct ep *ep, char *req) {
     if (!s.payload) {
 	return -1;
     }
-    /* Append gsm header and route. The proxy package frame header */
+    /* Append ep_msg header and route. The proxy package frame header */
     h = s.h = (struct ep_hdr *)s.payload;
     h->version = 0;
     h->ttl = 1;
@@ -68,7 +66,7 @@ int ep_send_req(struct ep *ep, char *req) {
     r = s.r = (struct ep_rt *)(s.payload + sizeof(*h) + h->size);
 
     /* Update header checksum */
-    gsm_gensum(&s);
+    ep_msg_gensum(&s);
 
     /* RoundRobin algo select a struct fd */
     BUG_ON(!(f = rtb_rrbin_go(&y->tb)));
@@ -101,17 +99,17 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     f = (struct fd *)ev.self;
     if (channel_recv(f->cd, &payload) == 0) {
 	DEBUG_ON("channel %d recv resp", f->cd);
-	gsm_init(&s, payload);
+	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
-	if (gsm_timeout(&s, rt_mstime()) < 0) {
+	if (ep_msg_timeout(&s, rt_mstime()) < 0) {
 	    DEBUG_ON("message is timeout");
 	    channel_freemsg(payload);
 	    goto AGAIN;
 	}
 
 	/* If message has invalid header checkusm. return error */
-	if (gsm_validate(&s) < 0) {
+	if (ep_msg_validate(&s) < 0) {
 	    DEBUG_ON("invalid message's checksum");
 	    channel_freemsg(payload);
 	    f->fok = false;
@@ -164,16 +162,16 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 
     f = (struct fd *)ev.self;
     if (channel_recv(f->cd, &payload) == 0) {
-	gsm_init(&s, payload);
+	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
-	if (gsm_timeout(&s, rt_mstime()) < 0) {
+	if (ep_msg_timeout(&s, rt_mstime()) < 0) {
 	    DEBUG_ON("message is timeout");
 	    channel_freemsg(payload);
 	    goto AGAIN;
 	}
 	/* If message has invalid header checkusm. return error */
-	if (gsm_validate(&s) < 0) {
+	if (ep_msg_validate(&s) < 0) {
 	    DEBUG_ON("invalid message's checksum");
 	    channel_freemsg(payload);
 	    f->fok = false;
@@ -244,7 +242,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     channel_freemsg(resp);
 
     /* Update header checksum */
-    gsm_gensum(&s);
+    ep_msg_gensum(&s);
 
     cr = rt_cur(&s);
     BUG_ON(!(f = rtb_route_back(&y->tb, cr->uuid)));

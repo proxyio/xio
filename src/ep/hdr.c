@@ -7,7 +7,7 @@
 #include "hash/crc.h"
 
 
-void gsm_init(struct ep_msg *s, char *payload) {
+void ep_msg_init(struct ep_msg *s, char *payload) {
     INIT_LIST_HEAD(&s->link);
     if (payload) {
 	s->payload = payload;
@@ -16,20 +16,20 @@ void gsm_init(struct ep_msg *s, char *payload) {
     }
 }
 
-struct ep_msg *gsm_new(char *payload) {
+struct ep_msg *ep_msg_new(char *payload) {
     struct ep_msg *s = (struct ep_msg *)mem_zalloc(sizeof(*s));
     if (s)
-	gsm_init(s, payload);
+	ep_msg_init(s, payload);
     return s;
 }
 
-void gsm_free(struct ep_msg *s) {
+void ep_msg_free(struct ep_msg *s) {
     if (s->payload)
 	channel_freemsg(s->payload);
     mem_free(s, sizeof(struct ep_msg));
 }
 
-int gsm_validate(struct ep_msg *s) {
+int ep_msg_validate(struct ep_msg *s) {
     struct ep_hdr *h = s->h;
     struct ep_hdr copyheader = *h;
     int ok;
@@ -40,7 +40,7 @@ int gsm_validate(struct ep_msg *s) {
     return ok;
 }
 
-void gsm_gensum(struct ep_msg *s) {
+void ep_msg_gensum(struct ep_msg *s) {
     struct ep_hdr *h = s->h;
     struct ep_hdr copyheader = *h;
 
@@ -72,7 +72,7 @@ int rt_append_and_go(struct ep_msg *s, struct ep_rt *r, i64 now) {
     cr = rt_cur(s);
     *cr = *r;
     cr->begin[0] = (u16)(now - h->sendstamp);
-    gsm_gensum(s);
+    ep_msg_gensum(s);
     return 0;
 }
 
@@ -81,7 +81,7 @@ void rt_shrink_and_back(struct ep_msg *s, i64 now) {
     struct ep_hdr *h = s->h;
     r->stay[1] = (now - h->sendstamp - r->begin[1] - r->cost[1]);
     h->ttl--;
-    gsm_gensum(s);
+    ep_msg_gensum(s);
     r = rt_cur(s);
     r->begin[1] = (u16)(now - h->sendstamp);
 }

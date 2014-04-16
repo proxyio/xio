@@ -34,7 +34,7 @@ struct ep_msg {
     struct list_head link;
 };
 
-#define list_for_each_gsm(s, ns, head)				\
+#define list_for_each_ep_msg(s, ns, head)			\
     list_for_each_entry_safe(s, ns, head, struct ep_msg, link)
 
 static inline u32 rt_size(struct ep_hdr *h) {
@@ -42,13 +42,13 @@ static inline u32 rt_size(struct ep_hdr *h) {
     return ttl * sizeof(struct ep_rt);
 }
 
-static inline int gsm_timeout(struct ep_msg *s, i64 now) {
+static inline int ep_msg_timeout(struct ep_msg *s, i64 now) {
     struct ep_hdr *h = s->h;
     return h->timeout && (h->sendstamp + h->timeout < now);
 }
 
-int gsm_validate(struct ep_msg *s);
-void gsm_gensum(struct ep_msg *s);
+int ep_msg_validate(struct ep_msg *s);
+void ep_msg_gensum(struct ep_msg *s);
 
 
 #define list_for_each_msg_safe(s, nx, head)			\
@@ -72,9 +72,9 @@ static inline void rt_back_cost(struct ep_msg *s, i64 now) {
 int rt_append_and_go(struct ep_msg *s, struct ep_rt *r, i64 now);
 void rt_shrink_and_back(struct ep_msg *s, i64 now);
 
-struct ep_msg *gsm_new(char *payload);
-void gsm_init(struct ep_msg *s, char *payload);
-void gsm_free(struct ep_msg *s);
+struct ep_msg *ep_msg_new(char *payload);
+void ep_msg_init(struct ep_msg *s, char *payload);
+void ep_msg_free(struct ep_msg *s);
 
 
 

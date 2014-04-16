@@ -22,9 +22,9 @@ void fd_free(struct fd *f) {
     BUG_ON(attached(&f->link));
     if (f->cd >= 0)
 	channel_close(f->cd);
-    list_for_each_gsm(s, ns, &f->mq) {
+    list_for_each_ep_msg(s, ns, &f->mq) {
 	list_del_init(&s->link);
-	gsm_free(s);
+	ep_msg_free(s);
     }
     mem_free(f, sizeof(*f));
 }
