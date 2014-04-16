@@ -44,10 +44,6 @@ int ep_send_req(struct ep *ep, char *req) {
     struct fd *f;
     u32 hdr_and_rt_len = sizeof(*h) + sizeof(*r);
 
-    if ((ep->type & RECEIVER)) {
-	errno = EINVAL;
-	return -1;
-    }
     s.payload = channel_allocmsg(channel_msglen(req) + hdr_and_rt_len);
     if (!s.payload) {
 	return -1;
@@ -87,11 +83,6 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     struct pxy *y = &ep->y;
     struct upoll_event ev = {};
 
-    if ((ep->type & RECEIVER)) {
-	errno = EINVAL;
-	return -1;
-    }
-    /* TODO: The timeout see ep_setopt for more details */
     if ((n = upoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
 	return -1;
     DEBUG_ON("%s", upoll_str[ev.happened]);
@@ -150,11 +141,6 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
     struct pxy *y = &ep->y;
     struct upoll_event ev = {};
 
-    if ((ep->type & DISPATCHER)) {
-	errno = EINVAL;
-	return -1;
-    }
-    /* TODO: The timeout see ep_setopt for more details */
     if ((n = upoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
 	return -1;
     DEBUG_ON("%s", upoll_str[ev.happened]);
@@ -217,11 +203,6 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     struct ep_rt *cr;
     struct pxy *y = &ep->y;
 
-    if ((ep->type & DISPATCHER)
-	|| channel_msglen(r) != rt_size(h) + sizeof(*h)) {
-	errno = EINVAL;
-	return -1;
-    }
     s.payload = channel_allocmsg(channel_msglen(resp) + channel_msglen(r));
     if (!s.payload)
 	return -1;

@@ -126,20 +126,15 @@ static void rcver_recv(struct fd *f) {
 static void rcver_send(struct fd *f) {
     struct ep_msg *s;
 
-    if (!(s = mq_pop(f)))
-	return;
-    DEBUG_OFF("%d pop resp and send into network", f->cd);
-
-    rt_shrink_and_back(s);
-    if (channel_send(f->cd, s->payload) < 0) {
-	f->fok = (errno == EAGAIN) ? true : false;
-	goto EXIT;
+    while (f->fok && (s = mq_pop(f))) {
+	rt_shrink_and_back(s);
+	if (channel_send(f->cd, s->payload) == 0)
+	    s->payload = 0;
+	else
+	    f->fok = (errno == EAGAIN) ? true : false;
+	ep_msg_free(s);
+	DEBUG_OFF("%d pop resp and send into network", f->cd);
     }
-
-    /* payload was send into network. */
-    s->payload = 0;
- EXIT:
-    ep_msg_free(s);
 }
 
 
@@ -190,26 +185,17 @@ static void snder_send(struct fd *f) {
     struct ep_msg *s;
     struct ep_rt r = {};
     
-    if (!(s = mq_pop(f)))
-	return;
-    
-    uuid_copy(r.uuid, f->st.ud);
-    if (rt_append_and_go(s, &r) < 0) {
-	DEBUG_OFF("error on appending route chunk");
-	goto EXIT;
-    }
-    if (channel_send(f->cd, s->payload) < 0) {
-	if (errno != EAGAIN)
-	    f->fok = false;
-	goto EXIT;
-    }
-    DEBUG_OFF("%d pop req and send into network", f->cd);
+    while (f->fok && (s = mq_pop(f))) {
+	uuid_copy(r.uuid, f->st.ud);
+	BUG_ON(rt_append_and_go(s, &r) != 0);
 
-    /* payload was send into network. */
-    s->payload = 0;
-
- EXIT:
-    ep_msg_free(s);
+	if (channel_send(f->cd, s->payload) == 0)
+	    s->payload = 0;
+	else
+	    f->fok = (errno == EAGAIN) ? true : false;
+	ep_msg_free(s);
+	DEBUG_OFF("%d pop req and send into network", f->cd);
+    }
 }
 
 
