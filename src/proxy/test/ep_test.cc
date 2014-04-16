@@ -16,12 +16,13 @@ static int test_producer(void *args) {
     struct ep *producers[cnt];
 
     for (i = 0; i < cnt; i++) {
-	BUG_ON(!(producers[i] = ep_new(PRODUCER)));
+	BUG_ON(!(producers[i] = ep_new(DISPATCHER)));
+	DEBUG_ON("producer %d connect start\n", i);
 	BUG_ON((ep_connect(producers[i], url)) != 0);
-	//printf("producer %d connect ok\n", i);
+	DEBUG_ON("producer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
-	//printf("producer %d connect closed\n", i);
+	DEBUG_ON("producer %d connect closed\n", i);
 	ep_close(producers[i]);
     }
     return 0;
@@ -32,12 +33,13 @@ static int test_comsumer(void *args) {
     struct ep *comsumers[cnt];
 
     for (i = 0; i < cnt; i++) {
-	BUG_ON(!(comsumers[i] = ep_new(COMSUMER)));
+	BUG_ON(!(comsumers[i] = ep_new(RECEIVER)));
+	DEBUG_ON("comsumer %d connect start\n", i);
 	BUG_ON((ep_connect(comsumers[i], url)) != 0);
-	//printf("comsumer %d connect ok\n", i);
+	DEBUG_ON("comsumer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
-	//printf("comsumer %d connect closed\n", i);
+	DEBUG_ON("comsumer %d connect closed\n", i);
 	ep_close(comsumers[i]);
     }
     return 0;
@@ -89,7 +91,7 @@ static int test_producer2(void *args) {
     char *payload, *payload2;
     struct ep *producer;
 
-    BUG_ON(!(producer = ep_new(PRODUCER)));
+    BUG_ON(!(producer = ep_new(DISPATCHER)));
     BUG_ON((ep_connect(producer, url1)) != 0);
     waitgroup_done(wg);
 
@@ -115,7 +117,7 @@ static int test_comsumer2(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
     int i;
     char *payload, *rt;
-    struct ep *comsumer = ep_new(COMSUMER);
+    struct ep *comsumer = ep_new(RECEIVER);
 
     BUG_ON((ep_connect(comsumer, url1)) != 0);
     waitgroup_done(wg);

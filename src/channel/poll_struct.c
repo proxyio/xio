@@ -15,15 +15,15 @@ struct upoll_entry *entry_new() {
     return ent;
 }
 
-int tb_put(struct upoll_tb *tb);
+int po_put(struct upoll_t *po);
 
 static void entry_destroy(struct upoll_entry *ent) {
-    struct upoll_tb *tb = cont_of(ent->notify, struct upoll_tb, notify);
+    struct upoll_t *po = cont_of(ent->notify, struct upoll_t, notify);
 
     BUG_ON(ent->ref != 0);
     spin_destroy(&ent->lock);
     mem_free(ent, sizeof(*ent));
-    tb_put(tb);
+    po_put(po);
 }
 
 
@@ -32,8 +32,8 @@ int entry_get(struct upoll_entry *ent) {
     spin_lock(&ent->lock);
     ref = ent->ref++;
     /* open for debuging
-    if (ent->i_idx < sizeof(ent->incr_tid))
-	ent->incr_tid[ent->i_idx++] = gettid();
+       if (ent->i_idx < sizeof(ent->incr_tid))
+       ent->incr_tid[ent->i_idx++] = gettid();
     */
     spin_unlock(&ent->lock);
     return ref;
@@ -46,8 +46,8 @@ int entry_put(struct upoll_entry *ent) {
     ref = ent->ref--;
     BUG_ON(ent->ref < 0);
     /* open for debuging
-    if (ent->d_idx < sizeof(ent->desc_tid))
-	ent->desc_tid[ent->d_idx++] = gettid();
+       if (ent->d_idx < sizeof(ent->desc_tid))
+       ent->desc_tid[ent->d_idx++] = gettid();
     */
     spin_unlock(&ent->lock);
     if (ref == 1) {
@@ -58,46 +58,46 @@ int entry_put(struct upoll_entry *ent) {
     return ref;
 }
 
-struct upoll_tb *tb_new() {
-    struct upoll_tb *tb = (struct upoll_tb *)mem_zalloc(sizeof(*tb));
-    if (tb) {
-	tb->uwaiters = 0;
-	tb->ref = 0;
-	tb->size = 0;
-	mutex_init(&tb->lock);
-	condition_init(&tb->cond);
-	INIT_LIST_HEAD(&tb->lru_head);
+struct upoll_t *po_new() {
+    struct upoll_t *po = (struct upoll_t *)mem_zalloc(sizeof(*po));
+    if (po) {
+	po->uwaiters = 0;
+	po->ref = 0;
+	po->size = 0;
+	mutex_init(&po->lock);
+	condition_init(&po->cond);
+	INIT_LIST_HEAD(&po->lru_head);
     }
-    return tb;
+    return po;
 }
 
-static void tb_destroy(struct upoll_tb *tb) {
-    mutex_destroy(&tb->lock);
-    mem_free(tb, sizeof(struct upoll_tb));
+static void po_destroy(struct upoll_t *po) {
+    mutex_destroy(&po->lock);
+    mem_free(po, sizeof(struct upoll_t));
 }
 
-int tb_get(struct upoll_tb *tb) {
+int po_get(struct upoll_t *po) {
     int ref;
-    mutex_lock(&tb->lock);
-    ref = tb->ref++;
-    mutex_unlock(&tb->lock);
+    mutex_lock(&po->lock);
+    ref = po->ref++;
+    mutex_unlock(&po->lock);
     return ref;
 }
 
-int tb_put(struct upoll_tb *tb) {
+int po_put(struct upoll_t *po) {
     int ref;
-    mutex_lock(&tb->lock);
-    ref = tb->ref--;
-    BUG_ON(tb->ref < 0);
-    mutex_unlock(&tb->lock);
+    mutex_lock(&po->lock);
+    ref = po->ref--;
+    BUG_ON(po->ref < 0);
+    mutex_unlock(&po->lock);
     if (ref == 1)
-	tb_destroy(tb);
+	po_destroy(po);
     return ref;
 }
 
-struct upoll_entry *__tb_find(struct upoll_tb *tb, int cd) {
+struct upoll_entry *__po_find(struct upoll_t *po, int cd) {
     struct upoll_entry *ent, *nx;
-    list_for_each_upoll_ent(ent, nx, &tb->lru_head) {
+    list_for_each_upoll_ent(ent, nx, &po->lru_head) {
 	if (ent->event.cd == cd)
 	    return ent;
     }
@@ -105,25 +105,25 @@ struct upoll_entry *__tb_find(struct upoll_tb *tb, int cd) {
 }
 
 /* Find upoll_entry by channel id and return with ref incr if exist. */
-struct upoll_entry *tb_find(struct upoll_tb *tb, int cd) {
+struct upoll_entry *po_find(struct upoll_t *po, int cd) {
     struct upoll_entry *ent = NULL;
-    mutex_lock(&tb->lock);
-    if ((ent = __tb_find(tb, cd)))
+    mutex_lock(&po->lock);
+    if ((ent = __po_find(po, cd)))
 	entry_get(ent);
-    mutex_unlock(&tb->lock);
+    mutex_unlock(&po->lock);
     return ent;
 }
 
 
-void __attach_to_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
+void __attach_to_po(struct upoll_entry *ent, struct upoll_t *po) {
     BUG_ON(attached(&ent->lru_link));
-    tb->size++;
-    list_add_tail(&ent->lru_link, &tb->lru_head);
+    po->size++;
+    list_add_tail(&ent->lru_link, &po->lru_head);
 }
 
-void __detach_from_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
+void __detach_from_po(struct upoll_entry *ent, struct upoll_t *po) {
     BUG_ON(!attached(&ent->lru_link));
-    tb->size--;
+    po->size--;
     list_del_init(&ent->lru_link);
 }
 
@@ -131,17 +131,17 @@ void __detach_from_tb(struct upoll_entry *ent, struct upoll_tb *tb) {
 /* Create a new upoll_entry if the cd doesn't exist and get one ref for
  * caller. upoll_add() call this.
  */
-struct upoll_entry *tb_getent(struct upoll_tb *tb, int cd) {
+struct upoll_entry *po_getent(struct upoll_t *po, int cd) {
     struct upoll_entry *ent;
 
-    mutex_lock(&tb->lock);
-    if ((ent = __tb_find(tb, cd))) {
-	mutex_unlock(&tb->lock);
+    mutex_lock(&po->lock);
+    if ((ent = __po_find(po, cd))) {
+	mutex_unlock(&po->lock);
 	errno = EEXIST;
 	return NULL;
     }
     if (!(ent = entry_new())) {
-	mutex_unlock(&tb->lock);
+	mutex_unlock(&po->lock);
 	errno = ENOMEM;
 	return NULL;
     }
@@ -149,60 +149,60 @@ struct upoll_entry *tb_getent(struct upoll_tb *tb, int cd) {
     /* One reference for back for caller */
     ent->ref++;
 
-    /* Cycle reference of upoll_tb and upoll_entry */
+    /* Cycle reference of upoll_t and upoll_entry */
     ent->ref++;
-    tb->ref++;
+    po->ref++;
 
     ent->event.cd = cd;
-    __attach_to_tb(ent, tb);
-    mutex_unlock(&tb->lock);
+    __attach_to_po(ent, po);
+    mutex_unlock(&po->lock);
 
     return ent;
 }
 
 /* Remove the upoll_entry if the cd's ent exist. notice that don't release the
- * ref hold by upoll_tb. let caller do this.
+ * ref hold by upoll_t. let caller do this.
  * upoll_rm() call this.
  */
-struct upoll_entry *tb_putent(struct upoll_tb *tb, int cd) {
+struct upoll_entry *po_putent(struct upoll_t *po, int cd) {
     struct upoll_entry *ent;
 
-    mutex_lock(&tb->lock);
-    if (!(ent = __tb_find(tb, cd))) {
-	mutex_unlock(&tb->lock);
+    mutex_lock(&po->lock);
+    if (!(ent = __po_find(po, cd))) {
+	mutex_unlock(&po->lock);
 	errno = ENOENT;
 	return NULL;
     }
-    __detach_from_tb(ent, tb);
-    mutex_unlock(&tb->lock);
+    __detach_from_po(ent, po);
+    mutex_unlock(&po->lock);
 
-    /* Release the upoll_tb's ref hold by upoll_entry
-     * tb_put(tb);
+    /* Release the upoll_t's ref hold by upoll_entry
+     * po_put(po);
      */
     return ent;
 }
 
 
 /* Pop the first upoll_entry. notice that don't release the ref hold
- * by upoll_tb. let caller do this.
+ * by upoll_t. let caller do this.
  * upoll_close() call this.
  */
-struct upoll_entry *tb_popent(struct upoll_tb *tb) {
+struct upoll_entry *po_popent(struct upoll_t *po) {
     struct upoll_entry *ent;
 
-    mutex_lock(&tb->lock);
-    if (list_empty(&tb->lru_head)) {
-	mutex_unlock(&tb->lock);
+    mutex_lock(&po->lock);
+    if (list_empty(&po->lru_head)) {
+	mutex_unlock(&po->lock);
 	errno = ENOENT;
 	return NULL;
     }
-    ent = list_first(&tb->lru_head, struct upoll_entry, lru_link);
-    __detach_from_tb(ent, tb);
-    mutex_unlock(&tb->lock);
+    ent = list_first(&po->lru_head, struct upoll_entry, lru_link);
+    __detach_from_po(ent, po);
+    mutex_unlock(&po->lock);
 
-    /* Release the upoll_tb's ref hold by upoll_entry. remember that this
+    /* Release the upoll_t's ref hold by upoll_entry. remember that this
      * is an cycle ref
-     * tb_put(tb);
+     * po_put(po);
      */
     return ent;
 }

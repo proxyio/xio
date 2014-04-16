@@ -8,18 +8,11 @@
 
 #define URLNAME_MAX 128
 
-struct ep_syn {
+struct ep_stat {
     u32 type;
-    uuid_t id;
+    uuid_t ud;
     char group[URLNAME_MAX];
 };
-
-struct ep_synack {
-    u32 type;
-    uuid_t id;
-    char group[URLNAME_MAX];
-};
-
 
 struct tr {
     uuid_t uuid;

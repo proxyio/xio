@@ -19,7 +19,7 @@ struct upoll_entry {
 
     spin_t lock;
 
-    /* Reference hold by channel/upoll_tb */
+    /* Reference hold by channel/upoll_t */
     int ref;
 
     /* Reference backtrace for debuging */
@@ -43,7 +43,7 @@ struct upoll_entry *entry_new();
 int entry_get(struct upoll_entry *ent);
 int entry_put(struct upoll_entry *ent);
 
-struct upoll_tb {
+struct upoll_t {
     struct upoll_notify notify;
     mutex_t lock;
     condition_t cond;
@@ -55,14 +55,14 @@ struct upoll_tb {
     struct list_head lru_head;
 };
 
-struct upoll_tb *tb_new();
-int tb_get(struct upoll_tb *ut);
-int tb_put(struct upoll_tb *ut);
+struct upoll_t *po_new();
+int po_get(struct upoll_t *ut);
+int po_put(struct upoll_t *ut);
 
-struct upoll_entry *tb_find(struct upoll_tb *tb, int cd);
-struct upoll_entry *tb_popent(struct upoll_tb *tb);
-struct upoll_entry *tb_getent(struct upoll_tb *tb, int cd);
-struct upoll_entry *tb_putent(struct upoll_tb *tb, int cd);
+struct upoll_entry *po_find(struct upoll_t *po, int cd);
+struct upoll_entry *po_popent(struct upoll_t *po);
+struct upoll_entry *po_getent(struct upoll_t *po, int cd);
+struct upoll_entry *po_putent(struct upoll_t *po, int cd);
 
 void attach_to_channel(struct upoll_entry *ent, int cd);
 void __detach_from_channel(struct upoll_entry *ent);

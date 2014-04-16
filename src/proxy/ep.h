@@ -3,9 +3,6 @@
 
 struct ep;
 
-#define PRODUCER    1
-#define COMSUMER    2
-
 struct ep *ep_new(int ty);
 void ep_close(struct ep *ep);
 

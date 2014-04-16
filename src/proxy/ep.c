@@ -7,17 +7,7 @@
 
 #define DEFAULT_GROUP "default"
 
-const char *ep_str[] = {
-    "",
-    "PRODUCER",
-    "COMSUMER",
-};
-
-
-extern struct fd *xg_rrbin_go(struct xg *g);
-extern struct xg *pxy_get(struct pxy *y, char *group);
-extern int pxy_put(struct pxy *y, struct xg *g);
-
+struct fd *xg_rrbin_go(struct xg *g);
 
 struct ep *ep_new(int ty) {
     struct ep *ep = (struct ep *)mem_zalloc(sizeof(*ep));
@@ -26,16 +16,12 @@ struct ep *ep_new(int ty) {
 	    mem_free(ep, sizeof(*ep));
 	    return 0;
 	}
-	uuid_generate(ep->syn.id);
-	ep->syn.type = ty;
-	strcpy(ep->syn.group, DEFAULT_GROUP);
-	ep->g = pxy_get(ep->y, DEFAULT_GROUP);
+	ep->type = ty;
     }
     return ep;
 }
 
 void ep_close(struct ep *ep) {
-    pxy_put(ep->y, ep->g);
     pxy_free(ep->y);
     mem_free(ep, sizeof(*ep));
 }
@@ -43,24 +29,20 @@ void ep_close(struct ep *ep) {
 extern int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url);
 
 int ep_connect(struct ep *ep, const char *url) {
-    /* For endpoint. it has some difference from proxy role.
-     * Local role --- Remote role
-     * producer   ---   comsumer
-     * comsumer   ---   producer
-     */
-    return __pxy_connect(ep->y, ep->syn.type, UPOLLERR|UPOLLIN, url);
+    return __pxy_connect(ep->y, ep->type, UPOLLERR|UPOLLIN, url);
 }
 
 /* Producer endpoint api : send_req and recv_resp */
 int ep_send_req(struct ep *ep, char *req) {
     int rc;
+    struct pxy *y = ep->y;
     struct gsm s;
     struct rdh *h;
     struct tr *r;
     struct fd *f;
     u32 hdr_and_rt_len = sizeof(*h) + sizeof(*r);
 
-    if ((ep->syn.type & COMSUMER)) {
+    if ((ep->type & RECEIVER)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -89,8 +71,8 @@ int ep_send_req(struct ep *ep, char *req) {
     gsm_gensum(&s);
 
     /* RoundRobin algo select a struct fd */
-    BUG_ON(!(f = xg_rrbin_go(ep->g)));
-    uuid_copy(r->uuid, f->uuid);
+    BUG_ON(!(f = rtb_rrbin_go(&y->tb)));
+    uuid_copy(r->uuid, f->st.ud);
     rc = channel_send(f->cd, s.payload);
     DEBUG_OFF("channel %d send req into network", f->cd);
     return rc;
@@ -105,12 +87,12 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     struct pxy *y = ep->y;
     struct upoll_event ev = {};
 
-    if ((ep->syn.type & COMSUMER)) {
+    if ((ep->type & RECEIVER)) {
 	errno = EINVAL;
 	return -1;
     }
     /* TODO: The timeout see ep_setopt for more details */
-    if ((n = upoll_wait(y->tb, &ev, 1, 0x7fff)) < 0)
+    if ((n = upoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
 	return -1;
     DEBUG_ON("%s", upoll_str[ev.happened]);
     BUG_ON(ev.happened & UPOLLOUT);
@@ -132,7 +114,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	if (gsm_validate(&s) < 0) {
 	    DEBUG_ON("invalid message's checksum");
 	    channel_freemsg(payload);
-	    f->ok = false;
+	    f->fok = false;
 	    goto AGAIN;
 	}
 	h = s.h;
@@ -150,7 +132,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	return 0;
     } else if (errno != EAGAIN) {
 	DEBUG_ON("channel %d on bad status", f->cd);
-	f->ok = false;
+	f->fok = false;
     }
     /* TODO: cleanup the bad status fd here */
  AGAIN:
@@ -168,12 +150,12 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
     struct pxy *y = ep->y;
     struct upoll_event ev = {};
 
-    if ((ep->syn.type & PRODUCER)) {
+    if ((ep->type & DISPATCHER)) {
 	errno = EINVAL;
 	return -1;
     }
     /* TODO: The timeout see ep_setopt for more details */
-    if ((n = upoll_wait(y->tb, &ev, 1, 0x7fff)) < 0)
+    if ((n = upoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
 	return -1;
     DEBUG_ON("%s", upoll_str[ev.happened]);
     BUG_ON(ev.happened & UPOLLOUT);
@@ -194,7 +176,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	if (gsm_validate(&s) < 0) {
 	    DEBUG_ON("invalid message's checksum");
 	    channel_freemsg(payload);
-	    f->ok = false;
+	    f->fok = false;
 	    goto AGAIN;
 	}
 	h = s.h;
@@ -219,7 +201,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	return 0;
     } else if (errno != EAGAIN) {
 	DEBUG_ON("channel %d on bad status", f->cd);
-	f->ok = false;
+	f->fok = false;
     }
     /* TODO: cleanup the bad status fd here */
  AGAIN:
@@ -233,8 +215,9 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     struct rdh *h = (struct rdh *)r;
     struct fd *f;
     struct tr *cr;
+    struct pxy *y = ep->y;
 
-    if ((ep->syn.type & PRODUCER)
+    if ((ep->type & DISPATCHER)
 	|| channel_msglen(r) != tr_size(h) + sizeof(*h)) {
 	errno = EINVAL;
 	return -1;
@@ -264,7 +247,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     gsm_gensum(&s);
 
     cr = tr_cur(&s);
-    BUG_ON(!(f = xg_route_back(ep->g, cr->uuid)));
+    BUG_ON(!(f = rtb_route_back(&y->tb, cr->uuid)));
     DEBUG_OFF("channel %d send resp into network", f->cd);
     rc = channel_send(f->cd, s.payload);
     return rc;

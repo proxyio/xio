@@ -22,8 +22,8 @@ extern int has_closed_channel(struct channel_poll *po);
 extern void push_closed_channel(struct channel *cn);
 extern struct channel *pop_closed_channel(struct channel_poll *po);
 
-void __tb_notify(struct channel *cn, u32 vf_spec);
-void upoll_tb_notify(struct channel *cn, u32 vf_spec);
+void __po_notify(struct channel *cn, u32 vf_spec);
+void upoll_notify(struct channel *cn, u32 vf_spec);
 
 uint32_t msg_iovlen(char *payload) {
     struct channel_msg *msg = cont_of(payload, struct channel_msg, hdr.payload);
@@ -280,13 +280,13 @@ void global_channel_exit() {
 
 void channel_close(int cd) {
     struct channel *cn = cid_to_channel(cd);
-    struct upoll_tb *tb;
+    struct upoll_t *po;
     struct upoll_entry *ent, *nx;
     
     mutex_lock(&cn->lock);
     list_for_each_channel_ent(ent, nx, &cn->upoll_head) {
-	tb = cont_of(ent->notify, struct upoll_tb, notify);
-	upoll_ctl(tb, UPOLL_DEL, &ent->event);
+	po = cont_of(ent->notify, struct upoll_t, notify);
+	upoll_ctl(po, UPOLL_DEL, &ent->event);
 	__detach_from_channel(ent);
 	entry_put(ent);
     }
@@ -307,7 +307,7 @@ int channel_accept(int cd) {
     new->ty = CHANNEL_ACCEPTER;
     new->pf = cn->pf;
     new->parent = cd;
-    upoll_tb_notify(cn, 0);
+    upoll_notify(cn, 0);
     list_for_each_channel_vf_safe(vf, nx, &cn_global.channel_vf_head) {
 	new->vf = vf;
 	if ((cn->pf & vf->pf) && vf->init(new->cd) == 0) {
@@ -466,7 +466,7 @@ void push_rcv(struct channel *cn, struct channel_msg *msg) {
     events |= MQ_PUSH;
     cn->rcv += msgsz;
     list_add_tail(&msg->item, &cn->rcv_head);    
-    __tb_notify(cn, 0);
+    __po_notify(cn, 0);
     DEBUG_OFF("channel %d", cn->cd);
 
     /* Wakeup the blocking waiters. */
@@ -508,7 +508,7 @@ struct channel_msg *pop_snd(struct channel *cn) {
     if (events)
 	vf->snd_notify(cn->cd, events);
 
-    __tb_notify(cn, 0);
+    __po_notify(cn, 0);
     mutex_unlock(&cn->lock);
     return msg;
 }
@@ -578,13 +578,13 @@ int channel_send(int cd, char *payload) {
 }
 
 
-/* Generic upoll_tb notify function. always called by channel_vf
+/* Generic upoll_t notify function. always called by channel_vf
  * when has any message come or can send any massage into network
  * or has a new connection wait for established.
  * here we only check the mq events and vf_spec saved the other
  * events gived by channel_vf
  */
-void __tb_notify(struct channel *cn, u32 vf_spec) {
+void __po_notify(struct channel *cn, u32 vf_spec) {
     int events = 0;
     struct upoll_entry *ent, *nx;
 
@@ -598,9 +598,9 @@ void __tb_notify(struct channel *cn, u32 vf_spec) {
     }
 }
 
-void upoll_tb_notify(struct channel *cn, u32 vf_spec) {
+void upoll_notify(struct channel *cn, u32 vf_spec) {
     mutex_lock(&cn->lock);
-    __tb_notify(cn, vf_spec);
+    __po_notify(cn, vf_spec);
     mutex_unlock(&cn->lock);
 }
 

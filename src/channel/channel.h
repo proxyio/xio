@@ -49,10 +49,10 @@ struct upoll_event {
     uint32_t happened;
 };
 
-struct upoll_tb;
+struct upoll_t;
 
-struct upoll_tb *upoll_create();
-void upoll_close(struct upoll_tb *tb);
+struct upoll_t *upoll_create();
+void upoll_close(struct upoll_t *po);
 
 #define UPOLL_ADD 1
 #define UPOLL_DEL 2
@@ -61,8 +61,8 @@ void upoll_close(struct upoll_tb *tb);
 /* All channel must be remove from upoll before closed
  * Can't modify an unexist channel.
  */
-int upoll_ctl(struct upoll_tb *ut, int op, struct upoll_event *ue);
-int upoll_wait(struct upoll_tb *ut, struct upoll_event *events, int n,
+int upoll_ctl(struct upoll_t *po, int op, struct upoll_event *ue);
+int upoll_wait(struct upoll_t *po, struct upoll_event *events, int n,
 	       u32 timeout);
 
 

@@ -3,76 +3,22 @@
 #include <os/timesz.h>
 #include "pxy.h"
 
-
 extern struct channel *cid_to_channel(int cd);
 
 const char *py_str[] = {
-    "",
     "RECEIVER",
     "DISPATCHER",
 };
-
-struct fd *fd_new() {
-    struct fd *f = (struct fd *)mem_zalloc(sizeof(*f));
-    if (f) {
-	f->ok = true;
-	f->cd = -1;
-	INIT_LIST_HEAD(&f->mq);
-	INIT_LIST_HEAD(&f->link);
-	f->rb_link.key = (char *)f->uuid;
-	f->rb_link.keylen = sizeof(uuid_t);
-    }
-    return f;
-}
-
-void fd_free(struct fd *f) {
-    struct gsm *s, *ns;
-
-    BUG_ON(attached(&f->link));
-    if (f->cd >= 0)
-	channel_close(f->cd);
-    list_for_each_gsm(s, ns, &f->mq) {
-	list_del_init(&s->link);
-	gsm_free(s);
-    }
-    mem_free(f, sizeof(*f));
-}
-
-struct xg *xg_new() {
-    struct xg *g = (struct xg *)mem_zalloc(sizeof(*g));
-    if (g) {
-	DEBUG_OFF("%p", g);
-	g->ref = 0;
-	ssmap_init(&g->fdmap);
-	g->pxy_rb_link.key = g->group;
-	INIT_LIST_HEAD(&g->rcver_head);
-	INIT_LIST_HEAD(&g->snder_head);
-	INIT_LIST_HEAD(&g->link);
-    }
-    return g;
-}
-
-void xg_free(struct xg *g) {
-    DEBUG_OFF("%p", g);
-    BUG_ON(g->ref != 0);
-    BUG_ON(g->rsz != 0);
-    BUG_ON(g->ssz != 0);
-    BUG_ON(!list_empty(&g->snder_head));
-    BUG_ON(!list_empty(&g->rcver_head));
-    mem_free(g, sizeof(*g));
-}
 
 struct pxy *pxy_new() {
     struct pxy *y = (struct pxy *)mem_zalloc(sizeof(*y));
     if (y) {
 	mutex_init(&y->mtx);
-	y->flags = PXY_LOOPSTOP;
-	y->tb = upoll_create();
-	y->gsz = 0;
-	INIT_LIST_HEAD(&y->g_head);
-	ssmap_init(&y->gmap);
-	INIT_LIST_HEAD(&y->listener_head);
-	INIT_LIST_HEAD(&y->unknown_head);
+	y->fstopped = true;
+	rtb_init(&y->tb);
+	y->po = upoll_create();
+	INIT_LIST_HEAD(&y->listener);
+	INIT_LIST_HEAD(&y->unknown);
     }
     return y;
 }
@@ -80,136 +26,43 @@ struct pxy *pxy_new() {
 
 
 void pxy_free(struct pxy *y) {
-    struct xg *g, *ng;
     struct fd *f, *nf;
-    
-    if (!y) {
-	errno = EINVAL;
-	return;
-    }
+
+    BUG_ON(!y->fstopped);
     mutex_destroy(&y->mtx);
-    upoll_close(y->tb);
-    list_for_each_xg(g, ng, &y->g_head) {
-	/* Avoiding freed when iterate */
-	g->ref++;
-	xg_clean_allfd(g);
-	pxy_put(y, g);
-    }
-    list_for_each_fd(f, nf, &y->listener_head) {
+    rtb_destroy(&y->tb);
+    upoll_close(y->po);
+    list_for_each_fd(f, nf, &y->listener) {
 	list_del_init(&f->link);
 	fd_free(f);
     }
-    list_for_each_fd(f, nf, &y->unknown_head) {
+    list_for_each_fd(f, nf, &y->unknown) {
 	list_del_init(&f->link);
 	fd_free(f);
     }
     mem_free(y, sizeof(*y));
 }
 
-
-struct fd *xg_find(struct xg *g, uuid_t ud) {
-    ssmap_node_t *node;
-
-    if ((node = ssmap_find(&g->fdmap, (char *)ud, sizeof(uuid_t))))
-	return cont_of(node, struct fd, rb_link);
-    return 0;
-}
-
-void xg_clean_allfd(struct xg *g) {
-    struct fd *f, *nf;
-
-    /* Avoiding xg freed by pxy_put() */
-    list_for_each_fd(f, nf, &g->rcver_head) {
-	BUG_ON(g->ref <= 0);
-	xg_rm(g, f);
-	pxy_put(f->y, g);
-	fd_free(f);
-    }
-    list_for_each_fd(f, nf, &g->snder_head) {
-	BUG_ON(g->ref <= 0);
-	xg_rm(g, f);
-	pxy_put(f->y, g);
-	fd_free(f);
-    }
-}
-
-int xg_add(struct xg *g, struct fd *f) {
-    struct fd *of = xg_find(g, f->uuid);
-
-    if (of) {
-	errno = EEXIST;
-	return -1;
-    }
-    switch (f->ty) {
-    case RECEIVER:
-	g->rsz++;
-	list_add(&f->link, &g->rcver_head);
-	break;
-    case DISPATCHER:
-	g->ssz++;
-	list_add(&f->link, &g->snder_head);
-	break;
-    default:
-	BUG_ON(1);
-    }
-    ssmap_insert(&g->fdmap, &f->rb_link);
-    return 0;
-}
-
-int xg_rm(struct xg *g, struct fd *f) {
-    switch (f->ty) {
-    case RECEIVER:
-	g->rsz--;
-	break;
-    case DISPATCHER:
-	g->ssz--;
-	break;
-    default:
-	BUG_ON(1);
-    }
-    list_del_init(&f->link);
-    ssmap_delete(&g->fdmap, &f->rb_link);
-    return 0;
-}
-
-struct fd *xg_rrbin_go(struct xg *g) {
-    struct fd *f;
-
-    if (g->ssz <= 0)
-	return 0;
-    f = list_first(&g->snder_head, struct fd, link);
-    list_move_tail(&f->link, &g->snder_head);
-    return f;
-}
-
-struct fd *xg_route_back(struct xg *g, uuid_t ud) {
-    return xg_find(g, ud);
-}
-
-static int try_disable_eventout(struct fd *f) {
-    int rc;
-    struct pxy *y = f->y;
+static void try_disable_eventout(struct fd *f) {
+    int rc = 0;
+    struct pxy *y = fd_getself(f, struct pxy);
 
     if (f->event.care & UPOLLOUT) {
 	DEBUG_OFF("disable %d UPOLLOUT", f->cd);
 	f->event.care &= ~UPOLLOUT;
-	BUG_ON((rc = upoll_ctl(y->tb, UPOLL_MOD, &f->event)) != 0);
-	return rc;
+	BUG_ON((rc = upoll_ctl(y->po, UPOLL_MOD, &f->event)) != 0);
     }
-    return -1;
 }
 
-static int try_enable_eventout(struct fd *f) {
-    int rc;
-    struct pxy *y = f->y;
+static void try_enable_eventout(struct fd *f) {
+    int rc = 0;
+    struct pxy *y = fd_getself(f, struct pxy);
 
     if (!(f->event.care & UPOLLOUT)) {
 	DEBUG_OFF("enable %d UPOLLOUT", f->cd);
 	f->event.care |= UPOLLOUT;
-	BUG_ON((rc = upoll_ctl(y->tb, UPOLL_MOD, &f->event)) != 0);
-	return rc;
+	BUG_ON((rc = upoll_ctl(y->po, UPOLL_MOD, &f->event)) != 0);
     }
-    return -1;
 }
 
 static struct gsm *mq_pop(struct fd *f) {
@@ -231,45 +84,6 @@ static int mq_push(struct fd *f, struct gsm *s) {
 	try_enable_eventout(f);
     return 0;
 }
-
-struct xg *pxy_get(struct pxy *y, char *group) {
-    ssmap_node_t *node;
-    struct xg *g;
-
-
-    if ((node = ssmap_find(&y->gmap, group, strlen(group)))) {
-	g = cont_of(node, struct xg, pxy_rb_link);
-	g->ref++;
-	DEBUG_OFF("%p ref %d", g, g->ref);
-	return g;
-    }
-    if (!(g = xg_new()))
-	return 0;
-    g->y = y;
-    g->ref++;
-    list_add(&y->g_head, &g->link);
-
-    /* Map[key] */
-    strcpy(g->group, group);
-    g->pxy_rb_link.keylen = strlen(group);
-    ssmap_insert(&y->gmap, &g->pxy_rb_link);
-    DEBUG_OFF("%p ref %d", g, g->ref);
-    return g;
-}
-
-int pxy_put(struct pxy *y, struct xg *g) {
-    BUG_ON(g->ref <= 0);
-    DEBUG_OFF("%p putted %d", g, g->ref);
-    g->ref--;
-    if (g->ref == 0) {
-	BUG_ON(!ssmap_empty(&g->fdmap));
-	list_del_init(&g->link);
-	ssmap_delete(&y->gmap, &g->pxy_rb_link);
-	xg_free(g);
-    }
-    return 0;
-}
-
 
 /* Receive one request from frontend channel */
 static void rcver_recv(struct fd *f) {
@@ -296,7 +110,7 @@ static void rcver_recv(struct fd *f) {
 	if (gsm_validate(s) < 0) {
 	    DEBUG_OFF("invalid message's checksum");
 	    gsm_free(s);
-	    f->ok = false;
+	    f->fok = false;
 	    break;
 	}
 	tr_go_cost(s, now);
@@ -309,7 +123,7 @@ static void rcver_recv(struct fd *f) {
     }
 
     /* EPIPE */
-    if (!(f->ok = (errno == EAGAIN) ? true : false)) {
+    if (!(f->fok = (errno == EAGAIN) ? true : false)) {
 	DEBUG_OFF("EPIPE");
     }
 }
@@ -325,7 +139,7 @@ static void rcver_send(struct fd *f) {
 
     tr_shrink_and_back(s, now);
     if (channel_send(f->cd, s->payload) < 0) {
-	f->ok = (errno == EAGAIN) ? true : false;
+	f->fok = (errno == EAGAIN) ? true : false;
 	goto EXIT;
     }
 
@@ -361,7 +175,7 @@ static void snder_recv(struct fd *f) {
 	if (gsm_validate(s) < 0) {
 	    DEBUG_OFF("invalid message's checksum");
 	    gsm_free(s);
-	    f->ok = false;
+	    f->fok = false;
 	    break;
 	}
 	tr_back_cost(s, now);
@@ -374,7 +188,7 @@ static void snder_recv(struct fd *f) {
     }
 
     /* EPIPE */
-    if (!(f->ok = (errno == EAGAIN) ? true : false))
+    if (!(f->fok = (errno == EAGAIN) ? true : false))
 	DEBUG_OFF("EPIPE");
 }
 
@@ -388,14 +202,14 @@ static void snder_send(struct fd *f) {
     if (!(s = mq_pop(f)))
 	return;
     
-    uuid_copy(r.uuid, f->uuid);
+    uuid_copy(r.uuid, f->st.ud);
     if (tr_append_and_go(s, &r, now) < 0) {
 	DEBUG_OFF("error on appending route chunk");
 	goto EXIT;
     }
     if (channel_send(f->cd, s->payload) < 0) {
 	if (errno != EAGAIN)
-	    f->ok = false;
+	    f->fok = false;
 	goto EXIT;
     }
     DEBUG_OFF("%d pop req and send into network", f->cd);
@@ -413,12 +227,12 @@ static void rcver_event_handler(struct fd *f, u32 events) {
 
     DEBUG_OFF("%d receiver has events %s and recv-Q:%ld send-Q:%ld",
 	      f->cd, upoll_str[events], cn->rcv, cn->snd);
-    if (f->ok && (events & UPOLLIN))
+    if (f->fok && (events & UPOLLIN))
 	rcver_recv(f);
-    if (f->ok && (events & UPOLLOUT))
+    if (f->fok && (events & UPOLLOUT))
 	rcver_send(f);
-    if (f->ok && (events & UPOLLERR)) {
-	f->ok = false;
+    if (f->fok && (events & UPOLLERR)) {
+	f->fok = false;
 	DEBUG_OFF("%d bad status", f->cd);
     }
 }
@@ -428,28 +242,28 @@ static void snder_event_handler(struct fd *f, u32 events) {
 
     DEBUG_OFF("%d dispatcher has events %s and recv-Q:%ld send-Q:%ld",
 	      f->cd, upoll_str[events], cn->rcv, cn->snd);
-    if (f->ok && (events & UPOLLIN))
+    if (f->fok && (events & UPOLLIN))
 	snder_recv(f);
-    if (f->ok && (events & UPOLLOUT))
+    if (f->fok && (events & UPOLLOUT))
 	snder_send(f);
-    if (f->ok && (events & UPOLLERR)) {
-	f->ok = false;
+    if (f->fok && (events & UPOLLERR)) {
+	f->fok = false;
 	DEBUG_OFF("%d bad status", f->cd);
     }
 }
 
 static void pxy_connector_rgs(struct fd *f, u32 events) {
-    struct ep_syn *syn;
-    struct pxy *y = f->y;
+    struct ep_stat *syn;
+    struct pxy *y = fd_getself(f, struct pxy);
 
     if (!(events & UPOLLIN))
 	return;
     if (channel_recv(f->cd, (char **)&syn) == 0) {
 	/* Recv syn */
-	if (channel_msglen((char *)syn) != sizeof(*syn)
-	    || !(syn->type & (PRODUCER|COMSUMER))) {
+	if (channel_msglen((char *)syn) != sizeof(f->st)
+	    || !(syn->type & (RECEIVER|DISPATCHER))) {
 	    channel_freemsg((char *)syn);
-	    f->ok = false;
+	    f->fok = false;
 	    DEBUG_OFF("recv invalid syn from channel %d", f->cd);
 	    return;
 	}
@@ -457,30 +271,28 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 
 	/* Detach from pxy's unknown_head */
 	list_del_init(&f->link);
-	uuid_copy(f->uuid, syn->id);
-	f->ty = syn->type;
-	BUG_ON(!(f->g = pxy_get(y, syn->group)));
-	BUG_ON(xg_add(f->g, f) != 0);
+
+	memcpy(&f->st, syn, sizeof(f->st));
+	BUG_ON(rtb_mapfd(&y->tb, f));
 
 	/* Send synack */
 	BUG_ON(channel_send(f->cd, (char *)syn) != 0);
 	DEBUG_OFF("send syn to channel %d", f->cd);
-
-	DEBUG_OFF("pxy register an %s", py_str[f->ty]);
+	DEBUG_ON("pxy register an %s", py_str[f->st.type]);
     } else if (errno != EAGAIN) {
-	DEBUG_OFF("unregister channel %d EPIPE", f->cd);
-	f->ok = false;
+	DEBUG_ON("unregister channel %d EPIPE", f->cd);
+	f->fok = false;
     }
 }
 
 static void pxy_connector_handler(struct fd *f, u32 events) {
-    struct pxy *y = f->y;
+    struct pxy *y = fd_getself(f, struct pxy);
 
-    if (!f->ty)
+    if (!f->st.type)
 	/* Siteup channel */
 	pxy_connector_rgs(f, events);
 
-    switch (f->ty) {
+    switch (f->st.type) {
     case RECEIVER:
 	rcver_event_handler(f, events);
 	break;
@@ -490,22 +302,21 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
     }
 
     /* If fd status bad. destroy it */
-    if (!f->ok) {
-	DEBUG_OFF("%s channel %d EPIPE", py_str[f->ty], f->cd);
-	xg_rm(f->g, f);
-	BUG_ON(upoll_ctl(y->tb, UPOLL_DEL, &f->event) != 0);
-	pxy_put(f->y, f->g);
+    if (!f->fok) {
+	DEBUG_OFF("%s channel %d EPIPE", py_str[f->st.type], f->cd);
+	rtb_unmapfd(&y->tb, f);
+	BUG_ON(upoll_ctl(y->po, UPOLL_DEL, &f->event) != 0);
 	fd_free(f);
     }
 }
 
 static void pxy_listener_handler(struct fd *f, u32 events) {
-    struct pxy *y = f->y;
+    struct pxy *y = fd_getself(f, struct pxy);
     int on = 1;
     int new_cd;
     struct fd *newf;
     
-    DEBUG_OFF("listener events %s", upoll_str[events]);
+    DEBUG_ON("listener events %s", upoll_str[events]);
     if (events & UPOLLIN) {
 	while ((new_cd = channel_accept(f->cd)) >= 0) {
 	    if (!(newf = fd_new())) {
@@ -514,20 +325,20 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 	    }
 	    /* NOBLOCKING */
 	    channel_setopt(new_cd, CHANNEL_NOBLOCK, &on, sizeof(on));
+	    newf->self = y;
 	    newf->h = pxy_connector_handler;
-	    newf->y = y;
 	    newf->event.cd = new_cd;
 	    newf->event.care = UPOLLIN|UPOLLOUT|UPOLLERR;
 	    newf->event.self = newf;
 	    newf->cd = new_cd;
-	    list_add_tail(&newf->link, &y->unknown_head);
-	    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &newf->event) != 0);
-	    DEBUG_OFF("listener create a new channel %d", new_cd);
+	    list_add_tail(&newf->link, &y->unknown);
+	    BUG_ON(upoll_ctl(y->po, UPOLL_ADD, &newf->event) != 0);
+	    DEBUG_ON("listener create a new channel %d", new_cd);
 	}
     }
 
     /* If listener fd status bad. destroy it and we should relisten */
-    if (!f->ok || (events & UPOLLERR)) {
+    if (!f->fok || (events & UPOLLERR)) {
 	DEBUG_OFF("listener endpoint %d EPIPE", f->cd);
     }
 }
@@ -550,16 +361,17 @@ int pxy_listen(struct pxy *y, const char *url) {
 	fd_free(f);
 	return -1;
     }
+
     /* NOBLOCKING */
     channel_setopt(f->cd, CHANNEL_NOBLOCK, &on, sizeof(on));
-    list_add(&f->link, &y->listener_head);
+    list_add(&f->link, &y->listener);
+    f->self = y;
     f->event.cd = f->cd;
     f->event.care = UPOLLIN|UPOLLERR;
     f->event.self = f;
-    f->y = y;
     f->h = pxy_listener_handler;
-    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
-    DEBUG_OFF("channel %d listen on sockaddr %s", f->cd, url);
+    BUG_ON(upoll_ctl(y->po, UPOLL_ADD, &f->event) != 0);
+    DEBUG_ON("channel %d listen on sockaddr %s", f->cd, url);
     return 0;
 }
 
@@ -567,20 +379,23 @@ int pxy_listen(struct pxy *y, const char *url) {
 /* Export this api for ep.c. the most code are the same */
 int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
     struct fd *f = fd_new();
-    struct ep_syn *syn;
+    struct ep_stat *syn;
     int on = 1;
     int pf = url_parse_pf(url);
-    char sockaddr[URLNAME_MAX] = {}, group[URLNAME_MAX] = {};
+    char sockaddr[URLNAME_MAX] = {};
     
     if (!f)
 	return -1;
-    if (pf < 0 || url_parse_group(url, group, URLNAME_MAX) < 0
+    /* Generate register header for gofd */
+    uuid_generate(f->st.ud);
+    f->st.type = ty;
+    if (pf < 0 || url_parse_group(url, f->st.group, URLNAME_MAX) < 0
 	|| url_parse_sockaddr(url, sockaddr, URLNAME_MAX) < 0) {
 	fd_free(f);
 	errno = EINVAL;
 	return -1;
     }
-    if (!(syn = (struct ep_syn *)channel_allocmsg(sizeof(*syn)))) {
+    if (!(syn = (struct ep_stat *)channel_allocmsg(sizeof(*syn)))) {
 	fd_free(f);
 	return -1;
     }
@@ -590,11 +405,10 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
 	channel_freemsg((char *)syn);
 	return -1;
     }
-    /* Generate register header for gofd */
-    strcpy(syn->group, group);
-    uuid_generate(f->uuid);
-    uuid_copy(syn->id, f->uuid);
-    syn->type = ty;
+    DEBUG_ON("channel %d connect ok", f->cd);
+    *syn = f->st;
+    syn->type = (~syn->type) & (DISPATCHER|RECEIVER);
+
     /* syn-send state */
     if (channel_send(f->cd, (char *)syn) < 0)
 	goto EXIT;
@@ -606,15 +420,13 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
 
     /* NOBLOCKING */
     channel_setopt(f->cd, CHANNEL_NOBLOCK, &on, sizeof(on));
-    f->ty = (syn->type == PRODUCER) ? DISPATCHER : RECEIVER;
+    f->self = y;
     f->event.cd = f->cd;
     f->event.care = ev;
     f->event.self = f;
     f->h = pxy_connector_handler;
-    f->y = y;
-    BUG_ON(!(f->g = pxy_get(y, syn->group)));
-    BUG_ON(xg_add(f->g, f) != 0);
-    BUG_ON(upoll_ctl(y->tb, UPOLL_ADD, &f->event) != 0);
+    rtb_mapfd(&y->tb, f);
+    BUG_ON(upoll_ctl(y->po, UPOLL_ADD, &f->event) != 0);
 
     /* Free syn-ack */
     channel_freemsg((char *)syn);
@@ -623,13 +435,13 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
 
 
 int pxy_connect(struct pxy *y, const char *url) {
-    return __pxy_connect(y, PRODUCER, UPOLLIN|UPOLLOUT|UPOLLERR, url);
+    return __pxy_connect(y, DISPATCHER, UPOLLIN|UPOLLOUT|UPOLLERR, url);
 }
 
 static int pxy_stopped(struct pxy *y) {
     int stopped;
     mutex_lock(&y->mtx);
-    stopped = y->flags & PXY_LOOPSTOP;
+    stopped = y->fstopped;
     mutex_unlock(&y->mtx);
     return stopped;
 }
@@ -640,14 +452,14 @@ int pxy_onceloop(struct pxy *y) {
     struct upoll_event ev[100] = {};
 
     /* Default io events buf is 100 and timeout is 1ms */
-    if ((n = upoll_wait(y->tb, ev, 100, 1)) <= 0) {
-	DEBUG_OFF("upoll wait with no events and errno %d", errno);
+    if ((n = upoll_wait(y->po, ev, 100, 1)) <= 0) {
+	DEBUG_ON("upoll wait with no events and errno %d", errno);
 	return -1;
     }
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
 	f->h(f, ev[i].happened);
-	DEBUG_OFF("%d %s", f->cd, upoll_str[ev[i].happened]);
+	DEBUG_ON("%d %s", f->cd, upoll_str[ev[i].happened]);
     }
     return 0;
 }
@@ -666,11 +478,11 @@ int pxy_startloop(struct pxy *y) {
     
     mutex_lock(&y->mtx);
     /* Backend loop thread running */
-    if (!(y->flags & PXY_LOOPSTOP)) {
+    if (!y->fstopped) {
 	mutex_unlock(&y->mtx);
 	return -1;
     }
-    y->flags &= ~PXY_LOOPSTOP;
+    y->fstopped = false;
     mutex_unlock(&y->mtx);
     BUG_ON((rc = thread_start(&y->backend, pxy_loop_thread, y) != 0));
     return rc;
@@ -679,11 +491,11 @@ int pxy_startloop(struct pxy *y) {
 void pxy_stoploop(struct pxy *y) {
     mutex_lock(&y->mtx);
     /* Backend loop thread already stopped */
-    if (y->flags & PXY_LOOPSTOP) {
+    if (y->fstopped) {
 	mutex_unlock(&y->mtx);
 	return;
     }
-    y->flags |= PXY_LOOPSTOP;
+    y->fstopped = true;
     mutex_unlock(&y->mtx);
     thread_stop(&y->backend);
 }
