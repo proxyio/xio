@@ -25,13 +25,13 @@ extern struct xsock *pop_closed_xsock(struct xcpu *cpu);
 void __xpoll_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
 
-uint32_t msg_iovlen(char *payload) {
-    struct xmsg *msg = cont_of(payload, struct xmsg, hdr.payload);
+uint32_t msg_iovlen(char *xbuf) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
     return sizeof(msg->hdr) + msg->hdr.size;
 }
 
-char *msg_iovbase(char *payload) {
-    struct xmsg *msg = cont_of(payload, struct xmsg, hdr.payload);
+char *msg_iovbase(char *xbuf) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
     return (char *)&msg->hdr;
 }
 
@@ -46,13 +46,13 @@ char *xallocmsg(uint32_t size) {
     return msg->hdr.payload;
 }
 
-void xfreemsg(char *payload) {
-    struct xmsg *msg = cont_of(payload, struct xmsg, hdr.payload);
+void xfreemsg(char *xbuf) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
     mem_free(msg, sizeof(*msg) + msg->hdr.size);
 }
 
-uint32_t xmsglen(char *payload) {
-    struct xmsg *msg = cont_of(payload, struct xmsg, hdr.payload);
+uint32_t xmsglen(char *xbuf) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
     return msg->hdr.size;
 }
 
@@ -544,12 +544,12 @@ int push_snd(struct xsock *xs, struct xmsg *msg) {
     return rc;
 }
 
-int xrecv(int xd, char **payload) {
+int xrecv(int xd, char **xbuf) {
     int rc = 0;
     struct xsock *xs = xget(xd);
     struct xmsg *msg;
 
-    if (!payload) {
+    if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
@@ -557,20 +557,20 @@ int xrecv(int xd, char **payload) {
 	errno = xs->fok ? EAGAIN : EPIPE;
 	rc = -1;
     } else
-	*payload = msg->hdr.payload;
+	*xbuf = msg->hdr.payload;
     return rc;
 }
 
-int xsend(int xd, char *payload) {
+int xsend(int xd, char *xbuf) {
     int rc = 0;
     struct xmsg *msg;
     struct xsock *xs = xget(xd);
 
-    if (!payload) {
+    if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    msg = cont_of(payload, struct xmsg, hdr.payload);
+    msg = cont_of(xbuf, struct xmsg, hdr.payload);
     if ((rc = push_snd(xs, msg)) < 0) {
 	errno = xs->fok ? EAGAIN : EPIPE;
     }

@@ -10,8 +10,8 @@
 #define PF_INPROC TP_MOCK_INPROC
 
 char *xallocmsg(uint32_t size);
-void xfreemsg(char *payload);
-uint32_t xmsglen(char *payload);
+void xfreemsg(char *xbuf);
+uint32_t xmsglen(char *xbuf);
 
 int xlisten(int pf, const char *sock);
 int xconnect(int pf, const char *peer);

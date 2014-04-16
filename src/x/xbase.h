@@ -204,8 +204,8 @@ struct xmsg {
     struct xmsghdr hdr;
 };
 
-u32 msg_iovlen(char *payload);
-char *msg_iovbase(char *payload);
+u32 msg_iovlen(char *xbuf);
+char *msg_iovbase(char *xbuf);
 
 #define xmsg_walk_safe(pos, next, head)					\
     list_for_each_entry_safe(pos, next, head, struct xmsg, item)
