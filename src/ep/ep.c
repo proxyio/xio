@@ -59,15 +59,14 @@ int ep_send_req(struct ep *ep, char *req) {
     h->checksum = 0;
     h->sendstamp = rt_mstime();
 
-    memcpy(s.payload + sizeof(*h), req, xmsglen(req));
+    memcpy(s.payload + sizeof(*h) + sizeof(*r), req, xmsglen(req));
     xfreemsg(req);
-    r = s.r = (struct ep_rt *)(s.payload + sizeof(*h) + h->size);
-
     /* Update header checksum */
     ep_msg_gensum(&s);
 
     /* RoundRobin algo select a struct fd */
     BUG_ON(!(f = rtb_rrbin_go(&y->tb)));
+    r = s.r = (struct ep_rt *)(s.payload + sizeof(*h));
     uuid_copy(r->uuid, f->st.ud);
     rc = xsend(f->xd, s.payload);
     DEBUG_OFF("channel %d send req into network", f->xd);
@@ -114,7 +113,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	    goto AGAIN;
 	}
 	/* Copy response into user-space */
-	memcpy(*resp, payload + sizeof(*h), h->size);
+	memcpy(*resp, payload + sizeof(*h) + rt_size(h), h->size);
 
 	/* Payload was copy into user-space. */
 	xfreemsg(payload);
@@ -176,7 +175,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	    goto AGAIN;
 	}
 	/* Copy req into user-space */
-	memcpy(*req, payload + sizeof(*h), h->size);
+	memcpy(*req, payload + sizeof(*h) + rt_size(h), h->size);
 	memcpy(*r, h, sizeof(*h));
 	memcpy((*r) + sizeof(*h), s.r, rt_size(h));
 
@@ -215,10 +214,10 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     h = s.h = (struct ep_hdr *)s.payload;
 
     /* Copy response payload */
-    memcpy(s.payload + sizeof(*h), resp, h->size);
+    memcpy(s.payload + sizeof(*h) + rt_size(h), resp, h->size);
 
     /* Copy route */
-    s.r = (struct ep_rt *)(s.payload + sizeof(*h) + h->size);
+    s.r = (struct ep_rt *)(s.payload + sizeof(*h));
     memcpy(s.r, r + sizeof(*h), rt_size(h));
 
     xfreemsg(r);

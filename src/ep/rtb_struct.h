@@ -8,7 +8,7 @@
 #include <ds/list.h>
 #include <runner/thread.h>
 #include <sync/mutex.h>
-#include "hdr.h"
+#include "ep_hdr.h"
 
 #define URLNAME_MAX 128
 

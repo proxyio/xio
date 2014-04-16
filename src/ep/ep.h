@@ -17,7 +17,9 @@ int ep_recv_resp(struct ep *ep, char **resp);
 int ep_recv_req(struct ep *ep, char **req, char **r);
 int ep_send_resp(struct ep *ep, char *resp, char *r);
 
-
+void *ep_allocreq(int size);
+void *ep_allocresp(int size, void *ep_req);
+void ep_freebuf(void *ep_buf);
 
 
 
