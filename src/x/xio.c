@@ -3,40 +3,40 @@
 #include <string.h>
 #include <errno.h>
 #include "runner/taskpool.h"
-#include "channel_base.h"
+#include "xbase.h"
 
-extern struct channel_global cn_global;
+extern struct xglobal xglobal;
 
-extern struct channel *cid_to_channel(int cd);
-extern struct channel_poll *pid_to_channel_poll(int pd);
-extern void free_channel(struct channel *cn);
+extern struct xsock *cid_to_channel(int cd);
+extern struct xpoll *pid_to_xpoll(int pd);
+extern void free_channel(struct xsock *cn);
 
-extern struct channel_msg *pop_rcv(struct channel *cn);
-extern void push_rcv(struct channel *cn, struct channel_msg *msg);
-extern struct channel_msg *pop_snd(struct channel *cn);
-extern int push_snd(struct channel *cn, struct channel_msg *msg);
+extern struct xmsg *pop_rcv(struct xsock *cn);
+extern void push_rcv(struct xsock *cn, struct xmsg *msg);
+extern struct xmsg *pop_snd(struct xsock *cn);
+extern int push_snd(struct xsock *cn, struct xmsg *msg);
 
-extern void upoll_notify(struct channel *cn, u32 vf_spec);
+extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
 
 
 
-static int64_t io_channel_read(struct io *ops, char *buff, int64_t sz) {
-    struct channel *cn = cont_of(ops, struct channel, sock.ops);
+static int64_t io_xread(struct io *ops, char *buff, int64_t sz) {
+    struct xsock *cn = cont_of(ops, struct xsock, sock.ops);
     struct transport *tp = cn->sock.tp;
     int rc = tp->read(cn->sock.fd, buff, sz);
     return rc;
 }
 
-static int64_t io_channel_write(struct io *ops, char *buff, int64_t sz) {
-    struct channel *cn = cont_of(ops, struct channel, sock.ops);
+static int64_t io_xwrite(struct io *ops, char *buff, int64_t sz) {
+    struct xsock *cn = cont_of(ops, struct xsock, sock.ops);
     struct transport *tp = cn->sock.tp;
     int rc = tp->write(cn->sock.fd, buff, sz);
     return rc;
 }
 
-static struct io default_channel_ops = {
-    .read = io_channel_read,
-    .write = io_channel_write,
+static struct io default_xops = {
+    .read = io_xread,
+    .write = io_xwrite,
 };
 
 
@@ -46,8 +46,8 @@ static struct io default_channel_ops = {
  ******************************************************************************/
 
 static void snd_empty_event(int cd) {
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
 
     // Disable POLLOUT event when snd_head is empty
     if (cn->sock.et.events & EPOLLOUT) {
@@ -58,8 +58,8 @@ static void snd_empty_event(int cd) {
 }
 
 static void snd_nonempty_event(int cd) {
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLOUT)) {
@@ -75,15 +75,15 @@ static void snd_nonempty_event(int cd) {
  ******************************************************************************/
 
 static void rcv_pop_event(int cd) {
-    struct channel *cn = cid_to_channel(cd);
+    struct xsock *cn = cid_to_channel(cd);
 
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
 }
 
 static void rcv_full_event(int cd) {
-    struct channel *cn = cid_to_channel(cd);    
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);    
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
 
     // Enable POLLOUT event when snd_head isn't empty
     if ((cn->sock.et.events & EPOLLIN)) {
@@ -93,8 +93,8 @@ static void rcv_full_event(int cd) {
 }
 
 static void rcv_nonfull_event(int cd) {
-    struct channel *cn = cid_to_channel(cd);    
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);    
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLIN)) {
@@ -114,10 +114,10 @@ static int io_accepter_init(int cd) {
     int rc = 0;
     int s;
     int on = 1;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
-    struct channel *parent = cid_to_channel(cn->parent);
+    struct xsock *parent = cid_to_channel(cn->parent);
 
     if ((s = tp->accept(parent->sock.fd)) < 0)
 	return s;
@@ -128,7 +128,7 @@ static int io_accepter_init(int cd) {
     cn->sock.et.data = cn;
     cn->sock.fd = s;
     cn->sock.tp = tp;
-    cn->sock.ops = default_channel_ops;
+    cn->sock.ops = default_xops;
     BUG_ON(eloop_add(&po->el, &cn->sock.et) != 0);
     return rc;
 }
@@ -137,8 +137,8 @@ static int io_listener_init(int cd) {
     int rc = 0;
     int s;
     int on = 1;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->bind(cn->addr)) < 0)
@@ -158,8 +158,8 @@ static int io_connector_init(int cd) {
     int rc = 0;
     int s;
     int on = 1;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+    struct xsock *cn = cid_to_channel(cd);
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->connect(cn->peer)) < 0)
@@ -171,33 +171,33 @@ static int io_connector_init(int cd) {
     cn->sock.et.data = cn;
     cn->sock.fd = s;
     cn->sock.tp = tp;
-    cn->sock.ops = default_channel_ops;
+    cn->sock.ops = default_xops;
     BUG_ON(eloop_add(&po->el, &cn->sock.et) != 0);
     return rc;
 }
 
-static int io_channel_init(int cd) {
-    struct channel *cn = cid_to_channel(cd);
+static int io_xinit(int cd) {
+    struct xsock *cn = cid_to_channel(cd);
 
     bio_init(&cn->sock.in);
     bio_init(&cn->sock.out);
 
     switch (cn->ty) {
-    case CHANNEL_ACCEPTER:
+    case XACCEPTER:
 	return io_accepter_init(cd);
-    case CHANNEL_CONNECTOR:
+    case XCONNECTOR:
 	return io_connector_init(cd);
-    case CHANNEL_LISTENER:
+    case XLISTENER:
 	return io_listener_init(cd);
     }
     return -EINVAL;
 }
 
-static int io_snd(struct channel *cn);
+static int io_snd(struct xsock *cn);
 
-static void io_channel_destroy(int cd) {
-    struct channel *cn = cid_to_channel(cd);
-    struct channel_poll *po = pid_to_channel_poll(cn->pollid);
+static void io_xdestroy(int cd) {
+    struct xsock *cn = cid_to_channel(cd);
+    struct xpoll *po = pid_to_xpoll(cn->pollid);
     struct transport *tp = cn->sock.tp;
 
     /* Try flush buf massage into network before close */
@@ -238,21 +238,21 @@ static void io_snd_notify(int cd, uint32_t events) {
 
 static int accept_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
-    struct channel *cn = cont_of(et, struct channel, sock.et);
+    struct xsock *cn = cont_of(et, struct xsock, sock.et);
 
     if (et->happened & EPOLLERR)
 	cn->fok = false;
     /* A new connection */
     else if (et->happened & EPOLLIN) {
 	DEBUG_OFF("channel listener %d events %d", cn->cd, et->happened);
-	upoll_notify(cn, UPOLLIN);
+	xpoll_notify(cn, XPOLLIN);
     }
     return rc;
 }
 
 
 static int msg_ready(struct bio *b, int64_t *payload_sz) {
-    struct channel_msg msg = {};
+    struct xmsg msg = {};
     
     if (b->bsize < sizeof(msg.hdr))
 	return false;
@@ -263,34 +263,34 @@ static int msg_ready(struct bio *b, int64_t *payload_sz) {
     return true;
 }
 
-static int io_rcv(struct channel *cn) {
+static int io_rcv(struct xsock *cn) {
     int rc = 0;
     char *payload;
     int64_t payload_sz;
-    struct channel_msg *msg;
+    struct xmsg *msg;
 
     rc = bio_prefetch(&cn->sock.in, &cn->sock.ops);
     if (rc < 0 && errno != EAGAIN)
 	return rc;
     while (msg_ready(&cn->sock.in, &payload_sz)) {
 	DEBUG_OFF("%d channel recv one message", cn->cd);
-	payload = channel_allocmsg(payload_sz);
+	payload = xallocmsg(payload_sz);
 	bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
-	msg = cont_of(payload, struct channel_msg, hdr.payload);
+	msg = cont_of(payload, struct xmsg, hdr.payload);
 	push_rcv(cn, msg);
     }
     return rc;
 }
 
-static int io_snd(struct channel *cn) {
+static int io_snd(struct xsock *cn) {
     int rc;
     char *payload;
-    struct channel_msg *msg;
+    struct xmsg *msg;
 
     while ((msg = pop_snd(cn))) {
 	payload = msg->hdr.payload;
 	bio_write(&cn->sock.out, msg_iovbase(payload), msg_iovlen(payload));
-	channel_freemsg(payload);
+	xfreemsg(payload);
     }
     rc = bio_flush(&cn->sock.out, &cn->sock.ops);
     return rc;
@@ -298,7 +298,7 @@ static int io_snd(struct channel *cn) {
 
 static int io_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
-    struct channel *cn = cont_of(et, struct channel, sock.et);
+    struct xsock *cn = cont_of(et, struct xsock, sock.et);
 
     if (et->happened & EPOLLIN) {
 	DEBUG_OFF("io channel %d EPOLLIN", cn->cd);
@@ -313,29 +313,29 @@ static int io_handler(eloop_t *el, ev_t *et) {
 	cn->fok = false;
     }
 
-    /* Check events for upoll */
-    upoll_notify(cn, 0);
+    /* Check events for xpoll */
+    xpoll_notify(cn, 0);
     return rc;
 }
 
 
 
-static struct channel_vf tcp_channel_vf = {
+static struct xsock_vf tcp_xsock_vf = {
     .pf = PF_NET,
-    .init = io_channel_init,
-    .destroy = io_channel_destroy,
+    .init = io_xinit,
+    .destroy = io_xdestroy,
     .rcv_notify = io_rcv_notify,
     .snd_notify = io_snd_notify,
 };
 
-static struct channel_vf ipc_channel_vf = {
+static struct xsock_vf ipc_xsock_vf = {
     .pf = PF_IPC,
-    .init = io_channel_init,
-    .destroy = io_channel_destroy,
+    .init = io_xinit,
+    .destroy = io_xdestroy,
     .rcv_notify = io_rcv_notify,
     .snd_notify = io_snd_notify,
 };
 
 
-struct channel_vf *tcp_channel_vfptr = &tcp_channel_vf;
-struct channel_vf *ipc_channel_vfptr = &ipc_channel_vf;
+struct xsock_vf *tcp_xsock_vfptr = &tcp_xsock_vf;
+struct xsock_vf *ipc_xsock_vfptr = &ipc_xsock_vf;

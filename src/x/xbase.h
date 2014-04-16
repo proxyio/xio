@@ -10,8 +10,8 @@
 #include "sync/spin.h"
 #include "sync/condition.h"
 #include "runner/taskpool.h"
-#include "channel.h"
-#include "poll.h"
+#include "xsock.h"
+#include "xpoll.h"
 
 /* Max number of concurrent channels. */
 #define PIO_MAX_CHANNELS 10240
@@ -20,9 +20,9 @@
 #define PIO_MAX_CPUS 32
 
 /* Define channel type for listner/accepter/connector */
-#define CHANNEL_LISTENER 1
-#define CHANNEL_ACCEPTER 2
-#define CHANNEL_CONNECTOR 3
+#define XLISTENER 1
+#define XACCEPTER 2
+#define XCONNECTOR 3
 
 #define MQ_PUSH         0x01
 #define MQ_POP          0x02
@@ -31,7 +31,7 @@
 #define MQ_FULL         0x10
 #define MQ_NONFULL      0x20
 
-struct channel_vf {
+struct xsock_vf {
     int pf;
     int (*init) (int cd);
     void (*destroy) (int cd);
@@ -42,7 +42,7 @@ struct channel_vf {
 };
 
 
-struct channel {
+struct xsock {
     mutex_t lock;
     condition_t cond;
     int ty;
@@ -63,9 +63,9 @@ struct channel {
     uint64_t snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    struct channel_vf *vf;
+    struct xsock_vf *vf;
     struct list_head closing_link;
-    struct list_head upoll_head;
+    struct list_head xpoll_head;
 
     /* Only for transport channel */
     struct {
@@ -92,29 +92,24 @@ struct channel {
 
 	/* For inproc-connector and inproc-accepter (new connection) */
 	struct list_head wait_item;
-	struct channel *peer_channel;
+	struct xsock *peer_channel;
     } proc;
 };
 
 // We guarantee that we can push one massage at least.
-static inline int can_send(struct channel *cn) {
+static inline int can_send(struct xsock *cn) {
     return list_empty(&cn->snd_head) || cn->snd < cn->snd_wnd;
 }
 
-static inline int can_recv(struct channel *cn) {
+static inline int can_recv(struct xsock *cn) {
     return list_empty(&cn->rcv_head) || cn->rcv < cn->rcv_wnd;
 }
 
 #define list_for_each_new_connector_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head, struct channel, wait_item)
+    list_for_each_entry_safe(pos, nx, head, struct xsock, wait_item)
 
 
-void channel_add_upoll_entry(struct upoll_entry *ent);
-void channel_rm_upoll_entry(struct upoll_entry *ent);
-
-
-
-struct channel_poll {
+struct xpoll {
     spin_t lock;
 
     /* Backend eventloop for io runner. */
@@ -125,7 +120,7 @@ struct channel_poll {
 };
 
 
-struct channel_global {
+struct xglobal {
     int exiting;
     mutex_t lock;
 
@@ -133,7 +128,7 @@ struct channel_global {
        the channel is the index to this table. This pointer is also used to
        find out whether context is initialised. If it is NULL, context is
        uninitialised. */
-    struct channel channels[PIO_MAX_CHANNELS];
+    struct xsock channels[PIO_MAX_CHANNELS];
 
     /* Stack of unused channel descriptors.  */
     int unused[PIO_MAX_CHANNELS];
@@ -142,7 +137,7 @@ struct channel_global {
     size_t nchannels;
     
 
-    struct channel_poll polls[PIO_MAX_CPUS];
+    struct xpoll polls[PIO_MAX_CPUS];
 
     /* Stack of unused channel descriptors.  */
     int poll_unused[PIO_MAX_CPUS];
@@ -158,27 +153,27 @@ struct channel_global {
     struct ssmap inproc_listeners;
 
     /* Channel vfptr head */
-    struct list_head channel_vf_head;
+    struct list_head xsock_vf_head;
 };
 
-#define list_for_each_channel_vf_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head, struct channel_vf, vf_item)
+#define list_for_each_xsock_vf_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head, struct xsock_vf, vf_item)
 
 
 
-extern struct channel_global cn_global;
+extern struct xglobal xglobal;
 
-#define global_vf_head &cn_global.channel_vf_head
-#define global_tpool &cn_global.tpool
-#define global_inplistenrs &cn_global.inproc_listeners
+#define global_vf_head &xglobal.xsock_vf_head
+#define global_tpool &xglobal.tpool
+#define global_inplistenrs &xglobal.inproc_listeners
 
 
-static inline void cn_global_lock() {
-    mutex_lock(&cn_global.lock);
+static inline void xglobal_lock() {
+    mutex_lock(&xglobal.lock);
 }
 
-static inline void cn_global_unlock() {
-    mutex_unlock(&cn_global.lock);
+static inline void xglobal_unlock() {
+    mutex_unlock(&xglobal.lock);
 }
 
 
@@ -194,22 +189,22 @@ static inline void cn_global_unlock() {
   +--------+------------+------------+
 */
 
-struct channel_msghdr {
+struct xmsghdr {
     uint16_t checksum;
     u32 size;
     char payload[0];
 };
 
-struct channel_msg {
+struct xmsg {
     struct list_head item;
-    struct channel_msghdr hdr;
+    struct xmsghdr hdr;
 };
 
 u32 msg_iovlen(char *payload);
 char *msg_iovbase(char *payload);
 
-#define list_for_each_channel_msg_safe(pos, next, head)			\
-    list_for_each_entry_safe(pos, next, head, struct channel_msg, item)
+#define list_for_each_xmsg_safe(pos, next, head)			\
+    list_for_each_entry_safe(pos, next, head, struct xmsg, item)
 
 
 #endif

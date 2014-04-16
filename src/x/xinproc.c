@@ -3,21 +3,21 @@
 #include <string.h>
 #include <errno.h>
 #include "runner/taskpool.h"
-#include "channel_base.h"
+#include "xbase.h"
 
-extern struct channel_global cn_global;
+extern struct xglobal xglobal;
 
-extern struct channel *cid_to_channel(int cd);
-extern void free_channel(struct channel *cn);
+extern struct xsock *cid_to_channel(int cd);
+extern void free_channel(struct xsock *cn);
 
-extern struct channel_msg *pop_rcv(struct channel *cn);
-extern void push_rcv(struct channel *cn, struct channel_msg *msg);
-extern struct channel_msg *pop_snd(struct channel *cn);
-extern int push_snd(struct channel *cn, struct channel_msg *msg);
+extern struct xmsg *pop_rcv(struct xsock *cn);
+extern void push_rcv(struct xsock *cn, struct xmsg *msg);
+extern struct xmsg *pop_snd(struct xsock *cn);
+extern int push_snd(struct xsock *cn, struct xmsg *msg);
 
-extern void upoll_notify(struct channel *cn, u32 vf_spec);
+extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
 
-static int channel_put(struct channel *cn) {
+static int xput(struct xsock *cn) {
     int old;
     mutex_lock(&cn->lock);
     old = cn->proc.ref--;
@@ -31,14 +31,14 @@ static int channel_put(struct channel *cn) {
  *  channel's proc field operation.
  ******************************************************************************/
 
-static struct channel *find_listener(char *addr) {
+static struct xsock *find_listener(char *addr) {
     struct ssmap_node *node;
-    struct channel *cn = NULL;
+    struct xsock *cn = NULL;
 
-    cn_global_lock();
-    if ((node = ssmap_find(&cn_global.inproc_listeners, addr, TP_SOCKADDRLEN)))
-	cn = cont_of(node, struct channel, proc.listener_node);
-    cn_global_unlock();
+    xglobal_lock();
+    if ((node = ssmap_find(&xglobal.inproc_listeners, addr, TP_SOCKADDRLEN)))
+	cn = cont_of(node, struct xsock, proc.listener_node);
+    xglobal_unlock();
     return cn;
 }
 
@@ -46,35 +46,35 @@ static int insert_listener(struct ssmap_node *node) {
     int rc = -1;
 
     errno = EADDRINUSE;
-    cn_global_lock();
-    if (!ssmap_find(&cn_global.inproc_listeners, node->key, node->keylen)) {
+    xglobal_lock();
+    if (!ssmap_find(&xglobal.inproc_listeners, node->key, node->keylen)) {
 	rc = 0;
-	ssmap_insert(&cn_global.inproc_listeners, node);
+	ssmap_insert(&xglobal.inproc_listeners, node);
     }
-    cn_global_unlock();
+    xglobal_unlock();
     return rc;
 }
 
 
 static void remove_listener(struct ssmap_node *node) {
-    cn_global_lock();
-    ssmap_delete(&cn_global.inproc_listeners, node);
-    cn_global_unlock();
+    xglobal_lock();
+    ssmap_delete(&xglobal.inproc_listeners, node);
+    xglobal_unlock();
 }
 
 
-static void push_new_connector(struct channel *cn, struct channel *new) {
+static void push_new_connector(struct xsock *cn, struct xsock *new) {
     mutex_lock(&cn->lock);
     list_add_tail(&new->proc.wait_item, &cn->proc.new_connectors);
     mutex_unlock(&cn->lock);
 }
 
-static struct channel *pop_new_connector(struct channel *cn) {
-    struct channel *new = NULL;
+static struct xsock *pop_new_connector(struct xsock *cn) {
+    struct xsock *new = NULL;
 
     mutex_lock(&cn->lock);
     if (!list_empty(&cn->proc.new_connectors)) {
-	new = list_first(&cn->proc.new_connectors, struct channel, proc.wait_item);
+	new = list_first(&cn->proc.new_connectors, struct xsock, proc.wait_item);
 	list_del_init(&new->proc.wait_item);
     }
     mutex_unlock(&cn->lock);
@@ -87,9 +87,9 @@ static struct channel *pop_new_connector(struct channel *cn) {
 
 static int snd_push_event(int cd) {
     int rc = 0, can = false;
-    struct channel_msg *msg;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel *peer = cn->proc.peer_channel;
+    struct xmsg *msg;
+    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *peer = cn->proc.peer_channel;
 
     // Unlock myself first because i hold the lock
     mutex_unlock(&cn->lock);
@@ -114,7 +114,7 @@ static int snd_push_event(int cd) {
 
 static int rcv_pop_event(int cd) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
+    struct xsock *cn = cid_to_channel(cd);
 
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
@@ -125,14 +125,14 @@ static int rcv_pop_event(int cd) {
 
 
 /******************************************************************************
- *  channel_vfptr
+ *  xsock_vfptr
  ******************************************************************************/
 
 static int inproc_accepter_init(int cd) {
     int rc = 0;
-    struct channel *me = cid_to_channel(cd);
-    struct channel *peer;
-    struct channel *parent = cid_to_channel(me->parent);
+    struct xsock *me = cid_to_channel(cd);
+    struct xsock *peer;
+    struct xsock *parent = cid_to_channel(me->parent);
 
     /* step1. Pop a new connector from parent's channel queue */
     if (!(peer = pop_new_connector(parent)))
@@ -162,7 +162,7 @@ static int inproc_accepter_init(int cd) {
 
 static int inproc_listener_init(int cd) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
+    struct xsock *cn = cid_to_channel(cd);
     struct ssmap_node *node = &cn->proc.listener_node;
 
     node->key = cn->addr;
@@ -176,8 +176,8 @@ static int inproc_listener_init(int cd) {
 
 static int inproc_listener_destroy(int cd) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel *new;
+    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *new;
 
     /* Avoiding the new connectors */
     remove_listener(&cn->proc.listener_node);
@@ -198,8 +198,8 @@ static int inproc_listener_destroy(int cd) {
 
 static int inproc_connector_init(int cd) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);
-    struct channel *listener = find_listener(cn->peer);
+    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *listener = find_listener(cn->peer);
 
     if (!listener) {
 	errno = ENOENT;	
@@ -209,10 +209,10 @@ static int inproc_connector_init(int cd) {
     cn->proc.peer_channel = NULL;
 
     /* step1. Push the new connector into listener's new_connectors
-     * queue and update_upoll_t for user-state poll
+     * queue and update_xpoll_t for user-state poll
      */
     push_new_connector(listener, cn);
-    upoll_notify(listener, UPOLLIN);
+    xpoll_notify(listener, XPOLLIN);
 
     /* step2. Hold lock and waiting for the connection established
      * if need. here only has two possible state too:
@@ -245,43 +245,43 @@ static int inproc_connector_init(int cd) {
 
 static int inproc_connector_destroy(int cd) {
     int rc = 0;
-    struct channel *cn = cid_to_channel(cd);    
-    struct channel *peer = cn->proc.peer_channel;
+    struct xsock *cn = cid_to_channel(cd);    
+    struct xsock *peer = cn->proc.peer_channel;
 
     /* Destroy the channel and free channel id if i hold the last ref. */
-    if (channel_put(peer) == 1) {
+    if (xput(peer) == 1) {
 	free_channel(peer);
     }
-    if (channel_put(cn) == 1) {
+    if (xput(cn) == 1) {
 	free_channel(cn);
     }
     return rc;
 }
 
 
-static int inproc_channel_init(int cd) {
-    struct channel *cn = cid_to_channel(cd);
+static int inproc_xinit(int cd) {
+    struct xsock *cn = cid_to_channel(cd);
 
     switch (cn->ty) {
-    case CHANNEL_ACCEPTER:
+    case XACCEPTER:
 	return inproc_accepter_init(cd);
-    case CHANNEL_CONNECTOR:
+    case XCONNECTOR:
 	return inproc_connector_init(cd);
-    case CHANNEL_LISTENER:
+    case XLISTENER:
 	return inproc_listener_init(cd);
     }
     return -EINVAL;
 }
 
-static void inproc_channel_destroy(int cd) {
-    struct channel *cn = cid_to_channel(cd);
+static void inproc_xdestroy(int cd) {
+    struct xsock *cn = cid_to_channel(cd);
 
     switch (cn->ty) {
-    case CHANNEL_ACCEPTER:
-    case CHANNEL_CONNECTOR:
+    case XACCEPTER:
+    case XCONNECTOR:
 	inproc_connector_destroy(cd);
 	break;
-    case CHANNEL_LISTENER:
+    case XLISTENER:
 	inproc_listener_destroy(cd);
 	break;
     default:
@@ -299,12 +299,12 @@ static void inproc_rcv_notify(int cd, uint32_t events) {
 	rcv_pop_event(cd);
 }
 
-static struct channel_vf inproc_channel_vf = {
+static struct xsock_vf inproc_xsock_vf = {
     .pf = PF_INPROC,
-    .init = inproc_channel_init,
-    .destroy = inproc_channel_destroy,
+    .init = inproc_xinit,
+    .destroy = inproc_xdestroy,
     .snd_notify = inproc_snd_notify,
     .rcv_notify = inproc_rcv_notify,
 };
 
-struct channel_vf *inproc_channel_vfptr = &inproc_channel_vf;
+struct xsock_vf *inproc_xsock_vfptr = &inproc_xsock_vf;
