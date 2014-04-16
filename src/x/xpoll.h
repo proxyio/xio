@@ -11,7 +11,7 @@ struct xpoll_notify {
 };
 
 struct xpoll_entry {
-    /* List item for linked other xpoll_entry of the same channel */
+    /* List item for linked other xpoll_entry of the same sock */
     struct list_head xlink;
 
     /* List item for linked other xpoll_entry of the same poll_table */
@@ -19,7 +19,7 @@ struct xpoll_entry {
 
     spin_t lock;
 
-    /* Reference hold by channel/xpoll_t */
+    /* Reference hold by x/xpoll_t */
     int ref;
 
     /* Reference backtrace for debuging */
@@ -40,9 +40,9 @@ struct xpoll_entry {
     list_for_each_entry_safe(pos, nx, head, struct xpoll_entry, xlink)
 
 
-struct xpoll_entry *entry_new();
-int entry_get(struct xpoll_entry *ent);
-int entry_put(struct xpoll_entry *ent);
+struct xpoll_entry *xent_new();
+int xent_get(struct xpoll_entry *ent);
+int xent_put(struct xpoll_entry *ent);
 
 struct xpoll_t {
     struct xpoll_notify notify;
@@ -56,17 +56,17 @@ struct xpoll_t {
     struct list_head lru_head;
 };
 
-struct xpoll_t *po_new();
-int po_get(struct xpoll_t *ut);
-int po_put(struct xpoll_t *ut);
+struct xpoll_t *xpoll_new();
+int xpoll_get(struct xpoll_t *ut);
+int xpoll_put(struct xpoll_t *ut);
 
-struct xpoll_entry *po_find(struct xpoll_t *po, int xd);
-struct xpoll_entry *po_popent(struct xpoll_t *po);
-struct xpoll_entry *po_getent(struct xpoll_t *po, int xd);
-struct xpoll_entry *po_putent(struct xpoll_t *po, int xd);
+struct xpoll_entry *xpoll_find(struct xpoll_t *po, int xd);
+struct xpoll_entry *xpoll_popent(struct xpoll_t *po);
+struct xpoll_entry *xpoll_getent(struct xpoll_t *po, int xd);
+struct xpoll_entry *xpoll_putent(struct xpoll_t *po, int xd);
 
-void attach_to_channel(struct xpoll_entry *ent, int xd);
-void __detach_from_channel(struct xpoll_entry *ent);
+void attach_to_xsock(struct xpoll_entry *ent, int xd);
+void __detach_from_xsock(struct xpoll_entry *ent);
 
 
 #endif

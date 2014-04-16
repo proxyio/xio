@@ -14,10 +14,10 @@
 #include "xpoll.h"
 
 /* Max number of concurrent socks. */
-#define PIO_MAX_SOCKS 10240
+#define XSOCK_MAX_SOCKS 10240
 
 /* Max number of cpu core */
-#define PIO_MAX_CPUS 32
+#define XSOCK_MAX_CPUS 32
 
 /* Define channel type for listner/accepter/connector */
 #define XLISTENER 1
@@ -130,19 +130,19 @@ struct xglobal {
        the channel is the index to this table. This pointer is also used to
        find out whether context is initialised. If it is NULL, context is
        uninitialised. */
-    struct xsock socks[PIO_MAX_SOCKS];
+    struct xsock socks[XSOCK_MAX_SOCKS];
 
     /* Stack of unused channel descriptors.  */
-    int unused[PIO_MAX_SOCKS];
+    int unused[XSOCK_MAX_SOCKS];
 
     /* Number of actual socks. */
     size_t nsocks;
     
 
-    struct xcpu cpus[PIO_MAX_CPUS];
+    struct xcpu cpus[XSOCK_MAX_CPUS];
 
     /* Stack of unused channel descriptors.  */
-    int cpu_unused[PIO_MAX_CPUS];
+    int cpu_unused[XSOCK_MAX_CPUS];
     
     /* Number of actual runner poller.  */
     size_t ncpus;

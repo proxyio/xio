@@ -18,11 +18,11 @@ static void
 event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev);
 
 struct xpoll_t *xpoll_create() {
-    struct xpoll_t *po = po_new();
+    struct xpoll_t *po = xpoll_new();
 
     if (po) {
 	po->notify.event = event_notify;
-	po_get(po);
+	xpoll_get(po);
     }
     return po;
 }
@@ -34,20 +34,20 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
     mutex_lock(&po->lock);
     BUG_ON(!ent->event.care);
     if (!attached(&ent->lru_link)) {
-	__detach_from_channel(ent);
+	__detach_from_xsock(ent);
 	mutex_unlock(&po->lock);
-	entry_put(ent);
+	xent_put(ent);
 	return;
     }
     spin_lock(&ent->lock);
     if (ev) {
-	DEBUG_OFF("channel %d update events %s", ent->event.xd, xpoll_str[ev]);
+	DEBUG_OFF("xsock %d update events %s", ent->event.xd, xpoll_str[ev]);
 	ent->event.happened = ev;
 	list_move(&ent->lru_link, &po->lru_head);
 	if (po->uwaiters)
 	    condition_broadcast(&po->cond);
     } else if (ent->event.happened && !ev) {
-	DEBUG_OFF("channel %d disable events notify", ent->event.xd);
+	DEBUG_OFF("xsock %d disable events notify", ent->event.xd);
 	ent->event.happened = 0;
 	list_move_tail(&ent->lru_link, &po->lru_head);
     }
@@ -58,7 +58,7 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
 extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
 
 static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
-    struct xpoll_entry *ent = po_getent(po, event->xd);
+    struct xpoll_entry *ent = xpoll_getent(po, event->xd);
     struct xsock *cn = xget(event->xd);
 
     if (!ent)
@@ -70,30 +70,30 @@ static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
     ent->notify = &po->notify;
     spin_unlock(&ent->lock);
 
-    /* We hold a ref here. it is used for channel */
+    /* We hold a ref here. it is used for xsock */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
-    attach_to_channel(ent, cn->xd);
+    attach_to_xsock(ent, cn->xd);
 
     xpoll_notify(cn, 0);
     return 0;
 }
 
 static int xpoll_rm(struct xpoll_t *po, struct xpoll_event *event) {
-    struct xpoll_entry *ent = po_putent(po, event->xd);
+    struct xpoll_entry *ent = xpoll_putent(po, event->xd);
 
     if (!ent) {
 	return -1;
     }
 
     /* Release the ref hold by xpoll_t */
-    entry_put(ent);
+    xent_put(ent);
     return 0;
 }
 
 
 static int xpoll_mod(struct xpoll_t *po, struct xpoll_event *event) {
     struct xsock *cn = xget(event->xd);
-    struct xpoll_entry *ent = po_find(po, event->xd);
+    struct xpoll_entry *ent = xpoll_find(po, event->xd);
 
     if (!ent)
 	return -1;
@@ -106,7 +106,7 @@ static int xpoll_mod(struct xpoll_t *po, struct xpoll_event *event) {
     xpoll_notify(cn, 0);
 
     /* Release the ref hold by caller */
-    entry_put(ent);
+    xent_put(ent);
     return 0;
 }
 
@@ -156,10 +156,10 @@ int xpoll_wait(struct xpoll_t *po, struct xpoll_event *ev_buf,
 void xpoll_close(struct xpoll_t *po) {
     struct xpoll_entry *ent;
 
-    while ((ent = po_popent(po))) {
+    while ((ent = xpoll_popent(po))) {
 	/* Release the ref hold by xpoll_t */
-	entry_put(ent);
+	xent_put(ent);
     }
     /* Release the ref hold by user-caller */
-    po_put(po);
+    xpoll_put(po);
 }

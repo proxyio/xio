@@ -7,20 +7,20 @@
 #include "xbase.h"
 
 /* Backend poller wait kernel timeout msec */
-#define PIO_ELOOPTIMEOUT 1
-#define PIO_ELOOPIOMAX 100
+#define DEF_ELOOPTIMEOUT 1
+#define DEF_ELOOPIOMAX 100
 
 /* Default input/output buffer size */
-static int PIO_SNDBUFSZ = 10485760;
-static int PIO_RCVBUFSZ = 10485760;
+static int DEF_SNDBUF = 10485760;
+static int DEF_RCVBUF = 10485760;
 
 
 struct xglobal xglobal = {};
 
 
-extern int has_closed_channel(struct xcpu *cpu);
-extern void push_closed_channel(struct xsock *xs);
-extern struct xsock *pop_closed_channel(struct xcpu *cpu);
+extern int has_closed_xsock(struct xcpu *cpu);
+extern void push_closed_xsock(struct xsock *xs);
+extern struct xsock *pop_closed_xsock(struct xcpu *cpu);
 
 void __xpoll_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
@@ -64,7 +64,7 @@ static int choose_backend_poll(int xd) {
 int xd_alloc() {
     int xd;
     mutex_lock(&xglobal.lock);
-    BUG_ON(xglobal.nsocks >= PIO_MAX_SOCKS);
+    BUG_ON(xglobal.nsocks >= XSOCK_MAX_SOCKS);
     xd = xglobal.unused[xglobal.nsocks++];
     mutex_unlock(&xglobal.lock);
     return xd;
@@ -95,8 +95,8 @@ static void xbase_init(int xd) {
     xs->snd_waiters = 0;
     xs->rcv = 0;
     xs->snd = 0;
-    xs->rcv_wnd = PIO_RCVBUFSZ;
-    xs->snd_wnd = PIO_SNDBUFSZ;
+    xs->rcv_wnd = DEF_RCVBUF;
+    xs->snd_wnd = DEF_SNDBUF;
     INIT_LIST_HEAD(&xs->rcv_head);
     INIT_LIST_HEAD(&xs->snd_head);
     INIT_LIST_HEAD(&xs->xpoll_head);
@@ -133,7 +133,7 @@ static void xbase_exit(int xd) {
     BUG_ON(attached(&xs->closing_link));
 
     /* It's possible that user call xclose() and xpoll_add()
-     * at the same time. and attach_to_channel() happen after xclose().
+     * at the same time. and attach_to_xsock() happen after xclose().
      * this is a user's bug.
      */
     BUG_ON(!list_empty(&xs->xpoll_head));
@@ -156,7 +156,7 @@ void xsock_free(struct xsock *xs) {
 int xcpu_alloc() {
     int cpu_no;
     mutex_lock(&xglobal.lock);
-    BUG_ON(xglobal.ncpus >= PIO_MAX_CPUS);
+    BUG_ON(xglobal.ncpus >= XSOCK_MAX_CPUS);
     cpu_no = xglobal.cpu_unused[xglobal.ncpus++];
     mutex_unlock(&xglobal.lock);
     return cpu_no;
@@ -173,7 +173,7 @@ struct xcpu *xcpuget(int cpu_no) {
 }
 
 
-int has_closed_channel(struct xcpu *cpu) {
+int has_closed_xsock(struct xcpu *cpu) {
     int has = true;
     spin_lock(&cpu->lock);
     if (list_empty(&cpu->closing_head))
@@ -182,7 +182,7 @@ int has_closed_channel(struct xcpu *cpu) {
     return has;
 }
 
-void push_closed_channel(struct xsock *xs) {
+void push_closed_xsock(struct xsock *xs) {
     struct xcpu *cpu = xcpuget(xs->cpu_no);
     
     spin_lock(&cpu->lock);
@@ -193,7 +193,7 @@ void push_closed_channel(struct xsock *xs) {
     spin_unlock(&cpu->lock);
 }
 
-struct xsock *pop_closed_channel(struct xcpu *cpu) {
+struct xsock *pop_closed_xsock(struct xcpu *cpu) {
     struct xsock *xs = NULL;
 
     spin_lock(&cpu->lock);
@@ -216,13 +216,13 @@ static inline int event_runner(void *args) {
     INIT_LIST_HEAD(&cpu->closing_head);
 
     /* Init eventloop and wakeup parent */
-    BUG_ON(eloop_init(&cpu->el, PIO_MAX_SOCKS/PIO_MAX_CPUS,
-		      PIO_ELOOPIOMAX, PIO_ELOOPTIMEOUT) != 0);
+    BUG_ON(eloop_init(&cpu->el, XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
+		      DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
     waitgroup_done(wg);
 
-    while (!xglobal.exiting || has_closed_channel(cpu)) {
+    while (!xglobal.exiting || has_closed_xsock(cpu)) {
 	eloop_once(&cpu->el);
-	while ((closing_xs = pop_closed_channel(cpu)))
+	while ((closing_xs = pop_closed_xsock(cpu)))
 	    closing_xs->vf->destroy(closing_xs->xd);
     }
 
@@ -249,9 +249,9 @@ void global_xinit() {
     xglobal.exiting = false;
     mutex_init(&xglobal.lock);
 
-    for (xd = 0; xd < PIO_MAX_SOCKS; xd++)
+    for (xd = 0; xd < XSOCK_MAX_SOCKS; xd++)
 	xglobal.unused[xd] = xd;
-    for (cpu_no = 0; cpu_no < PIO_MAX_CPUS; cpu_no++)
+    for (cpu_no = 0; cpu_no < XSOCK_MAX_CPUS; cpu_no++)
 	xglobal.cpu_unused[cpu_no] = cpu_no;
 
     xglobal.cpu_cores = 2;
@@ -287,12 +287,12 @@ void xclose(int xd) {
     xsock_walk_ent(ent, nx, &xs->xpoll_head) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
 	xpoll_ctl(po, XPOLL_DEL, &ent->event);
-	__detach_from_channel(ent);
-	entry_put(ent);
+	__detach_from_xsock(ent);
+	xent_put(ent);
     }
     mutex_unlock(&xs->lock);
     /* Let backend thread do the last destroy() */
-    push_closed_channel(xs);
+    push_closed_xsock(xs);
 }
 
 int xaccept(int xd) {
