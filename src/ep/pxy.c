@@ -60,21 +60,21 @@ static void try_enable_eventout(struct fd *f) {
     }
 }
 
-static struct ep_msg *mq_pop(struct fd *f) {
-    struct ep_msg *s = 0;
+static struct ep_hdr *mq_pop(struct fd *f) {
+    struct ep_hdr *h = 0;
 
     if (!list_empty(&f->mq)) {
 	f->mq_size--;
-	s = list_first(&f->mq, struct ep_msg, link);
-	list_del_init(&s->link);
+	h = list_first(&f->mq, struct ep_hdr, u.link);
+	list_del_init(&h->u.link);
     } else if (list_empty(&f->mq))
 	try_disable_eventout(f);
-    return s;
+    return h;
 }
 
-static int mq_push(struct fd *f, struct ep_msg *s) {
+static int mq_push(struct fd *f, struct ep_hdr *h) {
     f->mq_size++;
-    list_add_tail(&s->link, &f->mq);
+    list_add_tail(&h->u.link, &f->mq);
     if (!list_empty(&f->mq))
 	try_enable_eventout(f);
     return 0;
@@ -83,36 +83,34 @@ static int mq_push(struct fd *f, struct ep_msg *s) {
 /* Receive one request from frontend channel */
 static void rcver_recv(struct fd *f) {
     struct fd *gof;
-    struct ep_msg *s;
-    char *payload;
+    struct ep_hdr *h;
     struct xg *g = f->g;
 
-    while (xrecv(f->xd, &payload) == 0) {
+    while (xrecv(f->xd, (char **)&h) == 0) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
-	if (g->ssz <= 0 || !(s = ep_msg_new(payload))) {
+	if (g->ssz <= 0) {
 	    DEBUG_OFF("no any dispatchers");
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    continue;
 	}
 	/* Drop the timeout massage */
-	if (ep_msg_timeout(s) < 0) {
+	if (ep_hdr_timeout(h) < 0) {
 	    DEBUG_OFF("message is timeout");
-	    ep_msg_free(s);
+	    xfreemsg((char *)h);
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
-	if (ep_msg_validate(s) < 0) {
+	if (ep_hdr_validate(h) < 0) {
 	    DEBUG_OFF("invalid message's checksum");
-	    ep_msg_free(s);
+	    xfreemsg((char *)h);
 	    f->fok = false;
 	    break;
 	}
-	rt_go_cost(s);
+	rt_go_cost(h);
 
 	/* Round robin algo, selete a gof */
 	BUG_ON((gof = xg_rrbin_go(g)) == 0);
-	mq_push(gof, s);
-
+	mq_push(gof, h);
 	DEBUG_OFF("%d recv req and push into %d", f->xd, gof->xd);
     }
 
@@ -124,15 +122,14 @@ static void rcver_recv(struct fd *f) {
 
 /* Send one response to frontend channel */
 static void rcver_send(struct fd *f) {
-    struct ep_msg *s;
+    struct ep_hdr *h;
 
-    while (f->fok && (s = mq_pop(f))) {
-	rt_shrink_and_back(s);
-	if (xsend(f->xd, s->payload) == 0)
-	    s->payload = 0;
-	else
+    while (f->fok && (h = mq_pop(f))) {
+	rt_shrink_and_back(h);
+	if (xsend(f->xd, (char *)h) < 0) {
+	    xfreemsg((char *)h);
 	    f->fok = (errno == EAGAIN) ? true : false;
-	ep_msg_free(s);
+	}
 	DEBUG_OFF("%d pop resp and send into network", f->xd);
     }
 }
@@ -141,35 +138,34 @@ static void rcver_send(struct fd *f) {
 /* Dispatch one request to backend channel */
 static void snder_recv(struct fd *f) {
     struct fd *backf;
-    struct ep_msg *s;
-    struct ep_rt *r;
-    char *payload;
+    struct ep_hdr *h;
+    struct ep_rt *cr;
     struct xg *g = f->g;
 
-    while (xrecv(f->xd, &payload) == 0) {
-	if (g->rsz <= 0 || !(s = ep_msg_new(payload))) {
+    while (xrecv(f->xd, (char **)&h) == 0) {
+	if (g->rsz <= 0) {
 	    DEBUG_OFF("no any receivers");
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    continue;
 	}
 	/* Drop the timeout massage */
-	if (ep_msg_timeout(s) < 0) {
+	if (ep_hdr_timeout(h) < 0) {
 	    DEBUG_OFF("message is timeout");
-	    ep_msg_free(s);
+	    xfreemsg((char *)h);
 	    continue;
 	}
 	/* If massage has invalid checksum. set fd in bad status */
-	if (ep_msg_validate(s) < 0) {
+	if (ep_hdr_validate(h) < 0) {
 	    DEBUG_OFF("invalid message's checksum");
-	    ep_msg_free(s);
+	    xfreemsg((char *)h);
 	    f->fok = false;
 	    break;
 	}
-	rt_back_cost(s);
-	r = rt_prev(s);
+	rt_back_cost(h);
+	cr = rt_prev(h);
 	/* TODO: if not found any backfd. drop this response */
-	BUG_ON(!(backf = xg_route_back(g, r->uuid)));
-	mq_push(backf, s);
+	BUG_ON(!(backf = xg_route_back(g, cr->uuid)));
+	mq_push(backf, h);
 
 	DEBUG_OFF("%d recv resp and push into %d", f->xd, backf->xd);
     }
@@ -182,18 +178,16 @@ static void snder_recv(struct fd *f) {
 
 /* Receive one response from backend channel */
 static void snder_send(struct fd *f) {
-    struct ep_msg *s;
+    struct ep_hdr *h, *nh;
     struct ep_rt r = {};
     
-    while (f->fok && (s = mq_pop(f))) {
+    while (f->fok && (h = mq_pop(f))) {
 	uuid_copy(r.uuid, f->st.ud);
-	BUG_ON(rt_append_and_go(s, &r) != 0);
-
-	if (xsend(f->xd, s->payload) == 0)
-	    s->payload = 0;
-	else
+	BUG_ON(!(nh = rt_append_and_go(h, &r)));
+	if (xsend(f->xd, (char *)nh) < 0) {
+	    xfreemsg((char *)nh);
 	    f->fok = (errno == EAGAIN) ? true : false;
-	ep_msg_free(s);
+	}
 	DEBUG_OFF("%d pop req and send into network", f->xd);
     }
 }

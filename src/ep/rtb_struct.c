@@ -17,14 +17,14 @@ struct fd *fd_new() {
 }
 
 void fd_free(struct fd *f) {
-    struct ep_msg *s, *ns;
+    struct ep_hdr *h, *nh;
 
     BUG_ON(attached(&f->link));
     if (f->xd >= 0)
 	xclose(f->xd);
-    list_for_each_ep_msg(s, ns, &f->mq) {
-	list_del_init(&s->link);
-	ep_msg_free(s);
+    list_for_each_ep_hdr(h, nh, &f->mq) {
+	list_del_init(&h->u.link);
+	xfreemsg((char *)h);
     }
     mem_free(f, sizeof(*f));
 }

@@ -25,53 +25,42 @@ struct ep_hdr {
     u16 timeout;
     i64 sendstamp;
     u16 checksum;
+    union {
+	u64 __align[2];
+	struct list_head link;
+    } u;
+    struct ep_rt rt[0];
 };
 
-struct ep_msg {
-    char *payload;
-    struct ep_hdr *h;
-    struct ep_rt *r;
-    struct list_head link;
-};
+#define list_for_each_ep_hdr(h, nh, head)				\
+    list_for_each_entry_safe(h, nh, head, struct ep_hdr, u.link)
 
-#define list_for_each_ep_msg(s, ns, head)			\
-    list_for_each_entry_safe(s, ns, head, struct ep_msg, link)
-
-static inline u32 rt_size(struct ep_hdr *h) {
+static inline u32 hdr_size(struct ep_hdr *h) {
     u32 ttl = h->go ? h->ttl : h->end_ttl;
-    return ttl * sizeof(struct ep_rt);
+    return sizeof(*h) + ttl * sizeof(struct ep_rt);
 }
 
-static inline int ep_msg_timeout(struct ep_msg *s) {
-    struct ep_hdr *h = s->h;
+static inline int ep_hdr_timeout(struct ep_hdr *h) {
     return h->timeout && (h->sendstamp + h->timeout < rt_mstime());
 }
 
-int ep_msg_validate(struct ep_msg *s);
-void ep_msg_gensum(struct ep_msg *s);
+int ep_hdr_validate(struct ep_hdr *h);
+void ep_hdr_gensum(struct ep_hdr *h);
 
-#define rt_cur(s) (&(s)->r[(s)->h->ttl - 1])
-#define rt_prev(s) (&(s)->r[(s)->h->ttl - 2])
+#define rt_cur(h) (&(h)->rt[(h)->ttl - 1])
+#define rt_prev(h) (&(h)->rt[(h)->ttl - 2])
 
-static inline void rt_go_cost(struct ep_msg *s) {
-    struct ep_hdr *h = s->h;
-    struct ep_rt *r = rt_cur(s);
-    r->cost[0] = (u16)(rt_mstime() - h->sendstamp - r->begin[0]);
+static inline void rt_go_cost(struct ep_hdr *h) {
+    struct ep_rt *cr = rt_cur(h);
+    cr->cost[0] = (u16)(rt_mstime() - h->sendstamp - cr->begin[0]);
 }
 
-static inline void rt_back_cost(struct ep_msg *s) {
-    struct ep_hdr *h = s->h;
-    struct ep_rt *r = rt_cur(s);
-    r->cost[1] = (u16)(rt_mstime() - h->sendstamp - r->begin[1]);
+static inline void rt_back_cost(struct ep_hdr *h) {
+    struct ep_rt *cr = rt_cur(h);
+    cr->cost[1] = (u16)(rt_mstime() - h->sendstamp - cr->begin[1]);
 }
 
-int rt_append_and_go(struct ep_msg *s, struct ep_rt *r);
-void rt_shrink_and_back(struct ep_msg *s);
-
-struct ep_msg *ep_msg_new(char *payload);
-void ep_msg_init(struct ep_msg *s, char *payload);
-void ep_msg_free(struct ep_msg *s);
-
-
+struct ep_hdr *rt_append_and_go(struct ep_hdr *h, struct ep_rt *r);
+void rt_shrink_and_back(struct ep_hdr *h);
 
 #endif

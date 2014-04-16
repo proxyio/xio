@@ -38,18 +38,15 @@ int ep_connect(struct ep *ep, const char *url) {
 int ep_send_req(struct ep *ep, char *req) {
     int rc;
     struct pxy *y = &ep->y;
-    struct ep_msg s;
     struct ep_hdr *h;
-    struct ep_rt *r;
+    struct ep_rt *cr;
     struct fd *f;
-    u32 hdr_and_rt_len = sizeof(*h) + sizeof(*r);
+    u32 hdr_sz = sizeof(*h) + sizeof(*cr);
 
-    s.payload = xallocmsg(xmsglen(req) + hdr_and_rt_len);
-    if (!s.payload) {
+    if (!(h = (struct ep_hdr *)xallocmsg(xmsglen(req) + hdr_sz)))
 	return -1;
-    }
-    /* Append ep_msg header and route. The proxy package frame header */
-    h = s.h = (struct ep_hdr *)s.payload;
+
+    /* Append ep_hdr and route. The proxy package frame header */
     h->version = 0;
     h->ttl = 1;
     h->end_ttl = 0;
@@ -59,27 +56,26 @@ int ep_send_req(struct ep *ep, char *req) {
     h->checksum = 0;
     h->sendstamp = rt_mstime();
 
-    memcpy(s.payload + sizeof(*h) + sizeof(*r), req, xmsglen(req));
+    memcpy((char *)h + hdr_size(h), req, xmsglen(req));
     xfreemsg(req);
+
     /* Update header checksum */
-    ep_msg_gensum(&s);
+    ep_hdr_gensum(h);
 
     /* RoundRobin algo select a struct fd */
     BUG_ON(!(f = rtb_rrbin_go(&y->tb)));
-    r = s.r = (struct ep_rt *)(s.payload + sizeof(*h));
-    uuid_copy(r->uuid, f->st.ud);
-    rc = xsend(f->xd, s.payload);
+    cr = rt_cur(h);
+    uuid_copy(cr->uuid, f->st.ud);
+    rc = xsend(f->xd, (char *)h);
     DEBUG_OFF("channel %d send req into network", f->xd);
     return rc;
 }
 
 int ep_recv_resp(struct ep *ep, char **resp) {
-    struct fd *f;
     int n;
-    char *payload;
-    struct ep_msg s;
-    struct ep_hdr *h;
     struct pxy *y = &ep->y;
+    struct fd *f;
+    struct ep_hdr *h;
     struct xpoll_event ev = {};
 
     if ((n = xpoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
@@ -89,34 +85,33 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     if (!(ev.happened & XPOLLIN))
 	goto AGAIN;
     f = (struct fd *)ev.self;
-    if (xrecv(f->xd, &payload) == 0) {
+    if (xrecv(f->xd, (char **)&h) == 0) {
 	DEBUG_ON("channel %d recv resp", f->xd);
-	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
-	if (ep_msg_timeout(&s) < 0) {
+	if (ep_hdr_timeout(h) < 0) {
 	    DEBUG_ON("message is timeout");
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    goto AGAIN;
 	}
 
 	/* If message has invalid header checkusm. return error */
-	if (ep_msg_validate(&s) < 0) {
+	if (ep_hdr_validate(h) < 0) {
 	    DEBUG_ON("invalid message's checksum");
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    f->fok = false;
 	    goto AGAIN;
 	}
-	h = s.h;
 	if (!(*resp = xallocmsg(h->size))) {
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    goto AGAIN;
 	}
+
 	/* Copy response into user-space */
-	memcpy(*resp, payload + sizeof(*h) + rt_size(h), h->size);
+	memcpy(*resp, (char *)h + hdr_size(h), h->size);
 
 	/* Payload was copy into user-space. */
-	xfreemsg(payload);
+	xfreemsg((char *)h);
 
 	DEBUG_ON("channel %d send req into network", f->xd);
 	return 0;
@@ -132,12 +127,10 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 
 /* Comsumer endpoint api : recv_req and send_resp */
 int ep_recv_req(struct ep *ep, char **req, char **r) {
-    struct fd *f;
     int n;
-    char *payload;
-    struct ep_msg s;
-    struct ep_hdr *h;
     struct pxy *y = &ep->y;
+    struct fd *f;
+    struct ep_hdr *h;
     struct xpoll_event ev = {};
 
     if ((n = xpoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
@@ -148,39 +141,35 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	goto AGAIN;
 
     f = (struct fd *)ev.self;
-    if (xrecv(f->xd, &payload) == 0) {
-	ep_msg_init(&s, payload);
-
+    if (xrecv(f->xd, (char **)&h) == 0) {
 	/* Drop the timeout message */
-	if (ep_msg_timeout(&s) < 0) {
+	if (ep_hdr_timeout(h) < 0) {
 	    DEBUG_ON("message is timeout");
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    goto AGAIN;
 	}
 	/* If message has invalid header checkusm. return error */
-	if (ep_msg_validate(&s) < 0) {
+	if (ep_hdr_validate(h) < 0) {
 	    DEBUG_ON("invalid message's checksum");
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    f->fok = false;
 	    goto AGAIN;
 	}
-	h = s.h;
 	if (!(*req = xallocmsg(h->size))) {
-	    xfreemsg(payload);
+	    xfreemsg((char *)h);
 	    goto AGAIN;
 	}
-	if (!(*r = xallocmsg(sizeof(*h) + rt_size(h)))) {
-	    xfreemsg(payload);
+	if (!(*r = xallocmsg(hdr_size(h)))) {
+	    xfreemsg((char *)h);
 	    xfreemsg(*req);
 	    goto AGAIN;
 	}
 	/* Copy req into user-space */
-	memcpy(*req, payload + sizeof(*h) + rt_size(h), h->size);
-	memcpy(*r, h, sizeof(*h));
-	memcpy((*r) + sizeof(*h), s.r, rt_size(h));
+	memcpy(*req, (char *)h + hdr_size(h), h->size);
+	memcpy(*r, h, hdr_size(h));
 
 	/* Payload was copy into user-space. */
-	xfreemsg(payload);
+	xfreemsg((char *)h);
 
 	DEBUG_ON("channel %d recv req from network", f->xd);
 	return 0;
@@ -196,40 +185,31 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 
 int ep_send_resp(struct ep *ep, char *resp, char *r) {
     int rc;
-    struct ep_msg s;
-    struct ep_hdr *h = (struct ep_hdr *)r;
-    struct fd *f;
-    struct ep_rt *cr;
     struct pxy *y = &ep->y;
+    struct fd *f;
+    struct ep_hdr *h = (struct ep_hdr *)r;
+    struct ep_hdr *nh;
+    struct ep_rt *cr;
 
-    s.payload = xallocmsg(xmsglen(resp) + xmsglen(r));
-    if (!s.payload)
+    if (!(nh = (struct ep_hdr *)xallocmsg(xmsglen(resp) + xmsglen(r))))
 	return -1;
+    memcpy(nh, h, hdr_size(h));
+    memcpy((char *)nh + hdr_size(h), resp, xmsglen(resp));
 
     /* Copy header */
-    h->end_ttl = h->ttl;
-    h->go = false;
-    h->size = xmsglen(resp);
-    memcpy(s.payload, (char *)h, sizeof(*h));
-    h = s.h = (struct ep_hdr *)s.payload;
-
-    /* Copy response payload */
-    memcpy(s.payload + sizeof(*h) + rt_size(h), resp, h->size);
-
-    /* Copy route */
-    s.r = (struct ep_rt *)(s.payload + sizeof(*h));
-    memcpy(s.r, r + sizeof(*h), rt_size(h));
+    nh->end_ttl = nh->ttl;
+    nh->go = false;
+    nh->size = xmsglen(resp);
 
     xfreemsg(r);
     xfreemsg(resp);
 
     /* Update header checksum */
-    ep_msg_gensum(&s);
-
-    cr = rt_cur(&s);
+    ep_hdr_gensum(nh);
+    cr = rt_cur(nh);
     BUG_ON(!(f = rtb_route_back(&y->tb, cr->uuid)));
     DEBUG_OFF("channel %d send resp into network", f->xd);
-    rc = xsend(f->xd, s.payload);
+    rc = xsend(f->xd, (char *)nh);
     return rc;
 }
 

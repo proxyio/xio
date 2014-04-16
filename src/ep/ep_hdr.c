@@ -6,30 +6,7 @@
 #include "hash/crc.h"
 #include "ep_hdr.h"
 
-void ep_msg_init(struct ep_msg *s, char *payload) {
-    INIT_LIST_HEAD(&s->link);
-    if (payload) {
-	s->payload = payload;
-	s->h = (struct ep_hdr *)payload;
-	s->r = (struct ep_rt *)(payload + sizeof(*s->h));
-    }
-}
-
-struct ep_msg *ep_msg_new(char *payload) {
-    struct ep_msg *s = (struct ep_msg *)mem_zalloc(sizeof(*s));
-    if (s)
-	ep_msg_init(s, payload);
-    return s;
-}
-
-void ep_msg_free(struct ep_msg *s) {
-    if (s->payload)
-	xfreemsg(s->payload);
-    mem_free(s, sizeof(struct ep_msg));
-}
-
-int ep_msg_validate(struct ep_msg *s) {
-    struct ep_hdr *h = s->h;
+int ep_hdr_validate(struct ep_hdr *h) {
     struct ep_hdr copyheader = *h;
     int ok;
 
@@ -39,52 +16,41 @@ int ep_msg_validate(struct ep_msg *s) {
     return ok;
 }
 
-void ep_msg_gensum(struct ep_msg *s) {
-    struct ep_hdr *h = s->h;
+void ep_hdr_gensum(struct ep_hdr *h) {
     struct ep_hdr copyheader = *h;
 
     copyheader.checksum = 0;
     h->checksum = crc16((char *)&copyheader, sizeof(*h));
 }
 
-int rt_append_and_go(struct ep_msg *s, struct ep_rt *r) {
+struct ep_hdr *rt_append_and_go(struct ep_hdr *h, struct ep_rt *r) {
     struct ep_rt *cr;
-    struct ep_hdr *h = s->h;
     u64 now = rt_mstime();
-    char *new_payload;
+    struct ep_hdr *nh;
     
-    cr = rt_cur(s);
+    cr = rt_cur(h);
     cr->stay[0] = (u16)(now - h->sendstamp - cr->begin[0]);
-    new_payload = xallocmsg(xmsglen(s->payload) + sizeof(*r));
-    if (!new_payload)
-	return -1;
-    memcpy(new_payload, s->payload, sizeof(*h) + rt_size(h));
-    memcpy(new_payload + sizeof(*h) + rt_size(h) + sizeof(*r), s->payload + sizeof(*h) + rt_size(h),
-	   h->size);
-    xfreemsg(s->payload);
-    s->payload = new_payload;
-
-    /* The new header and route */
-    h = s->h = (struct ep_hdr *)s->payload;
-    h->ttl++;
-    s->r = (struct ep_rt *)(s->payload + sizeof(*h));
-
-    /* Copy the new route info */
-    cr = rt_cur(s);
+    if (!(nh = (struct ep_hdr *)xallocmsg(xmsglen((char *)h) + sizeof(*r))))
+	return 0;
+    memcpy(nh, h, hdr_size(h));
+    memcpy((char *)nh + hdr_size(h) + sizeof(*r),
+	   (char *)h + hdr_size(h), h->size);
+    xfreemsg((char *)h);
+    nh->ttl++;
+    cr = rt_cur(nh);
     *cr = *r;
-    cr->begin[0] = (u16)(now - h->sendstamp);
-    ep_msg_gensum(s);
-    return 0;
+    cr->begin[0] = (u16)(now - nh->sendstamp);
+    ep_hdr_gensum(nh);
+    return nh;
 }
 
-void rt_shrink_and_back(struct ep_msg *s) {
-    struct ep_rt *r = rt_cur(s);
-    struct ep_hdr *h = s->h;
+void rt_shrink_and_back(struct ep_hdr *h) {
+    struct ep_rt *cr = rt_cur(h);
     u64 now = rt_mstime();
 
-    r->stay[1] = (now - h->sendstamp - r->begin[1] - r->cost[1]);
+    cr->stay[1] = (now - h->sendstamp - cr->begin[1] - cr->cost[1]);
     h->ttl--;
-    ep_msg_gensum(s);
-    r = rt_cur(s);
-    r->begin[1] = (u16)(now - h->sendstamp);
+    ep_hdr_gensum(h);
+    cr = rt_cur(h);
+    cr->begin[1] = (u16)(now - h->sendstamp);
 }
