@@ -33,11 +33,11 @@
 
 struct xsock_vf {
     int pf;
-    int (*init) (int cd);
-    void (*destroy) (int cd);
+    int (*init) (int xd);
+    void (*destroy) (int xd);
     /* The lock is hold by the caller */
-    void (*snd_notify) (int cd, u32 events);
-    void (*rcv_notify) (int cd, u32 events);
+    void (*snd_notify) (int xd, u32 events);
+    void (*rcv_notify) (int xd, u32 events);
     struct list_head vf_item;
 };
 
@@ -53,8 +53,8 @@ struct xsock {
     uint64_t fok:1;
     uint64_t fclosed:1;
     int parent;
-    int cd;
-    int pollid;
+    int xd;
+    int cpu_no;
     int rcv_waiters;
     int snd_waiters;
     uint64_t rcv;
@@ -96,6 +96,7 @@ struct xsock {
     } proc;
 };
 
+
 // We guarantee that we can push one massage at least.
 static inline int can_send(struct xsock *cn) {
     return list_empty(&cn->snd_head) || cn->snd < cn->snd_wnd;
@@ -105,11 +106,12 @@ static inline int can_recv(struct xsock *cn) {
     return list_empty(&cn->rcv_head) || cn->rcv < cn->rcv_wnd;
 }
 
-#define list_for_each_new_connector_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head, struct xsock, wait_item)
+#define xsock_walk_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head,		\
+			     struct xsock, wait_item)
 
 
-struct xtaskor {
+struct xcpu {
     spin_t lock;
 
     /* Backend eventloop for io runner. */
@@ -137,13 +139,13 @@ struct xglobal {
     size_t nsocks;
     
 
-    struct xtaskor polls[PIO_MAX_CPUS];
+    struct xcpu cpus[PIO_MAX_CPUS];
 
     /* Stack of unused channel descriptors.  */
-    int poll_unused[PIO_MAX_CPUS];
+    int cpu_unused[PIO_MAX_CPUS];
     
     /* Number of actual runner poller.  */
-    size_t npolls;
+    size_t ncpus;
 
     /* Backend cpu_cores and taskpool for io runner.  */
     int cpu_cores;
@@ -156,7 +158,9 @@ struct xglobal {
     struct list_head xsock_vf_head;
 };
 
-#define list_for_each_xsock_vf_safe(pos, nx, head)			\
+struct xsock *xget(int xd);
+
+#define xsock_vf_walk_safe(pos, nx, head)				\
     list_for_each_entry_safe(pos, nx, head, struct xsock_vf, vf_item)
 
 
@@ -203,7 +207,7 @@ struct xmsg {
 u32 msg_iovlen(char *payload);
 char *msg_iovbase(char *payload);
 
-#define list_for_each_xmsg_safe(pos, next, head)			\
+#define xmsg_walk_safe(pos, next, head)					\
     list_for_each_entry_safe(pos, next, head, struct xmsg, item)
 
 

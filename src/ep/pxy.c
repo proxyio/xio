@@ -3,7 +3,7 @@
 #include <os/timesz.h>
 #include "pxy.h"
 
-extern struct channel *cid_to_channel(int cd);
+extern struct channel *xget(int xd);
 
 const char *ep_str[] = {
     "RECEIVER",
@@ -43,7 +43,7 @@ static void try_disable_eventout(struct fd *f) {
     struct pxy *y = fd_getself(f, struct pxy);
 
     if (f->event.care & XPOLLOUT) {
-	DEBUG_OFF("disable %d XPOLLOUT", f->cd);
+	DEBUG_OFF("disable %d XPOLLOUT", f->xd);
 	f->event.care &= ~XPOLLOUT;
 	BUG_ON((rc = xpoll_ctl(y->po, XPOLL_MOD, &f->event)) != 0);
     }
@@ -54,7 +54,7 @@ static void try_enable_eventout(struct fd *f) {
     struct pxy *y = fd_getself(f, struct pxy);
 
     if (!(f->event.care & XPOLLOUT)) {
-	DEBUG_OFF("enable %d XPOLLOUT", f->cd);
+	DEBUG_OFF("enable %d XPOLLOUT", f->xd);
 	f->event.care |= XPOLLOUT;
 	BUG_ON((rc = xpoll_ctl(y->po, XPOLL_MOD, &f->event)) != 0);
     }
@@ -87,7 +87,7 @@ static void rcver_recv(struct fd *f) {
     char *payload;
     struct xg *g = f->g;
 
-    while (xrecv(f->cd, &payload) == 0) {
+    while (xrecv(f->xd, &payload) == 0) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
 	if (g->ssz <= 0 || !(s = ep_msg_new(payload))) {
 	    DEBUG_OFF("no any dispatchers");
@@ -113,7 +113,7 @@ static void rcver_recv(struct fd *f) {
 	BUG_ON((gof = xg_rrbin_go(g)) == 0);
 	mq_push(gof, s);
 
-	DEBUG_OFF("%d recv req and push into %d", f->cd, gof->cd);
+	DEBUG_OFF("%d recv req and push into %d", f->xd, gof->xd);
     }
 
     /* EPIPE */
@@ -128,12 +128,12 @@ static void rcver_send(struct fd *f) {
 
     while (f->fok && (s = mq_pop(f))) {
 	rt_shrink_and_back(s);
-	if (xsend(f->cd, s->payload) == 0)
+	if (xsend(f->xd, s->payload) == 0)
 	    s->payload = 0;
 	else
 	    f->fok = (errno == EAGAIN) ? true : false;
 	ep_msg_free(s);
-	DEBUG_OFF("%d pop resp and send into network", f->cd);
+	DEBUG_OFF("%d pop resp and send into network", f->xd);
     }
 }
 
@@ -146,7 +146,7 @@ static void snder_recv(struct fd *f) {
     char *payload;
     struct xg *g = f->g;
 
-    while (xrecv(f->cd, &payload) == 0) {
+    while (xrecv(f->xd, &payload) == 0) {
 	if (g->rsz <= 0 || !(s = ep_msg_new(payload))) {
 	    DEBUG_OFF("no any receivers");
 	    xfreemsg(payload);
@@ -171,7 +171,7 @@ static void snder_recv(struct fd *f) {
 	BUG_ON(!(backf = xg_route_back(g, r->uuid)));
 	mq_push(backf, s);
 
-	DEBUG_OFF("%d recv resp and push into %d", f->cd, backf->cd);
+	DEBUG_OFF("%d recv resp and push into %d", f->xd, backf->xd);
     }
 
     /* EPIPE */
@@ -189,43 +189,43 @@ static void snder_send(struct fd *f) {
 	uuid_copy(r.uuid, f->st.ud);
 	BUG_ON(rt_append_and_go(s, &r) != 0);
 
-	if (xsend(f->cd, s->payload) == 0)
+	if (xsend(f->xd, s->payload) == 0)
 	    s->payload = 0;
 	else
 	    f->fok = (errno == EAGAIN) ? true : false;
 	ep_msg_free(s);
-	DEBUG_OFF("%d pop req and send into network", f->cd);
+	DEBUG_OFF("%d pop req and send into network", f->xd);
     }
 }
 
 
 static void rcver_event_handler(struct fd *f, u32 events) {
-    struct channel *cn = cid_to_channel(f->cd);
+    struct channel *cn = xget(f->xd);
 
     DEBUG_OFF("%d receiver has events %s and recv-Q:%ld send-Q:%ld",
-	      f->cd, xpoll_str[events], cn->rcv, cn->snd);
+	      f->xd, xpoll_str[events], cn->rcv, cn->snd);
     if (f->fok && (events & XPOLLIN))
 	rcver_recv(f);
     if (f->fok && (events & XPOLLOUT))
 	rcver_send(f);
     if (f->fok && (events & XPOLLERR)) {
 	f->fok = false;
-	DEBUG_OFF("%d bad status", f->cd);
+	DEBUG_OFF("%d bad status", f->xd);
     }
 }
 
 static void snder_event_handler(struct fd *f, u32 events) {
-    struct channel *cn = cid_to_channel(f->cd);
+    struct channel *cn = xget(f->xd);
 
     DEBUG_OFF("%d dispatcher has events %s and recv-Q:%ld send-Q:%ld",
-	      f->cd, xpoll_str[events], cn->rcv, cn->snd);
+	      f->xd, xpoll_str[events], cn->rcv, cn->snd);
     if (f->fok && (events & XPOLLIN))
 	snder_recv(f);
     if (f->fok && (events & XPOLLOUT))
 	snder_send(f);
     if (f->fok && (events & XPOLLERR)) {
 	f->fok = false;
-	DEBUG_OFF("%d bad status", f->cd);
+	DEBUG_OFF("%d bad status", f->xd);
     }
 }
 
@@ -235,16 +235,16 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 
     if (!(events & XPOLLIN))
 	return;
-    if (xrecv(f->cd, (char **)&syn) == 0) {
+    if (xrecv(f->xd, (char **)&syn) == 0) {
 	/* Recv syn */
 	if (xmsglen((char *)syn) != sizeof(f->st)
 	    || !(syn->type & (RECEIVER|DISPATCHER))) {
 	    xfreemsg((char *)syn);
 	    f->fok = false;
-	    DEBUG_OFF("recv invalid syn from channel %d", f->cd);
+	    DEBUG_OFF("recv invalid syn from channel %d", f->xd);
 	    return;
 	}
-	DEBUG_OFF("recv syn from channel %d", f->cd);
+	DEBUG_OFF("recv syn from channel %d", f->xd);
 
 	/* Detach from pxy's unknown_head */
 	list_del_init(&f->link);
@@ -253,11 +253,11 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	BUG_ON(rtb_mapfd(&y->tb, f));
 
 	/* Send synack */
-	BUG_ON(xsend(f->cd, (char *)syn) != 0);
-	DEBUG_OFF("send syn to channel %d", f->cd);
+	BUG_ON(xsend(f->xd, (char *)syn) != 0);
+	DEBUG_OFF("send syn to channel %d", f->xd);
 	DEBUG_ON("pxy register an %s", ep_str[f->st.type]);
     } else if (errno != EAGAIN) {
-	DEBUG_ON("unregister channel %d EPIPE", f->cd);
+	DEBUG_ON("unregister channel %d EPIPE", f->xd);
 	f->fok = false;
     }
 }
@@ -280,7 +280,7 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 
     /* If fd status bad. destroy it */
     if (!f->fok) {
-	DEBUG_OFF("%s channel %d EPIPE", ep_str[f->st.type], f->cd);
+	DEBUG_OFF("%s channel %d EPIPE", ep_str[f->st.type], f->xd);
 	rtb_unmapfd(&y->tb, f);
 	BUG_ON(xpoll_ctl(y->po, XPOLL_DEL, &f->event) != 0);
 	fd_free(f);
@@ -290,33 +290,33 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 static void pxy_listener_handler(struct fd *f, u32 events) {
     struct pxy *y = fd_getself(f, struct pxy);
     int on = 1;
-    int new_cd;
+    int new_xd;
     struct fd *newf;
     
     DEBUG_ON("listener events %s", xpoll_str[events]);
     if (events & XPOLLIN) {
-	while ((new_cd = xaccept(f->cd)) >= 0) {
+	while ((new_xd = xaccept(f->xd)) >= 0) {
 	    if (!(newf = fd_new())) {
-		xclose(new_cd);
+		xclose(new_xd);
 		break;
 	    }
 	    /* NOBLOCKING */
-	    xsetopt(new_cd, XNOBLOCK, &on, sizeof(on));
+	    xsetopt(new_xd, XNOBLOCK, &on, sizeof(on));
 	    newf->self = y;
 	    newf->h = pxy_connector_handler;
-	    newf->event.cd = new_cd;
+	    newf->event.xd = new_xd;
 	    newf->event.care = XPOLLIN|XPOLLOUT|XPOLLERR;
 	    newf->event.self = newf;
-	    newf->cd = new_cd;
+	    newf->xd = new_xd;
 	    list_add_tail(&newf->link, &y->unknown);
 	    BUG_ON(xpoll_ctl(y->po, XPOLL_ADD, &newf->event) != 0);
-	    DEBUG_ON("listener create a new channel %d", new_cd);
+	    DEBUG_ON("listener create a new channel %d", new_xd);
 	}
     }
 
     /* If listener fd status bad. destroy it and we should relisten */
     if (!f->fok || (events & XPOLLERR)) {
-	DEBUG_OFF("listener endpoint %d EPIPE", f->cd);
+	DEBUG_OFF("listener endpoint %d EPIPE", f->xd);
     }
 }
 
@@ -334,21 +334,21 @@ int pxy_listen(struct pxy *y, const char *url) {
 	errno = EINVAL;
 	return -1;
     }
-    if ((f->cd = xlisten(pf, sockaddr)) < 0) {
+    if ((f->xd = xlisten(pf, sockaddr)) < 0) {
 	fd_free(f);
 	return -1;
     }
 
     /* NOBLOCKING */
-    xsetopt(f->cd, XNOBLOCK, &on, sizeof(on));
+    xsetopt(f->xd, XNOBLOCK, &on, sizeof(on));
     list_add(&f->link, &y->listener);
     f->self = y;
-    f->event.cd = f->cd;
+    f->event.xd = f->xd;
     f->event.care = XPOLLIN|XPOLLERR;
     f->event.self = f;
     f->h = pxy_listener_handler;
     BUG_ON(xpoll_ctl(y->po, XPOLL_ADD, &f->event) != 0);
-    DEBUG_ON("channel %d listen on sockaddr %s", f->cd, url);
+    DEBUG_ON("channel %d listen on sockaddr %s", f->xd, url);
     return 0;
 }
 
@@ -376,29 +376,29 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
 	fd_free(f);
 	return -1;
     }
-    if ((f->cd = xconnect(pf, sockaddr)) < 0) {
+    if ((f->xd = xconnect(pf, sockaddr)) < 0) {
     EXIT:
 	fd_free(f);
 	xfreemsg((char *)syn);
 	return -1;
     }
-    DEBUG_ON("channel %d connect ok", f->cd);
+    DEBUG_ON("channel %d connect ok", f->xd);
     *syn = f->st;
     syn->type = (~syn->type) & (DISPATCHER|RECEIVER);
 
     /* syn-send state */
-    if (xsend(f->cd, (char *)syn) < 0)
+    if (xsend(f->xd, (char *)syn) < 0)
 	goto EXIT;
 
     /* syn-ack state */
-    if (xrecv(f->cd, (char **)&syn) < 0) {
+    if (xrecv(f->xd, (char **)&syn) < 0) {
 	return -1;
     }
 
     /* NOBLOCKING */
-    xsetopt(f->cd, XNOBLOCK, &on, sizeof(on));
+    xsetopt(f->xd, XNOBLOCK, &on, sizeof(on));
     f->self = y;
-    f->event.cd = f->cd;
+    f->event.xd = f->xd;
     f->event.care = ev;
     f->event.self = f;
     f->h = pxy_connector_handler;
@@ -435,7 +435,7 @@ int pxy_onceloop(struct pxy *y) {
     }
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
-	DEBUG_ON("%d %s", f->cd, xpoll_str[ev[i].happened]);
+	DEBUG_ON("%d %s", f->xd, xpoll_str[ev[i].happened]);
 	f->h(f, ev[i].happened);
     }
     return 0;

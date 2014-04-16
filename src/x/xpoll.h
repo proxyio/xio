@@ -33,11 +33,12 @@ struct xpoll_entry {
     struct xpoll_notify *notify;
 };
 
-#define list_for_each_xpoll_ent(pos, nx, head)				\
+#define xpoll_walk_ent(pos, nx, head)					\
     list_for_each_entry_safe(pos, nx, head, struct xpoll_entry, lru_link)
 
-#define list_for_each_xent(pos, nx, head)				\
+#define xsock_walk_ent(pos, nx, head)					\
     list_for_each_entry_safe(pos, nx, head, struct xpoll_entry, xlink)
+
 
 struct xpoll_entry *entry_new();
 int entry_get(struct xpoll_entry *ent);
@@ -59,12 +60,12 @@ struct xpoll_t *po_new();
 int po_get(struct xpoll_t *ut);
 int po_put(struct xpoll_t *ut);
 
-struct xpoll_entry *po_find(struct xpoll_t *po, int cd);
+struct xpoll_entry *po_find(struct xpoll_t *po, int xd);
 struct xpoll_entry *po_popent(struct xpoll_t *po);
-struct xpoll_entry *po_getent(struct xpoll_t *po, int cd);
-struct xpoll_entry *po_putent(struct xpoll_t *po, int cd);
+struct xpoll_entry *po_getent(struct xpoll_t *po, int xd);
+struct xpoll_entry *po_putent(struct xpoll_t *po, int xd);
 
-void attach_to_channel(struct xpoll_entry *ent, int cd);
+void attach_to_channel(struct xpoll_entry *ent, int xd);
 void __detach_from_channel(struct xpoll_entry *ent);
 
 

@@ -7,8 +7,8 @@
 
 extern struct xglobal xglobal;
 
-extern struct xsock *cid_to_channel(int cd);
-extern struct xtaskor *pid_to_xtaskor(int pd);
+extern struct xsock *xget(int cd);
+extern struct xcpu *xcpuget(int pd);
 extern void xsock_free(struct xsock *cn);
 
 extern struct xmsg *pop_rcv(struct xsock *cn);
@@ -46,8 +46,8 @@ static struct io default_xops = {
  ******************************************************************************/
 
 static void snd_empty_event(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);
+    struct xcpu *po = xcpuget(cn->cpu_no);
 
     // Disable POLLOUT event when snd_head is empty
     if (cn->sock.et.events & EPOLLOUT) {
@@ -58,8 +58,8 @@ static void snd_empty_event(int cd) {
 }
 
 static void snd_nonempty_event(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);
+    struct xcpu *po = xcpuget(cn->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLOUT)) {
@@ -75,15 +75,15 @@ static void snd_nonempty_event(int cd) {
  ******************************************************************************/
 
 static void rcv_pop_event(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
 
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
 }
 
 static void rcv_full_event(int cd) {
-    struct xsock *cn = cid_to_channel(cd);    
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);    
+    struct xcpu *po = xcpuget(cn->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if ((cn->sock.et.events & EPOLLIN)) {
@@ -93,8 +93,8 @@ static void rcv_full_event(int cd) {
 }
 
 static void rcv_nonfull_event(int cd) {
-    struct xsock *cn = cid_to_channel(cd);    
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);    
+    struct xcpu *po = xcpuget(cn->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(cn->sock.et.events & EPOLLIN)) {
@@ -114,10 +114,10 @@ static int io_accepter_init(int cd) {
     int rc = 0;
     int s;
     int on = 1;
-    struct xsock *cn = cid_to_channel(cd);
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);
+    struct xcpu *po = xcpuget(cn->cpu_no);
     struct transport *tp = transport_lookup(cn->pf);
-    struct xsock *parent = cid_to_channel(cn->parent);
+    struct xsock *parent = xget(cn->parent);
 
     if ((s = tp->accept(parent->sock.fd)) < 0)
 	return s;
@@ -137,8 +137,8 @@ static int io_listener_init(int cd) {
     int rc = 0;
     int s;
     int on = 1;
-    struct xsock *cn = cid_to_channel(cd);
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);
+    struct xcpu *po = xcpuget(cn->cpu_no);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->bind(cn->addr)) < 0)
@@ -158,8 +158,8 @@ static int io_connector_init(int cd) {
     int rc = 0;
     int s;
     int on = 1;
-    struct xsock *cn = cid_to_channel(cd);
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);
+    struct xcpu *po = xcpuget(cn->cpu_no);
     struct transport *tp = transport_lookup(cn->pf);
 
     if ((s = tp->connect(cn->peer)) < 0)
@@ -177,7 +177,7 @@ static int io_connector_init(int cd) {
 }
 
 static int io_xinit(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
 
     bio_init(&cn->sock.in);
     bio_init(&cn->sock.out);
@@ -196,8 +196,8 @@ static int io_xinit(int cd) {
 static int io_snd(struct xsock *cn);
 
 static void io_xdestroy(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
-    struct xtaskor *po = pid_to_xtaskor(cn->pollid);
+    struct xsock *cn = xget(cd);
+    struct xcpu *po = xcpuget(cn->cpu_no);
     struct transport *tp = cn->sock.tp;
 
     /* Try flush buf massage into network before close */

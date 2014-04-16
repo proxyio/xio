@@ -29,7 +29,7 @@ typedef void (*tb_event_handler) (struct fd *f, u32 events);
 
 struct fd {
     void *self;
-    int cd;
+    int xd;
     struct xpoll_event event;
     tb_event_handler h;
     u32 fok:1;

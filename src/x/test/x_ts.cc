@@ -96,7 +96,7 @@ static void xclient2() {
 
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE((sfd[i] = xconnect(pf, "127.0.0.1:18895")) >= 0);
-	event[i].cd = sfd[i];
+	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
 	spin_lock(&lock);
@@ -126,7 +126,7 @@ static void xserver_thread2() {
     for (i = 0; i < cnt; i++) {
 	while ((sfd[i] = xaccept(afd)) < 0)
 	    usleep(10000);
-	event[i].cd = sfd[i];
+	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
 	spin_lock(&lock);
@@ -135,7 +135,7 @@ static void xserver_thread2() {
     }
     mycnt = rand() % cnt;
     for (i = 0; i < mycnt; i++) {
-	event[i].cd = sfd[i];
+	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
 	spin_lock(&lock);

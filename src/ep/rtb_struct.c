@@ -7,7 +7,7 @@ struct fd *fd_new() {
     struct fd *f = (struct fd *)mem_zalloc(sizeof(*f));
     if (f) {
 	f->fok = true;
-	f->cd = -1;
+	f->xd = -1;
 	INIT_LIST_HEAD(&f->mq);
 	INIT_LIST_HEAD(&f->link);
 	f->rb_link.key = (char *)f->st.ud;
@@ -20,8 +20,8 @@ void fd_free(struct fd *f) {
     struct ep_msg *s, *ns;
 
     BUG_ON(attached(&f->link));
-    if (f->cd >= 0)
-	xclose(f->cd);
+    if (f->xd >= 0)
+	xclose(f->xd);
     list_for_each_ep_msg(s, ns, &f->mq) {
 	list_del_init(&s->link);
 	ep_msg_free(s);

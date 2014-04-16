@@ -7,8 +7,8 @@
 #include "xbase.h"
 
 /* Backend poller wait kernel timeout msec */
-#define PIO_POLLER_TIMEOUT 1
-#define PIO_POLLER_IOMAX 100
+#define PIO_ELOOPTIMEOUT 1
+#define PIO_ELOOPIOMAX 100
 
 /* Default input/output buffer size */
 static int PIO_SNDBUFSZ = 10485760;
@@ -18,11 +18,11 @@ static int PIO_RCVBUFSZ = 10485760;
 struct xglobal xglobal = {};
 
 
-extern int has_closed_channel(struct xtaskor *po);
+extern int has_closed_channel(struct xcpu *cpu);
 extern void push_closed_channel(struct xsock *xs);
-extern struct xsock *pop_closed_channel(struct xtaskor *po);
+extern struct xsock *pop_closed_channel(struct xcpu *cpu);
 
-void __po_notify(struct xsock *xs, u32 vf_spec);
+void __xpoll_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
 
 uint32_t msg_iovlen(char *payload) {
@@ -57,31 +57,31 @@ uint32_t xmsglen(char *payload) {
 }
 
 
-static int choose_backend_poll(int cd) {
-    return cd % xglobal.npolls;
+static int choose_backend_poll(int xd) {
+    return xd % xglobal.ncpus;
 }
 
 int xd_alloc() {
-    int cd;
+    int xd;
     mutex_lock(&xglobal.lock);
     BUG_ON(xglobal.nsocks >= PIO_MAX_SOCKS);
-    cd = xglobal.unused[xglobal.nsocks++];
+    xd = xglobal.unused[xglobal.nsocks++];
     mutex_unlock(&xglobal.lock);
-    return cd;
+    return xd;
 }
 
-void xd_free(int cd) {
+void xd_free(int xd) {
     mutex_lock(&xglobal.lock);
-    xglobal.unused[--xglobal.nsocks] = cd;
+    xglobal.unused[--xglobal.nsocks] = xd;
     mutex_unlock(&xglobal.lock);
 }
 
-struct xsock *cid_to_channel(int cd) {
-    return &xglobal.socks[cd];
+struct xsock *xget(int xd) {
+    return &xglobal.socks[xd];
 }
 
-static void xbase_init(int cd) {
-    struct xsock *xs = cid_to_channel(cd);
+static void xbase_init(int xd) {
+    struct xsock *xs = xget(xd);
 
     mutex_init(&xs->lock);
     condition_init(&xs->cond);
@@ -89,8 +89,8 @@ static void xbase_init(int cd) {
     xs->fok = true;
     xs->fclosed = false;
     xs->parent = -1;
-    xs->cd = cd;
-    xs->pollid = choose_backend_poll(cd);
+    xs->xd = xd;
+    xs->cpu_no = choose_backend_poll(xd);
     xs->rcv_waiters = 0;
     xs->snd_waiters = 0;
     xs->rcv = 0;
@@ -103,8 +103,8 @@ static void xbase_init(int cd) {
     INIT_LIST_HEAD(&xs->closing_link);
 }
 
-static void xbase_exit(int cd) {
-    struct xsock *xs = cid_to_channel(cd);
+static void xbase_exit(int xd) {
+    struct xsock *xs = xget(xd);
     struct list_head head = {};
     struct xmsg *pos, *nx;
 
@@ -115,8 +115,8 @@ static void xbase_exit(int cd) {
     xs->fasync = 0;
     xs->fok = 0;
     xs->fclosed = 0;
-    xs->cd = -1;
-    xs->pollid = -1;
+    xs->xd = -1;
+    xs->cpu_no = -1;
     xs->rcv_waiters = -1;
     xs->snd_waiters = -1;
     xs->rcv = -1;
@@ -127,7 +127,7 @@ static void xbase_exit(int cd) {
     INIT_LIST_HEAD(&head);
     list_splice(&xs->rcv_head, &head);
     list_splice(&xs->snd_head, &head);
-    list_for_each_xmsg_safe(pos, nx, &head) {
+    xmsg_walk_safe(pos, nx, &head) {
 	xfreemsg(pos->hdr.payload);
     }
     BUG_ON(attached(&xs->closing_link));
@@ -141,95 +141,95 @@ static void xbase_exit(int cd) {
 
 
 struct xsock *xsock_alloc() {
-    int cd = xd_alloc();
-    struct xsock *xs = cid_to_channel(cd);
-    xbase_init(cd);
+    int xd = xd_alloc();
+    struct xsock *xs = xget(xd);
+    xbase_init(xd);
     return xs;
 }
 
 void xsock_free(struct xsock *xs) {
-    int cd = xs->cd;
-    xbase_exit(cd);
-    xd_free(cd);
+    int xd = xs->xd;
+    xbase_exit(xd);
+    xd_free(xd);
 }
 
-int alloc_pid() {
-    int pd;
+int xcpu_alloc() {
+    int cpu_no;
     mutex_lock(&xglobal.lock);
-    BUG_ON(xglobal.npolls >= PIO_MAX_CPUS);
-    pd = xglobal.poll_unused[xglobal.npolls++];
+    BUG_ON(xglobal.ncpus >= PIO_MAX_CPUS);
+    cpu_no = xglobal.cpu_unused[xglobal.ncpus++];
     mutex_unlock(&xglobal.lock);
-    return pd;
+    return cpu_no;
 }
 
-void free_pid(int pd) {
+void xcpu_free(int cpu_no) {
     mutex_lock(&xglobal.lock);
-    xglobal.poll_unused[--xglobal.npolls] = pd;
+    xglobal.cpu_unused[--xglobal.ncpus] = cpu_no;
     mutex_unlock(&xglobal.lock);
 }
 
-struct xtaskor *pid_to_xtaskor(int pd) {
-    return &xglobal.polls[pd];
+struct xcpu *xcpuget(int cpu_no) {
+    return &xglobal.cpus[cpu_no];
 }
 
 
-int has_closed_channel(struct xtaskor *po) {
+int has_closed_channel(struct xcpu *cpu) {
     int has = true;
-    spin_lock(&po->lock);
-    if (list_empty(&po->closing_head))
+    spin_lock(&cpu->lock);
+    if (list_empty(&cpu->closing_head))
 	has = false;
-    spin_unlock(&po->lock);
+    spin_unlock(&cpu->lock);
     return has;
 }
 
 void push_closed_channel(struct xsock *xs) {
-    struct xtaskor *po = pid_to_xtaskor(xs->pollid);
+    struct xcpu *cpu = xcpuget(xs->cpu_no);
     
-    spin_lock(&po->lock);
+    spin_lock(&cpu->lock);
     if (!xs->fclosed && !attached(&xs->closing_link)) {
 	xs->fclosed = true;
-	list_add_tail(&xs->closing_link, &po->closing_head);
+	list_add_tail(&xs->closing_link, &cpu->closing_head);
     }
-    spin_unlock(&po->lock);
+    spin_unlock(&cpu->lock);
 }
 
-struct xsock *pop_closed_channel(struct xtaskor *po) {
+struct xsock *pop_closed_channel(struct xcpu *cpu) {
     struct xsock *xs = NULL;
 
-    spin_lock(&po->lock);
-    if (!list_empty(&po->closing_head)) {
-	xs = list_first(&po->closing_head, struct xsock, closing_link);
+    spin_lock(&cpu->lock);
+    if (!list_empty(&cpu->closing_head)) {
+	xs = list_first(&cpu->closing_head, struct xsock, closing_link);
 	list_del_init(&xs->closing_link);
     }
-    spin_unlock(&po->lock);
+    spin_unlock(&cpu->lock);
     return xs;
 }
 
 static inline int event_runner(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
     int rc = 0;
-    int pd = alloc_pid();
+    int cpu_no = xcpu_alloc();
     struct xsock *closing_xs;
-    struct xtaskor *po = pid_to_xtaskor(pd);
+    struct xcpu *cpu = xcpuget(cpu_no);
 
-    spin_init(&po->lock);
-    INIT_LIST_HEAD(&po->closing_head);
+    spin_init(&cpu->lock);
+    INIT_LIST_HEAD(&cpu->closing_head);
 
     /* Init eventloop and wakeup parent */
-    BUG_ON(eloop_init(&po->el, PIO_MAX_SOCKS/PIO_MAX_CPUS,
-		      PIO_POLLER_IOMAX, PIO_POLLER_TIMEOUT) != 0);
+    BUG_ON(eloop_init(&cpu->el, PIO_MAX_SOCKS/PIO_MAX_CPUS,
+		      PIO_ELOOPIOMAX, PIO_ELOOPTIMEOUT) != 0);
     waitgroup_done(wg);
 
-    while (!xglobal.exiting || has_closed_channel(po)) {
-	eloop_once(&po->el);
-	while ((closing_xs = pop_closed_channel(po)))
-	    closing_xs->vf->destroy(closing_xs->cd);
+    while (!xglobal.exiting || has_closed_channel(cpu)) {
+	eloop_once(&cpu->el);
+	while ((closing_xs = pop_closed_channel(cpu)))
+	    closing_xs->vf->destroy(closing_xs->xd);
     }
 
     /* Release the poll descriptor when runner exit. */
-    free_pid(pd);
-    eloop_destroy(&po->el);
-    spin_destroy(&po->lock);
+    xcpu_free(cpu_no);
+    eloop_destroy(&cpu->el);
+    spin_destroy(&cpu->lock);
     return rc;
 }
 
@@ -241,18 +241,18 @@ extern struct xsock_vf *tcp_xsock_vfptr;
 
 void global_xinit() {
     waitgroup_t wg;
-    int cd; /* Channel id */
-    int pd; /* Poller id */
+    int xd;
+    int cpu_no;
     int i;
 
     waitgroup_init(&wg);
     xglobal.exiting = false;
     mutex_init(&xglobal.lock);
 
-    for (cd = 0; cd < PIO_MAX_SOCKS; cd++)
-	xglobal.unused[cd] = cd;
-    for (pd = 0; pd < PIO_MAX_CPUS; pd++)
-	xglobal.poll_unused[pd] = pd;
+    for (xd = 0; xd < PIO_MAX_SOCKS; xd++)
+	xglobal.unused[xd] = xd;
+    for (cpu_no = 0; cpu_no < PIO_MAX_CPUS; cpu_no++)
+	xglobal.cpu_unused[cpu_no] = cpu_no;
 
     xglobal.cpu_cores = 2;
     taskpool_init(&xglobal.tpool, xglobal.cpu_cores);
@@ -278,13 +278,13 @@ void global_xexit() {
     mutex_destroy(&xglobal.lock);
 }
 
-void xclose(int cd) {
-    struct xsock *xs = cid_to_channel(cd);
+void xclose(int xd) {
+    struct xsock *xs = xget(xd);
     struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
     
     mutex_lock(&xs->lock);
-    list_for_each_xent(ent, nx, &xs->xpoll_head) {
+    xsock_walk_ent(ent, nx, &xs->xpoll_head) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
 	xpoll_ctl(po, XPOLL_DEL, &ent->event);
 	__detach_from_channel(ent);
@@ -295,8 +295,8 @@ void xclose(int cd) {
     push_closed_channel(xs);
 }
 
-int xaccept(int cd) {
-    struct xsock *xs = cid_to_channel(cd);
+int xaccept(int xd) {
+    struct xsock *xs = xget(xd);
     struct xsock *new = xsock_alloc();
     struct xsock_vf *vf, *nx;
 
@@ -306,16 +306,16 @@ int xaccept(int cd) {
     }
     new->ty = XACCEPTER;
     new->pf = xs->pf;
-    new->parent = cd;
+    new->parent = xd;
     xpoll_notify(xs, 0);
-    list_for_each_xsock_vf_safe(vf, nx, &xglobal.xsock_vf_head) {
+    xsock_vf_walk_safe(vf, nx, &xglobal.xsock_vf_head) {
 	new->vf = vf;
-	if ((xs->pf & vf->pf) && vf->init(new->cd) == 0) {
-	    return new->cd;
+	if ((xs->pf & vf->pf) && vf->init(new->xd) == 0) {
+	    return new->xd;
 	}
     }
  EXIT:
-    DEBUG_OFF("%d failed with errno %d", cd, errno);
+    DEBUG_OFF("%d failed with errno %d", xd, errno);
     xsock_free(new);
     return -1;
 }
@@ -328,10 +328,10 @@ int xlisten(int pf, const char *addr) {
     new->pf = pf;
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    list_for_each_xsock_vf_safe(vf, nx, &xglobal.xsock_vf_head) {
+    xsock_vf_walk_safe(vf, nx, &xglobal.xsock_vf_head) {
 	new->vf = vf;
-	if ((pf & vf->pf) && vf->init(new->cd) == 0)
-	    return new->cd;
+	if ((pf & vf->pf) && vf->init(new->xd) == 0)
+	    return new->xd;
     }
     xsock_free(new);
     return -1;
@@ -346,19 +346,19 @@ int xconnect(int pf, const char *peer) {
 
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    list_for_each_xsock_vf_safe(vf, nx, &xglobal.xsock_vf_head) {
+    xsock_vf_walk_safe(vf, nx, &xglobal.xsock_vf_head) {
 	new->vf = vf;
-	if ((pf & vf->pf) && vf->init(new->cd) == 0) {
-	    return new->cd;
+	if ((pf & vf->pf) && vf->init(new->xd) == 0) {
+	    return new->xd;
 	}
     }
     xsock_free(new);
     return -1;
 }
 
-int xsetopt(int cd, int opt, void *on, int size) {
+int xsetopt(int xd, int opt, void *on, int size) {
     int rc = 0;
-    struct xsock *xs = cid_to_channel(cd);
+    struct xsock *xs = xget(xd);
 
     if (!on || size <= 0) {
 	errno = EINVAL;
@@ -387,9 +387,9 @@ int xsetopt(int cd, int opt, void *on, int size) {
     return rc;
 }
 
-int xgetopt(int cd, int opt, void *on, int size) {
+int xgetopt(int xd, int opt, void *on, int size) {
     int rc = 0;
-    struct xsock *xs = cid_to_channel(cd);
+    struct xsock *xs = xget(xd);
 
     if (!on || size <= 0) {
 	errno = EINVAL;
@@ -432,7 +432,7 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 	xs->rcv_waiters--;
     }
     if (!list_empty(&xs->rcv_head)) {
-	DEBUG_OFF("channel %d", xs->cd);
+	DEBUG_OFF("channel %d", xs->xd);
 	msg = list_first(&xs->rcv_head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = msg_iovlen(msg->hdr.payload);
@@ -447,7 +447,7 @@ struct xmsg *pop_rcv(struct xsock *xs) {
     }
 
     if (events)
-	vf->rcv_notify(xs->cd, events);
+	vf->rcv_notify(xs->xd, events);
 
     mutex_unlock(&xs->lock);
     return msg;
@@ -466,15 +466,15 @@ void push_rcv(struct xsock *xs, struct xmsg *msg) {
     events |= MQ_PUSH;
     xs->rcv += msgsz;
     list_add_tail(&msg->item, &xs->rcv_head);    
-    __po_notify(xs, 0);
-    DEBUG_OFF("channel %d", xs->cd);
+    __xpoll_notify(xs, 0);
+    DEBUG_OFF("channel %d", xs->xd);
 
     /* Wakeup the blocking waiters. */
     if (xs->rcv_waiters > 0)
 	condition_broadcast(&xs->cond);
 
     if (events)
-	vf->rcv_notify(xs->cd, events);
+	vf->rcv_notify(xs->xd, events);
     mutex_unlock(&xs->lock);
 }
 
@@ -487,7 +487,7 @@ struct xmsg *pop_snd(struct xsock *xs) {
     
     mutex_lock(&xs->lock);
     if (!list_empty(&xs->snd_head)) {
-	DEBUG_OFF("channel %d", xs->cd);
+	DEBUG_OFF("channel %d", xs->xd);
 	msg = list_first(&xs->snd_head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = msg_iovlen(msg->hdr.payload);
@@ -506,9 +506,9 @@ struct xmsg *pop_snd(struct xsock *xs) {
     }
 
     if (events)
-	vf->snd_notify(xs->cd, events);
+	vf->snd_notify(xs->xd, events);
 
-    __po_notify(xs, 0);
+    __xpoll_notify(xs, 0);
     mutex_unlock(&xs->lock);
     return msg;
 }
@@ -534,19 +534,19 @@ int push_snd(struct xsock *xs, struct xmsg *msg) {
 	events |= MQ_PUSH;
 	xs->snd += msgsz;
 	list_add_tail(&msg->item, &xs->snd_head);
-	DEBUG_OFF("channel %d", xs->cd);
+	DEBUG_OFF("channel %d", xs->xd);
     }
 
     if (events)
-	vf->snd_notify(xs->cd, events);
+	vf->snd_notify(xs->xd, events);
 
     mutex_unlock(&xs->lock);
     return rc;
 }
 
-int xrecv(int cd, char **payload) {
+int xrecv(int xd, char **payload) {
     int rc = 0;
-    struct xsock *xs = cid_to_channel(cd);
+    struct xsock *xs = xget(xd);
     struct xmsg *msg;
 
     if (!payload) {
@@ -561,11 +561,11 @@ int xrecv(int cd, char **payload) {
     return rc;
 }
 
-int xsend(int cd, char *payload) {
+int xsend(int xd, char *payload) {
     int rc = 0;
-    struct xsock *xs = cid_to_channel(cd);
     struct xmsg *msg;
-    
+    struct xsock *xs = xget(xd);
+
     if (!payload) {
 	errno = EINVAL;
 	return -1;
@@ -584,7 +584,7 @@ int xsend(int cd, char *payload) {
  * here we only check the mq events and vf_spec saved the other
  * events gived by xsock_vf
  */
-void __po_notify(struct xsock *xs, u32 vf_spec) {
+void __xpoll_notify(struct xsock *xs, u32 vf_spec) {
     int events = 0;
     struct xpoll_entry *ent, *nx;
 
@@ -592,15 +592,15 @@ void __po_notify(struct xsock *xs, u32 vf_spec) {
     events |= !list_empty(&xs->rcv_head) ? XPOLLIN : 0;
     events |= can_send(xs) ? XPOLLOUT : 0;
     events |= !xs->fok ? XPOLLERR : 0;
-    DEBUG_OFF("%d channel xpoll events %d happen", xs->cd, events);
-    list_for_each_xent(ent, nx, &xs->xpoll_head) {
+    DEBUG_OFF("%d channel xpoll events %d happen", xs->xd, events);
+    xsock_walk_ent(ent, nx, &xs->xpoll_head) {
 	ent->notify->event(ent->notify, ent, ent->event.care & events);
     }
 }
 
 void xpoll_notify(struct xsock *xs, u32 vf_spec) {
     mutex_lock(&xs->lock);
-    __po_notify(xs, vf_spec);
+    __xpoll_notify(xs, vf_spec);
     mutex_unlock(&xs->lock);
 }
 

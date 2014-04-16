@@ -2,10 +2,6 @@
 #include <base.h>
 #include "xbase.h"
 
-extern struct xsock *cid_to_channel(int cd);
-
-
-
 const char *xpoll_str[] = {
     "",
     "XPOLLIN",
@@ -45,13 +41,13 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
     }
     spin_lock(&ent->lock);
     if (ev) {
-	DEBUG_OFF("channel %d update events %s", ent->event.cd, xpoll_str[ev]);
+	DEBUG_OFF("channel %d update events %s", ent->event.xd, xpoll_str[ev]);
 	ent->event.happened = ev;
 	list_move(&ent->lru_link, &po->lru_head);
 	if (po->uwaiters)
 	    condition_broadcast(&po->cond);
     } else if (ent->event.happened && !ev) {
-	DEBUG_OFF("channel %d disable events notify", ent->event.cd);
+	DEBUG_OFF("channel %d disable events notify", ent->event.xd);
 	ent->event.happened = 0;
 	list_move_tail(&ent->lru_link, &po->lru_head);
     }
@@ -62,8 +58,8 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
 extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
 
 static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
-    struct xpoll_entry *ent = po_getent(po, event->cd);
-    struct xsock *cn = cid_to_channel(event->cd);
+    struct xpoll_entry *ent = po_getent(po, event->xd);
+    struct xsock *cn = xget(event->xd);
 
     if (!ent)
 	return -1;
@@ -76,14 +72,14 @@ static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
 
     /* We hold a ref here. it is used for channel */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
-    attach_to_channel(ent, cn->cd);
+    attach_to_channel(ent, cn->xd);
 
     xpoll_notify(cn, 0);
     return 0;
 }
 
 static int xpoll_rm(struct xpoll_t *po, struct xpoll_event *event) {
-    struct xpoll_entry *ent = po_putent(po, event->cd);
+    struct xpoll_entry *ent = po_putent(po, event->xd);
 
     if (!ent) {
 	return -1;
@@ -96,8 +92,8 @@ static int xpoll_rm(struct xpoll_t *po, struct xpoll_event *event) {
 
 
 static int xpoll_mod(struct xpoll_t *po, struct xpoll_event *event) {
-    struct xsock *cn = cid_to_channel(event->cd);
-    struct xpoll_entry *ent = po_find(po, event->cd);
+    struct xsock *cn = xget(event->xd);
+    struct xpoll_entry *ent = po_find(po, event->xd);
 
     if (!ent)
 	return -1;
@@ -147,7 +143,7 @@ int xpoll_wait(struct xpoll_t *po, struct xpoll_event *ev_buf,
 	condition_timedwait(&po->cond, &po->lock, timeout);
 	po->uwaiters--;
     }
-    list_for_each_xpoll_ent(ent, nx, &po->lru_head) {
+    xpoll_walk_ent(ent, nx, &po->lru_head) {
 	if (!ent->event.happened || n >= size)
 	    break;
 	ev_buf[n++] = ent->event;

@@ -2,8 +2,6 @@
 #include <base.h>
 #include "xbase.h"
 
-extern struct xsock *cid_to_channel(int cd);
-
 struct xpoll_entry *entry_new() {
     struct xpoll_entry *ent = (struct xpoll_entry *)mem_zalloc(sizeof(*ent));
     if (ent) {
@@ -95,20 +93,20 @@ int po_put(struct xpoll_t *po) {
     return ref;
 }
 
-struct xpoll_entry *__po_find(struct xpoll_t *po, int cd) {
+struct xpoll_entry *__po_find(struct xpoll_t *po, int xd) {
     struct xpoll_entry *ent, *nx;
-    list_for_each_xpoll_ent(ent, nx, &po->lru_head) {
-	if (ent->event.cd == cd)
+    xpoll_walk_ent(ent, nx, &po->lru_head) {
+	if (ent->event.xd == xd)
 	    return ent;
     }
     return NULL;
 }
 
 /* Find xpoll_entry by channel id and return with ref incr if exist. */
-struct xpoll_entry *po_find(struct xpoll_t *po, int cd) {
+struct xpoll_entry *po_find(struct xpoll_t *po, int xd) {
     struct xpoll_entry *ent = NULL;
     mutex_lock(&po->lock);
-    if ((ent = __po_find(po, cd)))
+    if ((ent = __po_find(po, xd)))
 	entry_get(ent);
     mutex_unlock(&po->lock);
     return ent;
@@ -128,14 +126,14 @@ void __detach_from_po(struct xpoll_entry *ent, struct xpoll_t *po) {
 }
 
 
-/* Create a new xpoll_entry if the cd doesn't exist and get one ref for
+/* Create a new xpoll_entry if the xd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct xpoll_entry *po_getent(struct xpoll_t *po, int cd) {
+struct xpoll_entry *po_getent(struct xpoll_t *po, int xd) {
     struct xpoll_entry *ent;
 
     mutex_lock(&po->lock);
-    if ((ent = __po_find(po, cd))) {
+    if ((ent = __po_find(po, xd))) {
 	mutex_unlock(&po->lock);
 	errno = EEXIST;
 	return NULL;
@@ -153,22 +151,22 @@ struct xpoll_entry *po_getent(struct xpoll_t *po, int cd) {
     ent->ref++;
     po->ref++;
 
-    ent->event.cd = cd;
+    ent->event.xd = xd;
     __attach_to_po(ent, po);
     mutex_unlock(&po->lock);
 
     return ent;
 }
 
-/* Remove the xpoll_entry if the cd's ent exist. notice that don't release the
+/* Remove the xpoll_entry if the xd's ent exist. notice that don't release the
  * ref hold by xpoll_t. let caller do this.
  * xpoll_rm() call this.
  */
-struct xpoll_entry *po_putent(struct xpoll_t *po, int cd) {
+struct xpoll_entry *po_putent(struct xpoll_t *po, int xd) {
     struct xpoll_entry *ent;
 
     mutex_lock(&po->lock);
-    if (!(ent = __po_find(po, cd))) {
+    if (!(ent = __po_find(po, xd))) {
 	mutex_unlock(&po->lock);
 	errno = ENOENT;
 	return NULL;
@@ -208,8 +206,8 @@ struct xpoll_entry *po_popent(struct xpoll_t *po) {
 }
 
 
-void attach_to_channel(struct xpoll_entry *ent, int cd) {
-    struct xsock *cn = cid_to_channel(cd);
+void attach_to_channel(struct xpoll_entry *ent, int xd) {
+    struct xsock *cn = xget(xd);
 
     mutex_lock(&cn->lock);
     BUG_ON(attached(&ent->xlink));

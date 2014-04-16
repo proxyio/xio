@@ -15,10 +15,10 @@ uint32_t xmsglen(char *payload);
 
 int xlisten(int pf, const char *sock);
 int xconnect(int pf, const char *peer);
-int xaccept(int cd);
-int xrecv(int cd, char **payload);
-int xsend(int cd, char *payload);
-void xclose(int cd);
+int xaccept(int xd);
+int xrecv(int xd, char **payload);
+int xsend(int xd, char *payload);
+void xclose(int xd);
 
 
 
@@ -26,8 +26,8 @@ void xclose(int cd);
 #define XSNDBUF  2
 #define XRCVBUF  4
 
-int xsetopt(int cd, int opt, void *val, int valsz);
-int xgetopt(int cd, int opt, void *val, int valsz);
+int xsetopt(int xd, int opt, void *val, int valsz);
+int xgetopt(int xd, int opt, void *val, int valsz);
 
 
 /* EXPORT user poll implementation, different from xpoll */
@@ -39,7 +39,7 @@ int xgetopt(int cd, int opt, void *val, int valsz);
 extern const char *xpoll_str[];
 
 struct xpoll_event {
-    int cd;
+    int xd;
     void *self;
 
     /* What events i care about ... */

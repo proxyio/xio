@@ -7,7 +7,7 @@
 
 extern struct xglobal xglobal;
 
-extern struct xsock *cid_to_channel(int cd);
+extern struct xsock *xget(int cd);
 extern void xsock_free(struct xsock *cn);
 
 extern struct xmsg *pop_rcv(struct xsock *cn);
@@ -17,7 +17,7 @@ extern int push_snd(struct xsock *cn, struct xmsg *msg);
 
 extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
 
-static int xput(struct xsock *cn) {
+static int xinproc_put(struct xsock *cn) {
     int old;
     mutex_lock(&cn->lock);
     old = cn->proc.ref--;
@@ -88,7 +88,7 @@ static struct xsock *pop_new_connector(struct xsock *cn) {
 static int snd_push_event(int cd) {
     int rc = 0, can = false;
     struct xmsg *msg;
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
     struct xsock *peer = cn->proc.peer_channel;
 
     // Unlock myself first because i hold the lock
@@ -114,7 +114,7 @@ static int snd_push_event(int cd) {
 
 static int rcv_pop_event(int cd) {
     int rc = 0;
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
 
     if (cn->snd_waiters)
 	condition_signal(&cn->cond);
@@ -130,9 +130,9 @@ static int rcv_pop_event(int cd) {
 
 static int inproc_accepter_init(int cd) {
     int rc = 0;
-    struct xsock *me = cid_to_channel(cd);
+    struct xsock *me = xget(cd);
     struct xsock *peer;
-    struct xsock *parent = cid_to_channel(me->parent);
+    struct xsock *parent = xget(me->parent);
 
     /* step1. Pop a new connector from parent's channel queue */
     if (!(peer = pop_new_connector(parent)))
@@ -162,7 +162,7 @@ static int inproc_accepter_init(int cd) {
 
 static int inproc_listener_init(int cd) {
     int rc = 0;
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
     struct ssmap_node *node = &cn->proc.listener_node;
 
     node->key = cn->addr;
@@ -176,7 +176,7 @@ static int inproc_listener_init(int cd) {
 
 static int inproc_listener_destroy(int cd) {
     int rc = 0;
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
     struct xsock *new;
 
     /* Avoiding the new connectors */
@@ -198,7 +198,7 @@ static int inproc_listener_destroy(int cd) {
 
 static int inproc_connector_init(int cd) {
     int rc = 0;
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
     struct xsock *listener = find_listener(cn->peer);
 
     if (!listener) {
@@ -245,14 +245,14 @@ static int inproc_connector_init(int cd) {
 
 static int inproc_connector_destroy(int cd) {
     int rc = 0;
-    struct xsock *cn = cid_to_channel(cd);    
+    struct xsock *cn = xget(cd);    
     struct xsock *peer = cn->proc.peer_channel;
 
     /* Destroy the channel and free channel id if i hold the last ref. */
-    if (xput(peer) == 1) {
+    if (xinproc_put(peer) == 1) {
 	xsock_free(peer);
     }
-    if (xput(cn) == 1) {
+    if (xinproc_put(cn) == 1) {
 	xsock_free(cn);
     }
     return rc;
@@ -260,7 +260,7 @@ static int inproc_connector_destroy(int cd) {
 
 
 static int inproc_xinit(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
 
     switch (cn->ty) {
     case XACCEPTER:
@@ -274,7 +274,7 @@ static int inproc_xinit(int cd) {
 }
 
 static void inproc_xdestroy(int cd) {
-    struct xsock *cn = cid_to_channel(cd);
+    struct xsock *cn = xget(cd);
 
     switch (cn->ty) {
     case XACCEPTER:

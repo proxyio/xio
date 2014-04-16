@@ -69,8 +69,8 @@ int ep_send_req(struct ep *ep, char *req) {
     /* RoundRobin algo select a struct fd */
     BUG_ON(!(f = rtb_rrbin_go(&y->tb)));
     uuid_copy(r->uuid, f->st.ud);
-    rc = xsend(f->cd, s.payload);
-    DEBUG_OFF("channel %d send req into network", f->cd);
+    rc = xsend(f->xd, s.payload);
+    DEBUG_OFF("channel %d send req into network", f->xd);
     return rc;
 }
 
@@ -90,8 +90,8 @@ int ep_recv_resp(struct ep *ep, char **resp) {
     if (!(ev.happened & XPOLLIN))
 	goto AGAIN;
     f = (struct fd *)ev.self;
-    if (xrecv(f->cd, &payload) == 0) {
-	DEBUG_ON("channel %d recv resp", f->cd);
+    if (xrecv(f->xd, &payload) == 0) {
+	DEBUG_ON("channel %d recv resp", f->xd);
 	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
@@ -119,10 +119,10 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	/* Payload was copy into user-space. */
 	xfreemsg(payload);
 
-	DEBUG_ON("channel %d send req into network", f->cd);
+	DEBUG_ON("channel %d send req into network", f->xd);
 	return 0;
     } else if (errno != EAGAIN) {
-	DEBUG_ON("channel %d on bad status", f->cd);
+	DEBUG_ON("channel %d on bad status", f->xd);
 	f->fok = false;
     }
     /* TODO: cleanup the bad status fd here */
@@ -149,7 +149,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	goto AGAIN;
 
     f = (struct fd *)ev.self;
-    if (xrecv(f->cd, &payload) == 0) {
+    if (xrecv(f->xd, &payload) == 0) {
 	ep_msg_init(&s, payload);
 
 	/* Drop the timeout message */
@@ -183,10 +183,10 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	/* Payload was copy into user-space. */
 	xfreemsg(payload);
 
-	DEBUG_ON("channel %d recv req from network", f->cd);
+	DEBUG_ON("channel %d recv req from network", f->xd);
 	return 0;
     } else if (errno != EAGAIN) {
-	DEBUG_ON("channel %d on bad status", f->cd);
+	DEBUG_ON("channel %d on bad status", f->xd);
 	f->fok = false;
     }
     /* TODO: cleanup the bad status fd here */
@@ -229,8 +229,8 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
 
     cr = rt_cur(&s);
     BUG_ON(!(f = rtb_route_back(&y->tb, cr->uuid)));
-    DEBUG_OFF("channel %d send resp into network", f->cd);
-    rc = xsend(f->cd, s.payload);
+    DEBUG_OFF("channel %d send resp into network", f->xd);
+    rc = xsend(f->xd, s.payload);
     return rc;
 }
 
