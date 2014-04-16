@@ -5,18 +5,6 @@
 #include "runner/taskpool.h"
 #include "xbase.h"
 
-extern struct xglobal xglobal;
-
-extern struct xsock *xget(int cd);
-extern void xsock_free(struct xsock *cn);
-
-extern struct xmsg *pop_rcv(struct xsock *cn);
-extern void push_rcv(struct xsock *cn, struct xmsg *msg);
-extern struct xmsg *pop_snd(struct xsock *cn);
-extern int push_snd(struct xsock *cn, struct xmsg *msg);
-
-extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
-
 static int xinproc_put(struct xsock *cn) {
     int old;
     mutex_lock(&cn->lock);
@@ -25,7 +13,6 @@ static int xinproc_put(struct xsock *cn) {
     mutex_unlock(&cn->lock);
     return old;
 }
-
 
 /******************************************************************************
  *  channel's proc field operation.
@@ -36,7 +23,7 @@ static struct xsock *find_listener(char *addr) {
     struct xsock *cn = NULL;
 
     xglobal_lock();
-    if ((node = ssmap_find(&xglobal.inproc_listeners, addr, TP_SOCKADDRLEN)))
+    if ((node = ssmap_find(&xgb.inproc_listeners, addr, TP_SOCKADDRLEN)))
 	cn = cont_of(node, struct xsock, proc.listener_node);
     xglobal_unlock();
     return cn;
@@ -47,9 +34,9 @@ static int insert_listener(struct ssmap_node *node) {
 
     errno = EADDRINUSE;
     xglobal_lock();
-    if (!ssmap_find(&xglobal.inproc_listeners, node->key, node->keylen)) {
+    if (!ssmap_find(&xgb.inproc_listeners, node->key, node->keylen)) {
 	rc = 0;
-	ssmap_insert(&xglobal.inproc_listeners, node);
+	ssmap_insert(&xgb.inproc_listeners, node);
     }
     xglobal_unlock();
     return rc;
@@ -58,7 +45,7 @@ static int insert_listener(struct ssmap_node *node) {
 
 static void remove_listener(struct ssmap_node *node) {
     xglobal_lock();
-    ssmap_delete(&xglobal.inproc_listeners, node);
+    ssmap_delete(&xgb.inproc_listeners, node);
     xglobal_unlock();
 }
 
@@ -290,12 +277,12 @@ static void inproc_xdestroy(int cd) {
 }
 
 static void inproc_snd_notify(int cd, uint32_t events) {
-    if (events & MQ_PUSH)
+    if (events & XMQ_PUSH)
 	snd_push_event(cd);
 }
 
 static void inproc_rcv_notify(int cd, uint32_t events) {
-    if (events & MQ_POP)
+    if (events & XMQ_POP)
 	rcv_pop_event(cd);
 }
 

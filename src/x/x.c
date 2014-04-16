@@ -15,7 +15,7 @@ static int DEF_SNDBUF = 10485760;
 static int DEF_RCVBUF = 10485760;
 
 
-struct xglobal xglobal = {};
+struct xglobal xgb = {};
 
 
 extern int has_closed_xsock(struct xcpu *cpu);
@@ -25,14 +25,14 @@ extern struct xsock *pop_closed_xsock(struct xcpu *cpu);
 void __xpoll_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
 
-uint32_t msg_iovlen(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
-    return sizeof(msg->hdr) + msg->hdr.size;
+uint32_t xiov_len(char *xbuf) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    return sizeof(msg->vec) + msg->vec.size;
 }
 
-char *msg_iovbase(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
-    return (char *)&msg->hdr;
+char *xiov_base(char *xbuf) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    return (char *)&msg->vec;
 }
 
 char *xallocmsg(uint32_t size) {
@@ -41,43 +41,43 @@ char *xallocmsg(uint32_t size) {
     if (!chunk)
 	return NULL;
     msg = (struct xmsg *)chunk;
-    msg->hdr.size = size;
-    msg->hdr.checksum = crc16((char *)&msg->hdr.size, 4);
-    return msg->hdr.payload;
+    msg->vec.size = size;
+    msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
+    return msg->vec.payload;
 }
 
 void xfreemsg(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
-    mem_free(msg, sizeof(*msg) + msg->hdr.size);
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 
 uint32_t xmsglen(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, hdr.payload);
-    return msg->hdr.size;
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    return msg->vec.size;
 }
 
 
 static int choose_backend_poll(int xd) {
-    return xd % xglobal.ncpus;
+    return xd % xgb.ncpus;
 }
 
 int xd_alloc() {
     int xd;
-    mutex_lock(&xglobal.lock);
-    BUG_ON(xglobal.nsocks >= XSOCK_MAX_SOCKS);
-    xd = xglobal.unused[xglobal.nsocks++];
-    mutex_unlock(&xglobal.lock);
+    mutex_lock(&xgb.lock);
+    BUG_ON(xgb.nsocks >= XSOCK_MAX_SOCKS);
+    xd = xgb.unused[xgb.nsocks++];
+    mutex_unlock(&xgb.lock);
     return xd;
 }
 
 void xd_free(int xd) {
-    mutex_lock(&xglobal.lock);
-    xglobal.unused[--xglobal.nsocks] = xd;
-    mutex_unlock(&xglobal.lock);
+    mutex_lock(&xgb.lock);
+    xgb.unused[--xgb.nsocks] = xd;
+    mutex_unlock(&xgb.lock);
 }
 
 struct xsock *xget(int xd) {
-    return &xglobal.socks[xd];
+    return &xgb.socks[xd];
 }
 
 static void xbase_init(int xd) {
@@ -128,7 +128,7 @@ static void xbase_exit(int xd) {
     list_splice(&xs->rcv_head, &head);
     list_splice(&xs->snd_head, &head);
     xmsg_walk_safe(pos, nx, &head) {
-	xfreemsg(pos->hdr.payload);
+	xfreemsg(pos->vec.payload);
     }
     BUG_ON(attached(&xs->closing_link));
 
@@ -155,21 +155,21 @@ void xsock_free(struct xsock *xs) {
 
 int xcpu_alloc() {
     int cpu_no;
-    mutex_lock(&xglobal.lock);
-    BUG_ON(xglobal.ncpus >= XSOCK_MAX_CPUS);
-    cpu_no = xglobal.cpu_unused[xglobal.ncpus++];
-    mutex_unlock(&xglobal.lock);
+    mutex_lock(&xgb.lock);
+    BUG_ON(xgb.ncpus >= XSOCK_MAX_CPUS);
+    cpu_no = xgb.cpu_unused[xgb.ncpus++];
+    mutex_unlock(&xgb.lock);
     return cpu_no;
 }
 
 void xcpu_free(int cpu_no) {
-    mutex_lock(&xglobal.lock);
-    xglobal.cpu_unused[--xglobal.ncpus] = cpu_no;
-    mutex_unlock(&xglobal.lock);
+    mutex_lock(&xgb.lock);
+    xgb.cpu_unused[--xgb.ncpus] = cpu_no;
+    mutex_unlock(&xgb.lock);
 }
 
 struct xcpu *xcpuget(int cpu_no) {
-    return &xglobal.cpus[cpu_no];
+    return &xgb.cpus[cpu_no];
 }
 
 
@@ -220,7 +220,7 @@ static inline int event_runner(void *args) {
 		      DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
     waitgroup_done(wg);
 
-    while (!xglobal.exiting || has_closed_xsock(cpu)) {
+    while (!xgb.exiting || has_closed_xsock(cpu)) {
 	eloop_once(&cpu->el);
 	while ((closing_xs = pop_closed_xsock(cpu)))
 	    closing_xs->vf->destroy(closing_xs->xd);
@@ -246,36 +246,36 @@ void global_xinit() {
     int i;
 
     waitgroup_init(&wg);
-    xglobal.exiting = false;
-    mutex_init(&xglobal.lock);
+    xgb.exiting = false;
+    mutex_init(&xgb.lock);
 
     for (xd = 0; xd < XSOCK_MAX_SOCKS; xd++)
-	xglobal.unused[xd] = xd;
+	xgb.unused[xd] = xd;
     for (cpu_no = 0; cpu_no < XSOCK_MAX_CPUS; cpu_no++)
-	xglobal.cpu_unused[cpu_no] = cpu_no;
+	xgb.cpu_unused[cpu_no] = cpu_no;
 
-    xglobal.cpu_cores = 2;
-    taskpool_init(&xglobal.tpool, xglobal.cpu_cores);
-    taskpool_start(&xglobal.tpool);
-    waitgroup_adds(&wg, xglobal.cpu_cores);
-    for (i = 0; i < xglobal.cpu_cores; i++)
-	taskpool_run(&xglobal.tpool, event_runner, &wg);
+    xgb.cpu_cores = 2;
+    taskpool_init(&xgb.tpool, xgb.cpu_cores);
+    taskpool_start(&xgb.tpool);
+    waitgroup_adds(&wg, xgb.cpu_cores);
+    for (i = 0; i < xgb.cpu_cores; i++)
+	taskpool_run(&xgb.tpool, event_runner, &wg);
     /* Waiting all poll's event_runner start properly */
     waitgroup_wait(&wg);
     waitgroup_destroy(&wg);
     
     /* The priority of xsock_vf: inproc > ipc > tcp */
-    INIT_LIST_HEAD(global_vf_head);
-    list_add_tail(&inproc_xsock_vfptr->vf_item, global_vf_head);
-    list_add_tail(&ipc_xsock_vfptr->vf_item, global_vf_head);
-    list_add_tail(&tcp_xsock_vfptr->vf_item, global_vf_head);
+    INIT_LIST_HEAD(&xgb.xsock_vf_head);
+    list_add_tail(&inproc_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    list_add_tail(&ipc_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    list_add_tail(&tcp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
 }
 
 void global_xexit() {
-    xglobal.exiting = true;
-    taskpool_stop(&xglobal.tpool);
-    taskpool_destroy(&xglobal.tpool);
-    mutex_destroy(&xglobal.lock);
+    xgb.exiting = true;
+    taskpool_stop(&xgb.tpool);
+    taskpool_destroy(&xgb.tpool);
+    mutex_destroy(&xgb.lock);
 }
 
 void xclose(int xd) {
@@ -308,7 +308,7 @@ int xaccept(int xd) {
     new->pf = xs->pf;
     new->parent = xd;
     xpoll_notify(xs, 0);
-    xsock_vf_walk_safe(vf, nx, &xglobal.xsock_vf_head) {
+    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
 	new->vf = vf;
 	if ((xs->pf & vf->pf) && vf->init(new->xd) == 0) {
 	    return new->xd;
@@ -328,7 +328,7 @@ int xlisten(int pf, const char *addr) {
     new->pf = pf;
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    xsock_vf_walk_safe(vf, nx, &xglobal.xsock_vf_head) {
+    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
 	new->vf = vf;
 	if ((pf & vf->pf) && vf->init(new->xd) == 0)
 	    return new->xd;
@@ -346,7 +346,7 @@ int xconnect(int pf, const char *peer) {
 
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    xsock_vf_walk_safe(vf, nx, &xglobal.xsock_vf_head) {
+    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
 	new->vf = vf;
 	if ((pf & vf->pf) && vf->init(new->xd) == 0) {
 	    return new->xd;
@@ -435,14 +435,14 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 	DEBUG_OFF("channel %d", xs->xd);
 	msg = list_first(&xs->rcv_head, struct xmsg, item);
 	list_del_init(&msg->item);
-	msgsz = msg_iovlen(msg->hdr.payload);
+	msgsz = xiov_len(msg->vec.payload);
 	xs->rcv -= msgsz;
-	events |= MQ_POP;
+	events |= XMQ_POP;
 	if (xs->rcv_wnd - xs->rcv <= msgsz)
-	    events |= MQ_NONFULL;
+	    events |= XMQ_NONFULL;
 	if (list_empty(&xs->rcv_head)) {
 	    BUG_ON(xs->rcv);
-	    events |= MQ_EMPTY;
+	    events |= XMQ_EMPTY;
 	}
     }
 
@@ -456,14 +456,14 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 void push_rcv(struct xsock *xs, struct xmsg *msg) {
     struct xsock_vf *vf = xs->vf;
     uint32_t events = 0;
-    int64_t msgsz = msg_iovlen(msg->hdr.payload);
+    int64_t msgsz = xiov_len(msg->vec.payload);
 
     mutex_lock(&xs->lock);
     if (list_empty(&xs->rcv_head))
-	events |= MQ_NONEMPTY;
+	events |= XMQ_NONEMPTY;
     if (xs->rcv_wnd - xs->rcv <= msgsz)
-	events |= MQ_FULL;
-    events |= MQ_PUSH;
+	events |= XMQ_FULL;
+    events |= XMQ_PUSH;
     xs->rcv += msgsz;
     list_add_tail(&msg->item, &xs->rcv_head);    
     __xpoll_notify(xs, 0);
@@ -490,14 +490,14 @@ struct xmsg *pop_snd(struct xsock *xs) {
 	DEBUG_OFF("channel %d", xs->xd);
 	msg = list_first(&xs->snd_head, struct xmsg, item);
 	list_del_init(&msg->item);
-	msgsz = msg_iovlen(msg->hdr.payload);
+	msgsz = xiov_len(msg->vec.payload);
 	xs->snd -= msgsz;
-	events |= MQ_POP;
+	events |= XMQ_POP;
 	if (xs->snd_wnd - xs->snd <= msgsz)
-	    events |= MQ_NONFULL;
+	    events |= XMQ_NONFULL;
 	if (list_empty(&xs->snd_head)) {
 	    BUG_ON(xs->snd);
-	    events |= MQ_EMPTY;
+	    events |= XMQ_EMPTY;
 	}
 
 	/* Wakeup the blocking waiters */
@@ -517,7 +517,7 @@ int push_snd(struct xsock *xs, struct xmsg *msg) {
     int rc = -1;
     struct xsock_vf *vf = xs->vf;
     uint32_t events = 0;
-    int64_t msgsz = msg_iovlen(msg->hdr.payload);
+    int64_t msgsz = xiov_len(msg->vec.payload);
 
     mutex_lock(&xs->lock);
     while (!can_send(xs) && !xs->fasync) {
@@ -528,10 +528,10 @@ int push_snd(struct xsock *xs, struct xmsg *msg) {
     if (can_send(xs)) {
 	rc = 0;
 	if (list_empty(&xs->snd_head))
-	    events |= MQ_NONEMPTY;
+	    events |= XMQ_NONEMPTY;
 	if (xs->snd_wnd - xs->snd <= msgsz)
-	    events |= MQ_FULL;
-	events |= MQ_PUSH;
+	    events |= XMQ_FULL;
+	events |= XMQ_PUSH;
 	xs->snd += msgsz;
 	list_add_tail(&msg->item, &xs->snd_head);
 	DEBUG_OFF("channel %d", xs->xd);
@@ -557,7 +557,7 @@ int xrecv(int xd, char **xbuf) {
 	errno = xs->fok ? EAGAIN : EPIPE;
 	rc = -1;
     } else
-	*xbuf = msg->hdr.payload;
+	*xbuf = msg->vec.payload;
     return rc;
 }
 
@@ -570,7 +570,7 @@ int xsend(int xd, char *xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    msg = cont_of(xbuf, struct xmsg, hdr.payload);
+    msg = cont_of(xbuf, struct xmsg, vec.payload);
     if ((rc = push_snd(xs, msg)) < 0) {
 	errno = xs->fok ? EAGAIN : EPIPE;
     }

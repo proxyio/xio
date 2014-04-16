@@ -24,12 +24,12 @@
 #define XACCEPTER 2
 #define XCONNECTOR 3
 
-#define MQ_PUSH         0x01
-#define MQ_POP          0x02
-#define MQ_EMPTY        0x04
-#define MQ_NONEMPTY     0x08
-#define MQ_FULL         0x10
-#define MQ_NONFULL      0x20
+#define XMQ_PUSH         0x01
+#define XMQ_POP          0x02
+#define XMQ_EMPTY        0x04
+#define XMQ_NONEMPTY     0x08
+#define XMQ_FULL         0x10
+#define XMQ_NONFULL      0x20
 
 struct xsock_vf {
     int pf;
@@ -97,7 +97,11 @@ struct xsock {
 };
 
 
-// We guarantee that we can push one massage at least.
+#define xsock_walk_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head,		\
+			     struct xsock, wait_item)
+
+/* We guarantee that we can push one massage at least. */
 static inline int can_send(struct xsock *cn) {
     return list_empty(&cn->snd_head) || cn->snd < cn->snd_wnd;
 }
@@ -106,9 +110,16 @@ static inline int can_recv(struct xsock *cn) {
     return list_empty(&cn->rcv_head) || cn->rcv < cn->rcv_wnd;
 }
 
-#define xsock_walk_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head,		\
-			     struct xsock, wait_item)
+struct xsock *xget(int cd);
+void xsock_free(struct xsock *cn);
+
+struct xmsg *pop_rcv(struct xsock *cn);
+void push_rcv(struct xsock *cn, struct xmsg *msg);
+struct xmsg *pop_snd(struct xsock *cn);
+int push_snd(struct xsock *cn, struct xmsg *msg);
+
+void xpoll_notify(struct xsock *cn, u32 vf_spec);
+
 
 
 struct xcpu {
@@ -121,6 +132,7 @@ struct xcpu {
     struct list_head closing_head;
 };
 
+struct xcpu *xcpuget(int pd);
 
 struct xglobal {
     int exiting;
@@ -158,26 +170,18 @@ struct xglobal {
     struct list_head xsock_vf_head;
 };
 
-struct xsock *xget(int xd);
+#define xsock_vf_walk_safe(pos, nx, head)		\
+    list_for_each_entry_safe(pos, nx, head,		\
+			     struct xsock_vf, vf_item)
 
-#define xsock_vf_walk_safe(pos, nx, head)				\
-    list_for_each_entry_safe(pos, nx, head, struct xsock_vf, vf_item)
-
-
-
-extern struct xglobal xglobal;
-
-#define global_vf_head &xglobal.xsock_vf_head
-#define global_tpool &xglobal.tpool
-#define global_inplistenrs &xglobal.inproc_listeners
-
+extern struct xglobal xgb;
 
 static inline void xglobal_lock() {
-    mutex_lock(&xglobal.lock);
+    mutex_lock(&xgb.lock);
 }
 
 static inline void xglobal_unlock() {
-    mutex_unlock(&xglobal.lock);
+    mutex_unlock(&xgb.lock);
 }
 
 
@@ -193,7 +197,7 @@ static inline void xglobal_unlock() {
   +--------+------------+------------+
 */
 
-struct xmsghdr {
+struct xiov {
     uint16_t checksum;
     u32 size;
     char payload[0];
@@ -201,11 +205,11 @@ struct xmsghdr {
 
 struct xmsg {
     struct list_head item;
-    struct xmsghdr hdr;
+    struct xiov vec;
 };
 
-u32 msg_iovlen(char *xbuf);
-char *msg_iovbase(char *xbuf);
+u32 xiov_len(char *xbuf);
+char *xiov_base(char *xbuf);
 
 #define xmsg_walk_safe(pos, next, head)					\
     list_for_each_entry_safe(pos, next, head, struct xmsg, item)

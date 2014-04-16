@@ -5,21 +5,6 @@
 #include "runner/taskpool.h"
 #include "xbase.h"
 
-extern struct xglobal xglobal;
-
-extern struct xsock *xget(int cd);
-extern struct xcpu *xcpuget(int pd);
-extern void xsock_free(struct xsock *cn);
-
-extern struct xmsg *pop_rcv(struct xsock *cn);
-extern void push_rcv(struct xsock *cn, struct xmsg *msg);
-extern struct xmsg *pop_snd(struct xsock *cn);
-extern int push_snd(struct xsock *cn, struct xmsg *msg);
-
-extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
-
-
-
 static int64_t io_xread(struct io *ops, char *buff, int64_t sz) {
     struct xsock *cn = cont_of(ops, struct xsock, sock.ops);
     struct transport *tp = cn->sock.tp;
@@ -220,18 +205,18 @@ static void io_xdestroy(int cd) {
 
 
 static void io_rcv_notify(int cd, uint32_t events) {
-    if (events & MQ_POP)
+    if (events & XMQ_POP)
 	rcv_pop_event(cd);
-    if (events & MQ_FULL)
+    if (events & XMQ_FULL)
 	rcv_full_event(cd);
-    else if (events & MQ_NONFULL)
+    else if (events & XMQ_NONFULL)
 	rcv_nonfull_event(cd);
 }
 
 static void io_snd_notify(int cd, uint32_t events) {
-    if (events & MQ_EMPTY)
+    if (events & XMQ_EMPTY)
 	snd_empty_event(cd);
-    else if (events & MQ_NONEMPTY)
+    else if (events & XMQ_NONEMPTY)
 	snd_nonempty_event(cd);
 }
 
@@ -254,12 +239,12 @@ static int accept_handler(eloop_t *el, ev_t *et) {
 static int msg_ready(struct bio *b, int64_t *payload_sz) {
     struct xmsg msg = {};
     
-    if (b->bsize < sizeof(msg.hdr))
+    if (b->bsize < sizeof(msg.vec))
 	return false;
-    bio_copy(b, (char *)(&msg.hdr), sizeof(msg.hdr));
-    if (b->bsize < msg_iovlen(msg.hdr.payload))
+    bio_copy(b, (char *)(&msg.vec), sizeof(msg.vec));
+    if (b->bsize < xiov_len(msg.vec.payload))
 	return false;
-    *payload_sz = msg.hdr.size;
+    *payload_sz = msg.vec.size;
     return true;
 }
 
@@ -275,8 +260,8 @@ static int io_rcv(struct xsock *cn) {
     while (msg_ready(&cn->sock.in, &payload_sz)) {
 	DEBUG_OFF("%d channel recv one message", cn->cd);
 	payload = xallocmsg(payload_sz);
-	bio_read(&cn->sock.in, msg_iovbase(payload), msg_iovlen(payload));
-	msg = cont_of(payload, struct xmsg, hdr.payload);
+	bio_read(&cn->sock.in, xiov_base(payload), xiov_len(payload));
+	msg = cont_of(payload, struct xmsg, vec.payload);
 	push_rcv(cn, msg);
     }
     return rc;
@@ -288,8 +273,8 @@ static int io_snd(struct xsock *cn) {
     struct xmsg *msg;
 
     while ((msg = pop_snd(cn))) {
-	payload = msg->hdr.payload;
-	bio_write(&cn->sock.out, msg_iovbase(payload), msg_iovlen(payload));
+	payload = msg->vec.payload;
+	bio_write(&cn->sock.out, xiov_base(payload), xiov_len(payload));
 	xfreemsg(payload);
     }
     rc = bio_flush(&cn->sock.out, &cn->sock.ops);
