@@ -25,7 +25,7 @@ extern struct xsock *pop_closed_xsock(struct xcpu *cpu);
 void __xpoll_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
 
-uint32_t xiov_len(char *xbuf) {
+u32 xiov_len(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
     return sizeof(msg->vec) + msg->vec.size;
 }
@@ -35,11 +35,11 @@ char *xiov_base(char *xbuf) {
     return (char *)&msg->vec;
 }
 
-char *xallocmsg(uint32_t size) {
+char *xallocmsg(u32 size) {
     struct xmsg *msg;
     char *chunk = (char *)mem_zalloc(sizeof(*msg) + size);
     if (!chunk)
-	return NULL;
+	return null;
     msg = (struct xmsg *)chunk;
     msg->vec.size = size;
     msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
@@ -51,7 +51,7 @@ void xfreemsg(char *xbuf) {
     mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 
-uint32_t xmsglen(char *xbuf) {
+u32 xmsglen(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
     return msg->vec.size;
 }
@@ -194,7 +194,7 @@ void push_closed_xsock(struct xsock *xs) {
 }
 
 struct xsock *pop_closed_xsock(struct xcpu *cpu) {
-    struct xsock *xs = NULL;
+    struct xsock *xs = 0;
 
     spin_lock(&cpu->lock);
     if (!list_empty(&cpu->closing_head)) {
@@ -420,10 +420,10 @@ int xgetopt(int xd, int opt, void *on, int size) {
 
 
 struct xmsg *pop_rcv(struct xsock *xs) {
-    struct xmsg *msg = NULL;
+    struct xmsg *msg = 0;
     struct xsock_vf *vf = xs->vf;
-    int64_t msgsz;
-    uint32_t events = 0;
+    i64 msgsz;
+    u32 events = 0;
 
     mutex_lock(&xs->lock);
     while (list_empty(&xs->rcv_head) && !xs->fasync) {
@@ -455,8 +455,8 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 
 void push_rcv(struct xsock *xs, struct xmsg *msg) {
     struct xsock_vf *vf = xs->vf;
-    uint32_t events = 0;
-    int64_t msgsz = xiov_len(msg->vec.payload);
+    u32 events = 0;
+    i64 msgsz = xiov_len(msg->vec.payload);
 
     mutex_lock(&xs->lock);
     if (list_empty(&xs->rcv_head))
@@ -481,9 +481,9 @@ void push_rcv(struct xsock *xs, struct xmsg *msg) {
 
 struct xmsg *pop_snd(struct xsock *xs) {
     struct xsock_vf *vf = xs->vf;
-    struct xmsg *msg = NULL;
-    int64_t msgsz;
-    uint32_t events = 0;
+    struct xmsg *msg = 0;
+    i64 msgsz;
+    u32 events = 0;
     
     mutex_lock(&xs->lock);
     if (!list_empty(&xs->snd_head)) {
@@ -516,8 +516,8 @@ struct xmsg *pop_snd(struct xsock *xs) {
 int push_snd(struct xsock *xs, struct xmsg *msg) {
     int rc = -1;
     struct xsock_vf *vf = xs->vf;
-    uint32_t events = 0;
-    int64_t msgsz = xiov_len(msg->vec.payload);
+    u32 events = 0;
+    i64 msgsz = xiov_len(msg->vec.payload);
 
     mutex_lock(&xs->lock);
     while (!can_send(xs) && !xs->fasync) {

@@ -5,12 +5,12 @@
 #include "runner/taskpool.h"
 #include "xbase.h"
 
-static int xinproc_put(struct xsock *cn) {
+static int xinproc_put(struct xsock *sx) {
     int old;
-    mutex_lock(&cn->lock);
-    old = cn->proc.ref--;
-    cn->fok = false;
-    mutex_unlock(&cn->lock);
+    mutex_lock(&sx->lock);
+    old = sx->proc.ref--;
+    sx->fok = false;
+    mutex_unlock(&sx->lock);
     return old;
 }
 
@@ -20,13 +20,13 @@ static int xinproc_put(struct xsock *cn) {
 
 static struct xsock *find_listener(char *addr) {
     struct ssmap_node *node;
-    struct xsock *cn = NULL;
+    struct xsock *sx = 0;
 
     xglobal_lock();
     if ((node = ssmap_find(&xgb.inproc_listeners, addr, TP_SOCKADDRLEN)))
-	cn = cont_of(node, struct xsock, proc.listener_node);
+	sx = cont_of(node, struct xsock, proc.listener_node);
     xglobal_unlock();
-    return cn;
+    return sx;
 }
 
 static int insert_listener(struct ssmap_node *node) {
@@ -50,21 +50,21 @@ static void remove_listener(struct ssmap_node *node) {
 }
 
 
-static void push_new_connector(struct xsock *cn, struct xsock *new) {
-    mutex_lock(&cn->lock);
-    list_add_tail(&new->proc.wait_item, &cn->proc.new_connectors);
-    mutex_unlock(&cn->lock);
+static void push_new_connector(struct xsock *sx, struct xsock *new) {
+    mutex_lock(&sx->lock);
+    list_add_tail(&new->proc.wait_item, &sx->proc.new_connectors);
+    mutex_unlock(&sx->lock);
 }
 
-static struct xsock *pop_new_connector(struct xsock *cn) {
-    struct xsock *new = NULL;
+static struct xsock *pop_new_connector(struct xsock *sx) {
+    struct xsock *new = 0;
 
-    mutex_lock(&cn->lock);
-    if (!list_empty(&cn->proc.new_connectors)) {
-	new = list_first(&cn->proc.new_connectors, struct xsock, proc.wait_item);
+    mutex_lock(&sx->lock);
+    if (!list_empty(&sx->proc.new_connectors)) {
+	new = list_first(&sx->proc.new_connectors, struct xsock, proc.wait_item);
 	list_del_init(&new->proc.wait_item);
     }
-    mutex_unlock(&cn->lock);
+    mutex_unlock(&sx->lock);
     return new;
 }
 
@@ -72,14 +72,14 @@ static struct xsock *pop_new_connector(struct xsock *cn) {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_push_event(int cd) {
+static int snd_push_event(int xd) {
     int rc = 0, can = false;
     struct xmsg *msg;
-    struct xsock *cn = xget(cd);
-    struct xsock *peer = cn->proc.peer_channel;
+    struct xsock *sx = xget(xd);
+    struct xsock *peer = sx->proc.peer_channel;
 
     // Unlock myself first because i hold the lock
-    mutex_unlock(&cn->lock);
+    mutex_unlock(&sx->lock);
 
     // TODO: maybe the peer channel can't recv anymore after the check.
     mutex_lock(&peer->lock);
@@ -88,10 +88,10 @@ static int snd_push_event(int cd) {
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-    if ((msg = pop_snd(cn)))
+    if ((msg = pop_snd(sx)))
 	push_rcv(peer, msg);
 
-    mutex_lock(&cn->lock);
+    mutex_lock(&sx->lock);
     return rc;
 }
 
@@ -99,12 +99,12 @@ static int snd_push_event(int cd) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_pop_event(int cd) {
+static int rcv_pop_event(int xd) {
     int rc = 0;
-    struct xsock *cn = xget(cd);
+    struct xsock *sx = xget(xd);
 
-    if (cn->snd_waiters)
-	condition_signal(&cn->cond);
+    if (sx->snd_waiters)
+	condition_signal(&sx->cond);
     return rc;
 }
 
@@ -115,9 +115,9 @@ static int rcv_pop_event(int cd) {
  *  xsock_vfptr
  ******************************************************************************/
 
-static int inproc_accepter_init(int cd) {
+static int inproc_accepter_init(int xd) {
     int rc = 0;
-    struct xsock *me = xget(cd);
+    struct xsock *me = xget(xd);
     struct xsock *peer;
     struct xsock *parent = xget(me->parent);
 
@@ -147,29 +147,29 @@ static int inproc_accepter_init(int cd) {
     return rc;
 }
 
-static int inproc_listener_init(int cd) {
+static int inproc_listener_init(int xd) {
     int rc = 0;
-    struct xsock *cn = xget(cd);
-    struct ssmap_node *node = &cn->proc.listener_node;
+    struct xsock *sx = xget(xd);
+    struct ssmap_node *node = &sx->proc.listener_node;
 
-    node->key = cn->addr;
+    node->key = sx->addr;
     node->keylen = TP_SOCKADDRLEN;
-    INIT_LIST_HEAD(&cn->proc.new_connectors);
+    INIT_LIST_HEAD(&sx->proc.new_connectors);
     if ((rc = insert_listener(node)) < 0)
 	return rc;
     return rc;
 }
 
 
-static int inproc_listener_destroy(int cd) {
+static int inproc_listener_destroy(int xd) {
     int rc = 0;
-    struct xsock *cn = xget(cd);
+    struct xsock *sx = xget(xd);
     struct xsock *new;
 
     /* Avoiding the new connectors */
-    remove_listener(&cn->proc.listener_node);
+    remove_listener(&sx->proc.listener_node);
 
-    while ((new = pop_new_connector(cn))) {
+    while ((new = pop_new_connector(sx))) {
 	mutex_lock(&new->lock);
 	/* Sending a ECONNREFUSED signel to the other peer. */
 	if (new->proc.ref-- == 1)
@@ -178,112 +178,112 @@ static int inproc_listener_destroy(int cd) {
     }
 
     /* Destroy the channel and free channel id. */
-    xsock_free(cn);
+    xsock_free(sx);
     return rc;
 }
 
 
-static int inproc_connector_init(int cd) {
+static int inproc_connector_init(int xd) {
     int rc = 0;
-    struct xsock *cn = xget(cd);
-    struct xsock *listener = find_listener(cn->peer);
+    struct xsock *sx = xget(xd);
+    struct xsock *listener = find_listener(sx->peer);
 
     if (!listener) {
 	errno = ENOENT;	
 	return -1;
     }
-    cn->proc.ref = 0;
-    cn->proc.peer_channel = NULL;
+    sx->proc.ref = 0;
+    sx->proc.peer_channel = 0;
 
     /* step1. Push the new connector into listener's new_connectors
      * queue and update_xpoll_t for user-state poll
      */
-    push_new_connector(listener, cn);
+    push_new_connector(listener, sx);
     xpoll_notify(listener, XPOLLIN);
 
     /* step2. Hold lock and waiting for the connection established
      * if need. here only has two possible state too:
-     * if cn->proc.ref == 0. we incr the ref indicate that i'm waiting.
+     * if sx->proc.ref == 0. we incr the ref indicate that i'm waiting.
      */
-    mutex_lock(&cn->lock);
-    if (cn->proc.ref == 0) {
-	cn->proc.ref++;
-	condition_wait(&cn->cond, &cn->lock);
+    mutex_lock(&sx->lock);
+    if (sx->proc.ref == 0) {
+	sx->proc.ref++;
+	condition_wait(&sx->cond, &sx->lock);
     }
 
     /* step3. Check the connection status.
      * Maybe the other peer close the connection before the ESTABLISHED
-     * if cn->proc.ref == 0. the peer was closed.
-     * if cn->proc.ref == 2. the connect was established.
+     * if sx->proc.ref == 0. the peer was closed.
+     * if sx->proc.ref == 2. the connect was established.
      */
-    if (cn->proc.ref == -1)
-	BUG_ON(cn->proc.ref != -1);
-    else if (cn->proc.ref == 0)
-	BUG_ON(cn->proc.ref != 0);
-    else if (cn->proc.ref == 2)
-	BUG_ON(cn->proc.ref != 2);
-    if (cn->proc.ref == 0 || cn->proc.ref == -1) {
+    if (sx->proc.ref == -1)
+	BUG_ON(sx->proc.ref != -1);
+    else if (sx->proc.ref == 0)
+	BUG_ON(sx->proc.ref != 0);
+    else if (sx->proc.ref == 2)
+	BUG_ON(sx->proc.ref != 2);
+    if (sx->proc.ref == 0 || sx->proc.ref == -1) {
     	errno = ECONNREFUSED;
 	rc = -1;
     }
-    mutex_unlock(&cn->lock);
+    mutex_unlock(&sx->lock);
     return rc;
 }
 
-static int inproc_connector_destroy(int cd) {
+static int inproc_connector_destroy(int xd) {
     int rc = 0;
-    struct xsock *cn = xget(cd);    
-    struct xsock *peer = cn->proc.peer_channel;
+    struct xsock *sx = xget(xd);    
+    struct xsock *peer = sx->proc.peer_channel;
 
     /* Destroy the channel and free channel id if i hold the last ref. */
     if (xinproc_put(peer) == 1) {
 	xsock_free(peer);
     }
-    if (xinproc_put(cn) == 1) {
-	xsock_free(cn);
+    if (xinproc_put(sx) == 1) {
+	xsock_free(sx);
     }
     return rc;
 }
 
 
-static int inproc_xinit(int cd) {
-    struct xsock *cn = xget(cd);
+static int inproc_xinit(int xd) {
+    struct xsock *sx = xget(xd);
 
-    switch (cn->ty) {
+    switch (sx->ty) {
     case XACCEPTER:
-	return inproc_accepter_init(cd);
+	return inproc_accepter_init(xd);
     case XCONNECTOR:
-	return inproc_connector_init(cd);
+	return inproc_connector_init(xd);
     case XLISTENER:
-	return inproc_listener_init(cd);
+	return inproc_listener_init(xd);
     }
     return -EINVAL;
 }
 
-static void inproc_xdestroy(int cd) {
-    struct xsock *cn = xget(cd);
+static void inproc_xdestroy(int xd) {
+    struct xsock *sx = xget(xd);
 
-    switch (cn->ty) {
+    switch (sx->ty) {
     case XACCEPTER:
     case XCONNECTOR:
-	inproc_connector_destroy(cd);
+	inproc_connector_destroy(xd);
 	break;
     case XLISTENER:
-	inproc_listener_destroy(cd);
+	inproc_listener_destroy(xd);
 	break;
     default:
 	BUG_ON(1);
     }
 }
 
-static void inproc_snd_notify(int cd, uint32_t events) {
+static void inproc_snd_notify(int xd, uint32_t events) {
     if (events & XMQ_PUSH)
-	snd_push_event(cd);
+	snd_push_event(xd);
 }
 
-static void inproc_rcv_notify(int cd, uint32_t events) {
+static void inproc_rcv_notify(int xd, uint32_t events) {
     if (events & XMQ_POP)
-	rcv_pop_event(cd);
+	rcv_pop_event(xd);
 }
 
 static struct xsock_vf inproc_xsock_vf = {

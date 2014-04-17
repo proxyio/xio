@@ -99,12 +99,12 @@ struct xpoll_entry *__xpoll_find(struct xpoll_t *po, int xd) {
 	if (ent->event.xd == xd)
 	    return ent;
     }
-    return NULL;
+    return 0;
 }
 
 /* Find xpoll_entry by xsock id and return with ref incr if exist. */
 struct xpoll_entry *xpoll_find(struct xpoll_t *po, int xd) {
-    struct xpoll_entry *ent = NULL;
+    struct xpoll_entry *ent = 0;
     mutex_lock(&po->lock);
     if ((ent = __xpoll_find(po, xd)))
 	xent_get(ent);
@@ -136,12 +136,12 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *po, int xd) {
     if ((ent = __xpoll_find(po, xd))) {
 	mutex_unlock(&po->lock);
 	errno = EEXIST;
-	return NULL;
+	return 0;
     }
     if (!(ent = xent_new())) {
 	mutex_unlock(&po->lock);
 	errno = ENOMEM;
-	return NULL;
+	return 0;
     }
 
     /* One reference for back for caller */
@@ -169,7 +169,7 @@ struct xpoll_entry *xpoll_putent(struct xpoll_t *po, int xd) {
     if (!(ent = __xpoll_find(po, xd))) {
 	mutex_unlock(&po->lock);
 	errno = ENOENT;
-	return NULL;
+	return 0;
     }
     __detach_from_po(ent, po);
     mutex_unlock(&po->lock);
@@ -192,7 +192,7 @@ struct xpoll_entry *xpoll_popent(struct xpoll_t *po) {
     if (list_empty(&po->lru_head)) {
 	mutex_unlock(&po->lock);
 	errno = ENOENT;
-	return NULL;
+	return 0;
     }
     ent = list_first(&po->lru_head, struct xpoll_entry, lru_link);
     __detach_from_po(ent, po);

@@ -1,17 +1,20 @@
 #ifndef _HPIO_CHANNELBASE_
 #define _HPIO_CHANNELBASE_
 
-#include "ds/map.h"
-#include "os/eventloop.h"
-#include "bufio/bio.h"
-#include "os/alloc.h"
-#include "hash/crc.h"
-#include "sync/mutex.h"
-#include "sync/spin.h"
-#include "sync/condition.h"
-#include "runner/taskpool.h"
+#include <base.h>
+#include <ds/map.h>
+#include <os/eventloop.h>
+#include <bufio/bio.h>
+#include <os/alloc.h>
+#include <hash/crc.h>
+#include <sync/mutex.h>
+#include <sync/spin.h>
+#include <sync/condition.h>
+#include <runner/taskpool.h>
 #include "xsock.h"
 #include "xpoll.h"
+
+#define null NULL
 
 /* Max number of concurrent socks. */
 #define XSOCK_MAX_SOCKS 10240
@@ -49,51 +52,53 @@ struct xsock {
     int pf;
     char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];
-    uint64_t fasync:1;
-    uint64_t fok:1;
-    uint64_t fclosed:1;
+    u64 fasync:1;
+    u64 fok:1;
+    u64 fclosed:1;
     int parent;
     int xd;
     int cpu_no;
     int rcv_waiters;
     int snd_waiters;
-    uint64_t rcv;
-    uint64_t snd;
-    uint64_t rcv_wnd;
-    uint64_t snd_wnd;
+    u64 rcv;
+    u64 snd;
+    u64 rcv_wnd;
+    u64 snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
     struct xsock_vf *vf;
     struct list_head closing_link;
     struct list_head xpoll_head;
 
-    /* Only for transport channel */
-    struct {
-	ev_t et;
-	struct bio in;
-	struct bio out;
-	struct io ops;
-	int fd;
-	struct transport *tp;
-    } sock;
+    //union {
+	/* Only for transport channel */
+	struct {
+	    ev_t et;
+	    struct bio in;
+	    struct bio out;
+	    struct io ops;
+	    int fd;
+	    struct transport *tp;
+	} io;
 
-    /* Reserved only for intern process channel */
-    struct {
-	/* Reference by self and the peer. in normal case
-	 * if ref == 2, connection work in normal state
-	 * if ref == 1, connection closed by peer.
-	 * if ref == 0, is should destroy because no other hold it.
-	 */
-	int ref;
+	/* Reserved only for intern process channel */
+	struct {
+	    /* Reference by self and the peer. in normal case
+	     * if ref == 2, connection work in normal state
+	     * if ref == 1, connection closed by peer.
+	     * if ref == 0, is should destroy because no other hold it.
+	     */
+	    int ref;
 
-	/* For inproc-listener */
-	struct list_head new_connectors;
-	struct ssmap_node listener_node;
+	    /* For inproc-listener */
+	    struct list_head new_connectors;
+	    struct ssmap_node listener_node;
 
-	/* For inproc-connector and inproc-accepter (new connection) */
-	struct list_head wait_item;
-	struct xsock *peer_channel;
-    } proc;
+	    /* For inproc-connector and inproc-accepter (new connection) */
+	    struct list_head wait_item;
+	    struct xsock *peer_channel;
+	} proc;
+    //};
 };
 
 
@@ -140,7 +145,7 @@ struct xglobal {
 
     /* The global table of existing channel. The descriptor representing
        the channel is the index to this table. This pointer is also used to
-       find out whether context is initialised. If it is NULL, context is
+       find out whether context is initialised. If it is null, context is
        uninitialised. */
     struct xsock socks[XSOCK_MAX_SOCKS];
 
