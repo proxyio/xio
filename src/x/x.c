@@ -17,21 +17,16 @@ static int DEF_RCVBUF = 10485760;
 
 struct xglobal xgb = {};
 
-
-extern int has_closed_xsock(struct xcpu *cpu);
-extern void push_closed_xsock(struct xsock *xs);
-extern struct xsock *pop_closed_xsock(struct xcpu *cpu);
-
 void __xpoll_notify(struct xsock *xs, u32 vf_spec);
 void xpoll_notify(struct xsock *xs, u32 vf_spec);
 
 u32 xiov_len(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     return sizeof(msg->vec) + msg->vec.size;
 }
 
 char *xiov_base(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     return (char *)&msg->vec;
 }
 
@@ -43,16 +38,16 @@ char *xallocmsg(u32 size) {
     msg = (struct xmsg *)chunk;
     msg->vec.size = size;
     msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
-    return msg->vec.payload;
+    return msg->vec.chunk;
 }
 
 void xfreemsg(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 
 u32 xmsglen(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.payload);
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     return msg->vec.size;
 }
 
@@ -99,8 +94,8 @@ static void xbase_init(int xd) {
     xs->snd_wnd = DEF_SNDBUF;
     INIT_LIST_HEAD(&xs->rcv_head);
     INIT_LIST_HEAD(&xs->snd_head);
+    INIT_LIST_HEAD(&xs->link);
     INIT_LIST_HEAD(&xs->xpoll_head);
-    INIT_LIST_HEAD(&xs->closing_link);
 }
 
 static void xbase_exit(int xd) {
@@ -128,9 +123,9 @@ static void xbase_exit(int xd) {
     list_splice(&xs->rcv_head, &head);
     list_splice(&xs->snd_head, &head);
     xmsg_walk_safe(pos, nx, &head) {
-	xfreemsg(pos->vec.payload);
+	xfreemsg(pos->vec.chunk);
     }
-    BUG_ON(attached(&xs->closing_link));
+    BUG_ON(attached(&xs->link));
 
     /* It's possible that user call xclose() and xpoll_add()
      * at the same time. and attach_to_xsock() happen after xclose().
@@ -173,7 +168,7 @@ struct xcpu *xcpuget(int cpu_no) {
 }
 
 
-int has_closed_xsock(struct xcpu *cpu) {
+static int has_closed_xsock(struct xcpu *cpu) {
     int has = true;
     spin_lock(&cpu->lock);
     if (list_empty(&cpu->closing_head))
@@ -182,24 +177,24 @@ int has_closed_xsock(struct xcpu *cpu) {
     return has;
 }
 
-void push_closed_xsock(struct xsock *xs) {
+static void push_closed_xsock(struct xsock *xs) {
     struct xcpu *cpu = xcpuget(xs->cpu_no);
     
     spin_lock(&cpu->lock);
-    if (!xs->fclosed && !attached(&xs->closing_link)) {
+    if (!xs->fclosed && !attached(&xs->link)) {
 	xs->fclosed = true;
-	list_add_tail(&xs->closing_link, &cpu->closing_head);
+	list_add_tail(&xs->link, &cpu->closing_head);
     }
     spin_unlock(&cpu->lock);
 }
 
-struct xsock *pop_closed_xsock(struct xcpu *cpu) {
+static struct xsock *pop_closed_xsock(struct xcpu *cpu) {
     struct xsock *xs = 0;
 
     spin_lock(&cpu->lock);
     if (!list_empty(&cpu->closing_head)) {
-	xs = list_first(&cpu->closing_head, struct xsock, closing_link);
-	list_del_init(&xs->closing_link);
+	xs = list_first(&cpu->closing_head, struct xsock, link);
+	list_del_init(&xs->link);
     }
     spin_unlock(&cpu->lock);
     return xs;
@@ -216,7 +211,8 @@ static inline int cpu_worker(void *args) {
     INIT_LIST_HEAD(&cpu->closing_head);
 
     /* Init eventloop and wakeup parent */
-    BUG_ON(eloop_init(&cpu->el, XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
+    BUG_ON(eloop_init(&cpu->el,
+		      XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
 		      DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
     waitgroup_done(wg);
 
@@ -435,7 +431,7 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 	DEBUG_OFF("channel %d", xs->xd);
 	msg = list_first(&xs->rcv_head, struct xmsg, item);
 	list_del_init(&msg->item);
-	msgsz = xiov_len(msg->vec.payload);
+	msgsz = xiov_len(msg->vec.chunk);
 	xs->rcv -= msgsz;
 	events |= XMQ_POP;
 	if (xs->rcv_wnd - xs->rcv <= msgsz)
@@ -446,7 +442,7 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 	}
     }
 
-    if (events)
+    if (events && vf->rcv_notify)
 	vf->rcv_notify(xs->xd, events);
 
     mutex_unlock(&xs->lock);
@@ -456,7 +452,7 @@ struct xmsg *pop_rcv(struct xsock *xs) {
 void push_rcv(struct xsock *xs, struct xmsg *msg) {
     struct xsock_vf *vf = xs->vf;
     u32 events = 0;
-    i64 msgsz = xiov_len(msg->vec.payload);
+    i64 msgsz = xiov_len(msg->vec.chunk);
 
     mutex_lock(&xs->lock);
     if (list_empty(&xs->rcv_head))
@@ -473,7 +469,7 @@ void push_rcv(struct xsock *xs, struct xmsg *msg) {
     if (xs->rcv_waiters > 0)
 	condition_broadcast(&xs->cond);
 
-    if (events)
+    if (events && vf->rcv_notify)
 	vf->rcv_notify(xs->xd, events);
     mutex_unlock(&xs->lock);
 }
@@ -490,7 +486,7 @@ struct xmsg *pop_snd(struct xsock *xs) {
 	DEBUG_OFF("channel %d", xs->xd);
 	msg = list_first(&xs->snd_head, struct xmsg, item);
 	list_del_init(&msg->item);
-	msgsz = xiov_len(msg->vec.payload);
+	msgsz = xiov_len(msg->vec.chunk);
 	xs->snd -= msgsz;
 	events |= XMQ_POP;
 	if (xs->snd_wnd - xs->snd <= msgsz)
@@ -505,7 +501,7 @@ struct xmsg *pop_snd(struct xsock *xs) {
 	    condition_broadcast(&xs->cond);
     }
 
-    if (events)
+    if (events && vf->snd_notify)
 	vf->snd_notify(xs->xd, events);
 
     __xpoll_notify(xs, 0);
@@ -517,7 +513,7 @@ int push_snd(struct xsock *xs, struct xmsg *msg) {
     int rc = -1;
     struct xsock_vf *vf = xs->vf;
     u32 events = 0;
-    i64 msgsz = xiov_len(msg->vec.payload);
+    i64 msgsz = xiov_len(msg->vec.chunk);
 
     mutex_lock(&xs->lock);
     while (!can_send(xs) && !xs->fasync) {
@@ -537,7 +533,7 @@ int push_snd(struct xsock *xs, struct xmsg *msg) {
 	DEBUG_OFF("channel %d", xs->xd);
     }
 
-    if (events)
+    if (events && vf->snd_notify)
 	vf->snd_notify(xs->xd, events);
 
     mutex_unlock(&xs->lock);
@@ -557,7 +553,7 @@ int xrecv(int xd, char **xbuf) {
 	errno = xs->fok ? EAGAIN : EPIPE;
 	rc = -1;
     } else
-	*xbuf = msg->vec.payload;
+	*xbuf = msg->vec.chunk;
     return rc;
 }
 
@@ -570,7 +566,7 @@ int xsend(int xd, char *xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    msg = cont_of(xbuf, struct xmsg, vec.payload);
+    msg = cont_of(xbuf, struct xmsg, vec.chunk);
     if ((rc = push_snd(xs, msg)) < 0) {
 	errno = xs->fok ? EAGAIN : EPIPE;
     }

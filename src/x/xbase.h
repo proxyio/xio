@@ -67,7 +67,7 @@ struct xsock {
     struct list_head rcv_head;
     struct list_head snd_head;
     struct xsock_vf *vf;
-    struct list_head closing_link;
+    struct list_head link;
     struct list_head xpoll_head;
 
     union {
@@ -98,6 +98,11 @@ struct xsock {
 	    struct list_head at_link;
 	    struct xsock *peer_channel;
 	} proc;
+
+	/* Multilingul Environment */
+	struct {
+	    struct list_head listen_head;
+	};
     };
 };
 
@@ -198,14 +203,14 @@ static inline void xglobal_unlock() {
   +--------+------------+------------+
   | 0xffff | 0xffffffff | 0xffffffff |
   +--------+------------+------------+
-  |  crc16 |    size    |   payload  |
+  |  crc16 |    size    |    chunk   |
   +--------+------------+------------+
 */
 
 struct xiov {
     uint16_t checksum;
     u32 size;
-    char payload[0];
+    char chunk[0];
 };
 
 struct xmsg {

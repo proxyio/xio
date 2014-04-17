@@ -238,32 +238,32 @@ static int accept_handler(eloop_t *el, ev_t *et) {
 }
 
 
-static int msg_ready(struct bio *b, i64 *payload_sz) {
+static int msg_ready(struct bio *b, i64 *chunk_sz) {
     struct xmsg msg = {};
     
     if (b->bsize < sizeof(msg.vec))
 	return false;
     bio_copy(b, (char *)(&msg.vec), sizeof(msg.vec));
-    if (b->bsize < xiov_len(msg.vec.payload))
+    if (b->bsize < xiov_len(msg.vec.chunk))
 	return false;
-    *payload_sz = msg.vec.size;
+    *chunk_sz = msg.vec.size;
     return true;
 }
 
 static int io_rcv(struct xsock *sx) {
     int rc = 0;
-    char *payload;
-    i64 payload_sz;
+    char *chunk;
+    i64 chunk_sz;
     struct xmsg *msg;
 
     rc = bio_prefetch(&sx->io.in, &sx->io.ops);
     if (rc < 0 && errno != EAGAIN)
 	return rc;
-    while (msg_ready(&sx->io.in, &payload_sz)) {
+    while (msg_ready(&sx->io.in, &chunk_sz)) {
 	DEBUG_OFF("%d channel recv one message", sx->xd);
-	payload = xallocmsg(payload_sz);
-	bio_read(&sx->io.in, xiov_base(payload), xiov_len(payload));
-	msg = cont_of(payload, struct xmsg, vec.payload);
+	chunk = xallocmsg(chunk_sz);
+	bio_read(&sx->io.in, xiov_base(chunk), xiov_len(chunk));
+	msg = cont_of(chunk, struct xmsg, vec.chunk);
 	push_rcv(sx, msg);
     }
     return rc;
@@ -271,13 +271,13 @@ static int io_rcv(struct xsock *sx) {
 
 static int io_snd(struct xsock *sx) {
     int rc;
-    char *payload;
+    char *chunk;
     struct xmsg *msg;
 
     while ((msg = pop_snd(sx))) {
-	payload = msg->vec.payload;
-	bio_write(&sx->io.out, xiov_base(payload), xiov_len(payload));
-	xfreemsg(payload);
+	chunk = msg->vec.chunk;
+	bio_write(&sx->io.out, xiov_base(chunk), xiov_len(chunk));
+	xfreemsg(chunk);
     }
     rc = bio_flush(&sx->io.out, &sx->io.ops);
     return rc;
