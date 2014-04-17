@@ -6,6 +6,7 @@
 #include <ds/list.h>
 #include <os/timesz.h>
 #include <x/xsock.h>
+#include <hash/crc.h>
 
 struct ep_rt {
     uuid_t uuid;
@@ -32,27 +33,27 @@ struct ep_hdr {
     struct ep_rt rt[0];
 };
 
-static inline struct ep_hdr *ep_allochdr(u32 size) {
-    return (struct ep_hdr *)xallocmsg(size);
+static inline char *xtailmsg(char *msg) {
+    return msg + xmsglen(msg);
 }
 
-static inline void ep_freehdr(struct ep_hdr *h) {
-    xfreemsg((char *)h);
-}
-
-static inline struct ep_hdr *ep_mergehdr(char *r, char *xbuf) {
-    struct ep_hdr *nh = ep_allochdr(xmsglen(r) + xmsglen(xbuf));
-    if (nh) {
-	memcpy(nh, r, xmsglen(r));
-	memcpy((char *)nh + xmsglen(r), xbuf, xmsglen(xbuf));
+static inline char *xmergemsg(char *x1, char *x2) {
+    char *x3 = xallocmsg(xmsglen(x1) + xmsglen(x2));
+    if (x3) {
+	memcpy(x3, x1, xmsglen(x1));
+	memcpy(x3 + xmsglen(x1), x2, xmsglen(x2));
     }
-    return nh;
+    return x3;
 }
 
-#define list_for_each_ep_hdr(h, nh, head)				\
+struct ep_hdr *ep_alloc_req(char *req);
+void ep_freehdr(struct ep_hdr *h);
+
+
+#define list_for_each_eh(h, nh, head)					\
     list_for_each_entry_safe(h, nh, head, struct ep_hdr, u.link)
 
-static inline u32 hdr_size(struct ep_hdr *h) {
+static inline u32 ep_hds(struct ep_hdr *h) {
     u32 ttl = h->go ? h->ttl : h->end_ttl;
     return sizeof(*h) + ttl * sizeof(struct ep_rt);
 }
@@ -61,11 +62,30 @@ static inline int ep_hdr_timeout(struct ep_hdr *h) {
     return h->timeout && (h->sendstamp + h->timeout < rt_mstime());
 }
 
-int ep_hdr_validate(struct ep_hdr *h);
-void ep_hdr_gensum(struct ep_hdr *h);
+static inline int ep_hdr_validate(struct ep_hdr *h) {
+    int ok;
+    struct ep_hdr copyheader = *h;
 
-#define rt_cur(h) (&(h)->rt[(h)->ttl - 1])
-#define rt_prev(h) (&(h)->rt[(h)->ttl - 2])
+    copyheader.checksum = 0;
+    if (!(ok = (crc16((char *)&copyheader, sizeof(*h)) == h->checksum)))
+	errno = EPROTO;
+    return ok;
+}
+
+static inline void ep_hdr_gensum(struct ep_hdr *h) {
+    struct ep_hdr copyh = *h;
+
+    copyh.checksum = 0;
+    h->checksum = crc16((char *)&copyh, sizeof(copyh));
+}
+
+static inline struct ep_rt *rt_cur(struct ep_hdr *h) {
+    return &h->rt[h->ttl - 1];
+}
+
+static inline struct ep_rt *rt_prev(struct ep_hdr *h) {
+    return &h->rt[h->ttl - 2];
+}
 
 static inline void rt_go_cost(struct ep_hdr *h) {
     struct ep_rt *cr = rt_cur(h);

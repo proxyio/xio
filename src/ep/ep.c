@@ -2,8 +2,8 @@
 #include <x/xsock.h>
 #include <os/timesz.h>
 #include <hash/crc.h>
-#include "pxy.h"
 #include "ep.h"
+#include "ep_proxy.h"
 
 #define DEFAULT_GROUP "default"
 
@@ -46,31 +46,18 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 
     f = (struct fd *)ev.self;
     if (ep_recv(f->xd, &h) == 0) {
-	/* Drop the timeout message */
-	if (ep_hdr_timeout(h) < 0) {
-	    DEBUG_ON("message is timeout");
-	    ep_freehdr(h);
-	    goto AGAIN;
-	}
-	/* If message has invalid header checkusm. return error */
-	if (ep_hdr_validate(h) < 0) {
-	    DEBUG_ON("invalid message's checksum");
-	    ep_freehdr(h);
-	    f->fok = false;
-	    goto AGAIN;
-	}
 	if (!(*req = xallocmsg(h->size))) {
 	    ep_freehdr(h);
 	    goto AGAIN;
 	}
-	if (!(*r = xallocmsg(hdr_size(h)))) {
+	if (!(*r = xallocmsg(ep_hds(h)))) {
 	    ep_freehdr(h);
 	    xfreemsg(*req);
 	    goto AGAIN;
 	}
 	/* Copy req into user-space */
-	memcpy(*req, (char *)h + hdr_size(h), h->size);
-	memcpy(*r, h, hdr_size(h));
+	memcpy(*req, (char *)h + ep_hds(h), h->size);
+	memcpy(*r, h, ep_hds(h));
 
 	/* Payload was copy into user-space. */
 	xfreemsg((char *)h);
@@ -94,7 +81,7 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
     struct ep_hdr *h;
     struct ep_rt *cr;
 
-    if (!(h = ep_mergehdr(r, resp)))
+    if (!(h = (struct ep_hdr *)xmergemsg(r, resp)))
 	return -1;
 
     /* Copy header */
@@ -119,35 +106,19 @@ int ep_send_resp(struct ep *ep, char *resp, char *r) {
 int ep_send_req(struct ep *ep, char *req) {
     int rc;
     struct pxy *y = &ep->y;
-    struct ep_hdr *h;
-    struct ep_rt *cr;
     struct fd *f;
-    u32 hdr_sz = sizeof(*h) + sizeof(*cr);
+    struct ep_hdr *eh;
+    struct ep_rt *cr;
 
-    if (!(h = ep_allochdr(xmsglen(req) + hdr_sz)))
+
+    if (!(eh = ep_alloc_req(req)))
 	return -1;
-
-    /* Append ep_hdr and route. The proxy package frame header */
-    h->version = 0;
-    h->ttl = 1;
-    h->end_ttl = 0;
-    h->go = true;
-    h->size = xmsglen(req);
-    h->timeout = 0;
-    h->checksum = 0;
-    h->sendstamp = rt_mstime();
-
-    memcpy((char *)h + hdr_size(h), req, xmsglen(req));
-    xfreemsg(req);
-
-    /* Update header checksum */
-    ep_hdr_gensum(h);
 
     /* RoundRobin algo select a struct fd */
     BUG_ON(!(f = rtb_rrbin_go(&y->tb)));
-    cr = rt_cur(h);
+    cr = rt_cur(eh);
     uuid_copy(cr->uuid, f->st.ud);
-    rc = ep_send(f->xd, h);
+    rc = ep_send(f->xd, eh);
     DEBUG_OFF("channel %d send req into network", f->xd);
     return rc;
 }
@@ -177,7 +148,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	}
 
 	/* Copy response into user-space */
-	memcpy(*resp, (char *)h + hdr_size(h), h->size);
+	memcpy(*resp, (char *)h + ep_hds(h), h->size);
 
 	/* Payload was copy into user-space. */
 	xfreemsg((char *)h);

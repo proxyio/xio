@@ -1,7 +1,7 @@
 #include <os/alloc.h>
 #include <x/xsock.h>
 #include <os/timesz.h>
-#include "pxy.h"
+#include "ep_proxy.h"
 
 extern struct channel *xget(int xd);
 
@@ -82,11 +82,12 @@ static int mq_push(struct fd *f, struct ep_hdr *h) {
 
 /* Receive one request from frontend channel */
 static void rcver_recv(struct fd *f) {
+    int rc;
     struct fd *gof;
     struct ep_hdr *h;
     struct xg *g = f->g;
 
-    while (ep_recv(f->xd, &h) == 0) {
+    while ((rc = ep_recv(f->xd, &h)) == 0) {
 	/* TODO: should we lazzy drop this message if no any dispatchers ? */
 	if (g->ssz <= 0) {
 	    DEBUG_OFF("no any dispatchers");
@@ -257,29 +258,22 @@ static void pxy_connector_handler(struct fd *f, u32 events) {
 }
 
 static void pxy_listener_handler(struct fd *f, u32 events) {
-    struct pxy *y = fd_getself(f, struct pxy);
     int on = 1;
-    int new_xd;
+    struct pxy *y = fd_getself(f, struct pxy);
     struct fd *newf;
-    
+
     DEBUG_ON("listener events %s", xpoll_str[events]);
     if (events & XPOLLIN) {
-	while ((new_xd = xaccept(f->xd)) >= 0) {
-	    if (!(newf = fd_new())) {
-		xclose(new_xd);
-		break;
-	    }
-	    /* NOBLOCKING */
-	    xsetopt(new_xd, XNOBLOCK, &on, sizeof(on));
+	while ((newf = fd_accept(f))) {
+	    xsetopt(newf->xd, XNOBLOCK, &on, sizeof(on));
 	    newf->self = y;
 	    newf->h = pxy_connector_handler;
-	    newf->event.xd = new_xd;
+	    newf->event.xd = newf->xd;
 	    newf->event.care = XPOLLIN|XPOLLOUT|XPOLLERR;
 	    newf->event.self = newf;
-	    newf->xd = new_xd;
 	    list_add_tail(&newf->link, &y->unknown);
 	    BUG_ON(xpoll_ctl(y->po, XPOLL_ADD, &newf->event) != 0);
-	    DEBUG_ON("listener create a new channel %d", new_xd);
+	    DEBUG_ON("listener create a new channel %d", newf->xd);
 	}
     }
 
@@ -291,22 +285,12 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 
 
 int pxy_listen(struct pxy *y, const char *url) {
-    struct fd *f = fd_new();
     int on = 1;
-    int pf = url_parse_pf(url);
-    char sockaddr[URLNAME_MAX] = {};
+    struct fd *f = fd_listen(url);
 
     if (!f)
 	return -1;
-    if (pf < 0 || url_parse_sockaddr(url, sockaddr, URLNAME_MAX) < 0) {
-	fd_free(f);
-	errno = EINVAL;
-	return -1;
-    }
-    if ((f->xd = xlisten(pf, sockaddr)) < 0) {
-	fd_free(f);
-	return -1;
-    }
+    DEBUG_ON("channel %d listen on %s", f->xd, url);
 
     /* NOBLOCKING */
     xsetopt(f->xd, XNOBLOCK, &on, sizeof(on));
@@ -317,50 +301,40 @@ int pxy_listen(struct pxy *y, const char *url) {
     f->event.self = f;
     f->h = pxy_listener_handler;
     BUG_ON(xpoll_ctl(y->po, XPOLL_ADD, &f->event) != 0);
-    DEBUG_ON("channel %d listen on sockaddr %s", f->xd, url);
     return 0;
 }
 
 
 /* Export this api for ep.c. the most code are the same */
 int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
-    struct fd *f = fd_new();
+    struct fd *f = fd_open(url);
     struct ep_stat *syn;
     int on = 1;
-    int pf = url_parse_pf(url);
-    char sockaddr[URLNAME_MAX] = {};
-    
+
     if (!f)
 	return -1;
+    DEBUG_ON("channel %d connect ok", f->xd);
+
     /* Generate register header for gofd */
-    uuid_generate(f->st.ud);
-    f->st.type = ty;
-    if (pf < 0 || url_parse_group(url, f->st.group, URLNAME_MAX) < 0
-	|| url_parse_sockaddr(url, sockaddr, URLNAME_MAX) < 0) {
-	fd_free(f);
-	errno = EINVAL;
-	return -1;
-    }
     if (!(syn = (struct ep_stat *)xallocmsg(sizeof(*syn)))) {
 	fd_free(f);
 	return -1;
     }
-    if ((f->xd = xconnect(pf, sockaddr)) < 0) {
-    EXIT:
-	fd_free(f);
-	xfreemsg((char *)syn);
-	return -1;
-    }
-    DEBUG_ON("channel %d connect ok", f->xd);
+    uuid_generate(f->st.ud);
+    f->st.type = ty;
     *syn = f->st;
     syn->type = (~syn->type) & (DISPATCHER|RECEIVER);
 
     /* syn-send state */
-    if (xsend(f->xd, (char *)syn) < 0)
-	goto EXIT;
+    if (xsend(f->xd, (char *)syn) < 0) {
+	xfreemsg((char *)syn);
+	fd_free(f);
+	return -1;
+    }
 
     /* syn-ack state */
     if (xrecv(f->xd, (char **)&syn) < 0) {
+	fd_free(f);
 	return -1;
     }
 

@@ -1,7 +1,7 @@
 #include <os/alloc.h>
 #include <x/xsock.h>
 #include <os/timesz.h>
-#include "rtb_struct.h"
+#include "ep_fd.h"
 
 struct fd *fd_new() {
     struct fd *f = (struct fd *)mem_zalloc(sizeof(*f));
@@ -22,7 +22,7 @@ void fd_free(struct fd *f) {
     BUG_ON(attached(&f->link));
     if (f->xd >= 0)
 	xclose(f->xd);
-    list_for_each_ep_hdr(h, nh, &f->mq) {
+    list_for_each_eh(h, nh, &f->mq) {
 	list_del_init(&h->u.link);
 	xfreemsg((char *)h);
     }

@@ -1,5 +1,5 @@
-#ifndef _HPIO_PXY_
-#define _HPIO_PXY_
+#ifndef _HPIO_PROXY_
+#define _HPIO_PROXY_
 
 #include <uuid/uuid.h>
 #include <base.h>
@@ -8,8 +8,8 @@
 #include <ds/list.h>
 #include <runner/thread.h>
 #include <sync/mutex.h>
-#include "url_parse.h"
-#include "rtb_struct.h"
+#include "ep_url.h"
+#include "ep_fd.h"
 
 extern const char *py_str[2];
 
