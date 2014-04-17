@@ -55,11 +55,11 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
     mutex_unlock(&po->lock);
 }
 
-extern void xpoll_notify(struct xsock *cn, u32 vf_spec);
+extern void xpoll_notify(struct xsock *sx, u32 vf_spec);
 
 static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
     struct xpoll_entry *ent = xpoll_getent(po, event->xd);
-    struct xsock *cn = xget(event->xd);
+    struct xsock *sx = xget(event->xd);
 
     if (!ent)
 	return -1;
@@ -72,9 +72,9 @@ static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
 
     /* We hold a ref here. it is used for xsock */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
-    attach_to_xsock(ent, cn->xd);
+    attach_to_xsock(ent, sx->xd);
 
-    xpoll_notify(cn, 0);
+    xpoll_notify(sx, 0);
     return 0;
 }
 
@@ -92,7 +92,7 @@ static int xpoll_rm(struct xpoll_t *po, struct xpoll_event *event) {
 
 
 static int xpoll_mod(struct xpoll_t *po, struct xpoll_event *event) {
-    struct xsock *cn = xget(event->xd);
+    struct xsock *sx = xget(event->xd);
     struct xpoll_entry *ent = xpoll_find(po, event->xd);
 
     if (!ent)
@@ -103,7 +103,7 @@ static int xpoll_mod(struct xpoll_t *po, struct xpoll_event *event) {
     spin_unlock(&ent->lock);
     mutex_unlock(&po->lock);
 
-    xpoll_notify(cn, 0);
+    xpoll_notify(sx, 0);
 
     /* Release the ref hold by caller */
     xent_put(ent);

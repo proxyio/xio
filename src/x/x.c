@@ -205,7 +205,7 @@ struct xsock *pop_closed_xsock(struct xcpu *cpu) {
     return xs;
 }
 
-static inline int event_runner(void *args) {
+static inline int cpu_worker(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
     int rc = 0;
     int cpu_no = xcpu_alloc();
@@ -259,8 +259,8 @@ void global_xinit() {
     taskpool_start(&xgb.tpool);
     waitgroup_adds(&wg, xgb.cpu_cores);
     for (i = 0; i < xgb.cpu_cores; i++)
-	taskpool_run(&xgb.tpool, event_runner, &wg);
-    /* Waiting all poll's event_runner start properly */
+	taskpool_run(&xgb.tpool, cpu_worker, &wg);
+    /* Waiting all poll's cpu_worker start properly */
     waitgroup_wait(&wg);
     waitgroup_destroy(&wg);
     

@@ -24,7 +24,7 @@ static struct xsock *find_listener(char *addr) {
 
     xglobal_lock();
     if ((node = ssmap_find(&xgb.inproc_listeners, addr, TP_SOCKADDRLEN)))
-	sx = cont_of(node, struct xsock, proc.listener_node);
+	sx = cont_of(node, struct xsock, proc.rb_link);
     xglobal_unlock();
     return sx;
 }
@@ -52,7 +52,7 @@ static void remove_listener(struct ssmap_node *node) {
 
 static void push_new_connector(struct xsock *sx, struct xsock *new) {
     mutex_lock(&sx->lock);
-    list_add_tail(&new->proc.wait_item, &sx->proc.new_connectors);
+    list_add_tail(&new->proc.at_link, &sx->proc.at_queue);
     mutex_unlock(&sx->lock);
 }
 
@@ -60,9 +60,9 @@ static struct xsock *pop_new_connector(struct xsock *sx) {
     struct xsock *new = 0;
 
     mutex_lock(&sx->lock);
-    if (!list_empty(&sx->proc.new_connectors)) {
-	new = list_first(&sx->proc.new_connectors, struct xsock, proc.wait_item);
-	list_del_init(&new->proc.wait_item);
+    if (!list_empty(&sx->proc.at_queue)) {
+	new = list_first(&sx->proc.at_queue, struct xsock, proc.at_link);
+	list_del_init(&new->proc.at_link);
     }
     mutex_unlock(&sx->lock);
     return new;
@@ -150,11 +150,10 @@ static int inproc_accepter_init(int xd) {
 static int inproc_listener_init(int xd) {
     int rc = 0;
     struct xsock *sx = xget(xd);
-    struct ssmap_node *node = &sx->proc.listener_node;
+    struct ssmap_node *node = &sx->proc.rb_link;
 
     node->key = sx->addr;
     node->keylen = TP_SOCKADDRLEN;
-    INIT_LIST_HEAD(&sx->proc.new_connectors);
     if ((rc = insert_listener(node)) < 0)
 	return rc;
     return rc;
@@ -167,7 +166,7 @@ static int inproc_listener_destroy(int xd) {
     struct xsock *new;
 
     /* Avoiding the new connectors */
-    remove_listener(&sx->proc.listener_node);
+    remove_listener(&sx->proc.rb_link);
 
     while ((new = pop_new_connector(sx))) {
 	mutex_lock(&new->lock);
@@ -195,7 +194,7 @@ static int inproc_connector_init(int xd) {
     sx->proc.ref = 0;
     sx->proc.peer_channel = 0;
 
-    /* step1. Push the new connector into listener's new_connectors
+    /* step1. Push the new connector into listener's at_queue
      * queue and update_xpoll_t for user-state poll
      */
     push_new_connector(listener, sx);
@@ -249,6 +248,9 @@ static int inproc_connector_destroy(int xd) {
 static int inproc_xinit(int xd) {
     struct xsock *sx = xget(xd);
 
+    ZERO(sx->proc);
+    INIT_LIST_HEAD(&sx->proc.at_queue);
+
     switch (sx->ty) {
     case XACCEPTER:
 	return inproc_accepter_init(xd);
@@ -257,7 +259,8 @@ static int inproc_xinit(int xd) {
     case XLISTENER:
 	return inproc_listener_init(xd);
     }
-    return -EINVAL;
+    errno = EINVAL;
+    return -1;
 }
 
 static void inproc_xdestroy(int xd) {

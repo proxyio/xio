@@ -164,6 +164,7 @@ static int io_connector_init(int xd) {
 static int io_xinit(int xd) {
     struct xsock *sx = xget(xd);
 
+    ZERO(sx->io);
     bio_init(&sx->io.in);
     bio_init(&sx->io.out);
 
@@ -175,7 +176,8 @@ static int io_xinit(int xd) {
     case XLISTENER:
 	return io_listener_init(xd);
     }
-    return -EINVAL;
+    errno = EINVAL;
+    return -1;
 }
 
 static int io_snd(struct xsock *sx);

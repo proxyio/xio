@@ -70,7 +70,7 @@ struct xsock {
     struct list_head closing_link;
     struct list_head xpoll_head;
 
-    //union {
+    union {
 	/* Only for transport channel */
 	struct {
 	    ev_t et;
@@ -91,14 +91,14 @@ struct xsock {
 	    int ref;
 
 	    /* For inproc-listener */
-	    struct list_head new_connectors;
-	    struct ssmap_node listener_node;
+	    struct list_head at_queue;
+	    struct ssmap_node rb_link;
 
 	    /* For inproc-connector and inproc-accepter (new connection) */
-	    struct list_head wait_item;
+	    struct list_head at_link;
 	    struct xsock *peer_channel;
 	} proc;
-    //};
+    };
 };
 
 

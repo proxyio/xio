@@ -152,13 +152,16 @@ static void xserver_thread2() {
     xclose(afd);
 }
 
-TEST(channel, vf) {
+TEST(xsock, vf) {
+
     pf = PF_NET;
     xserver_thread();
     xserver_thread2();
+
     pf = PF_INPROC;
     xserver_thread();
     xserver_thread2();
+
     pf = PF_IPC;
     xserver_thread();
     xserver_thread2();
@@ -218,7 +221,7 @@ static void inproc_server_thread2() {
     thread_stop(&cli_thread[1]);
 }
 
-TEST(channel, inproc) {
+TEST(xsock, inproc) {
     inproc_server_thread2();
 }
 
