@@ -8,6 +8,8 @@
 static i64 io_xread(struct io *ops, char *buff, i64 sz) {
     struct xsock *sx = cont_of(ops, struct xsock, io.ops);
     struct transport *tp = sx->io.tp;
+
+    BUG_ON(!tp);
     int rc = tp->read(sx->io.fd, buff, sz);
     return rc;
 }
@@ -15,6 +17,8 @@ static i64 io_xread(struct io *ops, char *buff, i64 sz) {
 static i64 io_xwrite(struct io *ops, char *buff, i64 sz) {
     struct xsock *sx = cont_of(ops, struct xsock, io.ops);
     struct transport *tp = sx->io.tp;
+
+    BUG_ON(!tp);
     int rc = tp->write(sx->io.fd, buff, sz);
     return rc;
 }
@@ -104,6 +108,7 @@ static int io_accepter_init(int xd) {
     struct transport *tp = transport_lookup(sx->pf);
     struct xsock *parent = xget(sx->parent);
 
+    BUG_ON(!tp);
     if ((s = tp->accept(parent->io.fd)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
@@ -126,6 +131,7 @@ static int io_listener_init(int xd) {
     struct xcpu *po = xcpuget(sx->cpu_no);
     struct transport *tp = transport_lookup(sx->pf);
 
+    BUG_ON(!tp);
     if ((s = tp->bind(sx->addr)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
@@ -147,6 +153,7 @@ static int io_connector_init(int xd) {
     struct xcpu *po = xcpuget(sx->cpu_no);
     struct transport *tp = transport_lookup(sx->pf);
 
+    BUG_ON(!tp);
     if ((s = tp->connect(sx->peer)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
@@ -186,6 +193,8 @@ static void io_xdestroy(int xd) {
     struct xsock *sx = xget(xd);
     struct xcpu *po = xcpuget(sx->cpu_no);
     struct transport *tp = sx->io.tp;
+
+    BUG_ON(!tp);
 
     /* Try flush buf massage into network before close */
     io_snd(sx);

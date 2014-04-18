@@ -102,14 +102,13 @@ struct xsock {
 	/* Multilingul Environment */
 	struct {
 	    struct list_head listen_head;
-	};
+	} mul;
     };
 };
 
-
 #define xsock_walk_safe(pos, nx, head)			\
     list_for_each_entry_safe(pos, nx, head,		\
-			     struct xsock, wait_item)
+			     struct xsock, link)
 
 /* We guarantee that we can push one massage at least. */
 static inline int can_send(struct xsock *cn) {

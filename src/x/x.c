@@ -233,6 +233,10 @@ static inline int cpu_worker(void *args) {
 extern struct xsock_vf *inproc_xsock_vfptr;
 extern struct xsock_vf *ipc_xsock_vfptr;
 extern struct xsock_vf *tcp_xsock_vfptr;
+extern struct xsock_vf *ipc_and_inp_xsock_vfptr;
+extern struct xsock_vf *net_and_inp_xsock_vfptr;
+extern struct xsock_vf *ipc_and_net_xsock_vfptr;
+extern struct xsock_vf *ipc_inp_net_xsock_vfptr;
 
 
 void global_xinit() {
@@ -265,6 +269,10 @@ void global_xinit() {
     list_add_tail(&inproc_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
     list_add_tail(&ipc_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
     list_add_tail(&tcp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    list_add_tail(&ipc_and_inp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    list_add_tail(&net_and_inp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    list_add_tail(&ipc_and_net_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    list_add_tail(&ipc_inp_net_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
 }
 
 void global_xexit() {
@@ -305,8 +313,10 @@ int xaccept(int xd) {
     new->parent = xd;
     xpoll_notify(xs, 0);
     xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+	if (xs->pf != vf->pf)
+	    continue;
 	new->vf = vf;
-	if ((xs->pf & vf->pf) && vf->init(new->xd) == 0) {
+	if (vf->init(new->xd) == 0) {
 	    return new->xd;
 	}
     }
@@ -325,8 +335,10 @@ int xlisten(int pf, const char *addr) {
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
     xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+	if (pf != vf->pf)
+	    continue;
 	new->vf = vf;
-	if ((pf & vf->pf) && vf->init(new->xd) == 0)
+	if (vf->init(new->xd) == 0)
 	    return new->xd;
     }
     xsock_free(new);
@@ -343,8 +355,10 @@ int xconnect(int pf, const char *peer) {
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
     xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+	if (pf != vf->pf)
+	    continue;
 	new->vf = vf;
-	if ((pf & vf->pf) && vf->init(new->xd) == 0) {
+	if (vf->init(new->xd) == 0) {
 	    return new->xd;
 	}
     }
