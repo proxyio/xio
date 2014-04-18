@@ -17,8 +17,8 @@ static int DEF_RCVBUF = 10485760;
 
 struct xglobal xgb = {};
 
-void __xpoll_notify(struct xsock *xs, u32 vf_spec);
-void xpoll_notify(struct xsock *xs, u32 vf_spec);
+void __xpoll_notify(struct xsock *sx, u32 vf_spec);
+void xpoll_notify(struct xsock *sx, u32 vf_spec);
 
 u32 xiov_len(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
@@ -75,76 +75,81 @@ struct xsock *xget(int xd) {
     return &xgb.socks[xd];
 }
 
-static void xbase_init(int xd) {
-    struct xsock *xs = xget(xd);
+static int xshutdown_task_f(struct xtask *ts);
 
-    mutex_init(&xs->lock);
-    condition_init(&xs->cond);
-    xs->fasync = false;
-    xs->fok = true;
-    xs->fclosed = false;
-    xs->parent = -1;
-    xs->xd = xd;
-    xs->cpu_no = choose_backend_poll(xd);
-    xs->rcv_waiters = 0;
-    xs->snd_waiters = 0;
-    xs->rcv = 0;
-    xs->snd = 0;
-    xs->rcv_wnd = DEF_RCVBUF;
-    xs->snd_wnd = DEF_SNDBUF;
-    INIT_LIST_HEAD(&xs->rcv_head);
-    INIT_LIST_HEAD(&xs->snd_head);
-    INIT_LIST_HEAD(&xs->link);
-    INIT_LIST_HEAD(&xs->xpoll_head);
+static void xsock_init(int xd) {
+    struct xsock *sx = xget(xd);
+
+    mutex_init(&sx->lock);
+    condition_init(&sx->cond);
+    sx->fasync = false;
+    sx->fok = true;
+    sx->fclosed = false;
+    sx->parent = -1;
+    sx->xd = xd;
+    sx->cpu_no = choose_backend_poll(xd);
+    sx->rcv_waiters = 0;
+    sx->snd_waiters = 0;
+    sx->rcv = 0;
+    sx->snd = 0;
+    sx->rcv_wnd = DEF_RCVBUF;
+    sx->snd_wnd = DEF_SNDBUF;
+    INIT_LIST_HEAD(&sx->rcv_head);
+    INIT_LIST_HEAD(&sx->snd_head);
+    INIT_LIST_HEAD(&sx->link);
+    INIT_LIST_HEAD(&sx->xpoll_head);
+
+    sx->shutdown.f = xshutdown_task_f;
+    INIT_LIST_HEAD(&sx->shutdown.link);
 }
 
-static void xbase_exit(int xd) {
-    struct xsock *xs = xget(xd);
+static void xsock_exit(int xd) {
+    struct xsock *sx = xget(xd);
     struct list_head head = {};
     struct xmsg *pos, *nx;
 
-    mutex_destroy(&xs->lock);
-    condition_destroy(&xs->cond);
-    xs->ty = -1;
-    xs->pf = -1;
-    xs->fasync = 0;
-    xs->fok = 0;
-    xs->fclosed = 0;
-    xs->xd = -1;
-    xs->cpu_no = -1;
-    xs->rcv_waiters = -1;
-    xs->snd_waiters = -1;
-    xs->rcv = -1;
-    xs->snd = -1;
-    xs->rcv_wnd = -1;
-    xs->snd_wnd = -1;
+    mutex_destroy(&sx->lock);
+    condition_destroy(&sx->cond);
+    sx->ty = -1;
+    sx->pf = -1;
+    sx->fasync = 0;
+    sx->fok = 0;
+    sx->fclosed = 0;
+    sx->xd = -1;
+    sx->cpu_no = -1;
+    sx->rcv_waiters = -1;
+    sx->snd_waiters = -1;
+    sx->rcv = -1;
+    sx->snd = -1;
+    sx->rcv_wnd = -1;
+    sx->snd_wnd = -1;
 
     INIT_LIST_HEAD(&head);
-    list_splice(&xs->rcv_head, &head);
-    list_splice(&xs->snd_head, &head);
+    list_splice(&sx->rcv_head, &head);
+    list_splice(&sx->snd_head, &head);
     xmsg_walk_safe(pos, nx, &head) {
 	xfreemsg(pos->vec.chunk);
     }
-    BUG_ON(attached(&xs->link));
+    BUG_ON(attached(&sx->link));
 
     /* It's possible that user call xclose() and xpoll_add()
      * at the same time. and attach_to_xsock() happen after xclose().
      * this is a user's bug.
      */
-    BUG_ON(!list_empty(&xs->xpoll_head));
+    BUG_ON(!list_empty(&sx->xpoll_head));
 }
 
 
 struct xsock *xsock_alloc() {
     int xd = xd_alloc();
-    struct xsock *xs = xget(xd);
-    xbase_init(xd);
-    return xs;
+    struct xsock *sx = xget(xd);
+    xsock_init(xd);
+    return sx;
 }
 
-void xsock_free(struct xsock *xs) {
-    int xd = xs->xd;
-    xbase_exit(xd);
+void xsock_free(struct xsock *sx) {
+    int xd = sx->xd;
+    xsock_exit(xd);
     xd_free(xd);
 }
 
@@ -167,62 +172,76 @@ struct xcpu *xcpuget(int cpu_no) {
     return &xgb.cpus[cpu_no];
 }
 
-
-static int has_closed_xsock(struct xcpu *cpu) {
-    int has = true;
-    spin_lock(&cpu->lock);
-    if (list_empty(&cpu->closing_head))
-	has = false;
-    spin_unlock(&cpu->lock);
-    return has;
-}
-
-static void push_closed_xsock(struct xsock *xs) {
-    struct xcpu *cpu = xcpuget(xs->cpu_no);
+static void xshutdown(struct xsock *sx) {
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
+    struct xtask *ts = &sx->shutdown;    
     
     spin_lock(&cpu->lock);
-    if (!xs->fclosed && !attached(&xs->link)) {
-	xs->fclosed = true;
-	list_add_tail(&xs->link, &cpu->closing_head);
+    if (!sx->fclosed && !attached(&ts->link)) {
+	sx->fclosed = true;
+	list_add_tail(&ts->link, &cpu->shutdown_head);
     }
+    efd_signal(&cpu->efd);
     spin_unlock(&cpu->lock);
 }
 
-static struct xsock *pop_closed_xsock(struct xcpu *cpu) {
-    struct xsock *xs = 0;
+static int xshutdown_task_f(struct xtask *ts) {
+    struct xsock *sx = cont_of(ts, struct xsock, shutdown);
 
+    DEBUG_ON("xsock %d shutdown", sx->xd);
+    sx->vf->destroy(sx->xd);
+    return 0;
+}
+
+static int __cpu_shutdown_task_hndl(struct xcpu *cpu) {
+    struct xtask *ts, *nx_ts;
+    struct list_head st_head;
+
+    INIT_LIST_HEAD(&st_head);
     spin_lock(&cpu->lock);
-    if (!list_empty(&cpu->closing_head)) {
-	xs = list_first(&cpu->closing_head, struct xsock, link);
-	list_del_init(&xs->link);
-    }
+    efd_unsignal(&cpu->efd);
+    list_splice(&cpu->shutdown_head, &st_head);
     spin_unlock(&cpu->lock);
-    return xs;
+
+    xtask_walk_safe(ts, nx_ts, &st_head) {
+	list_del_init(&ts->link);
+	ts->f(ts);
+    }
+    return 0;
 }
 
-static inline int cpu_worker(void *args) {
+static int cpu_task_hndl(eloop_t *el, ev_t *et) {
+    return 0;
+}
+
+static inline int kcpud(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
     int rc = 0;
     int cpu_no = xcpu_alloc();
-    struct xsock *closing_xs;
     struct xcpu *cpu = xcpuget(cpu_no);
 
     spin_init(&cpu->lock);
-    INIT_LIST_HEAD(&cpu->closing_head);
+    INIT_LIST_HEAD(&cpu->shutdown_head);
 
     /* Init eventloop and wakeup parent */
-    BUG_ON(eloop_init(&cpu->el,
-		      XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
+    BUG_ON(eloop_init(&cpu->el, XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
 		      DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
+    BUG_ON(efd_init(&cpu->efd));
+    cpu->efd_et.events = EPOLLIN|EPOLLERR;
+    cpu->efd_et.fd = cpu->efd.r;
+    cpu->efd_et.f = cpu_task_hndl;
+    cpu->efd_et.data = cpu;
+    BUG_ON(eloop_add(&cpu->el, &cpu->efd_et) != 0);
+
+    /* Init done. wakeup parent thread */
     waitgroup_done(wg);
 
-    while (!xgb.exiting || has_closed_xsock(cpu)) {
+    while (!xgb.exiting) {
 	eloop_once(&cpu->el);
-	while ((closing_xs = pop_closed_xsock(cpu)))
-	    closing_xs->vf->destroy(closing_xs->xd);
+	__cpu_shutdown_task_hndl(cpu);
     }
 
-    /* Release the poll descriptor when runner exit. */
+    /* Release the poll descriptor when kcpud exit. */
     xcpu_free(cpu_no);
     eloop_destroy(&cpu->el);
     spin_destroy(&cpu->lock);
@@ -259,8 +278,8 @@ void global_xinit() {
     taskpool_start(&xgb.tpool);
     waitgroup_adds(&wg, xgb.cpu_cores);
     for (i = 0; i < xgb.cpu_cores; i++)
-	taskpool_run(&xgb.tpool, cpu_worker, &wg);
-    /* Waiting all poll's cpu_worker start properly */
+	taskpool_run(&xgb.tpool, kcpud, &wg);
+    /* Waiting all poll's kcpud start properly */
     waitgroup_wait(&wg);
     waitgroup_destroy(&wg);
     
@@ -283,37 +302,38 @@ void global_xexit() {
 }
 
 void xclose(int xd) {
-    struct xsock *xs = xget(xd);
+    struct xsock *sx = xget(xd);
     struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
     
-    mutex_lock(&xs->lock);
-    xsock_walk_ent(ent, nx, &xs->xpoll_head) {
+    mutex_lock(&sx->lock);
+    xsock_walk_ent(ent, nx, &sx->xpoll_head) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
 	xpoll_ctl(po, XPOLL_DEL, &ent->event);
 	__detach_from_xsock(ent);
 	xent_put(ent);
     }
-    mutex_unlock(&xs->lock);
+    mutex_unlock(&sx->lock);
+
     /* Let backend thread do the last destroy() */
-    push_closed_xsock(xs);
+    xshutdown(sx);
 }
 
 int xaccept(int xd) {
-    struct xsock *xs = xget(xd);
+    struct xsock *sx = xget(xd);
     struct xsock *new = xsock_alloc();
     struct xsock_vf *vf, *nx;
 
-    if (!xs->fok) {
+    if (!sx->fok) {
 	errno = EPIPE;
 	goto EXIT;
     }
     new->ty = XACCEPTER;
-    new->pf = xs->pf;
+    new->pf = sx->pf;
     new->parent = xd;
-    xpoll_notify(xs, 0);
+    xpoll_notify(sx, 0);
     xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
-	if (xs->pf != vf->pf)
+	if (sx->pf != vf->pf)
 	    continue;
 	new->vf = vf;
 	if (vf->init(new->xd) == 0) {
@@ -368,7 +388,7 @@ int xconnect(int pf, const char *peer) {
 
 int xsetopt(int xd, int opt, void *on, int size) {
     int rc = 0;
-    struct xsock *xs = xget(xd);
+    struct xsock *sx = xget(xd);
 
     if (!on || size <= 0) {
 	errno = EINVAL;
@@ -376,19 +396,19 @@ int xsetopt(int xd, int opt, void *on, int size) {
     }
     switch (opt) {
     case XNOBLOCK:
-	mutex_lock(&xs->lock);
-	xs->fasync = *(int *)on ? true : false;
-	mutex_unlock(&xs->lock);
+	mutex_lock(&sx->lock);
+	sx->fasync = *(int *)on ? true : false;
+	mutex_unlock(&sx->lock);
 	break;
     case XSNDBUF:
-	mutex_lock(&xs->lock);
-	xs->snd_wnd = (*(int *)on);
-	mutex_unlock(&xs->lock);
+	mutex_lock(&sx->lock);
+	sx->snd_wnd = (*(int *)on);
+	mutex_unlock(&sx->lock);
 	break;
     case XRCVBUF:
-	mutex_lock(&xs->lock);
-	xs->rcv_wnd = (*(int *)on);
-	mutex_unlock(&xs->lock);
+	mutex_lock(&sx->lock);
+	sx->rcv_wnd = (*(int *)on);
+	mutex_unlock(&sx->lock);
 	break;
     default:
 	errno = EINVAL;
@@ -399,7 +419,7 @@ int xsetopt(int xd, int opt, void *on, int size) {
 
 int xgetopt(int xd, int opt, void *on, int size) {
     int rc = 0;
-    struct xsock *xs = xget(xd);
+    struct xsock *sx = xget(xd);
 
     if (!on || size <= 0) {
 	errno = EINVAL;
@@ -407,19 +427,19 @@ int xgetopt(int xd, int opt, void *on, int size) {
     }
     switch (opt) {
     case XNOBLOCK:
-	mutex_lock(&xs->lock);
-	*(int *)on = xs->fasync ? true : false;
-	mutex_unlock(&xs->lock);
+	mutex_lock(&sx->lock);
+	*(int *)on = sx->fasync ? true : false;
+	mutex_unlock(&sx->lock);
 	break;
     case XSNDBUF:
-	mutex_lock(&xs->lock);
-	*(int *)on = xs->snd_wnd;
-	mutex_unlock(&xs->lock);
+	mutex_lock(&sx->lock);
+	*(int *)on = sx->snd_wnd;
+	mutex_unlock(&sx->lock);
 	break;
     case XRCVBUF:
-	mutex_lock(&xs->lock);
-	*(int *)on = xs->rcv_wnd;
-	mutex_unlock(&xs->lock);
+	mutex_lock(&sx->lock);
+	*(int *)on = sx->rcv_wnd;
+	mutex_unlock(&sx->lock);
 	break;
     default:
 	errno = EINVAL;
@@ -429,142 +449,142 @@ int xgetopt(int xd, int opt, void *on, int size) {
 }
 
 
-struct xmsg *pop_rcv(struct xsock *xs) {
+struct xmsg *pop_rcv(struct xsock *sx) {
     struct xmsg *msg = 0;
-    struct xsock_vf *vf = xs->vf;
+    struct xsock_vf *vf = sx->vf;
     i64 msgsz;
     u32 events = 0;
 
-    mutex_lock(&xs->lock);
-    while (list_empty(&xs->rcv_head) && !xs->fasync) {
-	xs->rcv_waiters++;
-	condition_wait(&xs->cond, &xs->lock);
-	xs->rcv_waiters--;
+    mutex_lock(&sx->lock);
+    while (list_empty(&sx->rcv_head) && !sx->fasync) {
+	sx->rcv_waiters++;
+	condition_wait(&sx->cond, &sx->lock);
+	sx->rcv_waiters--;
     }
-    if (!list_empty(&xs->rcv_head)) {
-	DEBUG_OFF("channel %d", xs->xd);
-	msg = list_first(&xs->rcv_head, struct xmsg, item);
+    if (!list_empty(&sx->rcv_head)) {
+	DEBUG_OFF("xsock %d", sx->xd);
+	msg = list_first(&sx->rcv_head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
-	xs->rcv -= msgsz;
+	sx->rcv -= msgsz;
 	events |= XMQ_POP;
-	if (xs->rcv_wnd - xs->rcv <= msgsz)
+	if (sx->rcv_wnd - sx->rcv <= msgsz)
 	    events |= XMQ_NONFULL;
-	if (list_empty(&xs->rcv_head)) {
-	    BUG_ON(xs->rcv);
+	if (list_empty(&sx->rcv_head)) {
+	    BUG_ON(sx->rcv);
 	    events |= XMQ_EMPTY;
 	}
     }
 
     if (events && vf->rcv_notify)
-	vf->rcv_notify(xs->xd, events);
+	vf->rcv_notify(sx->xd, events);
 
-    mutex_unlock(&xs->lock);
+    mutex_unlock(&sx->lock);
     return msg;
 }
 
-void push_rcv(struct xsock *xs, struct xmsg *msg) {
-    struct xsock_vf *vf = xs->vf;
+void push_rcv(struct xsock *sx, struct xmsg *msg) {
+    struct xsock_vf *vf = sx->vf;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
-    mutex_lock(&xs->lock);
-    if (list_empty(&xs->rcv_head))
+    mutex_lock(&sx->lock);
+    if (list_empty(&sx->rcv_head))
 	events |= XMQ_NONEMPTY;
-    if (xs->rcv_wnd - xs->rcv <= msgsz)
+    if (sx->rcv_wnd - sx->rcv <= msgsz)
 	events |= XMQ_FULL;
     events |= XMQ_PUSH;
-    xs->rcv += msgsz;
-    list_add_tail(&msg->item, &xs->rcv_head);    
-    __xpoll_notify(xs, 0);
-    DEBUG_OFF("channel %d", xs->xd);
+    sx->rcv += msgsz;
+    list_add_tail(&msg->item, &sx->rcv_head);    
+    __xpoll_notify(sx, 0);
+    DEBUG_OFF("xsock %d", sx->xd);
 
     /* Wakeup the blocking waiters. */
-    if (xs->rcv_waiters > 0)
-	condition_broadcast(&xs->cond);
+    if (sx->rcv_waiters > 0)
+	condition_broadcast(&sx->cond);
 
     if (events && vf->rcv_notify)
-	vf->rcv_notify(xs->xd, events);
-    mutex_unlock(&xs->lock);
+	vf->rcv_notify(sx->xd, events);
+    mutex_unlock(&sx->lock);
 }
 
 
-struct xmsg *pop_snd(struct xsock *xs) {
-    struct xsock_vf *vf = xs->vf;
+struct xmsg *pop_snd(struct xsock *sx) {
+    struct xsock_vf *vf = sx->vf;
     struct xmsg *msg = 0;
     i64 msgsz;
     u32 events = 0;
     
-    mutex_lock(&xs->lock);
-    if (!list_empty(&xs->snd_head)) {
-	DEBUG_OFF("channel %d", xs->xd);
-	msg = list_first(&xs->snd_head, struct xmsg, item);
+    mutex_lock(&sx->lock);
+    if (!list_empty(&sx->snd_head)) {
+	DEBUG_OFF("xsock %d", sx->xd);
+	msg = list_first(&sx->snd_head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
-	xs->snd -= msgsz;
+	sx->snd -= msgsz;
 	events |= XMQ_POP;
-	if (xs->snd_wnd - xs->snd <= msgsz)
+	if (sx->snd_wnd - sx->snd <= msgsz)
 	    events |= XMQ_NONFULL;
-	if (list_empty(&xs->snd_head)) {
-	    BUG_ON(xs->snd);
+	if (list_empty(&sx->snd_head)) {
+	    BUG_ON(sx->snd);
 	    events |= XMQ_EMPTY;
 	}
 
 	/* Wakeup the blocking waiters */
-	if (xs->snd_waiters > 0)
-	    condition_broadcast(&xs->cond);
+	if (sx->snd_waiters > 0)
+	    condition_broadcast(&sx->cond);
     }
 
     if (events && vf->snd_notify)
-	vf->snd_notify(xs->xd, events);
+	vf->snd_notify(sx->xd, events);
 
-    __xpoll_notify(xs, 0);
-    mutex_unlock(&xs->lock);
+    __xpoll_notify(sx, 0);
+    mutex_unlock(&sx->lock);
     return msg;
 }
 
-int push_snd(struct xsock *xs, struct xmsg *msg) {
+int push_snd(struct xsock *sx, struct xmsg *msg) {
     int rc = -1;
-    struct xsock_vf *vf = xs->vf;
+    struct xsock_vf *vf = sx->vf;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
-    mutex_lock(&xs->lock);
-    while (!can_send(xs) && !xs->fasync) {
-	xs->snd_waiters++;
-	condition_wait(&xs->cond, &xs->lock);
-	xs->snd_waiters--;
+    mutex_lock(&sx->lock);
+    while (!can_send(sx) && !sx->fasync) {
+	sx->snd_waiters++;
+	condition_wait(&sx->cond, &sx->lock);
+	sx->snd_waiters--;
     }
-    if (can_send(xs)) {
+    if (can_send(sx)) {
 	rc = 0;
-	if (list_empty(&xs->snd_head))
+	if (list_empty(&sx->snd_head))
 	    events |= XMQ_NONEMPTY;
-	if (xs->snd_wnd - xs->snd <= msgsz)
+	if (sx->snd_wnd - sx->snd <= msgsz)
 	    events |= XMQ_FULL;
 	events |= XMQ_PUSH;
-	xs->snd += msgsz;
-	list_add_tail(&msg->item, &xs->snd_head);
-	DEBUG_OFF("channel %d", xs->xd);
+	sx->snd += msgsz;
+	list_add_tail(&msg->item, &sx->snd_head);
+	DEBUG_OFF("xsock %d", sx->xd);
     }
 
     if (events && vf->snd_notify)
-	vf->snd_notify(xs->xd, events);
+	vf->snd_notify(sx->xd, events);
 
-    mutex_unlock(&xs->lock);
+    mutex_unlock(&sx->lock);
     return rc;
 }
 
 int xrecv(int xd, char **xbuf) {
     int rc = 0;
-    struct xsock *xs = xget(xd);
+    struct xsock *sx = xget(xd);
     struct xmsg *msg;
 
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!(msg = pop_rcv(xs))) {
-	errno = xs->fok ? EAGAIN : EPIPE;
+    if (!(msg = pop_rcv(sx))) {
+	errno = sx->fok ? EAGAIN : EPIPE;
 	rc = -1;
     } else
 	*xbuf = msg->vec.chunk;
@@ -574,15 +594,15 @@ int xrecv(int xd, char **xbuf) {
 int xsend(int xd, char *xbuf) {
     int rc = 0;
     struct xmsg *msg;
-    struct xsock *xs = xget(xd);
+    struct xsock *sx = xget(xd);
 
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
     msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    if ((rc = push_snd(xs, msg)) < 0) {
-	errno = xs->fok ? EAGAIN : EPIPE;
+    if ((rc = push_snd(sx, msg)) < 0) {
+	errno = sx->fok ? EAGAIN : EPIPE;
     }
     return rc;
 }
@@ -594,23 +614,23 @@ int xsend(int xd, char *xbuf) {
  * here we only check the mq events and vf_spec saved the other
  * events gived by xsock_vf
  */
-void __xpoll_notify(struct xsock *xs, u32 vf_spec) {
+void __xpoll_notify(struct xsock *sx, u32 vf_spec) {
     int events = 0;
     struct xpoll_entry *ent, *nx;
 
     events |= vf_spec;
-    events |= !list_empty(&xs->rcv_head) ? XPOLLIN : 0;
-    events |= can_send(xs) ? XPOLLOUT : 0;
-    events |= !xs->fok ? XPOLLERR : 0;
-    DEBUG_OFF("%d channel xpoll events %d happen", xs->xd, events);
-    xsock_walk_ent(ent, nx, &xs->xpoll_head) {
+    events |= !list_empty(&sx->rcv_head) ? XPOLLIN : 0;
+    events |= can_send(sx) ? XPOLLOUT : 0;
+    events |= !sx->fok ? XPOLLERR : 0;
+    DEBUG_OFF("%d xsock events %d happen", sx->xd, events);
+    xsock_walk_ent(ent, nx, &sx->xpoll_head) {
 	ent->notify->event(ent->notify, ent, ent->event.care & events);
     }
 }
 
-void xpoll_notify(struct xsock *xs, u32 vf_spec) {
-    mutex_lock(&xs->lock);
-    __xpoll_notify(xs, vf_spec);
-    mutex_unlock(&xs->lock);
+void xpoll_notify(struct xsock *sx, u32 vf_spec) {
+    mutex_lock(&sx->lock);
+    __xpoll_notify(sx, vf_spec);
+    mutex_unlock(&sx->lock);
 }
 

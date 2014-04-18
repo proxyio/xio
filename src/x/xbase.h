@@ -11,6 +11,7 @@
 #include <sync/spin.h>
 #include <sync/condition.h>
 #include <runner/taskpool.h>
+#include <os/efd.h>
 #include "xsock.h"
 #include "xpoll.h"
 
@@ -22,17 +23,31 @@
 /* Max number of cpu core */
 #define XSOCK_MAX_CPUS 32
 
-/* Define channel type for listner/accepter/connector */
+/* Define xsock type for listner/accepter/connector */
 #define XLISTENER 1
 #define XACCEPTER 2
 #define XCONNECTOR 3
 
+/* XSock MQ events */
 #define XMQ_PUSH         0x01
 #define XMQ_POP          0x02
 #define XMQ_EMPTY        0x04
 #define XMQ_NONEMPTY     0x08
 #define XMQ_FULL         0x10
 #define XMQ_NONFULL      0x20
+
+struct xtask;
+typedef int (*xtask_func) (struct xtask *ts);
+
+struct xtask {
+    xtask_func f;
+    struct list_head link;
+};
+
+#define xtask_walk_safe(ts, nt, head)			\
+    list_for_each_entry_safe(ts, nt, head,		\
+			     struct xtask, link)
+
 
 struct xsock_vf {
     int pf;
@@ -67,9 +82,10 @@ struct xsock {
     struct list_head rcv_head;
     struct list_head snd_head;
     struct xsock_vf *vf;
-    struct list_head link;
     struct list_head xpoll_head;
-
+    struct xtask shutdown;
+    struct list_head link;
+    
     union {
 	/* Only for transport channel */
 	struct {
@@ -131,14 +147,18 @@ void xpoll_notify(struct xsock *cn, u32 vf_spec);
 
 
 
+
 struct xcpu {
     spin_t lock;
 
-    /* Backend eventloop for io runner. */
+    /* Backend eventloop for cpu_worker. */
     eloop_t el;
 
+    ev_t efd_et;
+    struct efd efd;
+
     /* Waiting for closed channel will be attached here */
-    struct list_head closing_head;
+    struct list_head shutdown_head;
 };
 
 struct xcpu *xcpuget(int pd);
@@ -168,7 +188,7 @@ struct xglobal {
     /* Number of actual runner poller.  */
     size_t ncpus;
 
-    /* Backend cpu_cores and taskpool for io runner.  */
+    /* Backend cpu_cores and taskpool for cpu_worker.  */
     int cpu_cores;
     struct taskpool tpool;
 
