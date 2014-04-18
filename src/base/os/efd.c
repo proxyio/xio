@@ -31,7 +31,7 @@ void efd_destroy(struct efd *self)
 void efd_signal(struct efd *self)
 {
     ssize_t nbytes;
-    char c = 101;
+    char c = 94;
 
     nbytes = write(self->w, &c, 1);
 }
@@ -39,7 +39,7 @@ void efd_signal(struct efd *self)
 void efd_unsignal(struct efd *self)
 {
     ssize_t nbytes;
-    u8 buf [16];
+    u8 buf[128];
 
     while(1) {
         nbytes = read(self->r, buf, sizeof(buf));
