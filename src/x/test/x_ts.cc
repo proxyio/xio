@@ -11,9 +11,8 @@ extern "C" {
 extern int randstr(char *buf, int len);
 
 static int cnt = 10;
-static int pf;
 
-static void xclient() {
+static void xclient(int pf) {
     int sfd, i;
     int buf_sz = 0;
     int64_t nbytes;
@@ -37,9 +36,9 @@ static void xclient() {
 }
 
 static int xclient_thread(void *arg) {
-    xclient();
-    xclient();
-    xclient();
+    xclient(PF_NET);
+    xclient(PF_IPC);
+    xclient(PF_INPROC);
     return 0;
 }
 
@@ -89,7 +88,7 @@ static void xserver_thread() {
 struct xpoll_t *po;
 spin_t lock;
 
-static void xclient2() {
+static void xclient2(int pf) {
     int i;
     int sfd[cnt];
     struct xpoll_event event[cnt];
@@ -108,24 +107,27 @@ static void xclient2() {
 }
 
 static int xclient_thread2(void *arg) {
-    xclient2();
+    xclient2(PF_IPC);
+    xclient2(PF_NET);
+    xclient2(PF_INPROC);
     return 0;
 }
 
 static void xserver_thread2() {
     int i, mycnt;
-    int afd, sfd[cnt];
+    int afd, sfd[3 * cnt];
     thread_t cli_thread = {};
-    struct xpoll_event event[cnt];
+    struct xpoll_event event[3 * cnt];
 
     po = xpoll_create();
     spin_init(&lock);
 
-    ASSERT_TRUE((afd = xlisten(pf, "127.0.0.1:18895")) >= 0);
+    ASSERT_TRUE((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18895")) >= 0);
     thread_start(&cli_thread, xclient_thread2, NULL);
-    for (i = 0; i < cnt; i++) {
-	while ((sfd[i] = xaccept(afd)) < 0)
+    for (i = 0; i < 3 * cnt; i++) {
+	while ((sfd[i] = xaccept(afd)) < 0) {
 	    usleep(10000);
+	}
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -133,7 +135,7 @@ static void xserver_thread2() {
 	assert(xpoll_ctl(po, XPOLL_ADD, &event[i]) == 0);
 	spin_unlock(&lock);
     }
-    mycnt = rand() % cnt;
+    mycnt = rand() % (3 * cnt);
     for (i = 0; i < mycnt; i++) {
 	event[i].xd = sfd[i];
 	event[i].self = po;
@@ -144,7 +146,7 @@ static void xserver_thread2() {
 	spin_unlock(&lock);
     }
     xpoll_close(po);
-    for (i = 0; i < cnt; i++)
+    for (i = 0; i < 3 * cnt; i++)
 	xclose(sfd[i]);
 
     thread_stop(&cli_thread);
@@ -153,16 +155,6 @@ static void xserver_thread2() {
 }
 
 TEST(xsock, vf) {
-
-    pf = PF_NET;
-    xserver_thread();
-    xserver_thread2();
-
-    pf = PF_INPROC;
-    xserver_thread();
-    xserver_thread2();
-
-    pf = PF_IPC;
     xserver_thread();
     xserver_thread2();
 }

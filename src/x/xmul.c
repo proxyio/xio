@@ -10,7 +10,12 @@ static int xmul_accepter_init(int xd) {
     if ((rc = xpoll_wait(parent->mul.poll, &ev, 1, to)) <= 0)
 	return -1;
     BUG_ON(rc != 1);
+
     sub_sx = (struct xsock *)ev.self;
+    xpoll_notify(sub_sx, 0);
+    DEBUG_ON("xsock %d %s ready for accept %s", sub_sx->xd,
+	     xprotocol_str[sub_sx->pf], xpoll_str[ev.happened]);
+
     new->pf = sub_sx->pf;
     new->parent = sub_sx->xd;
     new->l4proto = sub_sx->l4proto;
@@ -25,7 +30,7 @@ static int xmul_listener_init(int xd) {
     int pf = sx->pf;
     int sub_xd;
     struct xsock *sub_sx;
-    struct xpoll_event ev;
+    struct xpoll_event ev = {};
     struct xsock_protocol *l4proto, *nx;
 
     DEBUG_OFF("%s", xprotocol_str[pf]);
@@ -96,7 +101,6 @@ static void xmul_destroy(int xd) {
 	BUG_ON(1);
     }
 }
-
 
 struct xsock_protocol ipc_and_inp_xsock_protocol = {
     .pf = PF_INPROC|PF_IPC,

@@ -86,7 +86,8 @@ struct xsock {
     struct list_head xpoll_head;
     struct xtask shutdown;
     struct list_head link;
-    
+    // struct list_head request_socks;
+
     union {
 	/* Only for transport xsock */
 	struct {
