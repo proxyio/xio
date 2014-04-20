@@ -15,7 +15,7 @@ static int xinproc_put(struct xsock *sx) {
 }
 
 /******************************************************************************
- *  channel's proc field operation.
+ *  xsock's proc field operation.
  ******************************************************************************/
 
 static struct xsock *find_listener(char *addr) {
@@ -76,12 +76,12 @@ static int snd_push_event(int xd) {
     int rc = 0, can = false;
     struct xmsg *msg;
     struct xsock *sx = xget(xd);
-    struct xsock *peer = sx->proc.peer_channel;
+    struct xsock *peer = sx->proc.peer_xsock;
 
     // Unlock myself first because i hold the lock
     mutex_unlock(&sx->lock);
 
-    // TODO: maybe the peer channel can't recv anymore after the check.
+    // TODO: maybe the peer xsock can't recv anymore after the check.
     mutex_lock(&peer->lock);
     if (can_recv(peer))
 	can = true;
@@ -121,16 +121,16 @@ static int inproc_accepter_init(int xd) {
     struct xsock *peer;
     struct xsock *parent = xget(me->parent);
 
-    /* step1. Pop a new connector from parent's channel queue */
+    /* step1. Pop a new connector from parent's xsock queue */
     if (!(peer = pop_new_connector(parent)))
 	return -1;
 
     /* step2. Hold the peer's lock and make a connection. */
     mutex_lock(&peer->lock);
 
-    /* Each channel endpoint has one ref to another endpoint */
-    peer->proc.peer_channel = me;
-    me->proc.peer_channel = peer;
+    /* Each xsock endpoint has one ref to another endpoint */
+    peer->proc.peer_xsock = me;
+    me->proc.peer_xsock = peer;
 
     /* Send the ACK singal to the other end.
      * Here only has two possible state:
@@ -176,7 +176,7 @@ static int inproc_listener_destroy(int xd) {
 	mutex_unlock(&new->lock);
     }
 
-    /* Destroy the channel and free channel id. */
+    /* Destroy the xsock and free xsock id. */
     xsock_free(sx);
     return rc;
 }
@@ -192,7 +192,7 @@ static int inproc_connector_init(int xd) {
 	return -1;
     }
     sx->proc.ref = 0;
-    sx->proc.peer_channel = 0;
+    sx->proc.peer_xsock = 0;
 
     /* step1. Push the new connector into listener's at_queue
      * queue and update_xpoll_t for user-state poll
@@ -232,9 +232,9 @@ static int inproc_connector_init(int xd) {
 static int inproc_connector_destroy(int xd) {
     int rc = 0;
     struct xsock *sx = xget(xd);    
-    struct xsock *peer = sx->proc.peer_channel;
+    struct xsock *peer = sx->proc.peer_xsock;
 
-    /* Destroy the channel and free channel id if i hold the last ref. */
+    /* Destroy the xsock and free xsock id if i hold the last ref. */
     if (xinproc_put(peer) == 1) {
 	xsock_free(peer);
     }

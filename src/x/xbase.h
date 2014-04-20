@@ -1,5 +1,5 @@
-#ifndef _HPIO_CHANNELBASE_
-#define _HPIO_CHANNELBASE_
+#ifndef _HPIO_XSOCKBASE_
+#define _HPIO_XSOCKBASE_
 
 #include <base.h>
 #include <ds/map.h>
@@ -86,7 +86,7 @@ struct xsock {
     struct list_head link;
     
     union {
-	/* Only for transport channel */
+	/* Only for transport xsock */
 	struct {
 	    ev_t et;
 	    struct bio in;
@@ -96,7 +96,7 @@ struct xsock {
 	    struct transport *tp;
 	} io;
 
-	/* Reserved only for intern process channel */
+	/* Reserved only for intern process xsock */
 	struct {
 	    /* Reference by self and the peer. in normal case
 	     * if ref == 2, connection work in normal state
@@ -111,7 +111,7 @@ struct xsock {
 
 	    /* For inproc-connector and inproc-accepter (new connection) */
 	    struct list_head at_link;
-	    struct xsock *peer_channel;
+	    struct xsock *peer_xsock;
 	} proc;
 
 	/* Multilingul Environment */
@@ -156,7 +156,7 @@ struct xcpu {
     ev_t efd_et;
     struct efd efd;
 
-    /* Waiting for closed channel will be attached here */
+    /* Waiting for closed xsock will be attached here */
     struct list_head shutdown_head;
 };
 
@@ -166,13 +166,13 @@ struct xglobal {
     int exiting;
     mutex_t lock;
 
-    /* The global table of existing channel. The descriptor representing
-       the channel is the index to this table. This pointer is also used to
+    /* The global table of existing xsock. The descriptor representing
+       the xsock is the index to this table. This pointer is also used to
        find out whether context is initialised. If it is null, context is
        uninitialised. */
     struct xsock socks[XSOCK_MAX_SOCKS];
 
-    /* Stack of unused channel descriptors.  */
+    /* Stack of unused xsock descriptors.  */
     int unused[XSOCK_MAX_SOCKS];
 
     /* Number of actual socks. */
@@ -181,7 +181,7 @@ struct xglobal {
 
     struct xcpu cpus[XSOCK_MAX_CPUS];
 
-    /* Stack of unused channel descriptors.  */
+    /* Stack of unused xsock descriptors.  */
     int cpu_unused[XSOCK_MAX_CPUS];
     
     /* Number of actual runner poller.  */
@@ -194,7 +194,7 @@ struct xglobal {
     /* INPROC global listening address mapping */
     struct ssmap inproc_listeners;
 
-    /* Channel xsock_protocol head */
+    /* xsock_protocol head */
     struct list_head xsock_protocol_head;
 };
 

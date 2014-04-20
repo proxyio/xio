@@ -199,7 +199,7 @@ static void io_xdestroy(int xd) {
     /* Try flush buf massage into network before close */
     io_snd(sx);
 
-    /* Detach channel low-level file descriptor from poller */
+    /* Detach xsock low-level file descriptor from poller */
     BUG_ON(eloop_del(&po->el, &sx->io.et) != 0);
     tp->close(sx->io.fd);
 
@@ -210,7 +210,7 @@ static void io_xdestroy(int xd) {
     sx->io.et.data = 0;
     sx->io.tp = 0;
 
-    /* Destroy the channel base and free channelid. */
+    /* Destroy the xsock base and free xsockid. */
     xsock_free(sx);
 }
 
@@ -240,7 +240,7 @@ static int accept_handler(eloop_t *el, ev_t *et) {
 	sx->fok = false;
     /* A new connection */
     else if (et->happened & EPOLLIN) {
-	DEBUG_OFF("channel listener %d events %d", sx->xd, et->happened);
+	DEBUG_OFF("xsock listener %d events %d", sx->xd, et->happened);
 	xpoll_notify(sx, XPOLLIN);
     }
     return rc;
@@ -269,7 +269,7 @@ static int io_rcv(struct xsock *sx) {
     if (rc < 0 && errno != EAGAIN)
 	return rc;
     while (msg_ready(&sx->io.in, &chunk_sz)) {
-	DEBUG_OFF("%d channel recv one message", sx->xd);
+	DEBUG_OFF("%d xsock recv one message", sx->xd);
 	chunk = xallocmsg(chunk_sz);
 	bio_read(&sx->io.in, xiov_base(chunk), xiov_len(chunk));
 	msg = cont_of(chunk, struct xmsg, vec.chunk);
@@ -297,15 +297,15 @@ static int io_handler(eloop_t *el, ev_t *et) {
     struct xsock *sx = cont_of(et, struct xsock, io.et);
 
     if (et->happened & EPOLLIN) {
-	DEBUG_OFF("io channel %d EPOLLIN", sx->xd);
+	DEBUG_OFF("io xsock %d EPOLLIN", sx->xd);
 	rc = io_rcv(sx);
     }
     if (et->happened & EPOLLOUT) {
-	DEBUG_OFF("io channel %d EPOLLOUT", sx->xd);
+	DEBUG_OFF("io xsock %d EPOLLOUT", sx->xd);
 	rc = io_snd(sx);
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
-	DEBUG_OFF("io channel %d EPIPE", sx->xd);
+	DEBUG_OFF("io xsock %d EPIPE", sx->xd);
 	sx->fok = false;
     }
 
