@@ -225,9 +225,9 @@ static void pxy_connector_rgs(struct fd *f, u32 events) {
 	/* Send synack */
 	BUG_ON(xsend(f->xd, (char *)syn) != 0);
 	DEBUG_OFF("send syn to channel %d", f->xd);
-	DEBUG_ON("pxy register an %s", ep_str[f->st.type]);
+	DEBUG_OFF("pxy register an %s", ep_str[f->st.type]);
     } else if (errno != EAGAIN) {
-	DEBUG_ON("unregister channel %d EPIPE", f->xd);
+	DEBUG_OFF("unregister channel %d EPIPE", f->xd);
 	f->fok = false;
     }
 }
@@ -262,7 +262,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
     struct pxy *y = fd_getself(f, struct pxy);
     struct fd *newf;
 
-    DEBUG_ON("listener events %s", xpoll_str[events]);
+    DEBUG_OFF("listener events %s", xpoll_str[events]);
     if (events & XPOLLIN) {
 	while ((newf = fd_accept(f))) {
 	    xsetopt(newf->xd, XNOBLOCK, &on, sizeof(on));
@@ -273,7 +273,7 @@ static void pxy_listener_handler(struct fd *f, u32 events) {
 	    newf->event.self = newf;
 	    list_add_tail(&newf->link, &y->unknown);
 	    BUG_ON(xpoll_ctl(y->po, XPOLL_ADD, &newf->event) != 0);
-	    DEBUG_ON("listener create a new channel %d", newf->xd);
+	    DEBUG_OFF("listener create a new channel %d", newf->xd);
 	}
     }
 
@@ -290,7 +290,7 @@ int pxy_listen(struct pxy *y, const char *url) {
 
     if (!f)
 	return -1;
-    DEBUG_ON("channel %d listen on %s", f->xd, url);
+    DEBUG_OFF("channel %d listen on %s", f->xd, url);
 
     /* NOBLOCKING */
     xsetopt(f->xd, XNOBLOCK, &on, sizeof(on));
@@ -313,7 +313,7 @@ int __pxy_connect(struct pxy *y, int ty, u32 ev, const char *url) {
 
     if (!f)
 	return -1;
-    DEBUG_ON("channel %d connect ok", f->xd);
+    DEBUG_OFF("channel %d connect ok", f->xd);
 
     /* Generate register header for gofd */
     if (!(syn = (struct ep_stat *)xallocmsg(sizeof(*syn)))) {
@@ -373,12 +373,12 @@ int pxy_onceloop(struct pxy *y) {
 
     /* Default io events buf is 100 and timeout is 1ms */
     if ((n = xpoll_wait(y->po, ev, 100, 1)) <= 0) {
-	DEBUG_ON("xpoll wait with no events and errno %d", errno);
+	DEBUG_OFF("xpoll wait with no events and errno %d", errno);
 	return -1;
     }
     for (i = 0; i < n; i++) {
 	f = (struct fd *)ev[i].self;
-	DEBUG_ON("%d %s", f->xd, xpoll_str[ev[i].happened]);
+	DEBUG_OFF("%d %s", f->xd, xpoll_str[ev[i].happened]);
 	f->h(f, ev[i].happened);
     }
     return 0;

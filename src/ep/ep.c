@@ -39,7 +39,7 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 
     if ((n = xpoll_wait(y->po, &ev, 1, 0x7fff)) < 0)
 	return -1;
-    DEBUG_ON("%s", xpoll_str[ev.happened]);
+    DEBUG_OFF("%s", xpoll_str[ev.happened]);
     BUG_ON(ev.happened & XPOLLOUT);
     if (!(ev.happened & XPOLLIN))
 	goto AGAIN;
@@ -62,10 +62,10 @@ int ep_recv_req(struct ep *ep, char **req, char **r) {
 	/* Payload was copy into user-space. */
 	xfreemsg((char *)h);
 
-	DEBUG_ON("channel %d recv req from network", f->xd);
+	DEBUG_OFF("channel %d recv req from network", f->xd);
 	return 0;
     } else if (errno != EAGAIN) {
-	DEBUG_ON("channel %d on bad status", f->xd);
+	DEBUG_OFF("channel %d on bad status", f->xd);
 	f->fok = false;
     }
     /* TODO: cleanup the bad status fd here */
@@ -135,7 +135,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	return -1;
     f = (struct fd *)ev.self;
 
-    DEBUG_ON("%s", xpoll_str[ev.happened]);
+    DEBUG_OFF("%s", xpoll_str[ev.happened]);
     if (!(ev.happened & XPOLLIN)) {
 	errno = EAGAIN;
 	return -1;
@@ -154,7 +154,7 @@ int ep_recv_resp(struct ep *ep, char **resp) {
 	xfreemsg((char *)h);
 	return 0;
     } else if (errno != EAGAIN) {
-	DEBUG_ON("channel %d on bad status", f->xd);
+	DEBUG_OFF("channel %d on bad status", f->xd);
 	f->fok = false;
     }
     return -1;

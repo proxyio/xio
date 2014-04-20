@@ -13,8 +13,8 @@ static int xmul_accepter_init(int xd) {
 
     sub_sx = (struct xsock *)ev.self;
     xpoll_notify(sub_sx, 0);
-    DEBUG_ON("xsock %d %s ready for accept %s", sub_sx->xd,
-	     xprotocol_str[sub_sx->pf], xpoll_str[ev.happened]);
+    DEBUG_OFF("xsock %d %s ready for accept %s", sub_sx->xd,
+	      xprotocol_str[sub_sx->pf], xpoll_str[ev.happened]);
 
     new->pf = sub_sx->pf;
     new->parent = sub_sx->xd;

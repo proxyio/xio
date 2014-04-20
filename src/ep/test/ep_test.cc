@@ -17,12 +17,12 @@ static int test_producer(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(!(producers[i] = ep_new(DISPATCHER)));
-	DEBUG_ON("producer %d connect start\n", i);
+	DEBUG_OFF("producer %d connect start\n", i);
 	BUG_ON((ep_connect(producers[i], url)) != 0);
-	DEBUG_ON("producer %d connect ok\n", i);
+	DEBUG_OFF("producer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
-	DEBUG_ON("producer %d connect closed\n", i);
+	DEBUG_OFF("producer %d connect closed\n", i);
 	ep_close(producers[i]);
     }
     return 0;
@@ -34,12 +34,12 @@ static int test_comsumer(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(!(comsumers[i] = ep_new(RECEIVER)));
-	DEBUG_ON("comsumer %d connect start\n", i);
+	DEBUG_OFF("comsumer %d connect start\n", i);
 	BUG_ON((ep_connect(comsumers[i], url)) != 0);
-	DEBUG_ON("comsumer %d connect ok\n", i);
+	DEBUG_OFF("comsumer %d connect ok\n", i);
     }
     for (i = 0; i < cnt; i++) {
-	DEBUG_ON("comsumer %d connect closed\n", i);
+	DEBUG_OFF("comsumer %d connect closed\n", i);
 	ep_close(comsumers[i]);
     }
     return 0;
@@ -70,13 +70,13 @@ static void test_proxy() {
 
 
 TEST(proxy, listen_connect) {
-    DEBUG_ON("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+    DEBUG_OFF("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     url = "default@net://127.0.0.1:18800";
     test_proxy();
-    DEBUG_ON("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
+    DEBUG_OFF("yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy");
     url = "default@inp://xxxxxxxxxxxxxxx";
     test_proxy();
-    DEBUG_ON("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+    DEBUG_OFF("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     url = "default@ipc://group1.sock";
     test_proxy();
 }
@@ -96,16 +96,16 @@ static int test_producer2(void *args) {
     BUG_ON((ep_connect(producer, url1)) != 0);
     waitgroup_done(wg);
 
-    DEBUG_ON();
+    DEBUG_OFF();
     for (i = 0; i < cnt; i++) {
 	randstr(buf, sizeof(buf));
 	BUG_ON(!(payload = xallocmsg(sizeof(buf))));
 	memcpy(payload, buf, sizeof(buf));
 	BUG_ON(ep_send_req(producer, payload));
-	DEBUG_ON("producer send one req");
+	DEBUG_OFF("producer send one req");
 
 	BUG_ON(ep_recv_resp(producer, &payload2));
-	DEBUG_ON("producer recv one resp");
+	DEBUG_OFF("producer recv one resp");
 	BUG_ON(sizeof(buf) != xmsglen(payload2));
 	BUG_ON(0 != memcmp(buf, payload2, sizeof(buf)));
 	xfreemsg(payload2);
@@ -125,9 +125,9 @@ static int test_comsumer2(void *args) {
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON(ep_recv_req(comsumer, &payload, &rt));
-	DEBUG_ON("comsumer recv one req");
+	DEBUG_OFF("comsumer recv one req");
 	BUG_ON(ep_send_resp(comsumer, payload, rt));
-	DEBUG_ON("comsumer send one resp");
+	DEBUG_OFF("comsumer send one resp");
     }
     ep_close(comsumer);
     return 0;
@@ -170,15 +170,15 @@ static void test_proxy2() {
 
 
 TEST(proxy, send_recv) {
-    DEBUG_ON("testing inproc proxy");
+    DEBUG_OFF("testing inproc proxy");
     url1 = "default@inp://xxxxxxxxxxxxxx2";
     test_proxy2();
 
-    DEBUG_ON("testing net proxy xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+    DEBUG_OFF("testing net proxy xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
     url1 = "default@net://127.0.0.1:18802";
     test_proxy2();
 
-    DEBUG_ON("testing ipc proxy");
+    DEBUG_OFF("testing ipc proxy");
     url1 = "default@ipc://group2.sock";
     test_proxy2();
 }
