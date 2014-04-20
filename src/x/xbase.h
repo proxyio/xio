@@ -58,6 +58,8 @@ struct xsock_protocol {
     struct list_head link;
 };
 
+extern const char *xprotocol_str[];
+
 
 struct xsock {
     mutex_t lock;
@@ -117,6 +119,7 @@ struct xsock {
 	/* Multilingul Environment */
 	struct {
 	    struct list_head listen_head;
+	    struct xpoll_t *poll;
 	} mul;
     };
 };

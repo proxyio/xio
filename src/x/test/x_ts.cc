@@ -51,7 +51,7 @@ static void xserver_thread() {
     char *payload;
 
 
-    ASSERT_TRUE((afd = xlisten(pf, "127.0.0.1:18894")) >= 0);
+    ASSERT_TRUE((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18894")) >= 0);
     thread_start(&cli_thread, xclient_thread, NULL);
 
     while ((sfd = xaccept(afd)) < 0)

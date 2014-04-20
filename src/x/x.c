@@ -17,6 +17,20 @@ static int DEF_RCVBUF = 10485760;
 
 struct xglobal xgb = {};
 
+const char *xprotocol_str[] = {
+    "",
+    "PF_NET",
+    "PF_IPC",
+    "PF_NET|PF_IPC",
+    "PF_INPROC",
+    "PF_NET|PF_INPROC",
+    "PF_IPC|PF_INPROC",
+    "PF_NET|PF_IPC|PF_INPROC",
+};
+
+
+
+
 void __xpoll_notify(struct xsock *sx, u32 l4proto_spec);
 void xpoll_notify(struct xsock *sx, u32 l4proto_spec);
 
@@ -188,7 +202,7 @@ static void xshutdown(struct xsock *sx) {
 static int xshutdown_task_f(struct xtask *ts) {
     struct xsock *sx = cont_of(ts, struct xsock, shutdown);
 
-    DEBUG_ON("xsock %d shutdown", sx->xd);
+    DEBUG_OFF("xsock %d shutdown protocol %s", sx->xd, xprotocol_str[sx->pf]);
     sx->l4proto->destroy(sx->xd);
     return 0;
 }

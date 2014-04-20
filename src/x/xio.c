@@ -36,25 +36,25 @@ static struct io default_xops = {
 
 static void snd_empty_event(int xd) {
     struct xsock *sx = xget(xd);
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
 
     // Disable POLLOUT event when snd_head is empty
     if (sx->io.et.events & EPOLLOUT) {
 	DEBUG_OFF("%d disable EPOLLOUT", xd);
 	sx->io.et.events &= ~EPOLLOUT;
-	BUG_ON(eloop_mod(&po->el, &sx->io.et) != 0);
+	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
 }
 
 static void snd_nonempty_event(int xd) {
     struct xsock *sx = xget(xd);
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(sx->io.et.events & EPOLLOUT)) {
 	DEBUG_OFF("%d enable EPOLLOUT", xd);
 	sx->io.et.events |= EPOLLOUT;
-	BUG_ON(eloop_mod(&po->el, &sx->io.et) != 0);
+	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
 }
 
@@ -72,23 +72,23 @@ static void rcv_pop_event(int xd) {
 
 static void rcv_full_event(int xd) {
     struct xsock *sx = xget(xd);    
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if ((sx->io.et.events & EPOLLIN)) {
 	sx->io.et.events &= ~EPOLLIN;
-	BUG_ON(eloop_mod(&po->el, &sx->io.et) != 0);
+	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
 }
 
 static void rcv_nonfull_event(int xd) {
     struct xsock *sx = xget(xd);    
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(sx->io.et.events & EPOLLIN)) {
 	sx->io.et.events |= EPOLLIN;
-	BUG_ON(eloop_mod(&po->el, &sx->io.et) != 0);
+	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
 }
 
@@ -104,7 +104,7 @@ static int io_accepter_init(int xd) {
     int s;
     int on = 1;
     struct xsock *sx = xget(xd);
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = transport_lookup(sx->pf);
     struct xsock *parent = xget(sx->parent);
 
@@ -119,7 +119,7 @@ static int io_accepter_init(int xd) {
     sx->io.fd = s;
     sx->io.tp = tp;
     sx->io.ops = default_xops;
-    BUG_ON(eloop_add(&po->el, &sx->io.et) != 0);
+    BUG_ON(eloop_add(&cpu->el, &sx->io.et) != 0);
     return rc;
 }
 
@@ -128,7 +128,7 @@ static int io_listener_init(int xd) {
     int s;
     int on = 1;
     struct xsock *sx = xget(xd);
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = transport_lookup(sx->pf);
 
     BUG_ON(!tp);
@@ -141,7 +141,7 @@ static int io_listener_init(int xd) {
     sx->io.et.data = sx;
     sx->io.fd = s;
     sx->io.tp = tp;
-    BUG_ON(eloop_add(&po->el, &sx->io.et) != 0);
+    BUG_ON(eloop_add(&cpu->el, &sx->io.et) != 0);
     return rc;
 }
 
@@ -150,7 +150,7 @@ static int io_connector_init(int xd) {
     int s;
     int on = 1;
     struct xsock *sx = xget(xd);
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = transport_lookup(sx->pf);
 
     BUG_ON(!tp);
@@ -164,7 +164,7 @@ static int io_connector_init(int xd) {
     sx->io.fd = s;
     sx->io.tp = tp;
     sx->io.ops = default_xops;
-    BUG_ON(eloop_add(&po->el, &sx->io.et) != 0);
+    BUG_ON(eloop_add(&cpu->el, &sx->io.et) != 0);
     return rc;
 }
 
@@ -191,7 +191,7 @@ static int io_snd(struct xsock *sx);
 
 static void io_xdestroy(int xd) {
     struct xsock *sx = xget(xd);
-    struct xcpu *po = xcpuget(sx->cpu_no);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = sx->io.tp;
 
     BUG_ON(!tp);
@@ -200,7 +200,7 @@ static void io_xdestroy(int xd) {
     io_snd(sx);
 
     /* Detach xsock low-level file descriptor from poller */
-    BUG_ON(eloop_del(&po->el, &sx->io.et) != 0);
+    BUG_ON(eloop_del(&cpu->el, &sx->io.et) != 0);
     tp->close(sx->io.fd);
 
     sx->io.fd = -1;
