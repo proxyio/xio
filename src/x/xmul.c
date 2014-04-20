@@ -24,9 +24,9 @@ static int xmul_listener_init(int xd) {
     int pf = sx->pf;
     int sub_xd;
     struct xsock *sub_sx;
-    struct xsock_vf *vf, *nx;
+    struct xsock_protocol *vf, *nx;
 
-    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
 	if ((pf & vf->pf) != vf->pf)
 	    continue;
 	if ((sub_xd = xlisten(pf & vf->pf, sx->addr)) < 0) {
@@ -82,7 +82,7 @@ static void xmul_destroy(int xd) {
 
 
 
-static struct xsock_vf ipc_and_inp_xsock_vf = {
+struct xsock_protocol ipc_and_inp_xsock_protocol = {
     .pf = PF_INPROC|PF_IPC,
     .init = xmul_init,
     .destroy = xmul_destroy,
@@ -90,7 +90,7 @@ static struct xsock_vf ipc_and_inp_xsock_vf = {
     .rcv_notify = null,
 };
 
-static struct xsock_vf ipc_and_net_xsock_vf = {
+struct xsock_protocol ipc_and_net_xsock_protocol = {
     .pf = PF_NET|PF_IPC,
     .init = xmul_init,
     .destroy = xmul_destroy,
@@ -98,7 +98,7 @@ static struct xsock_vf ipc_and_net_xsock_vf = {
     .rcv_notify = null,
 };
 
-static struct xsock_vf net_and_inp_xsock_vf = {
+struct xsock_protocol net_and_inp_xsock_protocol = {
     .pf = PF_NET|PF_INPROC,
     .init = xmul_init,
     .destroy = xmul_destroy,
@@ -106,15 +106,10 @@ static struct xsock_vf net_and_inp_xsock_vf = {
     .rcv_notify = null,
 };
 
-static struct xsock_vf ipc_inp_net_xsock_vf = {
+struct xsock_protocol ipc_inp_net_xsock_protocol = {
     .pf = PF_NET|PF_INPROC|PF_IPC,
     .init = xmul_init,
     .destroy = xmul_destroy,
     .snd_notify = null,
     .rcv_notify = null,
 };
-
-struct xsock_vf *ipc_and_inp_xsock_vfptr = &ipc_and_inp_xsock_vf;
-struct xsock_vf *net_and_inp_xsock_vfptr = &net_and_inp_xsock_vf;
-struct xsock_vf *ipc_and_net_xsock_vfptr = &ipc_and_net_xsock_vf;
-struct xsock_vf *ipc_inp_net_xsock_vfptr = &ipc_inp_net_xsock_vf;

@@ -249,13 +249,13 @@ static inline int kcpud(void *args) {
 }
 
 
-extern struct xsock_vf *inproc_xsock_vfptr;
-extern struct xsock_vf *ipc_xsock_vfptr;
-extern struct xsock_vf *tcp_xsock_vfptr;
-extern struct xsock_vf *ipc_and_inp_xsock_vfptr;
-extern struct xsock_vf *net_and_inp_xsock_vfptr;
-extern struct xsock_vf *ipc_and_net_xsock_vfptr;
-extern struct xsock_vf *ipc_inp_net_xsock_vfptr;
+extern struct xsock_protocol inproc_xsock_protocol;
+extern struct xsock_protocol ipc_xsock_protocol;
+extern struct xsock_protocol tcp_xsock_protocol;
+extern struct xsock_protocol ipc_and_inp_xsock_protocol;
+extern struct xsock_protocol net_and_inp_xsock_protocol;
+extern struct xsock_protocol ipc_and_net_xsock_protocol;
+extern struct xsock_protocol ipc_inp_net_xsock_protocol;
 
 
 void global_xinit() {
@@ -283,15 +283,15 @@ void global_xinit() {
     waitgroup_wait(&wg);
     waitgroup_destroy(&wg);
     
-    /* The priority of xsock_vf: inproc > ipc > tcp */
-    INIT_LIST_HEAD(&xgb.xsock_vf_head);
-    list_add_tail(&inproc_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
-    list_add_tail(&ipc_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
-    list_add_tail(&tcp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
-    list_add_tail(&ipc_and_inp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
-    list_add_tail(&net_and_inp_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
-    list_add_tail(&ipc_and_net_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
-    list_add_tail(&ipc_inp_net_xsock_vfptr->vf_item, &xgb.xsock_vf_head);
+    /* The priority of xsock_protocol: inproc > ipc > tcp */
+    INIT_LIST_HEAD(&xgb.xsock_protocol_head);
+    list_add_tail(&inproc_xsock_protocol.link, &xgb.xsock_protocol_head);
+    list_add_tail(&ipc_xsock_protocol.link, &xgb.xsock_protocol_head);
+    list_add_tail(&tcp_xsock_protocol.link, &xgb.xsock_protocol_head);
+    list_add_tail(&ipc_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
+    list_add_tail(&net_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
+    list_add_tail(&ipc_and_net_xsock_protocol.link, &xgb.xsock_protocol_head);
+    list_add_tail(&ipc_inp_net_xsock_protocol.link, &xgb.xsock_protocol_head);
 }
 
 void global_xexit() {
@@ -322,7 +322,7 @@ void xclose(int xd) {
 int xaccept(int xd) {
     struct xsock *sx = xget(xd);
     struct xsock *new = xsock_alloc();
-    struct xsock_vf *vf, *nx;
+    struct xsock_protocol *vf, *nx;
 
     if (!sx->fok) {
 	errno = EPIPE;
@@ -332,7 +332,7 @@ int xaccept(int xd) {
     new->pf = sx->pf;
     new->parent = xd;
     xpoll_notify(sx, 0);
-    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
 	if (sx->pf != vf->pf)
 	    continue;
 	new->vf = vf;
@@ -348,13 +348,13 @@ int xaccept(int xd) {
 
 int xlisten(int pf, const char *addr) {
     struct xsock *new = xsock_alloc();
-    struct xsock_vf *vf, *nx;
+    struct xsock_protocol *vf, *nx;
 
     new->ty = XLISTENER;
     new->pf = pf;
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
 	if (pf != vf->pf)
 	    continue;
 	new->vf = vf;
@@ -367,14 +367,14 @@ int xlisten(int pf, const char *addr) {
 
 int xconnect(int pf, const char *peer) {
     struct xsock *new = xsock_alloc();
-    struct xsock_vf *vf, *nx;
+    struct xsock_protocol *vf, *nx;
 
     new->ty = XCONNECTOR;
     new->pf = pf;
 
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    xsock_vf_walk_safe(vf, nx, &xgb.xsock_vf_head) {
+    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
 	if (pf != vf->pf)
 	    continue;
 	new->vf = vf;
@@ -451,7 +451,7 @@ int xgetopt(int xd, int opt, void *on, int size) {
 
 struct xmsg *pop_rcv(struct xsock *sx) {
     struct xmsg *msg = 0;
-    struct xsock_vf *vf = sx->vf;
+    struct xsock_protocol *vf = sx->vf;
     i64 msgsz;
     u32 events = 0;
 
@@ -484,7 +484,7 @@ struct xmsg *pop_rcv(struct xsock *sx) {
 }
 
 void push_rcv(struct xsock *sx, struct xmsg *msg) {
-    struct xsock_vf *vf = sx->vf;
+    struct xsock_protocol *vf = sx->vf;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
@@ -510,7 +510,7 @@ void push_rcv(struct xsock *sx, struct xmsg *msg) {
 
 
 struct xmsg *pop_snd(struct xsock *sx) {
-    struct xsock_vf *vf = sx->vf;
+    struct xsock_protocol *vf = sx->vf;
     struct xmsg *msg = 0;
     i64 msgsz;
     u32 events = 0;
@@ -545,7 +545,7 @@ struct xmsg *pop_snd(struct xsock *sx) {
 
 int push_snd(struct xsock *sx, struct xmsg *msg) {
     int rc = -1;
-    struct xsock_vf *vf = sx->vf;
+    struct xsock_protocol *vf = sx->vf;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
@@ -608,11 +608,11 @@ int xsend(int xd, char *xbuf) {
 }
 
 
-/* Generic xpoll_t notify function. always called by xsock_vf
+/* Generic xpoll_t notify function. always called by xsock_protocol
  * when has any message come or can send any massage into network
  * or has a new connection wait for established.
  * here we only check the mq events and vf_spec saved the other
- * events gived by xsock_vf
+ * events gived by xsock_protocol
  */
 void __xpoll_notify(struct xsock *sx, u32 vf_spec) {
     int events = 0;

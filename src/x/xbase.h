@@ -49,14 +49,13 @@ struct xtask {
 			     struct xtask, link)
 
 
-struct xsock_vf {
+struct xsock_protocol {
     int pf;
     int (*init) (int xd);
     void (*destroy) (int xd);
-    /* The lock is hold by the caller */
     void (*snd_notify) (int xd, u32 events);
     void (*rcv_notify) (int xd, u32 events);
-    struct list_head vf_item;
+    struct list_head link;
 };
 
 
@@ -81,7 +80,7 @@ struct xsock {
     u64 snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    struct xsock_vf *vf;
+    struct xsock_protocol *vf;
     struct list_head xpoll_head;
     struct xtask shutdown;
     struct list_head link;
@@ -143,7 +142,7 @@ void push_rcv(struct xsock *cn, struct xmsg *msg);
 struct xmsg *pop_snd(struct xsock *cn);
 int push_snd(struct xsock *cn, struct xmsg *msg);
 
-void xpoll_notify(struct xsock *cn, u32 vf_spec);
+void xpoll_notify(struct xsock *cn, u32 protocol_spec);
 
 
 
@@ -195,13 +194,13 @@ struct xglobal {
     /* INPROC global listening address mapping */
     struct ssmap inproc_listeners;
 
-    /* Channel vfptr head */
-    struct list_head xsock_vf_head;
+    /* Channel xsock_protocol head */
+    struct list_head xsock_protocol_head;
 };
 
-#define xsock_vf_walk_safe(pos, nx, head)		\
-    list_for_each_entry_safe(pos, nx, head,		\
-			     struct xsock_vf, vf_item)
+#define xsock_protocol_walk_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head,			\
+			     struct xsock_protocol, link)
 
 extern struct xglobal xgb;
 

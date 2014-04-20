@@ -112,7 +112,7 @@ static int rcv_pop_event(int xd) {
 
 
 /******************************************************************************
- *  xsock_vfptr
+ *  xsock_inproc_protocol
  ******************************************************************************/
 
 static int inproc_accepter_init(int xd) {
@@ -289,12 +289,10 @@ static void inproc_rcv_notify(int xd, uint32_t events) {
 	rcv_pop_event(xd);
 }
 
-static struct xsock_vf inproc_xsock_vf = {
+struct xsock_protocol inproc_xsock_protocol = {
     .pf = PF_INPROC,
     .init = inproc_xinit,
     .destroy = inproc_xdestroy,
     .snd_notify = inproc_snd_notify,
     .rcv_notify = inproc_rcv_notify,
 };
-
-struct xsock_vf *inproc_xsock_vfptr = &inproc_xsock_vf;

@@ -316,7 +316,7 @@ static int io_handler(eloop_t *el, ev_t *et) {
 
 
 
-static struct xsock_vf tcp_xsock_vf = {
+struct xsock_protocol tcp_xsock_protocol = {
     .pf = PF_NET,
     .init = io_xinit,
     .destroy = io_xdestroy,
@@ -324,14 +324,10 @@ static struct xsock_vf tcp_xsock_vf = {
     .snd_notify = io_snd_notify,
 };
 
-static struct xsock_vf ipc_xsock_vf = {
+struct xsock_protocol ipc_xsock_protocol = {
     .pf = PF_IPC,
     .init = io_xinit,
     .destroy = io_xdestroy,
     .rcv_notify = io_rcv_notify,
     .snd_notify = io_snd_notify,
 };
-
-
-struct xsock_vf *tcp_xsock_vfptr = &tcp_xsock_vf;
-struct xsock_vf *ipc_xsock_vfptr = &ipc_xsock_vf;
