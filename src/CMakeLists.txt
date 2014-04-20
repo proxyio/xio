@@ -25,19 +25,20 @@ target_link_libraries( x base uuid )
 
 
 ## compile ep
-aux_source_directory( ep EP )
-add_library( ep STATIC ${EP} )
-target_link_libraries( ep base x )
+## aux_source_directory( ep EP )
+## add_library( ep STATIC ${EP} )
+## target_link_libraries( ep base x )
 
 
 
 ## compile unit_test
 aux_source_directory( test UNIT_TEST )
 aux_source_directory( base/test UNIT_TEST )
-aux_source_directory( ep/test UNIT_TEST )
+## aux_source_directory( ep/test UNIT_TEST )
 aux_source_directory( x/test UNIT_TEST )
 add_executable( unit_test ${UNIT_TEST} )
-target_link_libraries( unit_test base x ep gtest pthread)
+## target_link_libraries( unit_test base x ep gtest pthread)
+target_link_libraries( unit_test base x gtest pthread)
 if (DEBUG_mode)
    target_link_libraries( unit_test gcov )
 endif()

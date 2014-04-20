@@ -125,8 +125,7 @@ static int io_accepter_init(int xd) {
 
 static int io_listener_init(int xd) {
     int rc = 0;
-    int s;
-    int on = 1;
+    int s, on = 1;
     struct xsock *sx = xget(xd);
     struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = transport_lookup(sx->pf);

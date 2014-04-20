@@ -10,16 +10,14 @@ static int xmul_accepter_init(int xd) {
     if ((rc = xpoll_wait(parent->mul.poll, &ev, 1, to)) <= 0)
 	return -1;
     BUG_ON(rc != 1);
-
     sub_sx = (struct xsock *)ev.self;
-    xpoll_notify(sub_sx, 0);
     DEBUG_OFF("xsock %d %s ready for accept %s", sub_sx->xd,
 	      xprotocol_str[sub_sx->pf], xpoll_str[ev.happened]);
-
     new->pf = sub_sx->pf;
     new->parent = sub_sx->xd;
     new->l4proto = sub_sx->l4proto;
     rc = new->l4proto->init(xd);
+    xpoll_notify(sub_sx, 0);
     return rc;
 }
 

@@ -71,6 +71,7 @@ static void xserver_thread() {
     }
     xclose(sfd);
     xclose(sfd2);
+
     while ((sfd2 = xaccept(afd)) < 0)
 	usleep(10000);
     xsetopt(sfd2, XSNDBUF, &buf_sz, sizeof(buf_sz));
@@ -156,7 +157,7 @@ static void xserver_thread2() {
 
 TEST(xsock, vf) {
     xserver_thread();
-    xserver_thread2();
+    //xserver_thread2();
 }
 
 
