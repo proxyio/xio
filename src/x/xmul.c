@@ -9,8 +9,8 @@ static int xmul_accepter_init(int xd) {
     xsock_walk_safe(sx, nx_sx, &parent->mul.listen_head) {
 	new->pf = sx->pf;
 	new->parent = sx->xd;
-	new->vf = sx->vf;
-	if (new->vf->init(xd) == 0)
+	new->l4proto = sx->l4proto;
+	if (new->l4proto->init(xd) == 0)
 	    return 0;
     }
     errno = EINVAL;
@@ -24,17 +24,17 @@ static int xmul_listener_init(int xd) {
     int pf = sx->pf;
     int sub_xd;
     struct xsock *sub_sx;
-    struct xsock_protocol *vf, *nx;
+    struct xsock_protocol *l4proto, *nx;
 
-    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
-	if ((pf & vf->pf) != vf->pf)
+    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
+	if ((pf & l4proto->pf) != l4proto->pf)
 	    continue;
-	if ((sub_xd = xlisten(pf & vf->pf, sx->addr)) < 0) {
+	if ((sub_xd = xlisten(pf & l4proto->pf, sx->addr)) < 0) {
 	BAD:
 	    xmul_listener_destroy(xd);
 	    return -1;
 	}
-	pf &= ~vf->pf;
+	pf &= ~l4proto->pf;
 	sub_sx = xget(sub_xd);
 	list_add_tail(&sub_sx->link, &sx->mul.listen_head);
     }

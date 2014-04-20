@@ -17,8 +17,8 @@ static int DEF_RCVBUF = 10485760;
 
 struct xglobal xgb = {};
 
-void __xpoll_notify(struct xsock *sx, u32 vf_spec);
-void xpoll_notify(struct xsock *sx, u32 vf_spec);
+void __xpoll_notify(struct xsock *sx, u32 l4proto_spec);
+void xpoll_notify(struct xsock *sx, u32 l4proto_spec);
 
 u32 xiov_len(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
@@ -189,7 +189,7 @@ static int xshutdown_task_f(struct xtask *ts) {
     struct xsock *sx = cont_of(ts, struct xsock, shutdown);
 
     DEBUG_ON("xsock %d shutdown", sx->xd);
-    sx->vf->destroy(sx->xd);
+    sx->l4proto->destroy(sx->xd);
     return 0;
 }
 
@@ -322,7 +322,7 @@ void xclose(int xd) {
 int xaccept(int xd) {
     struct xsock *sx = xget(xd);
     struct xsock *new = xsock_alloc();
-    struct xsock_protocol *vf, *nx;
+    struct xsock_protocol *l4proto, *nx;
 
     if (!sx->fok) {
 	errno = EPIPE;
@@ -332,11 +332,11 @@ int xaccept(int xd) {
     new->pf = sx->pf;
     new->parent = xd;
     xpoll_notify(sx, 0);
-    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
-	if (sx->pf != vf->pf)
+    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
+	if (sx->pf != l4proto->pf)
 	    continue;
-	new->vf = vf;
-	if (vf->init(new->xd) == 0) {
+	new->l4proto = l4proto;
+	if (l4proto->init(new->xd) == 0) {
 	    return new->xd;
 	}
     }
@@ -348,17 +348,17 @@ int xaccept(int xd) {
 
 int xlisten(int pf, const char *addr) {
     struct xsock *new = xsock_alloc();
-    struct xsock_protocol *vf, *nx;
+    struct xsock_protocol *l4proto, *nx;
 
     new->ty = XLISTENER;
     new->pf = pf;
     ZERO(new->addr);
     strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
-	if (pf != vf->pf)
+    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
+	if (pf != l4proto->pf)
 	    continue;
-	new->vf = vf;
-	if (vf->init(new->xd) == 0)
+	new->l4proto = l4proto;
+	if (l4proto->init(new->xd) == 0)
 	    return new->xd;
     }
     xsock_free(new);
@@ -367,18 +367,18 @@ int xlisten(int pf, const char *addr) {
 
 int xconnect(int pf, const char *peer) {
     struct xsock *new = xsock_alloc();
-    struct xsock_protocol *vf, *nx;
+    struct xsock_protocol *l4proto, *nx;
 
     new->ty = XCONNECTOR;
     new->pf = pf;
 
     ZERO(new->peer);
     strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    xsock_protocol_walk_safe(vf, nx, &xgb.xsock_protocol_head) {
-	if (pf != vf->pf)
+    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
+	if (pf != l4proto->pf)
 	    continue;
-	new->vf = vf;
-	if (vf->init(new->xd) == 0) {
+	new->l4proto = l4proto;
+	if (l4proto->init(new->xd) == 0) {
 	    return new->xd;
 	}
     }
@@ -451,7 +451,7 @@ int xgetopt(int xd, int opt, void *on, int size) {
 
 struct xmsg *pop_rcv(struct xsock *sx) {
     struct xmsg *msg = 0;
-    struct xsock_protocol *vf = sx->vf;
+    struct xsock_protocol *l4proto = sx->l4proto;
     i64 msgsz;
     u32 events = 0;
 
@@ -476,15 +476,15 @@ struct xmsg *pop_rcv(struct xsock *sx) {
 	}
     }
 
-    if (events && vf->rcv_notify)
-	vf->rcv_notify(sx->xd, events);
+    if (events && l4proto->rcv_notify)
+	l4proto->rcv_notify(sx->xd, events);
 
     mutex_unlock(&sx->lock);
     return msg;
 }
 
 void push_rcv(struct xsock *sx, struct xmsg *msg) {
-    struct xsock_protocol *vf = sx->vf;
+    struct xsock_protocol *l4proto = sx->l4proto;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
@@ -503,14 +503,14 @@ void push_rcv(struct xsock *sx, struct xmsg *msg) {
     if (sx->rcv_waiters > 0)
 	condition_broadcast(&sx->cond);
 
-    if (events && vf->rcv_notify)
-	vf->rcv_notify(sx->xd, events);
+    if (events && l4proto->rcv_notify)
+	l4proto->rcv_notify(sx->xd, events);
     mutex_unlock(&sx->lock);
 }
 
 
 struct xmsg *pop_snd(struct xsock *sx) {
-    struct xsock_protocol *vf = sx->vf;
+    struct xsock_protocol *l4proto = sx->l4proto;
     struct xmsg *msg = 0;
     i64 msgsz;
     u32 events = 0;
@@ -535,8 +535,8 @@ struct xmsg *pop_snd(struct xsock *sx) {
 	    condition_broadcast(&sx->cond);
     }
 
-    if (events && vf->snd_notify)
-	vf->snd_notify(sx->xd, events);
+    if (events && l4proto->snd_notify)
+	l4proto->snd_notify(sx->xd, events);
 
     __xpoll_notify(sx, 0);
     mutex_unlock(&sx->lock);
@@ -545,7 +545,7 @@ struct xmsg *pop_snd(struct xsock *sx) {
 
 int push_snd(struct xsock *sx, struct xmsg *msg) {
     int rc = -1;
-    struct xsock_protocol *vf = sx->vf;
+    struct xsock_protocol *l4proto = sx->l4proto;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
@@ -567,8 +567,8 @@ int push_snd(struct xsock *sx, struct xmsg *msg) {
 	DEBUG_OFF("xsock %d", sx->xd);
     }
 
-    if (events && vf->snd_notify)
-	vf->snd_notify(sx->xd, events);
+    if (events && l4proto->snd_notify)
+	l4proto->snd_notify(sx->xd, events);
 
     mutex_unlock(&sx->lock);
     return rc;
@@ -611,14 +611,14 @@ int xsend(int xd, char *xbuf) {
 /* Generic xpoll_t notify function. always called by xsock_protocol
  * when has any message come or can send any massage into network
  * or has a new connection wait for established.
- * here we only check the mq events and vf_spec saved the other
+ * here we only check the mq events and l4proto_spec saved the other
  * events gived by xsock_protocol
  */
-void __xpoll_notify(struct xsock *sx, u32 vf_spec) {
+void __xpoll_notify(struct xsock *sx, u32 l4proto_spec) {
     int events = 0;
     struct xpoll_entry *ent, *nx;
 
-    events |= vf_spec;
+    events |= l4proto_spec;
     events |= !list_empty(&sx->rcv_head) ? XPOLLIN : 0;
     events |= can_send(sx) ? XPOLLOUT : 0;
     events |= !sx->fok ? XPOLLERR : 0;
@@ -628,9 +628,9 @@ void __xpoll_notify(struct xsock *sx, u32 vf_spec) {
     }
 }
 
-void xpoll_notify(struct xsock *sx, u32 vf_spec) {
+void xpoll_notify(struct xsock *sx, u32 l4proto_spec) {
     mutex_lock(&sx->lock);
-    __xpoll_notify(sx, vf_spec);
+    __xpoll_notify(sx, l4proto_spec);
     mutex_unlock(&sx->lock);
 }
 
