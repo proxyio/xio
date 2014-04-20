@@ -86,7 +86,7 @@ struct xsock {
     struct list_head xpoll_head;
     struct xtask shutdown;
     struct list_head link;
-    // struct list_head request_socks;
+    struct list_head request_socks;
 
     union {
 	/* Only for transport xsock */
@@ -161,7 +161,7 @@ struct xcpu {
     struct efd efd;
 
     /* Waiting for closed xsock will be attached here */
-    struct list_head shutdown_head;
+    struct list_head shutdown_socks;
 };
 
 struct xcpu *xcpuget(int pd);

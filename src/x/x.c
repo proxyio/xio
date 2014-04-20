@@ -110,11 +110,11 @@ static void xsock_init(int xd) {
     sx->snd_wnd = DEF_SNDBUF;
     INIT_LIST_HEAD(&sx->rcv_head);
     INIT_LIST_HEAD(&sx->snd_head);
-    INIT_LIST_HEAD(&sx->link);
     INIT_LIST_HEAD(&sx->xpoll_head);
-
     sx->shutdown.f = xshutdown_task_f;
     INIT_LIST_HEAD(&sx->shutdown.link);
+    INIT_LIST_HEAD(&sx->link);
+    INIT_LIST_HEAD(&sx->request_socks);
 }
 
 static void xsock_exit(int xd) {
@@ -193,7 +193,7 @@ static void xshutdown(struct xsock *sx) {
     spin_lock(&cpu->lock);
     if (!sx->fclosed && !attached(&ts->link)) {
 	sx->fclosed = true;
-	list_add_tail(&ts->link, &cpu->shutdown_head);
+	list_add_tail(&ts->link, &cpu->shutdown_socks);
     }
     efd_signal(&cpu->efd);
     spin_unlock(&cpu->lock);
@@ -207,14 +207,14 @@ static int xshutdown_task_f(struct xtask *ts) {
     return 0;
 }
 
-static int __cpu_shutdown_task_hndl(struct xcpu *cpu) {
+static int __shutdown_socks_task_hndl(struct xcpu *cpu) {
     struct xtask *ts, *nx_ts;
     struct list_head st_head;
 
     INIT_LIST_HEAD(&st_head);
     spin_lock(&cpu->lock);
     efd_unsignal(&cpu->efd);
-    list_splice(&cpu->shutdown_head, &st_head);
+    list_splice(&cpu->shutdown_socks, &st_head);
     spin_unlock(&cpu->lock);
 
     xtask_walk_safe(ts, nx_ts, &st_head) {
@@ -235,7 +235,7 @@ static inline int kcpud(void *args) {
     struct xcpu *cpu = xcpuget(cpu_no);
 
     spin_init(&cpu->lock);
-    INIT_LIST_HEAD(&cpu->shutdown_head);
+    INIT_LIST_HEAD(&cpu->shutdown_socks);
 
     /* Init eventloop and wakeup parent */
     BUG_ON(eloop_init(&cpu->el, XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
@@ -252,7 +252,7 @@ static inline int kcpud(void *args) {
 
     while (!xgb.exiting) {
 	eloop_once(&cpu->el);
-	__cpu_shutdown_task_hndl(cpu);
+	__shutdown_socks_task_hndl(cpu);
     }
 
     /* Release the poll descriptor when kcpud exit. */
