@@ -79,8 +79,6 @@ static int xmul_init(int xd) {
     sx->mul.poll = 0;
 
     switch (sx->ty) {
-    case XACCEPTER:
-	return xmul_accepter_init(xd);
     case XLISTENER:
 	return xmul_listener_init(xd);
     }

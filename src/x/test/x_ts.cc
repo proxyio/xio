@@ -36,58 +36,32 @@ static void xclient(int pf) {
 }
 
 static int xclient_thread(void *arg) {
-    xclient(PF_NET);
-    xclient(PF_IPC);
-    xclient(PF_INPROC);
+    xclient(*(int *)arg);
     return 0;
 }
 
-static void xserver_thread() {
+static void xserver(int pf) {
     int i;
     int buf_sz = 0;
-    int afd, sfd, sfd2;
+    int afd, sfd;
     thread_t cli_thread = {};
     char *payload;
 
+    ASSERT_TRUE((afd = xlisten(pf, "127.0.0.1:18894")) >= 0);
+    thread_start(&cli_thread, xclient_thread, &pf);
 
-    ASSERT_TRUE((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18894")) >= 0);
-    thread_start(&cli_thread, xclient_thread, NULL);
-
-    while ((sfd = xaccept(afd)) < 0)
-	usleep(10000);
+    BUG_ON((sfd = xaccept(afd)) < 0);
     xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
     xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	ASSERT_TRUE(0 == xrecv(sfd, &payload));
 	ASSERT_TRUE(0 == xsend(sfd, payload));
     }
-    while ((sfd2 = xaccept(afd)) < 0)
-	usleep(10000);
-    xsetopt(sfd2, XSNDBUF, &buf_sz, sizeof(buf_sz));
-    xsetopt(sfd2, XRCVBUF, &buf_sz, sizeof(buf_sz));
-    for (i = 0; i < cnt; i++) {
-	ASSERT_TRUE(0 == xrecv(sfd2, &payload));
-	ASSERT_TRUE(0 == xsend(sfd2, payload));
-    }
-    xclose(sfd);
-    xclose(sfd2);
-
-    while ((sfd2 = xaccept(afd)) < 0)
-	usleep(10000);
-    xsetopt(sfd2, XSNDBUF, &buf_sz, sizeof(buf_sz));
-    xsetopt(sfd2, XRCVBUF, &buf_sz, sizeof(buf_sz));
-    for (i = 0; i < cnt; i++) {
-	ASSERT_TRUE(0 == xrecv(sfd2, &payload));
-	ASSERT_TRUE(0 == xsend(sfd2, payload));
-    }
-    thread_stop(&cli_thread);
-    xclose(sfd2);
     xclose(afd);
 }
 
-
-struct xpoll_t *po;
-spin_t lock;
+static struct xpoll_t *po = 0;
+static spin_t lock;
 
 static void xclient2(int pf) {
     int i;
@@ -108,27 +82,23 @@ static void xclient2(int pf) {
 }
 
 static int xclient_thread2(void *arg) {
-    xclient2(PF_IPC);
-    xclient2(PF_NET);
-    xclient2(PF_INPROC);
+    xclient2(*(int *)arg);
     return 0;
 }
 
-static void xserver_thread2() {
+static void xserver2(int pf) {
     int i, mycnt;
-    int afd, sfd[3 * cnt];
+    int afd, sfd[cnt];
     thread_t cli_thread = {};
-    struct xpoll_event event[3 * cnt];
+    struct xpoll_event event[cnt];
 
     po = xpoll_create();
     spin_init(&lock);
 
-    ASSERT_TRUE((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18895")) >= 0);
-    thread_start(&cli_thread, xclient_thread2, NULL);
-    for (i = 0; i < 3 * cnt; i++) {
-	while ((sfd[i] = xaccept(afd)) < 0) {
-	    usleep(10000);
-	}
+    ASSERT_TRUE((afd = xlisten(pf, "127.0.0.1:18895")) >= 0);
+    thread_start(&cli_thread, xclient_thread2, &pf);
+    for (i = 0; i < cnt; i++) {
+	BUG_ON((sfd[i] = xaccept(afd)) < 0);
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -136,7 +106,7 @@ static void xserver_thread2() {
 	assert(xpoll_ctl(po, XPOLL_ADD, &event[i]) == 0);
 	spin_unlock(&lock);
     }
-    mycnt = rand() % (3 * cnt);
+    mycnt = rand() % (cnt);
     for (i = 0; i < mycnt; i++) {
 	event[i].xd = sfd[i];
 	event[i].self = po;
@@ -147,7 +117,7 @@ static void xserver_thread2() {
 	spin_unlock(&lock);
     }
     xpoll_close(po);
-    for (i = 0; i < 3 * cnt; i++)
+    for (i = 0; i < cnt; i++)
 	xclose(sfd[i]);
 
     thread_stop(&cli_thread);
@@ -155,9 +125,15 @@ static void xserver_thread2() {
     xclose(afd);
 }
 
+
 TEST(xsock, vf) {
-    xserver_thread();
-    //xserver_thread2();
+    xserver(PF_NET);
+    xserver(PF_IPC);
+    //xserver(PF_INPROC);
+    
+    xserver2(PF_NET);
+    xserver2(PF_IPC);
+    //xserver2(PF_INPROC);
 }
 
 
@@ -205,8 +181,7 @@ static void inproc_server_thread2() {
     thread_start(&cli_thread[1], inproc_client_thread3, NULL);
 
     for (i = 0; i < cnt2 - 10; i++) {
-	while ((sfd = xaccept(afd)) < 0)
-	    usleep(1000);
+	BUG_ON((sfd = xaccept(afd)) < 0);
 	xclose(sfd);
     }
     xclose(afd);
@@ -215,6 +190,6 @@ static void inproc_server_thread2() {
 }
 
 TEST(xsock, inproc) {
-    inproc_server_thread2();
+    //inproc_server_thread2();
 }
 

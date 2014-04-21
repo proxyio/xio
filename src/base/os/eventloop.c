@@ -1,7 +1,10 @@
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "runner/taskpool.h"
 #include "timesz.h"
 #include "eventloop.h"
 #include "ds/skrb_sync.h"

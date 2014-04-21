@@ -110,42 +110,9 @@ static int rcv_pop_event(int xd) {
 
 
 
-
 /******************************************************************************
  *  xsock_inproc_protocol
  ******************************************************************************/
-
-static int inproc_accepter_init(int xd) {
-    int rc = 0;
-    struct xsock *me = xget(xd);
-    struct xsock *peer;
-    struct xsock *parent = xget(me->parent);
-
-    /* step1. Pop a new connector from parent's xsock queue */
-    if (!(peer = pop_new_connector(parent)))
-	return -1;
-
-    /* step2. Hold the peer's lock and make a connection. */
-    mutex_lock(&peer->lock);
-
-    /* Each xsock endpoint has one ref to another endpoint */
-    peer->proc.peer_xsock = me;
-    me->proc.peer_xsock = peer;
-
-    /* Send the ACK singal to the other end.
-     * Here only has two possible state:
-     * 1. if peer->proc.ref == 0. the peer haven't enter step2 state.
-     * 2. if peer->proc.ref == 1. the peer is waiting and we should
-     *    wakeup him when we done the connect work.
-     */
-    BUG_ON(peer->proc.ref != 0 && peer->proc.ref != 1);
-    if (peer->proc.ref == 1)
-	condition_signal(&peer->cond);
-    me->proc.ref = peer->proc.ref = 2;
-    mutex_unlock(&peer->lock);
-
-    return rc;
-}
 
 static int inproc_listener_init(int xd) {
     int rc = 0;
@@ -183,50 +150,31 @@ static int inproc_listener_destroy(int xd) {
 
 
 static int inproc_connector_init(int xd) {
-    int rc = 0;
     struct xsock *sx = xget(xd);
+    /* TODO: reference safe */
+    struct xsock *req_sx = xsock_alloc();
     struct xsock *listener = find_listener(sx->peer);
 
+    if (!req_sx) {
+	errno = EAGAIN;
+	return -1;
+    }
     if (!listener) {
 	errno = ENOENT;	
 	return -1;
     }
-    sx->proc.ref = 0;
-    sx->proc.peer_xsock = 0;
-
-    /* step1. Push the new connector into listener's at_queue
-     * queue and update_xpoll_t for user-state poll
-     */
-    push_new_connector(listener, sx);
-    xpoll_notify(listener, XPOLLIN);
-
-    /* step2. Hold lock and waiting for the connection established
-     * if need. here only has two possible state too:
-     * if sx->proc.ref == 0. we incr the ref indicate that i'm waiting.
-     */
-    mutex_lock(&sx->lock);
-    if (sx->proc.ref == 0) {
-	sx->proc.ref++;
-	condition_wait(&sx->cond, &sx->lock);
-    }
-
-    /* step3. Check the connection status.
-     * Maybe the other peer close the connection before the ESTABLISHED
-     * if sx->proc.ref == 0. the peer was closed.
-     * if sx->proc.ref == 2. the connect was established.
-     */
-    if (sx->proc.ref == -1)
-	BUG_ON(sx->proc.ref != -1);
-    else if (sx->proc.ref == 0)
-	BUG_ON(sx->proc.ref != 0);
-    else if (sx->proc.ref == 2)
-	BUG_ON(sx->proc.ref != 2);
-    if (sx->proc.ref == 0 || sx->proc.ref == -1) {
-    	errno = ECONNREFUSED;
-	rc = -1;
-    }
-    mutex_unlock(&sx->lock);
-    return rc;
+    ZERO(req_sx->proc);
+    req_sx->ty = XCONNECTOR;
+    req_sx->pf = sx->pf;
+    req_sx->l4proto = sx->l4proto;
+    
+    req_sx->proc.ref = sx->proc.ref = 2;
+    sx->proc.peer_xsock = req_sx;
+    req_sx->proc.peer_xsock = sx;
+    req_sx->pf = sx->pf;
+    req_sx->l4proto = sx->l4proto;
+    push_request_sock(listener, req_sx);
+    return 0;
 }
 
 static int inproc_connector_destroy(int xd) {
@@ -252,8 +200,6 @@ static int inproc_xinit(int xd) {
     INIT_LIST_HEAD(&sx->proc.at_queue);
 
     switch (sx->ty) {
-    case XACCEPTER:
-	return inproc_accepter_init(xd);
     case XCONNECTOR:
 	return inproc_connector_init(xd);
     case XLISTENER:
@@ -267,7 +213,6 @@ static void inproc_xdestroy(int xd) {
     struct xsock *sx = xget(xd);
 
     switch (sx->ty) {
-    case XACCEPTER:
     case XCONNECTOR:
 	inproc_connector_destroy(xd);
 	break;

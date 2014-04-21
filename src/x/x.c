@@ -114,6 +114,8 @@ static void xsock_init(int xd) {
     sx->shutdown.f = xshutdown_task_f;
     INIT_LIST_HEAD(&sx->shutdown.link);
     INIT_LIST_HEAD(&sx->link);
+    condition_init(&sx->accept_cond);
+    sx->accept_waiters = 0;
     INIT_LIST_HEAD(&sx->request_socks);
 }
 
@@ -151,6 +153,10 @@ static void xsock_exit(int xd) {
      * this is a user's bug.
      */
     BUG_ON(!list_empty(&sx->xpoll_head));
+    sx->accept_waiters = -1;
+    condition_destroy(&sx->accept_cond);
+    
+    /* TODO: destroy request_socks's connection */
 }
 
 
@@ -302,10 +308,10 @@ void global_xinit() {
     list_add_tail(&inproc_xsock_protocol.link, &xgb.xsock_protocol_head);
     list_add_tail(&ipc_xsock_protocol.link, &xgb.xsock_protocol_head);
     list_add_tail(&tcp_xsock_protocol.link, &xgb.xsock_protocol_head);
-    list_add_tail(&ipc_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
-    list_add_tail(&net_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
-    list_add_tail(&ipc_and_net_xsock_protocol.link, &xgb.xsock_protocol_head);
-    list_add_tail(&ipc_inp_net_xsock_protocol.link, &xgb.xsock_protocol_head);
+    //list_add_tail(&ipc_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
+    //list_add_tail(&net_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
+    //list_add_tail(&ipc_and_net_xsock_protocol.link, &xgb.xsock_protocol_head);
+    //list_add_tail(&ipc_inp_net_xsock_protocol.link, &xgb.xsock_protocol_head);
 }
 
 void global_xexit() {
@@ -333,32 +339,51 @@ void xclose(int xd) {
     xshutdown(sx);
 }
 
+
+int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
+    int rc = 0;
+    mutex_lock(&sx->lock);
+    if (list_empty(&sx->request_socks) && sx->accept_waiters > 0) {
+	condition_broadcast(&sx->accept_cond);
+    }
+    list_add_tail(&req_sx->link, &sx->request_socks);
+    __xpoll_notify(sx, XPOLLIN);
+    mutex_unlock(&sx->lock);
+    return rc;
+}
+
+struct xsock *pop_request_sock(struct xsock *sx) {
+    struct xsock *req_sx = 0;
+
+    mutex_lock(&sx->lock);
+    while (list_empty(&sx->request_socks) && !sx->fasync) {
+	sx->accept_waiters++;
+	condition_wait(&sx->accept_cond, &sx->lock);
+	sx->accept_waiters--;
+    }
+    if (!list_empty(&sx->request_socks)) {
+	req_sx = list_first(&sx->request_socks, struct xsock, link);
+	list_del_init(&req_sx->link);
+    }
+    mutex_unlock(&sx->lock);
+    return req_sx;
+}
+
 int xaccept(int xd) {
+    int rc = -1;
     struct xsock *sx = xget(xd);
-    struct xsock *new = xsock_alloc();
-    struct xsock_protocol *l4proto, *nx;
+    struct xsock *new = 0;
 
     if (!sx->fok) {
 	errno = EPIPE;
-	goto EXIT;
+	return -1;
     }
-    new->ty = XACCEPTER;
-    new->pf = sx->pf;
-    new->parent = xd;
-    xpoll_notify(sx, 0);
-    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
-	if (sx->pf != l4proto->pf)
-	    continue;
-	new->l4proto = l4proto;
-	if (l4proto->init(new->xd) == 0) {
-	    return new->xd;
-	}
-    }
- EXIT:
-    DEBUG_OFF("%d failed with errno %d", xd, errno);
-    xsock_free(new);
-    return -1;
+    errno = EAGAIN;
+    if ((new = pop_request_sock(sx)))
+	rc = new->xd;
+    return rc;
 }
+
 
 int xlisten(int pf, const char *addr) {
     struct xsock *new = xsock_alloc();

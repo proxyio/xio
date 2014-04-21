@@ -23,10 +23,9 @@
 /* Max number of cpu core */
 #define XSOCK_MAX_CPUS 32
 
-/* Define xsock type for listner/accepter/connector */
+/* Define xsock type for listner/connector */
 #define XLISTENER 1
-#define XACCEPTER 2
-#define XCONNECTOR 3
+#define XCONNECTOR 2
 
 /* XSock MQ events */
 #define XMQ_PUSH         0x01
@@ -86,6 +85,8 @@ struct xsock {
     struct list_head xpoll_head;
     struct xtask shutdown;
     struct list_head link;
+    condition_t accept_cond;
+    int accept_waiters;
     struct list_head request_socks;
 
     union {
@@ -140,11 +141,16 @@ static inline int can_recv(struct xsock *cn) {
 
 struct xsock *xget(int cd);
 void xsock_free(struct xsock *cn);
+struct xsock *xsock_alloc();
+void xsock_free(struct xsock *sx);
 
 struct xmsg *pop_rcv(struct xsock *cn);
 void push_rcv(struct xsock *cn, struct xmsg *msg);
 struct xmsg *pop_snd(struct xsock *cn);
 int push_snd(struct xsock *cn, struct xmsg *msg);
+
+int push_request_sock(struct xsock *sx, struct xsock *req_sx);
+struct xsock *pop_request_sock(struct xsock *sx);
 
 void xpoll_notify(struct xsock *cn, u32 protocol_spec);
 
