@@ -30,7 +30,7 @@ static int insert_listener(struct ssmap_node *node) {
     xglobal_lock();
     if (!ssmap_find(&xgb.inproc_listeners, node->key, node->keylen)) {
 	rc = 0;
-	DEBUG_ON("insert listener %s", node->key);
+	DEBUG_OFF("insert listener %s", node->key);
 	ssmap_insert(&xgb.inproc_listeners, node);
     }
     xglobal_unlock();

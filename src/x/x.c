@@ -389,18 +389,22 @@ struct xsock *pop_request_sock(struct xsock *sx) {
 }
 
 int xaccept(int xd) {
-    int rc = -1;
     struct xsock *sx = xget(xd);
-    struct xsock *new = 0;
-
+    struct xsock *new_sx = 0;
+    struct xsock_protocol *l4proto = sx->l4proto;
+    
     if (!sx->fok) {
 	errno = EPIPE;
 	return -1;
     }
+    if (l4proto->type != XLISTENER) {
+	errno = EPROTO;
+	return -1;
+    }
+    if ((new_sx = pop_request_sock(sx)))
+	return new_sx->xd;
     errno = EAGAIN;
-    if ((new = pop_request_sock(sx)))
-	rc = new->xd;
-    return rc;
+    return -1;
 }
 
 
@@ -618,11 +622,16 @@ int push_snd(struct xsock *sx, struct xmsg *msg) {
 
 int xrecv(int xd, char **xbuf) {
     int rc = 0;
+    struct xmsg *msg = 0;
     struct xsock *sx = xget(xd);
-    struct xmsg *msg;
-
+    struct xsock_protocol *l4proto = sx->l4proto;
+    
     if (!xbuf) {
 	errno = EINVAL;
+	return -1;
+    }
+    if (l4proto->type != XCONNECTOR) {
+	errno = EPROTO;
 	return -1;
     }
     if (!(msg = pop_rcv(sx))) {
@@ -635,11 +644,16 @@ int xrecv(int xd, char **xbuf) {
 
 int xsend(int xd, char *xbuf) {
     int rc = 0;
-    struct xmsg *msg;
+    struct xmsg *msg = 0;
     struct xsock *sx = xget(xd);
+    struct xsock_protocol *l4proto = sx->l4proto;
 
     if (!xbuf) {
 	errno = EINVAL;
+	return -1;
+    }
+    if (l4proto->type != XCONNECTOR) {
+	errno = EPROTO;
 	return -1;
     }
     msg = cont_of(xbuf, struct xmsg, vec.chunk);
