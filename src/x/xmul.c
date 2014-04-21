@@ -1,6 +1,6 @@
 #include "xbase.h"
 
-static int xmul_listener_destroy(int xd);
+static void xmul_listener_destroy(int xd);
 
 static int xmul_listener_init(int pf, const char *sock) {
     struct xsock *sx = 0;
@@ -46,7 +46,7 @@ static int xmul_listener_init(int pf, const char *sock) {
     return sx->xd;
 }
 
-static int xmul_listener_destroy(int xd) {
+static void xmul_listener_destroy(int xd) {
     struct xsock *sx = xget(xd);
     struct xsock *sub_sx, *nx_sx;
 
@@ -57,14 +57,13 @@ static int xmul_listener_destroy(int xd) {
     BUG_ON(!list_empty(&sx->mul.listen_head));
     if (sx->mul.poll)
 	xpoll_close(sx->mul.poll);
-    return 0;
 }
 
 struct xsock_protocol ipc_inp_net_xsock_protocol = {
     .type = XLISTENER,
     .pf = PF_NET|PF_INPROC|PF_IPC,
     .init = xmul_listener_init,
-    .destroy = null,
+    .destroy = xmul_listener_destroy,
     .snd_notify = null,
     .rcv_notify = null,
 };

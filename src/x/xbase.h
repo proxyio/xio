@@ -60,7 +60,6 @@ struct xsock_protocol {
 
 extern const char *xprotocol_str[];
 
-
 struct xsock {
     mutex_t lock;
     condition_t cond;
