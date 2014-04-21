@@ -65,7 +65,6 @@ static void xserver(int pf) {
 }
 
 static struct xpoll_t *po = 0;
-static spin_t lock;
 
 static void xclient2(int pf) {
     int i;
@@ -77,9 +76,7 @@ static void xclient2(int pf) {
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	spin_lock(&lock);
 	assert(xpoll_ctl(po, XPOLL_ADD, &event[i]) == 0);
-	spin_unlock(&lock);
     }
     for (i = 0; i < cnt; i++)
 	xclose(sfd[i]);
@@ -97,19 +94,21 @@ static void xserver2(int pf) {
     struct xpoll_event event[cnt];
 
     po = xpoll_create();
-    spin_init(&lock);
+    DEBUG_OFF("%p", po);
 
     BUG_ON((afd = xlisten(pf, "127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, &pf);
+    event[0].xd = afd;
+    event[0].self = po;
+    event[0].care = XPOLLERR;
+    BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[0]) != 0);
     for (i = 0; i < cnt; i++) {
 	BUG_ON((sfd[i] = xaccept(afd)) < 0);
 	DEBUG_OFF("%d", sfd[i]);
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	spin_lock(&lock);
-	assert(xpoll_ctl(po, XPOLL_ADD, &event[i]) == 0);
-	spin_unlock(&lock);
+	BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[i]) != 0);
     }
     mycnt = rand() % (cnt);
     for (i = 0; i < mycnt; i++) {
@@ -117,28 +116,31 @@ static void xserver2(int pf) {
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	spin_lock(&lock);
-	assert(xpoll_ctl(po, XPOLL_DEL, &event[i]) == 0);
-	assert(xpoll_ctl(po, XPOLL_DEL, &event[i]) == -1);
-	spin_unlock(&lock);
+	BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != 0);
+	BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != -1);
     }
     xpoll_close(po);
     for (i = 0; i < cnt; i++)
 	xclose(sfd[i]);
     thread_stop(&cli_thread);
-    spin_destroy(&lock);
     xclose(afd);
+}
+
+static void xsock_test(int count) {
+    while (count-- > 0) {
+	xserver(PF_NET);
+	xserver(PF_IPC);
+	xserver(PF_INPROC);
+
+	xserver2(PF_NET);
+	xserver2(PF_IPC);
+	xserver2(PF_INPROC);
+    }
 }
 
 
 TEST(xsock, vf) {
-    xserver(PF_NET);
-    xserver(PF_IPC);
-    xserver(PF_INPROC);
-
-    xserver2(PF_NET);
-    xserver2(PF_IPC);
-    xserver2(PF_INPROC);
+    xsock_test(1);
 }
 
 
