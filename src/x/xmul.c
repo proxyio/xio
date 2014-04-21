@@ -1,30 +1,35 @@
 #include "xbase.h"
 
-static int xmul_accepter_init(int xd) {
-    int rc = 0;
-    return rc;
-}
-
 static int xmul_listener_destroy(int xd);
 
 static int xmul_listener_init(int pf, const char *sock) {
-    /*
-    struct xsock *sx = xget(xd);
-    int pf = sx->pf;
+    struct xsock *sx = 0;
     int sub_xd;
-    struct xsock *sub_sx;
+    struct xsock *sub_sx = 0;
     struct xpoll_event ev = {};
     struct xsock_protocol *l4proto, *nx;
-
+    struct list_head *protocol_head = &xgb.xsock_protocol_head;
+    
+    if (!(sx = xsock_alloc())) {
+	errno = EAGAIN;
+	return -1;
+    }
+    if (!(sx->mul.poll = xpoll_create())) {
+	xsock_free(sx);
+	errno = EAGAIN;
+	return -1;
+    }
     DEBUG_OFF("%s", xprotocol_str[pf]);
-    sx->mul.poll = xpoll_create();
-    BUG_ON(!sx->mul.poll);
-    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
-	if ((pf & l4proto->pf) != l4proto->pf)
+    sx->pf = pf;
+    strncpy(sx->addr, sock, TP_SOCKADDRLEN);
+    INIT_LIST_HEAD(&sx->mul.listen_head);
+
+    xsock_protocol_walk_safe(l4proto, nx, protocol_head) {
+	if ((pf & l4proto->pf) != l4proto->pf || XLISTENER != l4proto->type)
 	    continue;
-	if ((sub_xd = xlisten(pf & l4proto->pf, sx->addr)) < 0) {
+	if ((sub_xd = xlisten(pf & l4proto->pf, sock)) < 0) {
 	BAD:
-	    xmul_listener_destroy(xd);
+	    xmul_listener_destroy(sx->xd);
 	    return -1;
 	}
 	sub_sx = xget(sub_xd);
@@ -38,15 +43,13 @@ static int xmul_listener_init(int pf, const char *sock) {
     }
     if (pf)
 	goto BAD;
-    */
-    return 0;
+    return sx->xd;
 }
 
 static int xmul_listener_destroy(int xd) {
     struct xsock *sx = xget(xd);
     struct xsock *sub_sx, *nx_sx;
 
-    DEBUG_OFF("%s", xprotocol_str[sx->pf]);
     xsock_walk_safe(sub_sx, nx_sx, &sx->mul.listen_head) {
 	list_del_init(&sub_sx->link);
 	xclose(sub_sx->xd);
@@ -58,8 +61,9 @@ static int xmul_listener_destroy(int xd) {
 }
 
 struct xsock_protocol ipc_inp_net_xsock_protocol = {
+    .type = XLISTENER,
     .pf = PF_NET|PF_INPROC|PF_IPC,
-    .init = null,
+    .init = xmul_listener_init,
     .destroy = null,
     .snd_notify = null,
     .rcv_notify = null,
