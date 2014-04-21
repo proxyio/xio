@@ -49,6 +49,7 @@ struct xtask {
 
 
 struct xsock_protocol {
+    int type;
     int pf;
     int (*init) (int xd);
     void (*destroy) (int xd);
@@ -211,6 +212,8 @@ struct xglobal {
 #define xsock_protocol_walk_safe(pos, nx, head)			\
     list_for_each_entry_safe(pos, nx, head,			\
 			     struct xsock_protocol, link)
+
+struct xsock_protocol *l4proto_lookup(int pf, int type);
 
 extern struct xglobal xgb;
 

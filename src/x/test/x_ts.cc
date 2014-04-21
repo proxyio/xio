@@ -20,15 +20,15 @@ static void xclient(int pf) {
     char *payload;
 
     randstr(buf, 1024);
-    ASSERT_TRUE((sfd = xconnect(pf, "127.0.0.1:18894")) >= 0);
+    BUG_ON((sfd = xconnect(pf, "127.0.0.1:18894")) < 0);
     xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
     xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	payload = xallocmsg(nbytes);
 	memcpy(payload, buf, nbytes);
-	ASSERT_EQ(0, xsend(sfd, payload));
-	ASSERT_EQ(0, xrecv(sfd, &payload));
+	BUG_ON(0 != xsend(sfd, payload));
+	BUG_ON(0 != xrecv(sfd, &payload));
 	assert(memcmp(payload, buf, nbytes) == 0);
 	xfreemsg(payload);
     }
@@ -47,15 +47,15 @@ static void xserver(int pf) {
     thread_t cli_thread = {};
     char *payload;
 
-    ASSERT_TRUE((afd = xlisten(pf, "127.0.0.1:18894")) >= 0);
+    BUG_ON((afd = xlisten(pf, "127.0.0.1:18894")) < 0);
     thread_start(&cli_thread, xclient_thread, &pf);
 
     BUG_ON((sfd = xaccept(afd)) < 0);
     xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
     xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
-	ASSERT_TRUE(0 == xrecv(sfd, &payload));
-	ASSERT_TRUE(0 == xsend(sfd, payload));
+	BUG_ON(0 != xrecv(sfd, &payload));
+	BUG_ON(0 != xsend(sfd, payload));
     }
     xclose(afd);
 }
@@ -69,7 +69,7 @@ static void xclient2(int pf) {
     struct xpoll_event event[cnt];
 
     for (i = 0; i < cnt; i++) {
-	ASSERT_TRUE((sfd[i] = xconnect(pf, "127.0.0.1:18895")) >= 0);
+	BUG_ON((sfd[i] = xconnect(pf, "127.0.0.1:18895")) < 0);
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -95,7 +95,7 @@ static void xserver2(int pf) {
     po = xpoll_create();
     spin_init(&lock);
 
-    ASSERT_TRUE((afd = xlisten(pf, "127.0.0.1:18895")) >= 0);
+    BUG_ON((afd = xlisten(pf, "127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, &pf);
     for (i = 0; i < cnt; i++) {
 	BUG_ON((sfd[i] = xaccept(afd)) < 0);
@@ -176,7 +176,7 @@ static void inproc_server_thread2() {
     int i, afd, sfd;
     thread_t cli_thread[2] = {};
 
-    ASSERT_TRUE((afd = xlisten(PF_INPROC, "/b_inproc")) >= 0);
+    BUG_ON((afd = xlisten(PF_INPROC, "/b_inproc")) < 0);
     thread_start(&cli_thread[0], inproc_client_thread2, NULL);
     thread_start(&cli_thread[1], inproc_client_thread3, NULL);
 

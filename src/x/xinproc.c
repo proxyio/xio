@@ -234,7 +234,8 @@ static void inproc_rcv_notify(int xd, uint32_t events) {
 	rcv_pop_event(xd);
 }
 
-struct xsock_protocol inproc_xsock_protocol = {
+struct xsock_protocol xinproc_connector_protocol = {
+    .type = XCONNECTOR,
     .pf = PF_INPROC,
     .init = inproc_xinit,
     .destroy = inproc_xdestroy,

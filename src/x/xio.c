@@ -5,7 +5,7 @@
 #include "runner/taskpool.h"
 #include "xbase.h"
 
-static i64 io_xread(struct io *ops, char *buff, i64 sz) {
+static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct xsock *sx = cont_of(ops, struct xsock, io.ops);
     struct transport *tp = sx->io.tp;
 
@@ -14,7 +14,7 @@ static i64 io_xread(struct io *ops, char *buff, i64 sz) {
     return rc;
 }
 
-static i64 io_xwrite(struct io *ops, char *buff, i64 sz) {
+static i64 xio_connector_write(struct io *ops, char *buff, i64 sz) {
     struct xsock *sx = cont_of(ops, struct xsock, io.ops);
     struct transport *tp = sx->io.tp;
 
@@ -23,9 +23,9 @@ static i64 io_xwrite(struct io *ops, char *buff, i64 sz) {
     return rc;
 }
 
-static struct io default_xops = {
-    .read = io_xread,
-    .write = io_xwrite,
+struct io default_xops = {
+    .read = xio_connector_read,
+    .write = xio_connector_write,
 };
 
 
@@ -34,25 +34,25 @@ static struct io default_xops = {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static void snd_empty_event(int xd) {
+static void snd_head_empty(int xd) {
     struct xsock *sx = xget(xd);
     struct xcpu *cpu = xcpuget(sx->cpu_no);
 
     // Disable POLLOUT event when snd_head is empty
     if (sx->io.et.events & EPOLLOUT) {
-	DEBUG_OFF("%d disable EPOLLOUT", xd);
+	DEBUG_ON("%d disable EPOLLOUT", xd);
 	sx->io.et.events &= ~EPOLLOUT;
 	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
 }
 
-static void snd_nonempty_event(int xd) {
+static void snd_head_nonempty(int xd) {
     struct xsock *sx = xget(xd);
     struct xcpu *cpu = xcpuget(sx->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(sx->io.et.events & EPOLLOUT)) {
-	DEBUG_OFF("%d enable EPOLLOUT", xd);
+	DEBUG_ON("%d enable EPOLLOUT", xd);
 	sx->io.et.events |= EPOLLOUT;
 	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
@@ -63,14 +63,14 @@ static void snd_nonempty_event(int xd) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static void rcv_pop_event(int xd) {
+static void rcv_head_pop(int xd) {
     struct xsock *sx = xget(xd);
 
     if (sx->snd_waiters)
 	condition_signal(&sx->cond);
 }
 
-static void rcv_full_event(int xd) {
+static void rcv_head_full(int xd) {
     struct xsock *sx = xget(xd);    
     struct xcpu *cpu = xcpuget(sx->cpu_no);
 
@@ -81,7 +81,7 @@ static void rcv_full_event(int xd) {
     }
 }
 
-static void rcv_nonfull_event(int xd) {
+static void rcv_head_nonfull(int xd) {
     struct xsock *sx = xget(xd);    
     struct xcpu *cpu = xcpuget(sx->cpu_no);
 
@@ -92,33 +92,9 @@ static void rcv_nonfull_event(int xd) {
     }
 }
 
+int xio_connector_handler(eloop_t *el, ev_t *et);
 
-
-static int accept_handler(eloop_t *el, ev_t *et);
-static int io_handler(eloop_t *el, ev_t *et);
-
-static int io_listener_init(int xd) {
-    int rc = 0;
-    int s, on = 1;
-    struct xsock *sx = xget(xd);
-    struct xcpu *cpu = xcpuget(sx->cpu_no);
-    struct transport *tp = transport_lookup(sx->pf);
-
-    BUG_ON(!tp);
-    if ((s = tp->bind(sx->addr)) < 0)
-	return s;
-    tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
-    sx->io.et.events = EPOLLIN|EPOLLERR;
-    sx->io.et.fd = s;
-    sx->io.et.f = accept_handler;
-    sx->io.et.data = sx;
-    sx->io.fd = s;
-    sx->io.tp = tp;
-    BUG_ON(eloop_add(&cpu->el, &sx->io.et) != 0);
-    return rc;
-}
-
-static int io_connector_init(int xd) {
+static int xio_connector_init(int xd) {
     int rc = 0;
     int s;
     int on = 1;
@@ -127,12 +103,16 @@ static int io_connector_init(int xd) {
     struct transport *tp = transport_lookup(sx->pf);
 
     BUG_ON(!tp);
+    ZERO(sx->io);
+    bio_init(&sx->io.in);
+    bio_init(&sx->io.out);
+
     if ((s = tp->connect(sx->peer)) < 0)
 	return s;
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
     sx->io.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     sx->io.et.fd = s;
-    sx->io.et.f = io_handler;
+    sx->io.et.f = xio_connector_handler;
     sx->io.et.data = sx;
     sx->io.fd = s;
     sx->io.tp = tp;
@@ -141,26 +121,9 @@ static int io_connector_init(int xd) {
     return rc;
 }
 
-static int io_xinit(int xd) {
-    struct xsock *sx = xget(xd);
+static int xio_connector_snd(struct xsock *sx);
 
-    ZERO(sx->io);
-    bio_init(&sx->io.in);
-    bio_init(&sx->io.out);
-
-    switch (sx->ty) {
-    case XCONNECTOR:
-	return io_connector_init(xd);
-    case XLISTENER:
-	return io_listener_init(xd);
-    }
-    errno = EINVAL;
-    return -1;
-}
-
-static int io_snd(struct xsock *sx);
-
-static void io_xdestroy(int xd) {
+static void xio_connector_destroy(int xd) {
     struct xsock *sx = xget(xd);
     struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = sx->io.tp;
@@ -168,7 +131,7 @@ static void io_xdestroy(int xd) {
     BUG_ON(!tp);
 
     /* Try flush buf massage into network before close */
-    io_snd(sx);
+    xio_connector_snd(sx);
 
     /* Detach xsock low-level file descriptor from poller */
     BUG_ON(eloop_del(&cpu->el, &sx->io.et) != 0);
@@ -186,64 +149,21 @@ static void io_xdestroy(int xd) {
 }
 
 
-static void io_rcv_notify(int xd, uint32_t events) {
+static void rcv_head_notify(int xd, uint32_t events) {
     if (events & XMQ_POP)
-	rcv_pop_event(xd);
+	rcv_head_pop(xd);
     if (events & XMQ_FULL)
-	rcv_full_event(xd);
+	rcv_head_full(xd);
     else if (events & XMQ_NONFULL)
-	rcv_nonfull_event(xd);
+	rcv_head_nonfull(xd);
 }
 
-static void io_snd_notify(int xd, uint32_t events) {
+static void snd_head_notify(int xd, uint32_t events) {
     if (events & XMQ_EMPTY)
-	snd_empty_event(xd);
+	snd_head_empty(xd);
     else if (events & XMQ_NONEMPTY)
-	snd_nonempty_event(xd);
+	snd_head_nonempty(xd);
 }
-
-static int accept_handler(eloop_t *el, ev_t *et) {
-    int rc = 0;
-    int on = 1;
-    struct xsock *sx = cont_of(et, struct xsock, io.et);
-    struct transport *tp = sx->io.tp;
-    struct xsock *req_sx = xsock_alloc();
-    struct xcpu *cpu = xcpuget(req_sx->cpu_no);
-    
-    if (!req_sx) {
-	errno = EAGAIN;
-	return -1;
-    }
-    ZERO(req_sx->io);
-    bio_init(&req_sx->io.in);
-    bio_init(&req_sx->io.out);
-    if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
-	sx->fok = false;
-	errno = EPIPE;
-	return -1;
-    } 
-
-    /* A new connection */
-    DEBUG_OFF("xsock listener %d events %d", sx->xd, et->happened);
-    if ((req_sx->io.fd = tp->accept(sx->io.fd)) < 0)
-	return -1;
-    DEBUG_ON("xsock accept new connection %d", req_sx->io.fd);
-    tp->setopt(req_sx->io.fd, TP_NOBLOCK, &on, sizeof(on));
-
-    req_sx->ty = XCONNECTOR;
-    req_sx->pf = sx->pf;
-    req_sx->l4proto = sx->l4proto;
-    req_sx->io.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
-    req_sx->io.et.fd = req_sx->io.fd;
-    req_sx->io.et.f = io_handler;
-    req_sx->io.et.data = req_sx;
-    req_sx->io.tp = tp;
-    req_sx->io.ops = default_xops;
-    BUG_ON(eloop_add(&cpu->el, &req_sx->io.et) != 0);
-    push_request_sock(sx, req_sx);
-    return rc;
-}
-
 
 static int msg_ready(struct bio *b, i64 *chunk_sz) {
     struct xmsg msg = {};
@@ -257,7 +177,7 @@ static int msg_ready(struct bio *b, i64 *chunk_sz) {
     return true;
 }
 
-static int io_rcv(struct xsock *sx) {
+static int xio_connector_rcv(struct xsock *sx) {
     int rc = 0;
     char *chunk;
     i64 chunk_sz;
@@ -276,7 +196,7 @@ static int io_rcv(struct xsock *sx) {
     return rc;
 }
 
-static int io_snd(struct xsock *sx) {
+static int xio_connector_snd(struct xsock *sx) {
     int rc;
     char *chunk;
     struct xmsg *msg;
@@ -290,17 +210,17 @@ static int io_snd(struct xsock *sx) {
     return rc;
 }
 
-static int io_handler(eloop_t *el, ev_t *et) {
+int xio_connector_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
     struct xsock *sx = cont_of(et, struct xsock, io.et);
 
     if (et->happened & EPOLLIN) {
 	DEBUG_OFF("io xsock %d EPOLLIN", sx->xd);
-	rc = io_rcv(sx);
+	rc = xio_connector_rcv(sx);
     }
     if (et->happened & EPOLLOUT) {
 	DEBUG_OFF("io xsock %d EPOLLOUT", sx->xd);
-	rc = io_snd(sx);
+	rc = xio_connector_snd(sx);
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
 	DEBUG_OFF("io xsock %d EPIPE", sx->xd);
@@ -314,18 +234,20 @@ static int io_handler(eloop_t *el, ev_t *et) {
 
 
 
-struct xsock_protocol tcp_xsock_protocol = {
+struct xsock_protocol xtcp_connector_protocol = {
+    .type = XCONNECTOR,
     .pf = PF_NET,
-    .init = io_xinit,
-    .destroy = io_xdestroy,
-    .rcv_notify = io_rcv_notify,
-    .snd_notify = io_snd_notify,
+    .init = xio_connector_init,
+    .destroy = xio_connector_destroy,
+    .rcv_notify = rcv_head_notify,
+    .snd_notify = snd_head_notify,
 };
 
-struct xsock_protocol ipc_xsock_protocol = {
+struct xsock_protocol xipc_connector_protocol = {
+    .type = XCONNECTOR,
     .pf = PF_IPC,
-    .init = io_xinit,
-    .destroy = io_xdestroy,
-    .rcv_notify = io_rcv_notify,
-    .snd_notify = io_snd_notify,
+    .init = xio_connector_init,
+    .destroy = xio_connector_destroy,
+    .rcv_notify = rcv_head_notify,
+    .snd_notify = snd_head_notify,
 };

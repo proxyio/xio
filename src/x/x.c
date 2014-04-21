@@ -96,6 +96,8 @@ static void xsock_init(int xd) {
 
     mutex_init(&sx->lock);
     condition_init(&sx->cond);
+    ZERO(sx->addr);
+    ZERO(sx->peer);
     sx->fasync = false;
     sx->fok = true;
     sx->fclosed = false;
@@ -269,21 +271,32 @@ static inline int kcpud(void *args) {
 }
 
 
-extern struct xsock_protocol inproc_xsock_protocol;
-extern struct xsock_protocol ipc_xsock_protocol;
-extern struct xsock_protocol tcp_xsock_protocol;
-extern struct xsock_protocol ipc_and_inp_xsock_protocol;
-extern struct xsock_protocol net_and_inp_xsock_protocol;
-extern struct xsock_protocol ipc_and_net_xsock_protocol;
-extern struct xsock_protocol ipc_inp_net_xsock_protocol;
+extern struct xsock_protocol xinproc_listener_protocol;
+extern struct xsock_protocol xinproc_connector_protocol;
+extern struct xsock_protocol xipc_listener_protocol;
+extern struct xsock_protocol xipc_connector_protocol;
+extern struct xsock_protocol xtcp_listener_protocol;
+extern struct xsock_protocol xtcp_connector_protocol;
 
 
-void global_xinit() {
+struct xsock_protocol *l4proto_lookup(int pf, int type) {
+    struct xsock_protocol *l4proto, *nx;
+
+    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
+	if (pf == l4proto->pf && l4proto->type == type)
+	    return l4proto;
+    }
+    return 0;
+}
+
+
+void xmodule_init() {
     waitgroup_t wg;
     int xd;
     int cpu_no;
     int i;
-
+    struct list_head *protocol_head = &xgb.xsock_protocol_head;
+    
     waitgroup_init(&wg);
     xgb.exiting = false;
     mutex_init(&xgb.lock);
@@ -304,17 +317,16 @@ void global_xinit() {
     waitgroup_destroy(&wg);
     
     /* The priority of xsock_protocol: inproc > ipc > tcp */
-    INIT_LIST_HEAD(&xgb.xsock_protocol_head);
-    list_add_tail(&inproc_xsock_protocol.link, &xgb.xsock_protocol_head);
-    list_add_tail(&ipc_xsock_protocol.link, &xgb.xsock_protocol_head);
-    list_add_tail(&tcp_xsock_protocol.link, &xgb.xsock_protocol_head);
-    //list_add_tail(&ipc_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
-    //list_add_tail(&net_and_inp_xsock_protocol.link, &xgb.xsock_protocol_head);
-    //list_add_tail(&ipc_and_net_xsock_protocol.link, &xgb.xsock_protocol_head);
-    //list_add_tail(&ipc_inp_net_xsock_protocol.link, &xgb.xsock_protocol_head);
+    INIT_LIST_HEAD(protocol_head);
+    list_add_tail(&xinproc_listener_protocol.link, protocol_head);
+    list_add_tail(&xinproc_connector_protocol.link, protocol_head);
+    list_add_tail(&xipc_listener_protocol.link, protocol_head);
+    list_add_tail(&xipc_connector_protocol.link, protocol_head);
+    list_add_tail(&xtcp_listener_protocol.link, protocol_head);
+    list_add_tail(&xtcp_connector_protocol.link, protocol_head);
 }
 
-void global_xexit() {
+void xmodule_exit() {
     xgb.exiting = true;
     taskpool_stop(&xgb.tpool);
     taskpool_destroy(&xgb.tpool);
@@ -386,43 +398,41 @@ int xaccept(int xd) {
 
 
 int xlisten(int pf, const char *addr) {
-    struct xsock *new = xsock_alloc();
-    struct xsock_protocol *l4proto, *nx;
+    struct xsock *new;
+    struct xsock_protocol *l4proto = l4proto_lookup(pf, XLISTENER);
 
-    new->ty = XLISTENER;
-    new->pf = pf;
-    ZERO(new->addr);
-    strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
-	if (pf != l4proto->pf)
-	    continue;
-	new->l4proto = l4proto;
-	if (l4proto->init(new->xd) == 0)
-	    return new->xd;
+    if (!l4proto) {
+	errno = EPROTO;
+	return -1;
     }
-    xsock_free(new);
-    return -1;
+    new = xsock_alloc();
+    new->pf = pf;
+    new->l4proto = l4proto;
+    strncpy(new->addr, addr, TP_SOCKADDRLEN);
+    if (l4proto->init(new->xd) < 0) {
+	xsock_free(new);
+	return -1;
+    }
+    return new->xd;
 }
 
 int xconnect(int pf, const char *peer) {
-    struct xsock *new = xsock_alloc();
-    struct xsock_protocol *l4proto, *nx;
+    struct xsock *new;
+    struct xsock_protocol *l4proto = l4proto_lookup(pf, XCONNECTOR);
 
-    new->ty = XCONNECTOR;
-    new->pf = pf;
-
-    ZERO(new->peer);
-    strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
-	if (pf != l4proto->pf)
-	    continue;
-	new->l4proto = l4proto;
-	if (l4proto->init(new->xd) == 0) {
-	    return new->xd;
-	}
+    if (!l4proto) {
+	errno = EPROTO;
+	return -1;
     }
-    xsock_free(new);
-    return -1;
+    new = xsock_alloc();
+    new->pf = pf;
+    new->l4proto = l4proto;
+    strncpy(new->peer, peer, TP_SOCKADDRLEN);
+    if (l4proto->init(new->xd) < 0) {
+	xsock_free(new);
+	return -1;
+    }
+    return new->xd;
 }
 
 int xsetopt(int xd, int opt, void *on, int size) {
