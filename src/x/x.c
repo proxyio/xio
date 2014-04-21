@@ -196,14 +196,18 @@ struct xcpu *xcpuget(int cpu_no) {
 static void xshutdown(struct xsock *sx) {
     struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct xtask *ts = &sx->shutdown;    
-    
-    spin_lock(&cpu->lock);
+
+    mutex_lock(&cpu->lock);
+    while (efd_signal(&cpu->efd) < 0) {
+	/* Pipe is full and another thread is unsignaling. we release */
+	mutex_unlock(&cpu->lock);
+	mutex_lock(&cpu->lock);
+    }
     if (!sx->fclosed && !attached(&ts->link)) {
 	sx->fclosed = true;
 	list_add_tail(&ts->link, &cpu->shutdown_socks);
     }
-    efd_signal(&cpu->efd);
-    spin_unlock(&cpu->lock);
+    mutex_unlock(&cpu->lock);
 }
 
 static int xshutdown_task_f(struct xtask *ts) {
@@ -216,13 +220,13 @@ static int xshutdown_task_f(struct xtask *ts) {
 
 static int __shutdown_socks_task_hndl(struct xcpu *cpu) {
     struct xtask *ts, *nx_ts;
-    struct list_head st_head;
+    struct list_head st_head = {};
 
     INIT_LIST_HEAD(&st_head);
-    spin_lock(&cpu->lock);
+    mutex_lock(&cpu->lock);
     efd_unsignal(&cpu->efd);
     list_splice(&cpu->shutdown_socks, &st_head);
-    spin_unlock(&cpu->lock);
+    mutex_unlock(&cpu->lock);
 
     xtask_walk_safe(ts, nx_ts, &st_head) {
 	list_del_init(&ts->link);
@@ -241,7 +245,7 @@ static inline int kcpud(void *args) {
     int cpu_no = xcpu_alloc();
     struct xcpu *cpu = xcpuget(cpu_no);
 
-    spin_init(&cpu->lock);
+    mutex_init(&cpu->lock);
     INIT_LIST_HEAD(&cpu->shutdown_socks);
 
     /* Init eventloop and wakeup parent */
@@ -265,13 +269,13 @@ static inline int kcpud(void *args) {
     /* Release the poll descriptor when kcpud exit. */
     xcpu_free(cpu_no);
     eloop_destroy(&cpu->el);
-    spin_destroy(&cpu->lock);
+    mutex_destroy(&cpu->lock);
     return rc;
 }
 
 
-extern struct xsock_protocol xinproc_listener_protocol;
-extern struct xsock_protocol xinproc_connector_protocol;
+extern struct xsock_protocol xinp_listener_protocol;
+extern struct xsock_protocol xinp_connector_protocol;
 extern struct xsock_protocol xipc_listener_protocol;
 extern struct xsock_protocol xipc_connector_protocol;
 extern struct xsock_protocol xtcp_listener_protocol;
@@ -317,8 +321,8 @@ void xmodule_init() {
     
     /* The priority of xsock_protocol: inproc > ipc > tcp */
     INIT_LIST_HEAD(protocol_head);
-    list_add_tail(&xinproc_listener_protocol.link, protocol_head);
-    list_add_tail(&xinproc_connector_protocol.link, protocol_head);
+    list_add_tail(&xinp_listener_protocol.link, protocol_head);
+    list_add_tail(&xinp_connector_protocol.link, protocol_head);
     list_add_tail(&xipc_listener_protocol.link, protocol_head);
     list_add_tail(&xipc_connector_protocol.link, protocol_head);
     list_add_tail(&xtcp_listener_protocol.link, protocol_head);
@@ -336,15 +340,19 @@ void xclose(int xd) {
     struct xsock *sx = xget(xd);
     struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
-    
+    struct list_head xpoll_head = {};
+
+    INIT_LIST_HEAD(&xpoll_head);
     mutex_lock(&sx->lock);
-    xsock_walk_ent(ent, nx, &sx->xpoll_head) {
+    list_splice(&sx->xpoll_head, &xpoll_head);
+    mutex_unlock(&sx->lock);
+
+    xsock_walk_ent(ent, nx, &xpoll_head) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
 	xpoll_ctl(po, XPOLL_DEL, &ent->event);
 	__detach_from_xsock(ent);
 	xent_put(ent);
     }
-    mutex_unlock(&sx->lock);
 
     /* Let backend thread do the last destroy() */
     xshutdown(sx);

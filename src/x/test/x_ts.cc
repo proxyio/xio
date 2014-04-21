@@ -51,13 +51,16 @@ static void xserver(int pf) {
     thread_start(&cli_thread, xclient_thread, &pf);
 
     BUG_ON((sfd = xaccept(afd)) < 0);
+    DEBUG_OFF("xserver accept %d", sfd);
     xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
     xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
+	DEBUG_OFF("%d recv", sfd);
 	BUG_ON(0 != xrecv(sfd, &payload));
 	BUG_ON(0 != xsend(sfd, payload));
     }
     thread_stop(&cli_thread);
+    DEBUG_OFF("%s", "xclient thread return");
     xclose(afd);
 }
 
@@ -100,6 +103,7 @@ static void xserver2(int pf) {
     thread_start(&cli_thread, xclient_thread2, &pf);
     for (i = 0; i < cnt; i++) {
 	BUG_ON((sfd[i] = xaccept(afd)) < 0);
+	DEBUG_OFF("%d", sfd[i]);
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -109,6 +113,7 @@ static void xserver2(int pf) {
     }
     mycnt = rand() % (cnt);
     for (i = 0; i < mycnt; i++) {
+	DEBUG_OFF("%d", sfd[i]);
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -120,7 +125,6 @@ static void xserver2(int pf) {
     xpoll_close(po);
     for (i = 0; i < cnt; i++)
 	xclose(sfd[i]);
-
     thread_stop(&cli_thread);
     spin_destroy(&lock);
     xclose(afd);

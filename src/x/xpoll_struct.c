@@ -30,9 +30,9 @@ int xent_get(struct xpoll_entry *ent) {
     spin_lock(&ent->lock);
     ref = ent->ref++;
     /* open for debuging
-       if (ent->i_idx < sizeof(ent->incr_tid))
-       ent->incr_tid[ent->i_idx++] = gettid();
-    */
+     * if (ent->i_idx < sizeof(ent->incr_tid))
+     * ent->incr_tid[ent->i_idx++] = gettid();
+     */
     spin_unlock(&ent->lock);
     return ref;
 }
@@ -44,9 +44,9 @@ int xent_put(struct xpoll_entry *ent) {
     ref = ent->ref--;
     BUG_ON(ent->ref < 0);
     /* open for debuging
-       if (ent->d_idx < sizeof(ent->desc_tid))
-       ent->desc_tid[ent->d_idx++] = gettid();
-    */
+     * if (ent->d_idx < sizeof(ent->desc_tid))
+     * ent->desc_tid[ent->d_idx++] = gettid();
+     */
     spin_unlock(&ent->lock);
     if (ref == 1) {
 	BUG_ON(attached(&ent->lru_link));
@@ -70,7 +70,7 @@ struct xpoll_t *xpoll_new() {
 }
 
 static void xpoll_destroy(struct xpoll_t *po) {
-    DEBUG_ON();
+    DEBUG_OFF();
     mutex_destroy(&po->lock);
     mem_free(po, sizeof(struct xpoll_t));
 }

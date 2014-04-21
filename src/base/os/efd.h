@@ -10,7 +10,7 @@ int efd_init(struct efd *self);
 
 void efd_destroy(struct efd *self);
 
-void efd_signal(struct efd *self);
+int efd_signal(struct efd *self);
 
 void efd_unsignal(struct efd *self);
 

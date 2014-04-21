@@ -17,27 +17,36 @@ int efd_init(struct efd *self) {
 
     flags = fcntl(self->r, F_GETFL, 0);
     if (flags == -1)
-        flags = 0;
-    rc = fcntl(self->r, F_SETFL, flags | O_NONBLOCK);
+	flags = 0;
+    if ((rc = fcntl(self->r, F_SETFL, flags | O_NONBLOCK)) < 0) {
+	efd_destroy(self);
+	return -1;
+    }
+
+    flags = fcntl(self->w, F_GETFL, 0);
+    if (flags == -1)
+	flags = 0;
+    if ((rc = fcntl(self->w, F_SETFL, flags | O_NONBLOCK)) < 0) {
+	efd_destroy(self);
+	return -1;
+    }
     return 0;
 }
 
-void efd_destroy(struct efd *self)
-{
+void efd_destroy(struct efd *self) {
     close(self->r);
     close(self->w);
 }
 
-void efd_signal(struct efd *self)
-{
-    ssize_t nbytes;
+int efd_signal(struct efd *self) {
+    int rc;
     char c = 94;
 
-    nbytes = write(self->w, &c, 1);
+    rc = write(self->w, &c, 1);
+    return rc;
 }
 
-void efd_unsignal(struct efd *self)
-{
+void efd_unsignal(struct efd *self) {
     ssize_t nbytes;
     u8 buf[128];
 

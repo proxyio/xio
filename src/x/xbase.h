@@ -158,7 +158,9 @@ void xpoll_notify(struct xsock *cn, u32 protocol_spec);
 
 
 struct xcpu {
-    spin_t lock;
+    //spin_t lock; // for release mode
+
+    mutex_t lock; // for debug mode
 
     /* Backend eventloop for cpu_worker. */
     eloop_t el;

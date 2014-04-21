@@ -5,7 +5,7 @@
 #include "runner/taskpool.h"
 #include "xbase.h"
 
-static int xinproc_put(struct xsock *sx) {
+static int xinp_put(struct xsock *sx) {
     int old;
     mutex_lock(&sx->lock);
     old = sx->proc.ref--;
@@ -94,10 +94,10 @@ static void xinp_connector_destroy(int xd) {
     struct xsock *peer = sx->proc.peer_xsock;
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
-    if (xinproc_put(peer) == 1) {
+    if (xinp_put(peer) == 1) {
 	xsock_free(peer);
     }
-    if (xinproc_put(sx) == 1) {
+    if (xinp_put(sx) == 1) {
 	xsock_free(sx);
     }
 }
@@ -113,7 +113,7 @@ static void rcv_head_notify(int xd, uint32_t events) {
 	rcv_head_pop(xd);
 }
 
-struct xsock_protocol xinproc_connector_protocol = {
+struct xsock_protocol xinp_connector_protocol = {
     .type = XCONNECTOR,
     .pf = PF_INPROC,
     .init = xinp_connector_init,
