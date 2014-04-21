@@ -80,6 +80,7 @@ static int xinp_connector_init(int pf, const char *sock) {
 	errno = EAGAIN;
 	return -1;
     }
+
     ZERO(sx->proc);
     ZERO(req_sx->proc);
     req_sx->pf = sx->pf = pf;

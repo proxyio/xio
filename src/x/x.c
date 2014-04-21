@@ -280,6 +280,7 @@ extern struct xsock_protocol xipc_listener_protocol;
 extern struct xsock_protocol xipc_connector_protocol;
 extern struct xsock_protocol xtcp_listener_protocol;
 extern struct xsock_protocol xtcp_connector_protocol;
+extern struct xsock_protocol xppp_listener_protocol;
 
 
 struct xsock_protocol *l4proto_lookup(int pf, int type) {
@@ -327,6 +328,7 @@ void xmodule_init() {
     list_add_tail(&xipc_connector_protocol.link, protocol_head);
     list_add_tail(&xtcp_listener_protocol.link, protocol_head);
     list_add_tail(&xtcp_connector_protocol.link, protocol_head);
+    list_add_tail(&xppp_listener_protocol.link, protocol_head);
 }
 
 void xmodule_exit() {
@@ -361,6 +363,10 @@ void xclose(int xd) {
 
 int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
     int rc = 0;
+
+    while (sx->parent >= 0)
+	sx = xget(sx->parent);
+
     mutex_lock(&sx->lock);
     if (list_empty(&sx->request_socks) && sx->accept_waiters > 0) {
 	condition_broadcast(&sx->accept_cond);

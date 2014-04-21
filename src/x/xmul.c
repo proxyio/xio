@@ -2,6 +2,8 @@
 
 static void xmul_listener_destroy(int xd);
 
+struct xsock_protocol xppp_listener_protocol;
+
 static int xmul_listener_init(int pf, const char *sock) {
     struct xsock *sx = 0;
     int sub_xd;
@@ -21,6 +23,7 @@ static int xmul_listener_init(int pf, const char *sock) {
     }
     DEBUG_OFF("%s", xprotocol_str[pf]);
     sx->pf = pf;
+    sx->l4proto = &xppp_listener_protocol;
     strncpy(sx->addr, sock, TP_SOCKADDRLEN);
     INIT_LIST_HEAD(&sx->mul.listen_head);
 
@@ -28,11 +31,13 @@ static int xmul_listener_init(int pf, const char *sock) {
 	if ((pf & l4proto->pf) != l4proto->pf || XLISTENER != l4proto->type)
 	    continue;
 	if ((sub_xd = xlisten(pf & l4proto->pf, sock)) < 0) {
+	    DEBUG_ON("sub xlisten with errno %d", errno);
 	BAD:
 	    xmul_listener_destroy(sx->xd);
 	    return -1;
 	}
 	sub_sx = xget(sub_xd);
+	sub_sx->parent = sx->xd;
 	ev.xd = sub_xd;
 	ev.self = sub_sx;
 	ev.care = XPOLLIN|XPOLLERR;
@@ -59,11 +64,11 @@ static void xmul_listener_destroy(int xd) {
 	xpoll_close(sx->mul.poll);
 }
 
-struct xsock_protocol ipc_inp_net_xsock_protocol = {
+struct xsock_protocol xppp_listener_protocol = {
     .type = XLISTENER,
     .pf = PF_NET|PF_INPROC|PF_IPC,
     .init = xmul_listener_init,
     .destroy = xmul_listener_destroy,
-    .snd_notify = null,
     .rcv_notify = null,
+    .snd_notify = null,
 };
