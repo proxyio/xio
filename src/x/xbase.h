@@ -51,7 +51,7 @@ struct xtask {
 struct xsock_protocol {
     int type;
     int pf;
-    int (*init) (int xd);
+    int (*init) (int pf, const char *sock);
     void (*destroy) (int xd);
     void (*snd_notify) (int xd, u32 events);
     void (*rcv_notify) (int xd, u32 events);
@@ -110,12 +110,10 @@ struct xsock {
 	    int ref;
 
 	    /* For inproc-listener */
-	    struct list_head at_queue;
 	    struct ssmap_node rb_link;
 
 	    /* For inproc-connector and inproc-accepter (new connection) */
-	    struct list_head at_link;
-	    struct xsock *peer_xsock;
+	    struct xsock *xsock_peer;
 	} proc;
 
 	/* Multilingul Environment */

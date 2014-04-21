@@ -50,7 +50,7 @@ static inline ssmap_node_t *ssmap_max(ssmap_t *map) {
     return _max;
 }
 
-static inline ssmap_node_t *ssmap_find(ssmap_t *map, char *key, int size) {
+static inline ssmap_node_t *ssmap_find(ssmap_t *map, const char *key, int size) {
     ssmap_node_t *cur;
     struct rb_root *root = &map->root;
     struct rb_node **np = &root->rb_node, *parent = NULL;

@@ -7,7 +7,8 @@ static int xmul_accepter_init(int xd) {
 
 static int xmul_listener_destroy(int xd);
 
-static int xmul_listener_init(int xd) {
+static int xmul_listener_init(int pf, const char *sock) {
+    /*
     struct xsock *sx = xget(xd);
     int pf = sx->pf;
     int sub_xd;
@@ -37,6 +38,7 @@ static int xmul_listener_init(int xd) {
     }
     if (pf)
 	goto BAD;
+    */
     return 0;
 }
 

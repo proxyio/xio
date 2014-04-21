@@ -14,7 +14,7 @@ static int xinp_put(struct xsock *sx) {
     return old;
 }
 
-extern struct xsock *find_listener(char *addr);
+extern struct xsock *find_listener(const char *addr);
 
 
 /******************************************************************************
@@ -25,7 +25,7 @@ static int snd_head_push(int xd) {
     int rc = 0, can = false;
     struct xmsg *msg;
     struct xsock *sx = xget(xd);
-    struct xsock *peer = sx->proc.peer_xsock;
+    struct xsock *peer = sx->proc.xsock_peer;
 
     // Unlock myself first because i hold the lock
     mutex_unlock(&sx->lock);
@@ -63,35 +63,48 @@ static int rcv_head_pop(int xd) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_connector_init(int xd) {
-    struct xsock *sx = xget(xd);
+static int xinp_connector_init(int pf, const char *sock) {
+    struct xsock *sx = xsock_alloc();
     struct xsock *req_sx = xsock_alloc();
-    struct xsock *listener = find_listener(sx->peer);
+    struct xsock *listener = find_listener(sock);
 
-    if (!req_sx) {
-	errno = EAGAIN;
-	return -1;
-    }
     if (!listener) {
 	errno = ENOENT;	
 	return -1;
     }
+    if (!req_sx || !sx) {
+	if (sx)
+	    xsock_free(sx);
+	if (req_sx)
+	    xsock_free(req_sx);
+	errno = EAGAIN;
+	return -1;
+    }
+    ZERO(sx->proc);
     ZERO(req_sx->proc);
-    req_sx->pf = sx->pf;
-    req_sx->l4proto = sx->l4proto;
-    
+    req_sx->pf = sx->pf = pf;
+    req_sx->l4proto = sx->l4proto = l4proto_lookup(pf, XCONNECTOR);
+    strncpy(sx->peer, sock, TP_SOCKADDRLEN);
+    strncpy(req_sx->addr, sock, TP_SOCKADDRLEN);
+
     req_sx->proc.ref = sx->proc.ref = 2;
-    sx->proc.peer_xsock = req_sx;
-    req_sx->proc.peer_xsock = sx;
+    sx->proc.xsock_peer = req_sx;
+    req_sx->proc.xsock_peer = sx;
     req_sx->pf = sx->pf;
     req_sx->l4proto = sx->l4proto;
-    push_request_sock(listener, req_sx);
-    return 0;
+
+    if (push_request_sock(listener, req_sx) < 0) {
+	errno = ECONNREFUSED;
+	xsock_free(sx);
+	xsock_free(req_sx);
+	return -1;
+    }
+    return sx->xd;
 }
 
 static void xinp_connector_destroy(int xd) {
     struct xsock *sx = xget(xd);    
-    struct xsock *peer = sx->proc.peer_xsock;
+    struct xsock *peer = sx->proc.xsock_peer;
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
     if (xinp_put(peer) == 1) {

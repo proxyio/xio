@@ -94,21 +94,25 @@ static void rcv_head_nonfull(int xd) {
 
 int xio_connector_handler(eloop_t *el, ev_t *et);
 
-static int xio_connector_init(int xd) {
-    int rc = 0;
+static int xio_connector_init(int pf, const char *sock) {
     int s;
     int on = 1;
-    struct xsock *sx = xget(xd);
-    struct xcpu *cpu = xcpuget(sx->cpu_no);
-    struct transport *tp = transport_lookup(sx->pf);
+    struct xsock *sx = 0;
+    struct xcpu *cpu = 0;
+    struct transport *tp = transport_lookup(pf);
 
     BUG_ON(!tp);
+    if ((s = tp->connect(sock)) < 0 || !(sx = xsock_alloc()))
+	return -1;
+
+    sx->pf = pf;
+    sx->l4proto = l4proto_lookup(pf, XCONNECTOR);
+    strncpy(sx->peer, sock, TP_SOCKADDRLEN);
+    
     ZERO(sx->io);
     bio_init(&sx->io.in);
     bio_init(&sx->io.out);
 
-    if ((s = tp->connect(sx->peer)) < 0)
-	return s;
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
     sx->io.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     sx->io.et.fd = s;
@@ -117,8 +121,10 @@ static int xio_connector_init(int xd) {
     sx->io.fd = s;
     sx->io.tp = tp;
     sx->io.ops = default_xops;
+
+    cpu = xcpuget(sx->cpu_no);
     BUG_ON(eloop_add(&cpu->el, &sx->io.et) != 0);
-    return rc;
+    return sx->xd;
 }
 
 static int xio_connector_snd(struct xsock *sx);

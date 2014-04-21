@@ -404,42 +404,28 @@ int xaccept(int xd) {
 }
 
 
-int xlisten(int pf, const char *addr) {
-    struct xsock *new;
+int xlisten(int pf, const char *sock) {
+    int xd;
     struct xsock_protocol *l4proto = l4proto_lookup(pf, XLISTENER);
 
     if (!l4proto) {
 	errno = EPROTO;
 	return -1;
     }
-    new = xsock_alloc();
-    new->pf = pf;
-    new->l4proto = l4proto;
-    strncpy(new->addr, addr, TP_SOCKADDRLEN);
-    if (l4proto->init(new->xd) < 0) {
-	xsock_free(new);
-	return -1;
-    }
-    return new->xd;
+    xd = l4proto->init(pf, sock);
+    return xd;
 }
 
 int xconnect(int pf, const char *peer) {
-    struct xsock *new;
+    int xd;
     struct xsock_protocol *l4proto = l4proto_lookup(pf, XCONNECTOR);
 
     if (!l4proto) {
 	errno = EPROTO;
 	return -1;
     }
-    new = xsock_alloc();
-    new->pf = pf;
-    new->l4proto = l4proto;
-    strncpy(new->peer, peer, TP_SOCKADDRLEN);
-    if (l4proto->init(new->xd) < 0) {
-	xsock_free(new);
-	return -1;
-    }
-    return new->xd;
+    xd = l4proto->init(pf, peer);
+    return xd;
 }
 
 int xsetopt(int xd, int opt, void *on, int size) {

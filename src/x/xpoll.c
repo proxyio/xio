@@ -66,7 +66,9 @@ static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
 
     /* Set up events callback */
     spin_lock(&ent->lock);
-    ent->event = *event;
+    ent->event.xd = event->xd;
+    ent->event.care = event->care;
+    ent->event.self = event->self;
     ent->notify = &po->notify;
     spin_unlock(&ent->lock);
 
