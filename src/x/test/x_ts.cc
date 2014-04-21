@@ -57,6 +57,7 @@ static void xserver(int pf) {
 	BUG_ON(0 != xrecv(sfd, &payload));
 	BUG_ON(0 != xsend(sfd, payload));
     }
+    thread_stop(&cli_thread);
     xclose(afd);
 }
 
@@ -129,11 +130,11 @@ static void xserver2(int pf) {
 TEST(xsock, vf) {
     xserver(PF_NET);
     xserver(PF_IPC);
-    //xserver(PF_INPROC);
-    
+    xserver(PF_INPROC);
+
     xserver2(PF_NET);
     xserver2(PF_IPC);
-    //xserver2(PF_INPROC);
+    xserver2(PF_INPROC);
 }
 
 
@@ -190,6 +191,6 @@ static void inproc_server_thread2() {
 }
 
 TEST(xsock, inproc) {
-    //inproc_server_thread2();
+    inproc_server_thread2();
 }
 

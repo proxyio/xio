@@ -70,6 +70,7 @@ struct xpoll_t *xpoll_new() {
 }
 
 static void xpoll_destroy(struct xpoll_t *po) {
+    DEBUG_ON();
     mutex_destroy(&po->lock);
     mem_free(po, sizeof(struct xpoll_t));
 }

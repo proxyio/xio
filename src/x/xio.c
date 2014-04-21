@@ -40,7 +40,7 @@ static void snd_head_empty(int xd) {
 
     // Disable POLLOUT event when snd_head is empty
     if (sx->io.et.events & EPOLLOUT) {
-	DEBUG_ON("%d disable EPOLLOUT", xd);
+	DEBUG_OFF("%d disable EPOLLOUT", xd);
 	sx->io.et.events &= ~EPOLLOUT;
 	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }
@@ -52,7 +52,7 @@ static void snd_head_nonempty(int xd) {
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(sx->io.et.events & EPOLLOUT)) {
-	DEBUG_ON("%d enable EPOLLOUT", xd);
+	DEBUG_OFF("%d enable EPOLLOUT", xd);
 	sx->io.et.events |= EPOLLOUT;
 	BUG_ON(eloop_mod(&cpu->el, &sx->io.et) != 0);
     }

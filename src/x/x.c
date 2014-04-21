@@ -128,7 +128,6 @@ static void xsock_exit(int xd) {
 
     mutex_destroy(&sx->lock);
     condition_destroy(&sx->cond);
-    sx->ty = -1;
     sx->pf = -1;
     sx->fasync = 0;
     sx->fok = 0;

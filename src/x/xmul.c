@@ -1,23 +1,7 @@
 #include "xbase.h"
 
 static int xmul_accepter_init(int xd) {
-    int rc;
-    struct xsock *new = xget(xd), *sub_sx;
-    struct xsock *parent = xget(new->parent);
-    struct xpoll_event ev;
-    u32 to = parent->fasync ? 0 : ~0;
-    
-    if ((rc = xpoll_wait(parent->mul.poll, &ev, 1, to)) <= 0)
-	return -1;
-    BUG_ON(rc != 1);
-    sub_sx = (struct xsock *)ev.self;
-    DEBUG_OFF("xsock %d %s ready for accept %s", sub_sx->xd,
-	      xprotocol_str[sub_sx->pf], xpoll_str[ev.happened]);
-    new->pf = sub_sx->pf;
-    new->parent = sub_sx->xd;
-    new->l4proto = sub_sx->l4proto;
-    rc = new->l4proto->init(xd);
-    xpoll_notify(sub_sx, 0);
+    int rc = 0;
     return rc;
 }
 
@@ -71,61 +55,10 @@ static int xmul_listener_destroy(int xd) {
     return 0;
 }
 
-
-static int xmul_init(int xd) {
-    struct xsock *sx = xget(xd);
-
-    INIT_LIST_HEAD(&sx->mul.listen_head);
-    sx->mul.poll = 0;
-
-    switch (sx->ty) {
-    case XLISTENER:
-	return xmul_listener_init(xd);
-    }
-    errno = EINVAL;
-    return -1;
-}
-
-static void xmul_destroy(int xd) {
-    struct xsock *sx = xget(xd);
-
-    switch (sx->ty) {
-    case XLISTENER:
-	xmul_listener_destroy(xd);
-	break;
-    default:
-	BUG_ON(1);
-    }
-}
-
-struct xsock_protocol ipc_and_inp_xsock_protocol = {
-    .pf = PF_INPROC|PF_IPC,
-    .init = xmul_init,
-    .destroy = xmul_destroy,
-    .snd_notify = null,
-    .rcv_notify = null,
-};
-
-struct xsock_protocol ipc_and_net_xsock_protocol = {
-    .pf = PF_NET|PF_IPC,
-    .init = xmul_init,
-    .destroy = xmul_destroy,
-    .snd_notify = null,
-    .rcv_notify = null,
-};
-
-struct xsock_protocol net_and_inp_xsock_protocol = {
-    .pf = PF_NET|PF_INPROC,
-    .init = xmul_init,
-    .destroy = xmul_destroy,
-    .snd_notify = null,
-    .rcv_notify = null,
-};
-
 struct xsock_protocol ipc_inp_net_xsock_protocol = {
     .pf = PF_NET|PF_INPROC|PF_IPC,
-    .init = xmul_init,
-    .destroy = xmul_destroy,
+    .init = null,
+    .destroy = null,
     .snd_notify = null,
     .rcv_notify = null,
 };
