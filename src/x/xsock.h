@@ -13,6 +13,9 @@ char *xallocmsg(uint32_t size);
 void xfreemsg(char *xbuf);
 uint32_t xmsglen(char *xbuf);
 
+#define XLISTENER   1
+#define XCONNECTOR  2
+
 int xlisten(int pf, const char *sock);
 int xconnect(int pf, const char *peer);
 int xaccept(int xd);

@@ -23,10 +23,6 @@
 /* Max number of cpu core */
 #define XSOCK_MAX_CPUS 32
 
-/* Define xsock type for listner/connector */
-#define XLISTENER 1
-#define XCONNECTOR 2
-
 /* XSock MQ events */
 #define XMQ_PUSH         0x01
 #define XMQ_POP          0x02
@@ -83,10 +79,10 @@ struct xsock {
     struct xsock_protocol *l4proto;
     struct list_head xpoll_head;
     struct xtask shutdown;
-    struct list_head link;
     condition_t accept_cond;
     int accept_waiters;
     struct list_head request_socks;
+    struct list_head rqs_link;
 
     union {
 	/* Only for transport xsock */
@@ -114,18 +110,8 @@ struct xsock {
 	    /* For inproc-connector and inproc-accepter (new connection) */
 	    struct xsock *xsock_peer;
 	} proc;
-
-	/* Multilingul Environment */
-	struct {
-	    struct list_head listen_head;
-	    struct xpoll_t *poll;
-	} mul;
     };
 };
-
-#define xsock_walk_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head,		\
-			     struct xsock, link)
 
 /* We guarantee that we can push one massage at least. */
 static inline int can_send(struct xsock *cn) {

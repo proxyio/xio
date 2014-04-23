@@ -115,7 +115,6 @@ static void xsock_init(int xd) {
     INIT_LIST_HEAD(&sx->xpoll_head);
     sx->shutdown.f = xshutdown_task_f;
     INIT_LIST_HEAD(&sx->shutdown.link);
-    INIT_LIST_HEAD(&sx->link);
     condition_init(&sx->accept_cond);
     sx->accept_waiters = 0;
     INIT_LIST_HEAD(&sx->request_socks);
@@ -147,7 +146,6 @@ static void xsock_exit(int xd) {
     xmsg_walk_safe(pos, nx, &head) {
 	xfreemsg(pos->vec.chunk);
     }
-    BUG_ON(attached(&sx->link));
 
     /* It's possible that user call xclose() and xpoll_add()
      * at the same time. and attach_to_xsock() happen after xclose().
@@ -368,7 +366,7 @@ int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
     if (list_empty(&sx->request_socks) && sx->accept_waiters > 0) {
 	condition_broadcast(&sx->accept_cond);
     }
-    list_add_tail(&req_sx->link, &sx->request_socks);
+    list_add_tail(&req_sx->rqs_link, &sx->request_socks);
     __xpoll_notify(sx, XPOLLIN);
     mutex_unlock(&sx->lock);
     return rc;
@@ -384,8 +382,8 @@ struct xsock *pop_request_sock(struct xsock *sx) {
 	sx->accept_waiters--;
     }
     if (!list_empty(&sx->request_socks)) {
-	req_sx = list_first(&sx->request_socks, struct xsock, link);
-	list_del_init(&req_sx->link);
+	req_sx = list_first(&sx->request_socks, struct xsock, rqs_link);
+	list_del_init(&req_sx->rqs_link);
     }
     mutex_unlock(&sx->lock);
     return req_sx;
