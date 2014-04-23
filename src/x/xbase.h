@@ -59,13 +59,19 @@ extern const char *xprotocol_str[];
 struct xsock {
     mutex_t lock;
     condition_t cond;
+    int type;
     int pf;
+
     char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];
     u64 fasync:1;
     u64 fok:1;
     u64 fclosed:1;
+
     int parent;
+    struct list_head sub_socks;
+    struct list_head sib_link;
+
     int xd;
     int cpu_no;
     int rcv_waiters;

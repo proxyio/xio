@@ -29,8 +29,6 @@ const char *xprotocol_str[] = {
 };
 
 
-
-
 void __xpoll_notify(struct xsock *sx, u32 l4proto_spec);
 void xpoll_notify(struct xsock *sx, u32 l4proto_spec);
 
@@ -96,12 +94,18 @@ static void xsock_init(int xd) {
 
     mutex_init(&sx->lock);
     condition_init(&sx->cond);
+    sx->type = 0;
+    sx->pf = 0;
     ZERO(sx->addr);
     ZERO(sx->peer);
     sx->fasync = false;
     sx->fok = true;
     sx->fclosed = false;
+
     sx->parent = -1;
+    INIT_LIST_HEAD(&sx->sub_socks);
+    INIT_LIST_HEAD(&sx->sib_link);
+    
     sx->xd = xd;
     sx->cpu_no = choose_backend_poll(xd);
     sx->rcv_waiters = 0;
@@ -127,10 +131,18 @@ static void xsock_exit(int xd) {
 
     mutex_destroy(&sx->lock);
     condition_destroy(&sx->cond);
+    sx->type = -1;
     sx->pf = -1;
+    ZERO(sx->addr);
+    ZERO(sx->peer);
     sx->fasync = 0;
     sx->fok = 0;
     sx->fclosed = 0;
+
+    sx->parent = -1;
+    BUG_ON(!list_empty(&sx->sub_socks));
+    BUG_ON(attached(&sx->sib_link));
+    
     sx->xd = -1;
     sx->cpu_no = -1;
     sx->rcv_waiters = -1;
