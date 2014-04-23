@@ -26,7 +26,6 @@ struct xsock *find_listener(const char *addr) {
 static int insert_listener(struct ssmap_node *node) {
     int rc = -1;
 
-    errno = EADDRINUSE;
     xglobal_lock();
     if (!ssmap_find(&xgb.inproc_listeners, node->key, node->keylen)) {
 	rc = 0;
@@ -48,28 +47,22 @@ static void remove_listener(struct ssmap_node *node) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_listener_bind(int pf, const char *sock) {
+static int xinp_listener_bind(int xd, const char *sock) {
     int rc;
-    struct xsock *sx = xsock_alloc();
     struct ssmap_node *node = 0;
+    struct xsock *sx = xget(xd);
 
-    if (!sx) {
-	errno = EAGAIN;
-	return -1;
-    }
     ZERO(sx->proc);
-    sx->pf = pf;
-    sx->l4proto = l4proto_lookup(pf, XLISTENER);
     strncpy(sx->addr, sock, TP_SOCKADDRLEN);
 
     node = &sx->proc.rb_link;
     node->key = sx->addr;
     node->keylen = strlen(sx->addr);
     if ((rc = insert_listener(node)) < 0) {
-	xsock_free(sx);
+	errno = EADDRINUSE;
 	return -1;
     }
-    return sx->xd;
+    return 0;
 }
 
 static void xinp_listener_close(int xd) {

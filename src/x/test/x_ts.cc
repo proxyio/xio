@@ -36,32 +36,28 @@ static void xclient(int pf) {
 }
 
 static int xclient_thread(void *arg) {
-    xclient(PF_NET);
-    xclient(PF_IPC);
-    xclient(PF_INPROC);
+    xclient(*(int *)arg);
     return 0;
 }
 
-static void xserver() {
-    int i, j;
+static void xserver(int pf) {
+    int i;
     int buf_sz = 0;
     int afd, sfd;
     thread_t cli_thread = {};
     char *payload;
 
-    BUG_ON((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18894")) < 0);
-    thread_start(&cli_thread, xclient_thread, 0);
+    BUG_ON((afd = xlisten(pf, "127.0.0.1:18894")) < 0);
+    thread_start(&cli_thread, xclient_thread, &pf);
 
-    for (i = 0; i < 3; i++) {
-	BUG_ON((sfd = xaccept(afd)) < 0);
-	DEBUG_OFF("xserver accept %d", sfd);
-	xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
-	xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
-	for (j = 0; j < cnt; j++) {
-	    DEBUG_OFF("%d recv", sfd);
-	    BUG_ON(0 != xrecv(sfd, &payload));
-	    BUG_ON(0 != xsend(sfd, payload));
-	}
+    BUG_ON((sfd = xaccept(afd)) < 0);
+    DEBUG_OFF("xserver accept %d", sfd);
+    xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
+    xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
+    for (i = 0; i < cnt; i++) {
+	DEBUG_OFF("%d recv", sfd);
+	BUG_ON(0 != xrecv(sfd, &payload));
+	BUG_ON(0 != xsend(sfd, payload));
     }
     
     thread_stop(&cli_thread);
@@ -88,48 +84,45 @@ static void xclient2(int pf) {
 }
 
 static int xclient_thread2(void *arg) {
-    xclient2(PF_NET);
-    xclient2(PF_IPC);
-    xclient2(PF_INPROC);
+    xclient2(*(int *)arg);
     return 0;
 }
 
-static void xserver2() {
-    int i, j, mycnt;
+static void xserver2(int pf) {
+    int i, mycnt;
     int afd, sfd[cnt];
     thread_t cli_thread = {};
     struct xpoll_event event[cnt];
 
     po = xpoll_create();
     DEBUG_OFF("%p", po);
-    BUG_ON((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18895")) < 0);
-    thread_start(&cli_thread, xclient_thread2, 0);
+    BUG_ON((afd = xlisten(pf, "127.0.0.1:18895")) < 0);
+    thread_start(&cli_thread, xclient_thread2, &pf);
     event[0].xd = afd;
     event[0].self = po;
     event[0].care = XPOLLERR;
     BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[0]) != 0);
 
-    for (j = 0; j < 3; j++) {
-	for (i = 0; i < cnt; i++) {
-	    BUG_ON((sfd[i] = xaccept(afd)) < 0);
-	    DEBUG_OFF("%d", sfd[i]);
-	    event[i].xd = sfd[i];
-	    event[i].self = po;
-	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	    BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[i]) != 0);
-	}
-	mycnt = rand() % (cnt);
-	for (i = 0; i < mycnt; i++) {
-	    DEBUG_OFF("%d", sfd[i]);
-	    event[i].xd = sfd[i];
-	    event[i].self = po;
-	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	    BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != 0);
-	    BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != -1);
-	}
-	for (i = 0; i < cnt; i++)
-	    xclose(sfd[i]);
+    for (i = 0; i < cnt; i++) {
+	BUG_ON((sfd[i] = xaccept(afd)) < 0);
+	DEBUG_OFF("%d", sfd[i]);
+	event[i].xd = sfd[i];
+	event[i].self = po;
+	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
+	BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[i]) != 0);
     }
+    mycnt = rand() % (cnt);
+    for (i = 0; i < mycnt; i++) {
+	DEBUG_OFF("%d", sfd[i]);
+	event[i].xd = sfd[i];
+	event[i].self = po;
+	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
+	BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != 0);
+	BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != -1);
+    }
+    for (i = 0; i < cnt; i++)
+	xclose(sfd[i]);
+
     xpoll_close(po);
     thread_stop(&cli_thread);
     xclose(afd);
@@ -137,9 +130,12 @@ static void xserver2() {
 
 static void xsock_test(int count) {
     while (count-- > 0) {
-	xserver();
-	usleep(10000);
-	xserver2();
+	xserver(PF_NET);
+	xserver(PF_IPC);
+	xserver(PF_INPROC);
+	xserver2(PF_NET);
+	xserver2(PF_IPC);
+	xserver2(PF_INPROC);
     }
 }
 

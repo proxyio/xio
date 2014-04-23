@@ -420,29 +420,29 @@ int xaccept(int xd) {
     return -1;
 }
 
+int xsocket(int pf, int type) {
+    struct xsock *sx = xsock_alloc();
 
-int xlisten(int pf, const char *sock) {
-    int xd;
-    struct xsock_protocol *l4proto = l4proto_lookup(pf, XLISTENER);
-
-    if (!l4proto) {
+    if (!sx) {
+	errno = EMFILE;
+	return -1;
+    }
+    if (!(sx->l4proto = l4proto_lookup(pf, type))) {
 	errno = EPROTO;
 	return -1;
     }
-    xd = l4proto->bind(pf, sock);
-    return xd;
+    sx->pf = pf;
+    sx->type = type;
+    return sx->xd;
 }
 
-int xconnect(int pf, const char *peer) {
-    int xd;
-    struct xsock_protocol *l4proto = l4proto_lookup(pf, XCONNECTOR);
+int xbind(int xd, const char *addr) {
+    int rc;
+    struct xsock *sx = xget(xd);
+    struct xsock_protocol *l4proto = sx->l4proto;
 
-    if (!l4proto) {
-	errno = EPROTO;
-	return -1;
-    }
-    xd = l4proto->bind(pf, peer);
-    return xd;
+    rc = l4proto->bind(xd, addr);
+    return rc;
 }
 
 int xsetopt(int xd, int opt, void *on, int size) {

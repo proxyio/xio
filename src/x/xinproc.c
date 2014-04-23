@@ -63,8 +63,8 @@ static int rcv_head_pop(int xd) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_connector_bind(int pf, const char *sock) {
-    struct xsock *sx = xsock_alloc();
+static int xinp_connector_bind(int xd, const char *sock) {
+    struct xsock *sx = xget(xd);
     struct xsock *req_sx = xsock_alloc();
     struct xsock *listener = find_listener(sock);
 
@@ -72,35 +72,30 @@ static int xinp_connector_bind(int pf, const char *sock) {
 	errno = ENOENT;	
 	return -1;
     }
-    if (!req_sx || !sx) {
-	if (sx)
-	    xsock_free(sx);
-	if (req_sx)
-	    xsock_free(req_sx);
-	errno = EAGAIN;
+    if (!req_sx) {
+	errno = EMFILE;
 	return -1;
     }
 
     ZERO(sx->proc);
     ZERO(req_sx->proc);
-    req_sx->pf = sx->pf = pf;
-    req_sx->l4proto = sx->l4proto = l4proto_lookup(pf, XCONNECTOR);
+
+    req_sx->pf = sx->pf;
+    req_sx->type = sx->type;
+    req_sx->l4proto = sx->l4proto;
     strncpy(sx->peer, sock, TP_SOCKADDRLEN);
     strncpy(req_sx->addr, sock, TP_SOCKADDRLEN);
 
     req_sx->proc.ref = sx->proc.ref = 2;
     sx->proc.xsock_peer = req_sx;
     req_sx->proc.xsock_peer = sx;
-    req_sx->pf = sx->pf;
-    req_sx->l4proto = sx->l4proto;
 
     if (push_request_sock(listener, req_sx) < 0) {
 	errno = ECONNREFUSED;
-	xsock_free(sx);
 	xsock_free(req_sx);
 	return -1;
     }
-    return sx->xd;
+    return 0;
 }
 
 static void xinp_connector_close(int xd) {

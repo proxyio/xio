@@ -47,7 +47,7 @@ struct xtask {
 struct xsock_protocol {
     int type;
     int pf;
-    int (*bind) (int pf, const char *sock);
+    int (*bind) (int xd, const char *sock);
     void (*close) (int xd);
     void (*snd_notify) (int xd, u32 events);
     void (*rcv_notify) (int xd, u32 events);

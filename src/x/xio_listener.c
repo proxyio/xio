@@ -35,32 +35,29 @@ static void request_socks_nonfull(int xd) {
 
 static int xio_listener_handler(eloop_t *el, ev_t *et);
 
-static int xio_listener_bind(int pf, const char *sock) {
+static int xio_listener_bind(int xd, const char *sock) {
     int s, on = 1;
-    struct xsock *sx = 0;
-    struct xcpu *cpu = 0;
-    struct transport *tp = transport_lookup(pf);
+    struct xsock *sx = xget(xd);
+    struct xcpu *cpu = xcpuget(sx->cpu_no);
+    struct transport *tp = transport_lookup(sx->pf);
 
     BUG_ON(!tp);
-    if ((s = tp->bind(sock)) < 0 || !(sx = xsock_alloc()))
+    if ((s = tp->bind(sock)) < 0)
 	return -1;
 
     ZERO(sx->io);
-    sx->pf = pf;
-    sx->l4proto = l4proto_lookup(pf, XLISTENER);
     strncpy(sx->addr, sock, TP_SOCKADDRLEN);
 
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
+    sx->io.fd = s;
+    sx->io.tp = tp;
     sx->io.et.events = EPOLLIN|EPOLLERR;
     sx->io.et.fd = s;
     sx->io.et.f = xio_listener_handler;
     sx->io.et.data = sx;
-    sx->io.fd = s;
-    sx->io.tp = tp;
 
-    cpu = xcpuget(sx->cpu_no);
     BUG_ON(eloop_add(&cpu->el, &sx->io.et) != 0);
-    return sx->xd;
+    return 0;
 }
 
 static void xio_listener_close(int xd) {
