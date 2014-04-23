@@ -214,7 +214,7 @@ static int xshutdown_task_f(struct xtask *ts) {
     struct xsock *sx = cont_of(ts, struct xsock, shutdown);
 
     DEBUG_OFF("xsock %d shutdown protocol %s", sx->xd, xprotocol_str[sx->pf]);
-    sx->l4proto->destroy(sx->xd);
+    sx->l4proto->close(sx->xd);
     return 0;
 }
 
@@ -280,8 +280,6 @@ extern struct xsock_protocol xipc_listener_protocol;
 extern struct xsock_protocol xipc_connector_protocol;
 extern struct xsock_protocol xtcp_listener_protocol;
 extern struct xsock_protocol xtcp_connector_protocol;
-extern struct xsock_protocol xppp_listener_protocol;
-
 
 struct xsock_protocol *l4proto_lookup(int pf, int type) {
     struct xsock_protocol *l4proto, *nx;
@@ -328,7 +326,6 @@ void xmodule_init() {
     list_add_tail(&xipc_connector_protocol.link, protocol_head);
     list_add_tail(&xtcp_listener_protocol.link, protocol_head);
     list_add_tail(&xtcp_connector_protocol.link, protocol_head);
-    list_add_tail(&xppp_listener_protocol.link, protocol_head);
 }
 
 void xmodule_exit() {
@@ -422,7 +419,7 @@ int xlisten(int pf, const char *sock) {
 	errno = EPROTO;
 	return -1;
     }
-    xd = l4proto->init(pf, sock);
+    xd = l4proto->bind(pf, sock);
     return xd;
 }
 
@@ -434,7 +431,7 @@ int xconnect(int pf, const char *peer) {
 	errno = EPROTO;
 	return -1;
     }
-    xd = l4proto->init(pf, peer);
+    xd = l4proto->bind(pf, peer);
     return xd;
 }
 

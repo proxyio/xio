@@ -35,7 +35,7 @@ static void request_socks_nonfull(int xd) {
 
 static int xio_listener_handler(eloop_t *el, ev_t *et);
 
-static int xio_listener_init(int pf, const char *sock) {
+static int xio_listener_bind(int pf, const char *sock) {
     int s, on = 1;
     struct xsock *sx = 0;
     struct xcpu *cpu = 0;
@@ -63,7 +63,7 @@ static int xio_listener_init(int pf, const char *sock) {
     return sx->xd;
 }
 
-static void xio_listener_destroy(int xd) {
+static void xio_listener_close(int xd) {
     struct xsock *sx = xget(xd);
     struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = sx->io.tp;
@@ -138,8 +138,8 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
 struct xsock_protocol xtcp_listener_protocol = {
     .type = XLISTENER,
     .pf = PF_NET,
-    .init = xio_listener_init,
-    .destroy = xio_listener_destroy,
+    .bind = xio_listener_bind,
+    .close = xio_listener_close,
     .rcv_notify = request_socks_notify,
     .snd_notify = null,
 };
@@ -147,8 +147,8 @@ struct xsock_protocol xtcp_listener_protocol = {
 struct xsock_protocol xipc_listener_protocol = {
     .type = XLISTENER,
     .pf = PF_IPC,
-    .init = xio_listener_init,
-    .destroy = xio_listener_destroy,
+    .bind = xio_listener_bind,
+    .close = xio_listener_close,
     .rcv_notify = request_socks_notify,
     .snd_notify = null,
 };

@@ -48,7 +48,7 @@ static void remove_listener(struct ssmap_node *node) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_listener_init(int pf, const char *sock) {
+static int xinp_listener_bind(int pf, const char *sock) {
     int rc;
     struct xsock *sx = xsock_alloc();
     struct ssmap_node *node = 0;
@@ -72,21 +72,21 @@ static int xinp_listener_init(int pf, const char *sock) {
     return sx->xd;
 }
 
-static void xinp_listener_destroy(int xd) {
+static void xinp_listener_close(int xd) {
     struct xsock *sx = xget(xd);
 
     /* Avoiding the new connectors */
     remove_listener(&sx->proc.rb_link);
 
-    /* Destroy the xsock and free xsock id. */
+    /* Close the xsock and free xsock id. */
     xsock_free(sx);
 }
 
 struct xsock_protocol xinp_listener_protocol = {
     .type = XLISTENER,
     .pf = PF_INPROC,
-    .init = xinp_listener_init,
-    .destroy = xinp_listener_destroy,
+    .bind = xinp_listener_bind,
+    .close = xinp_listener_close,
     .snd_notify = null,
     .rcv_notify = null,
 };

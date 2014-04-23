@@ -94,7 +94,7 @@ static void rcv_head_nonfull(int xd) {
 
 int xio_connector_handler(eloop_t *el, ev_t *et);
 
-static int xio_connector_init(int pf, const char *sock) {
+static int xio_connector_bind(int pf, const char *sock) {
     int s;
     int on = 1;
     struct xsock *sx = 0;
@@ -129,7 +129,7 @@ static int xio_connector_init(int pf, const char *sock) {
 
 static int xio_connector_snd(struct xsock *sx);
 
-static void xio_connector_destroy(int xd) {
+static void xio_connector_close(int xd) {
     struct xsock *sx = xget(xd);
     struct xcpu *cpu = xcpuget(sx->cpu_no);
     struct transport *tp = sx->io.tp;
@@ -243,8 +243,8 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
 struct xsock_protocol xtcp_connector_protocol = {
     .type = XCONNECTOR,
     .pf = PF_NET,
-    .init = xio_connector_init,
-    .destroy = xio_connector_destroy,
+    .bind = xio_connector_bind,
+    .close = xio_connector_close,
     .rcv_notify = rcv_head_notify,
     .snd_notify = snd_head_notify,
 };
@@ -252,8 +252,8 @@ struct xsock_protocol xtcp_connector_protocol = {
 struct xsock_protocol xipc_connector_protocol = {
     .type = XCONNECTOR,
     .pf = PF_IPC,
-    .init = xio_connector_init,
-    .destroy = xio_connector_destroy,
+    .bind = xio_connector_bind,
+    .close = xio_connector_close,
     .rcv_notify = rcv_head_notify,
     .snd_notify = snd_head_notify,
 };

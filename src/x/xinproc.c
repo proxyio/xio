@@ -63,7 +63,7 @@ static int rcv_head_pop(int xd) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_connector_init(int pf, const char *sock) {
+static int xinp_connector_bind(int pf, const char *sock) {
     struct xsock *sx = xsock_alloc();
     struct xsock *req_sx = xsock_alloc();
     struct xsock *listener = find_listener(sock);
@@ -103,7 +103,7 @@ static int xinp_connector_init(int pf, const char *sock) {
     return sx->xd;
 }
 
-static void xinp_connector_destroy(int xd) {
+static void xinp_connector_close(int xd) {
     struct xsock *sx = xget(xd);    
     struct xsock *peer = sx->proc.xsock_peer;
 
@@ -130,8 +130,8 @@ static void rcv_head_notify(int xd, uint32_t events) {
 struct xsock_protocol xinp_connector_protocol = {
     .type = XCONNECTOR,
     .pf = PF_INPROC,
-    .init = xinp_connector_init,
-    .destroy = xinp_connector_destroy,
+    .bind = xinp_connector_bind,
+    .close = xinp_connector_close,
     .snd_notify = snd_head_notify,
     .rcv_notify = rcv_head_notify,
 };
