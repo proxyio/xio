@@ -23,7 +23,16 @@ static void xshutdown(struct xsock *sx) {
     mutex_unlock(&cpu->lock);
 }
 
-static void xmultiple_close(int xd);
+static void xmultiple_close(int xd) {
+    struct xsock *sub_sx, *nx;
+    struct xsock *sx = xget(xd);
+
+    xsock_walk_sub_socks(sub_sx, nx, &sx->sub_socks) {
+	sub_sx->parent = -1;
+	list_del_init(&sub_sx->sib_link);
+	xclose(sub_sx->xd);
+    }
+}
 
 int xshutdown_task_f(struct xtask *ts) {
     struct xsock *sx = cont_of(ts, struct xsock, shutdown);
@@ -61,58 +70,6 @@ void xclose(int xd) {
     xshutdown(sx);
 }
 
-
-int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
-    int rc = 0;
-
-    while (sx->parent >= 0)
-	sx = xget(sx->parent);
-
-    mutex_lock(&sx->lock);
-    if (list_empty(&sx->request_socks) && sx->accept_waiters > 0) {
-	condition_broadcast(&sx->accept_cond);
-    }
-    list_add_tail(&req_sx->rqs_link, &sx->request_socks);
-    __xpoll_notify(sx, XPOLLIN);
-    mutex_unlock(&sx->lock);
-    return rc;
-}
-
-struct xsock *pop_request_sock(struct xsock *sx) {
-    struct xsock *req_sx = 0;
-
-    mutex_lock(&sx->lock);
-    while (list_empty(&sx->request_socks) && !sx->fasync) {
-	sx->accept_waiters++;
-	condition_wait(&sx->accept_cond, &sx->lock);
-	sx->accept_waiters--;
-    }
-    if (!list_empty(&sx->request_socks)) {
-	req_sx = list_first(&sx->request_socks, struct xsock, rqs_link);
-	list_del_init(&req_sx->rqs_link);
-    }
-    mutex_unlock(&sx->lock);
-    return req_sx;
-}
-
-int xaccept(int xd) {
-    struct xsock *sx = xget(xd);
-    struct xsock *new_sx = 0;
-
-    if (!sx->fok) {
-	errno = EPIPE;
-	return -1;
-    }
-    if (sx->type != XLISTENER) {
-	errno = EPROTO;
-	return -1;
-    }
-    if ((new_sx = pop_request_sock(sx)))
-	return new_sx->xd;
-    errno = EAGAIN;
-    return -1;
-}
-
 int xsocket(int pf, int type) {
     struct xsock *sx = xsock_alloc();
 
@@ -128,17 +85,6 @@ int xsocket(int pf, int type) {
     sx->pf = pf;
     sx->type = type;
     return sx->xd;
-}
-
-static void xmultiple_close(int xd) {
-    struct xsock *sub_sx, *nx;
-    struct xsock *sx = xget(xd);
-
-    xsock_walk_sub_socks(sub_sx, nx, &sx->sub_socks) {
-	sub_sx->parent = -1;
-	list_del_init(&sub_sx->sib_link);
-	xclose(sub_sx->xd);
-    }
 }
 
 static int xmultiple_listen(int xd, const char *addr) {
@@ -172,67 +118,5 @@ int xbind(int xd, const char *addr) {
 	rc = sx->l4proto->bind(xd, addr);
     else if (sx->type == XLISTENER)
 	rc = xmultiple_listen(xd, addr);
-    return rc;
-}
-
-int xsetopt(int xd, int opt, void *on, int size) {
-    int rc = 0;
-    struct xsock *sx = xget(xd);
-
-    if (!on || size <= 0) {
-	errno = EINVAL;
-	return -1;
-    }
-    switch (opt) {
-    case XNOBLOCK:
-	mutex_lock(&sx->lock);
-	sx->fasync = *(int *)on ? true : false;
-	mutex_unlock(&sx->lock);
-	break;
-    case XSNDBUF:
-	mutex_lock(&sx->lock);
-	sx->snd_wnd = (*(int *)on);
-	mutex_unlock(&sx->lock);
-	break;
-    case XRCVBUF:
-	mutex_lock(&sx->lock);
-	sx->rcv_wnd = (*(int *)on);
-	mutex_unlock(&sx->lock);
-	break;
-    default:
-	errno = EINVAL;
-	return -1;
-    }
-    return rc;
-}
-
-int xgetopt(int xd, int opt, void *on, int size) {
-    int rc = 0;
-    struct xsock *sx = xget(xd);
-
-    if (!on || size <= 0) {
-	errno = EINVAL;
-	return -1;
-    }
-    switch (opt) {
-    case XNOBLOCK:
-	mutex_lock(&sx->lock);
-	*(int *)on = sx->fasync ? true : false;
-	mutex_unlock(&sx->lock);
-	break;
-    case XSNDBUF:
-	mutex_lock(&sx->lock);
-	*(int *)on = sx->snd_wnd;
-	mutex_unlock(&sx->lock);
-	break;
-    case XRCVBUF:
-	mutex_lock(&sx->lock);
-	*(int *)on = sx->rcv_wnd;
-	mutex_unlock(&sx->lock);
-	break;
-    default:
-	errno = EINVAL;
-	return -1;
-    }
     return rc;
 }
