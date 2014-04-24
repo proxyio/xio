@@ -4,6 +4,7 @@ project( proxyio )
 include_directories(
 	${PROJECT_SOURCE_DIR}/src/
 	${PROJECT_SOURCE_DIR}/src/base/
+	${PROJECT_SOURCE_DIR}/src/include/
 )
 
 link_directories(

@@ -18,16 +18,17 @@ aux_source_directory( base/sync BASE )
 add_library( base STATIC ${BASE} )
 
 
-## compile sock
-aux_source_directory( sock XSOCK )
-add_library( xsock STATIC ${XSOCK} )
-target_link_libraries( xsock base uuid )
+## compile xio
+aux_source_directory( sock XIO )
+aux_source_directory( poll XIO )
+add_library( xio STATIC ${XIO} )
+target_link_libraries( xio base uuid )
 
 
 ## compile ep
 ## aux_source_directory( ep EP )
 ## add_library( ep STATIC ${EP} )
-## target_link_libraries( ep base xsock )
+## target_link_libraries( ep base xio )
 
 
 
@@ -37,8 +38,8 @@ aux_source_directory( base/test UNIT_TEST )
 ## aux_source_directory( ep/test UNIT_TEST )
 aux_source_directory( sock/test UNIT_TEST )
 add_executable( unit_test ${UNIT_TEST} )
-## target_link_libraries( unit_test base xsock ep gtest pthread)
-target_link_libraries( unit_test base xsock gtest pthread )
+## target_link_libraries( unit_test base xio ep gtest pthread)
+target_link_libraries( unit_test base xio gtest pthread )
 if (DEBUG_mode)
    target_link_libraries( unit_test gcov )
 endif()

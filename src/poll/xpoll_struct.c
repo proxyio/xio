@@ -1,6 +1,7 @@
 #include <os/timesz.h>
 #include <base.h>
-#include "xbase.h"
+#include <sock/xbase.h>
+#include <poll/xpoll_struct.h>
 
 struct xpoll_entry *xent_new() {
     struct xpoll_entry *ent = (struct xpoll_entry *)mem_zalloc(sizeof(*ent));

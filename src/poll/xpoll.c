@@ -1,6 +1,6 @@
 #include <os/timesz.h>
 #include <base.h>
-#include "xbase.h"
+#include "xpoll_struct.h"
 
 const char *xpoll_str[] = {
     "",

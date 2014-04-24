@@ -4,6 +4,10 @@
 #include <sync/mutex.h>
 #include <sync/spin.h>
 #include <sync/condition.h>
+#include <ds/list.h>
+#include <xio/poll.h>
+#include <sock/xbase.h>
+
 
 struct xpoll_entry;
 struct xpoll_notify {

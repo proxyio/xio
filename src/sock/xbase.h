@@ -12,8 +12,9 @@
 #include <sync/condition.h>
 #include <runner/taskpool.h>
 #include <os/efd.h>
-#include "xsock.h"
-#include "xpoll.h"
+#include <transport/transport.h>
+#include <poll/xpoll_struct.h>
+#include <xio/sock.h>
 
 #define null NULL
 
