@@ -91,46 +91,33 @@ static void request_socks_notify(int xd, uint32_t events) {
 }
 
 extern int xio_connector_handler(eloop_t *el, ev_t *et);
+extern void xio_connector_init(struct xsock *sx,
+			       struct transport *tp, int s);
 
 static int xio_listener_handler(eloop_t *el, ev_t *et) {
-    int rc = 0;
-    int on = 1;
+    int s;
     struct xsock *sx = cont_of(et, struct xsock, io.et);
     struct transport *tp = sx->io.tp;
-    struct xsock *req_sx = xsock_alloc();
-    struct xcpu *cpu = xcpuget(req_sx->cpu_no);
-    
-    if (!req_sx) {
-	errno = EAGAIN;
-	return -1;
-    }
-    ZERO(req_sx->io);
-    bio_init(&req_sx->io.in);
-    bio_init(&req_sx->io.out);
+    struct xsock *req_sx;
+
     if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
 	sx->fok = false;
 	errno = EPIPE;
 	return -1;
     } 
-
-    /* Accept new connection */
-    if ((req_sx->io.fd = tp->accept(sx->io.fd)) < 0)
+    if ((s = tp->accept(sx->io.fd)) < 0)
 	return -1;
-    DEBUG_OFF("xsock accept new connection %d", req_sx->io.fd);
-    tp->setopt(req_sx->io.fd, TP_NOBLOCK, &on, sizeof(on));
-
+    if (!(req_sx = xsock_alloc())) {
+	errno = EMFILE;
+	return -1;
+    }
+    DEBUG_OFF("xsock accept new connection %d", s);
     req_sx->type = XCONNECTOR;
     req_sx->pf = sx->pf;
     req_sx->l4proto = l4proto_lookup(req_sx->pf, req_sx->type);
-    req_sx->io.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
-    req_sx->io.et.fd = req_sx->io.fd;
-    req_sx->io.et.f = xio_connector_handler;
-    req_sx->io.et.data = req_sx;
-    req_sx->io.tp = tp;
-    req_sx->io.ops = default_xops;
-    BUG_ON(eloop_add(&cpu->el, &req_sx->io.et) != 0);
+    xio_connector_init(req_sx, tp, s);
     push_request_sock(sx, req_sx);
-    return rc;
+    return 0;
 }
 
 struct xsock_protocol xtcp_listener_protocol = {
