@@ -149,6 +149,7 @@ int push_snd(struct xsock *cn, struct xmsg *msg);
 int push_request_sock(struct xsock *sx, struct xsock *req_sx);
 struct xsock *pop_request_sock(struct xsock *sx);
 
+void __xpoll_notify(struct xsock *cn, u32 protocol_spec);
 void xpoll_notify(struct xsock *cn, u32 protocol_spec);
 
 
