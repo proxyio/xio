@@ -119,8 +119,9 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     DEBUG_OFF("xsock accept new connection %d", req_sx->io.fd);
     tp->setopt(req_sx->io.fd, TP_NOBLOCK, &on, sizeof(on));
 
+    req_sx->type = XCONNECTOR;
     req_sx->pf = sx->pf;
-    req_sx->l4proto = l4proto_lookup(sx->pf, XCONNECTOR);
+    req_sx->l4proto = l4proto_lookup(req_sx->pf, req_sx->type);
     req_sx->io.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     req_sx->io.et.fd = req_sx->io.fd;
     req_sx->io.et.f = xio_connector_handler;

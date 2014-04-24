@@ -17,6 +17,9 @@
 
 #define null NULL
 
+/* Multiple protocols */
+#define PF_MULE      (PF_NET|PF_IPC|PF_INPROC)
+
 /* Max number of concurrent socks. */
 #define XSOCK_MAX_SOCKS 10240
 
@@ -118,6 +121,10 @@ struct xsock {
 	} proc;
     };
 };
+
+#define xsock_walk_sub_socks(sub, nx, head)		\
+    list_for_each_entry_safe(sub, nx, head,		\
+			     struct xsock, sib_link)
 
 /* We guarantee that we can push one massage at least. */
 static inline int can_send(struct xsock *cn) {

@@ -8,7 +8,6 @@
 #define PF_NET       1  /* TP_TCP */
 #define PF_IPC       2  /* TP_IPC */
 #define PF_INPROC    4  /* TP_MOCK_INPROC */
-#define PF_MULE      8  /* Multiple protocols */
 
 char *xallocmsg(uint32_t size);
 void xfreemsg(char *xbuf);

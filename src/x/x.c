@@ -345,6 +345,8 @@ void xmodule_exit() {
     mutex_destroy(&xgb.lock);
 }
 
+static void xmultiple_close(int xd);
+
 void xclose(int xd) {
     struct xsock *sx = xget(xd);
     struct xpoll_t *po;
@@ -363,8 +365,13 @@ void xclose(int xd) {
 	xent_put(ent);
     }
 
-    /* Let backend thread do the last destroy() */
-    xshutdown(sx);
+    /* Let backend thread do the last destroy(). */
+    if (sx->l4proto) {
+	xshutdown(sx);
+    } else if (!list_empty(&sx->sub_socks)) {
+	xmultiple_close(xd);
+	xsock_free(sx);
+    }
 }
 
 
@@ -404,13 +411,12 @@ struct xsock *pop_request_sock(struct xsock *sx) {
 int xaccept(int xd) {
     struct xsock *sx = xget(xd);
     struct xsock *new_sx = 0;
-    struct xsock_protocol *l4proto = sx->l4proto;
-    
+
     if (!sx->fok) {
 	errno = EPIPE;
 	return -1;
     }
-    if (l4proto->type != XLISTENER) {
+    if (sx->type != XLISTENER) {
 	errno = EPROTO;
 	return -1;
     }
@@ -427,7 +433,8 @@ int xsocket(int pf, int type) {
 	errno = EMFILE;
 	return -1;
     }
-    if (!(sx->l4proto = l4proto_lookup(pf, type))) {
+    if (!(sx->l4proto = l4proto_lookup(pf, type))
+	&& (type != XLISTENER || (pf & ~PF_MULE) || !(pf & PF_MULE))) {
 	errno = EPROTO;
 	return -1;
     }
@@ -436,12 +443,47 @@ int xsocket(int pf, int type) {
     return sx->xd;
 }
 
+static void xmultiple_close(int xd) {
+    struct xsock *sub_sx, *nx;
+    struct xsock *sx = xget(xd);
+
+    xsock_walk_sub_socks(sub_sx, nx, &sx->sub_socks) {
+	list_del_init(&sub_sx->sib_link);
+	xclose(sub_sx->xd);
+    }
+}
+
+static int xmultiple_listen(int xd, const char *addr) {
+    int sub_xd;
+    struct xsock_protocol *l4proto, *nx;
+    struct xsock *sx = xget(xd), *sub_sx;
+    int pf = sx->pf;
+
+    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
+	if (!(pf & l4proto->pf) || l4proto->type != XLISTENER)
+	    continue;
+	pf &= ~l4proto->pf;
+	if ((sub_xd = xlisten(l4proto->pf, addr)) < 0)
+	    goto BAD;
+	sub_sx = xget(sub_xd);
+	sub_sx->parent = xd;
+	list_add_tail(&sub_sx->sib_link, &sx->sub_socks);
+    }
+    if (!list_empty(&sx->sub_socks))
+	return 0;
+ BAD:
+    xmultiple_close(xd);
+    return -1;
+}
+
 int xbind(int xd, const char *addr) {
     int rc;
     struct xsock *sx = xget(xd);
-    struct xsock_protocol *l4proto = sx->l4proto;
 
-    rc = l4proto->bind(xd, addr);
+    if (sx->l4proto)
+	rc = sx->l4proto->bind(xd, addr);
+    else if (sx->type == XLISTENER)
+	rc = xmultiple_listen(xd, addr);
     return rc;
 }
 
@@ -637,13 +679,12 @@ int xrecv(int xd, char **xbuf) {
     int rc = 0;
     struct xmsg *msg = 0;
     struct xsock *sx = xget(xd);
-    struct xsock_protocol *l4proto = sx->l4proto;
     
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (l4proto->type != XCONNECTOR) {
+    if (sx->type != XCONNECTOR) {
 	errno = EPROTO;
 	return -1;
     }
@@ -659,13 +700,12 @@ int xsend(int xd, char *xbuf) {
     int rc = 0;
     struct xmsg *msg = 0;
     struct xsock *sx = xget(xd);
-    struct xsock_protocol *l4proto = sx->l4proto;
 
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (l4proto->type != XCONNECTOR) {
+    if (sx->type != XCONNECTOR) {
 	errno = EPROTO;
 	return -1;
     }
