@@ -154,6 +154,8 @@ void xpoll_notify(struct xsock *cn, u32 protocol_spec);
 
 
 
+
+
 struct xcpu {
     //spin_t lock; // for release mode
 
@@ -169,7 +171,9 @@ struct xcpu {
     struct list_head shutdown_socks;
 };
 
-struct xcpu *xcpuget(int pd);
+int xcpu_alloc();
+void xcpu_free(int cpu_no);
+struct xcpu *xcpuget(int cpu_no);
 
 struct xglobal {
     int exiting;
