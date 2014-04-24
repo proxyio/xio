@@ -220,11 +220,19 @@ static void xshutdown(struct xsock *sx) {
     mutex_unlock(&cpu->lock);
 }
 
+static void xmultiple_close(int xd);
+
 static int xshutdown_task_f(struct xtask *ts) {
     struct xsock *sx = cont_of(ts, struct xsock, shutdown);
 
     DEBUG_OFF("xsock %d shutdown protocol %s", sx->xd, xprotocol_str[sx->pf]);
-    sx->l4proto->close(sx->xd);
+    if (sx->l4proto)
+	sx->l4proto->close(sx->xd);
+    else if (!list_empty(&sx->sub_socks)) {
+	xmultiple_close(sx->xd);
+	xsock_free(sx);
+	DEBUG_OFF("xsock %d multiple_close", sx->xd);
+    }
     return 0;
 }
 
@@ -318,7 +326,7 @@ void xmodule_init() {
     for (cpu_no = 0; cpu_no < XSOCK_MAX_CPUS; cpu_no++)
 	xgb.cpu_unused[cpu_no] = cpu_no;
 
-    xgb.cpu_cores = 2;
+    xgb.cpu_cores = 1;
     taskpool_init(&xgb.tpool, xgb.cpu_cores);
     taskpool_start(&xgb.tpool);
     waitgroup_adds(&wg, xgb.cpu_cores);
@@ -339,13 +347,14 @@ void xmodule_init() {
 }
 
 void xmodule_exit() {
+    DEBUG_OFF();
     xgb.exiting = true;
     taskpool_stop(&xgb.tpool);
     taskpool_destroy(&xgb.tpool);
     mutex_destroy(&xgb.lock);
 }
 
-static void xmultiple_close(int xd);
+
 
 void xclose(int xd) {
     struct xsock *sx = xget(xd);
@@ -366,12 +375,7 @@ void xclose(int xd) {
     }
 
     /* Let backend thread do the last destroy(). */
-    if (sx->l4proto) {
-	xshutdown(sx);
-    } else if (!list_empty(&sx->sub_socks)) {
-	xmultiple_close(xd);
-	xsock_free(sx);
-    }
+    xshutdown(sx);
 }
 
 
@@ -448,6 +452,7 @@ static void xmultiple_close(int xd) {
     struct xsock *sx = xget(xd);
 
     xsock_walk_sub_socks(sub_sx, nx, &sx->sub_socks) {
+	sub_sx->parent = -1;
 	list_del_init(&sub_sx->sib_link);
 	xclose(sub_sx->xd);
     }

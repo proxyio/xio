@@ -5,7 +5,7 @@
 extern "C" {
 #include <sync/spin.h>
 #include <runner/thread.h>
-#include <x/xsock.h>
+#include <sock/xsock.h>
 }
 
 extern int randstr(char *buf, int len);

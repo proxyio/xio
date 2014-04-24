@@ -18,27 +18,27 @@ aux_source_directory( base/sync BASE )
 add_library( base STATIC ${BASE} )
 
 
-## compile x
-aux_source_directory( x X )
-add_library( x STATIC ${X} )
-target_link_libraries( x base uuid )
+## compile sock
+aux_source_directory( sock XSOCK )
+add_library( xsock STATIC ${XSOCK} )
+target_link_libraries( xsock base uuid )
 
 
 ## compile ep
 ## aux_source_directory( ep EP )
 ## add_library( ep STATIC ${EP} )
-## target_link_libraries( ep base x )
+## target_link_libraries( ep base xsock )
 
 
 
 ## compile unit_test
-aux_source_directory( test UNIT_TEST )
+aux_source_directory( tools/test UNIT_TEST )
 aux_source_directory( base/test UNIT_TEST )
 ## aux_source_directory( ep/test UNIT_TEST )
-aux_source_directory( x/test UNIT_TEST )
+aux_source_directory( sock/test UNIT_TEST )
 add_executable( unit_test ${UNIT_TEST} )
-## target_link_libraries( unit_test base x ep gtest pthread)
-target_link_libraries( unit_test base x gtest pthread )
+## target_link_libraries( unit_test base xsock ep gtest pthread)
+target_link_libraries( unit_test base xsock gtest pthread )
 if (DEBUG_mode)
    target_link_libraries( unit_test gcov )
 endif()

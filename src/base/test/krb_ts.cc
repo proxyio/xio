@@ -14,7 +14,7 @@ extern "C" {
 using namespace std;
 
 static int skrb_test_single() {
-    int i, cnt = 10000;
+    int i, cnt = 1000;
     std::vector<int64_t> allval;
     int64_t min_val = 0;
     skrb_t tree;

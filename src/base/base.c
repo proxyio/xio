@@ -14,6 +14,6 @@ void base_init() {
 
 
 void base_exit() {
-    xmodule_exit();
     global_transport_exit();
+    xmodule_exit();
 }
