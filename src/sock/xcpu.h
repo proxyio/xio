@@ -7,6 +7,17 @@
 #include <os/eventloop.h>
 #include <os/efd.h>
 
+struct xtask;
+typedef void (*xtask_func) (struct xtask *ts);
+
+struct xtask {
+    xtask_func f;
+    struct list_head link;
+};
+
+#define xtask_walk_safe(ts, nt, head)				\
+    list_for_each_entry_safe(ts, nt, head, struct xtask,	\
+			     link)
 struct xcpu {
     //spin_t lock; // for release mode
 

@@ -12,17 +12,6 @@
 
 struct xglobal xgb = {};
 
-const char *xprotocol_str[] = {
-    "",
-    "PF_NET",
-    "PF_IPC",
-    "PF_NET|PF_IPC",
-    "PF_INPROC",
-    "PF_NET|PF_INPROC",
-    "PF_IPC|PF_INPROC",
-    "PF_NET|PF_IPC|PF_INPROC",
-};
-
 static void __shutdown_socks_task_hndl(struct xcpu *cpu) {
     struct xtask *ts, *nx_ts;
     struct list_head st_head = {};

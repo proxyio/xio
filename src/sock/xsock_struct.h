@@ -14,7 +14,8 @@
 #include <poll/xpoll_struct.h>
 #include <xio/sock.h>
 #include "xmsg.h"
-
+#include "xcpu.h"
+#include "xprotocol.h"
 
 #define null NULL
 
@@ -35,7 +36,6 @@
 int xsocket(int pf, int type);
 int xbind(int xd, const char *addr);
 
-
 /* XSock MQ events */
 #define XMQ_PUSH         0x01
 #define XMQ_POP          0x02
@@ -43,31 +43,6 @@ int xbind(int xd, const char *addr);
 #define XMQ_NONEMPTY     0x08
 #define XMQ_FULL         0x10
 #define XMQ_NONFULL      0x20
-
-struct xtask;
-typedef void (*xtask_func) (struct xtask *ts);
-
-struct xtask {
-    xtask_func f;
-    struct list_head link;
-};
-
-#define xtask_walk_safe(ts, nt, head)			\
-    list_for_each_entry_safe(ts, nt, head,		\
-			     struct xtask, link)
-
-
-struct xsock_protocol {
-    int type;
-    int pf;
-    int (*bind) (int xd, const char *sock);
-    void (*close) (int xd);
-    void (*snd_notify) (int xd, u32 events);
-    void (*rcv_notify) (int xd, u32 events);
-    struct list_head link;
-};
-
-extern const char *xprotocol_str[];
 
 struct xsock {
     mutex_t lock;
