@@ -38,8 +38,8 @@ static void xclient(int pf) {
 }
 
 static int xclient_thread(void *arg) {
-    xclient(PF_NET);
-    xclient(PF_INPROC);
+    xclient(XPF_NET);
+    xclient(XPF_INPROC);
     return 0;
 }
 
@@ -50,7 +50,7 @@ static void xserver() {
     thread_t cli_thread = {};
     char *payload;
 
-    BUG_ON((afd = xlisten(PF_NET|PF_INPROC, "127.0.0.1:18894")) < 0);
+    BUG_ON((afd = xlisten(XPF_NET|XPF_INPROC, "127.0.0.1:18894")) < 0);
     thread_start(&cli_thread, xclient_thread, 0);
 
     for (j = 0; j < 2; j++) {
@@ -88,9 +88,9 @@ static void xclient2(int pf) {
 }
 
 static int xclient_thread2(void *arg) {
-    xclient2(PF_NET);
-    xclient2(PF_IPC);
-    xclient2(PF_INPROC);
+    xclient2(XPF_NET);
+    xclient2(XPF_IPC);
+    xclient2(XPF_INPROC);
     return 0;
 }
 
@@ -102,7 +102,7 @@ static void xserver2() {
 
     po = xpoll_create();
     DEBUG_OFF("%p", po);
-    BUG_ON((afd = xlisten(PF_NET|PF_IPC|PF_INPROC, "127.0.0.1:18895")) < 0);
+    BUG_ON((afd = xlisten(XPF_NET|XPF_IPC|XPF_INPROC, "127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, 0);
     event[0].xd = afd;
     event[0].self = po;
@@ -158,7 +158,7 @@ static void inproc_client2() {
     int sfd, i;
 
     for (i = 0; i < cnt2/2; i++) {
-	if ((sfd = xconnect(PF_INPROC, "/b_inproc")) < 0)
+	if ((sfd = xconnect(XPF_INPROC, "/b_inproc")) < 0)
 	    break;
 	xclose(sfd);
     }
@@ -173,7 +173,7 @@ static void inproc_client3() {
     int sfd, i;
 
     for (i = 0; i < cnt2/2; i++) {
-	if ((sfd = xconnect(PF_INPROC, "/b_inproc")) < 0)
+	if ((sfd = xconnect(XPF_INPROC, "/b_inproc")) < 0)
 	    break;
 	xclose(sfd);
     }
@@ -188,7 +188,7 @@ static void inproc_server_thread2() {
     int i, afd, sfd;
     thread_t cli_thread[2] = {};
 
-    BUG_ON((afd = xlisten(PF_INPROC, "/b_inproc")) < 0);
+    BUG_ON((afd = xlisten(XPF_INPROC, "/b_inproc")) < 0);
     thread_start(&cli_thread[0], inproc_client_thread2, NULL);
     thread_start(&cli_thread[1], inproc_client_thread3, NULL);
 

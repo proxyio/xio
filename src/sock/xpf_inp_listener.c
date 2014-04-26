@@ -77,7 +77,7 @@ static void xinp_listener_close(int xd) {
 
 struct xsock_protocol xinp_listener_protocol = {
     .type = XLISTENER,
-    .pf = PF_INPROC,
+    .pf = XPF_INPROC,
     .bind = xinp_listener_bind,
     .close = xinp_listener_close,
     .snd_notify = null,

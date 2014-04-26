@@ -242,7 +242,7 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
 
 struct xsock_protocol xtcp_connector_protocol = {
     .type = XCONNECTOR,
-    .pf = PF_NET,
+    .pf = XPF_NET,
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .rcv_notify = rcv_head_notify,
@@ -251,7 +251,7 @@ struct xsock_protocol xtcp_connector_protocol = {
 
 struct xsock_protocol xipc_connector_protocol = {
     .type = XCONNECTOR,
-    .pf = PF_IPC,
+    .pf = XPF_IPC,
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .rcv_notify = rcv_head_notify,

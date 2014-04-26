@@ -122,7 +122,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
 
 struct xsock_protocol xtcp_listener_protocol = {
     .type = XLISTENER,
-    .pf = PF_NET,
+    .pf = XPF_NET,
     .bind = xio_listener_bind,
     .close = xio_listener_close,
     .rcv_notify = request_socks_notify,
@@ -131,7 +131,7 @@ struct xsock_protocol xtcp_listener_protocol = {
 
 struct xsock_protocol xipc_listener_protocol = {
     .type = XLISTENER,
-    .pf = PF_IPC,
+    .pf = XPF_IPC,
     .bind = xio_listener_bind,
     .close = xio_listener_close,
     .rcv_notify = request_socks_notify,

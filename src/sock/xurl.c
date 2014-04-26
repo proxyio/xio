@@ -31,11 +31,11 @@ int xurl_pf(const char *url) {
     else
 	at = (char *)url;
     if (strncmp(at, "net", pf - at) == 0)
-	return PF_NET;
+	return XPF_NET;
     else if (strncmp(at, "ipc", pf - at) == 0)
-	return PF_IPC;
+	return XPF_IPC;
     else if (strncmp(at, "inproc", pf - at) == 0)
-	return PF_INPROC;
+	return XPF_INPROC;
     errno = EINVAL;
     return -1;
 }

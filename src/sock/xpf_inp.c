@@ -124,7 +124,7 @@ static void rcv_head_notify(int xd, uint32_t events) {
 
 struct xsock_protocol xinp_connector_protocol = {
     .type = XCONNECTOR,
-    .pf = PF_INPROC,
+    .pf = XPF_INPROC,
     .bind = xinp_connector_bind,
     .close = xinp_connector_close,
     .snd_notify = snd_head_notify,

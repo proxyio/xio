@@ -78,7 +78,7 @@ int xsocket(int pf, int type) {
 	return -1;
     }
     if (!(sx->l4proto = l4proto_lookup(pf, type))
-	&& (type != XLISTENER || (pf & ~PF_MULE) || !(pf & PF_MULE))) {
+	&& (type != XLISTENER || (pf & ~XPF_MULE) || !(pf & XPF_MULE))) {
 	errno = EPROTO;
 	return -1;
     }
