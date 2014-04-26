@@ -3,8 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sync/waitgroup.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 static void xshutdown(struct xsock *sx) {
     struct xcpu *cpu = xcpuget(sx->cpu_no);

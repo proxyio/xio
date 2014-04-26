@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 extern int _xlisten(int pf, const char *addr);
 

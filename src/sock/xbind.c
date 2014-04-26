@@ -3,7 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sync/waitgroup.h>
-#include "runner/taskpool.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 #include "xsock_struct.h"
 
 int xsocket(int pf, int type) {

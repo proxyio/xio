@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct xsock *sx = cont_of(ops, struct xsock, io.ops);

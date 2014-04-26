@@ -5,7 +5,7 @@
 #include <sync/waitgroup.h>
 #include <runner/taskpool.h>
 #include <transport/sockaddr.h>
-#include "xsock_struct.h"
+#include "xgb.h"
 
 int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
     int rc = 0;

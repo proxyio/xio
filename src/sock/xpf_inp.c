@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 static int xinp_put(struct xsock *sx) {
     int old;

@@ -6,15 +6,15 @@
 #include <os/eventloop.h>
 #include <bufio/bio.h>
 #include <os/alloc.h>
-#include <hash/crc.h>
 #include <sync/mutex.h>
 #include <sync/spin.h>
 #include <sync/condition.h>
 #include <runner/taskpool.h>
-#include <os/efd.h>
 #include <transport/transport.h>
 #include <poll/xpoll_struct.h>
 #include <xio/sock.h>
+#include "xmsg.h"
+
 
 #define null NULL
 
@@ -28,14 +28,13 @@
 #define XLISTENER   1
 #define XCONNECTOR  2
 
-int xsocket(int pf, int type);
-int xbind(int xd, const char *addr);
-
 /* Max number of concurrent socks. */
 #define XSOCK_MAX_SOCKS 10240
 
-/* Max number of cpu core */
-#define XSOCK_MAX_CPUS 32
+
+int xsocket(int pf, int type);
+int xbind(int xd, const char *addr);
+
 
 /* XSock MQ events */
 #define XMQ_PUSH         0x01
@@ -161,112 +160,6 @@ struct xsock *pop_request_sock(struct xsock *sx);
 
 void __xpoll_notify(struct xsock *cn, u32 protocol_spec);
 void xpoll_notify(struct xsock *cn, u32 protocol_spec);
-
-
-
-
-
-
-struct xcpu {
-    //spin_t lock; // for release mode
-
-    mutex_t lock; // for debug mode
-
-    /* Backend eventloop for cpu_worker. */
-    eloop_t el;
-
-    ev_t efd_et;
-    struct efd efd;
-
-    /* Waiting for closed xsock will be attached here */
-    struct list_head shutdown_socks;
-};
-
-int xcpu_alloc();
-void xcpu_free(int cpu_no);
-struct xcpu *xcpuget(int cpu_no);
-
-struct xglobal {
-    int exiting;
-    mutex_t lock;
-
-    /* The global table of existing xsock. The descriptor representing
-       the xsock is the index to this table. This pointer is also used to
-       find out whether context is initialised. If it is null, context is
-       uninitialised. */
-    struct xsock socks[XSOCK_MAX_SOCKS];
-
-    /* Stack of unused xsock descriptors.  */
-    int unused[XSOCK_MAX_SOCKS];
-
-    /* Number of actual socks. */
-    size_t nsocks;
-    
-
-    struct xcpu cpus[XSOCK_MAX_CPUS];
-
-    /* Stack of unused xsock descriptors.  */
-    int cpu_unused[XSOCK_MAX_CPUS];
-    
-    /* Number of actual runner poller.  */
-    size_t ncpus;
-
-    /* Backend cpu_cores and taskpool for cpu_worker.  */
-    int cpu_cores;
-    struct taskpool tpool;
-
-    /* INPROC global listening address mapping */
-    struct ssmap inproc_listeners;
-
-    /* xsock_protocol head */
-    struct list_head xsock_protocol_head;
-};
-
-#define xsock_protocol_walk_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head,			\
-			     struct xsock_protocol, link)
-
-struct xsock_protocol *l4proto_lookup(int pf, int type);
-
-extern struct xglobal xgb;
-
-static inline void xglobal_lock() {
-    mutex_lock(&xgb.lock);
-}
-
-static inline void xglobal_unlock() {
-    mutex_unlock(&xgb.lock);
-}
-
-
-
-
-/*
-  The transport protocol header is 6 bytes long and looks like this:
-
-  +--------+------------+------------+
-  | 0xffff | 0xffffffff | 0xffffffff |
-  +--------+------------+------------+
-  |  crc16 |    size    |    chunk   |
-  +--------+------------+------------+
-*/
-
-struct xiov {
-    uint16_t checksum;
-    u32 size;
-    char chunk[0];
-};
-
-struct xmsg {
-    struct list_head item;
-    struct xiov vec;
-};
-
-u32 xiov_len(char *xbuf);
-char *xiov_base(char *xbuf);
-
-#define xmsg_walk_safe(pos, next, head)					\
-    list_for_each_entry_safe(pos, next, head, struct xmsg, item)
 
 
 #endif

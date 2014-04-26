@@ -3,8 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sync/waitgroup.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 struct xmsg *pop_snd(struct xsock *sx) {
     struct xsock_protocol *l4proto = sx->l4proto;

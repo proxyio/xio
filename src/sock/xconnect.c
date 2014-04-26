@@ -5,7 +5,7 @@
 #include <sync/waitgroup.h>
 #include <runner/taskpool.h>
 #include <transport/sockaddr.h>
-#include "xsock_struct.h"
+#include "xgb.h"
 
 int xconnect(const char *peer) {
     int pf = sockaddr_pf(peer);

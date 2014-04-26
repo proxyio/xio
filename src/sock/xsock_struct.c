@@ -3,47 +3,12 @@
 #include <string.h>
 #include <errno.h>
 #include <sync/waitgroup.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 /* Default input/output buffer size */
 static int DEF_SNDBUF = 10485760;
 static int DEF_RCVBUF = 10485760;
-
-u32 xiov_len(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    return sizeof(msg->vec) + msg->vec.size;
-}
-
-char *xiov_base(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    return (char *)&msg->vec;
-}
-
-char *xallocmsg(int size) {
-    struct xmsg *msg;
-    char *chunk = (char *)mem_zalloc(sizeof(*msg) + size);
-    if (!chunk)
-	return null;
-    msg = (struct xmsg *)chunk;
-    msg->vec.size = size;
-    msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
-    return msg->vec.chunk;
-}
-
-void xfreemsg(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    mem_free(msg, sizeof(*msg) + msg->vec.size);
-}
-
-int xmsglen(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    return msg->vec.size;
-}
-
-static int choose_backend_poll(int xd) {
-    return xd % xgb.ncpus;
-}
 
 int xd_alloc() {
     int xd;
@@ -89,7 +54,7 @@ static void xsock_init(int xd) {
     INIT_LIST_HEAD(&sx->sib_link);
     
     sx->xd = xd;
-    sx->cpu_no = choose_backend_poll(xd);
+    sx->cpu_no = xcpu_choosed(xd);
     sx->rcv_waiters = 0;
     sx->snd_waiters = 0;
     sx->rcv = 0;
@@ -164,23 +129,4 @@ void xsock_free(struct xsock *sx) {
     int xd = sx->xd;
     xsock_exit(xd);
     xd_free(xd);
-}
-
-int xcpu_alloc() {
-    int cpu_no;
-    mutex_lock(&xgb.lock);
-    BUG_ON(xgb.ncpus >= XSOCK_MAX_CPUS);
-    cpu_no = xgb.cpu_unused[xgb.ncpus++];
-    mutex_unlock(&xgb.lock);
-    return cpu_no;
-}
-
-void xcpu_free(int cpu_no) {
-    mutex_lock(&xgb.lock);
-    xgb.cpu_unused[--xgb.ncpus] = cpu_no;
-    mutex_unlock(&xgb.lock);
-}
-
-struct xcpu *xcpuget(int cpu_no) {
-    return &xgb.cpus[cpu_no];
 }

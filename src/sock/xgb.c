@@ -3,8 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sync/waitgroup.h>
-#include "runner/taskpool.h"
-#include "xsock_struct.h"
+#include <runner/taskpool.h>
+#include "xgb.h"
 
 /* Backend poller wait kernel timeout msec */
 #define DEF_ELOOPTIMEOUT 1
