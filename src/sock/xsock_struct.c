@@ -64,7 +64,12 @@ struct xsock *xget(int xd) {
     return &xgb.socks[xd];
 }
 
-extern void xshutdown_task_f(struct xtask *ts);
+static void xshutdown_task_f(struct xtask *ts) {
+    struct xsock *sx = cont_of(ts, struct xsock, shutdown);
+
+    DEBUG_OFF("xsock %d shutdown protocol %s", sx->xd, xprotocol_str[sx->pf]);
+    sx->l4proto->close(sx->xd);
+}
 
 static void xsock_init(int xd) {
     struct xsock *sx = xget(xd);
