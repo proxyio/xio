@@ -18,7 +18,6 @@ static int cnt = 10;
 
 static void xclient(string pf) {
     int sfd, i;
-    int buf_sz = 0;
     int64_t nbytes;
     char buf[1024] = {};
     char *payload;
@@ -26,8 +25,6 @@ static void xclient(string pf) {
 
     randstr(buf, 1024);
     BUG_ON((sfd = xconnect(host.c_str())) < 0);
-    xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
-    xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	payload = xallocmsg(nbytes);
@@ -49,7 +46,6 @@ static int xclient_thread(void *arg) {
 
 static void xserver() {
     int i, j;
-    int buf_sz = 0;
     int afd, sfd;
     thread_t cli_thread = {};
     char *payload;
@@ -61,8 +57,6 @@ static void xserver() {
     for (j = 0; j < 2; j++) {
 	BUG_ON((sfd = xaccept(afd)) < 0);
 	DEBUG_OFF("xserver accept %d", sfd);
-	xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
-	xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
 	for (i = 0; i < cnt; i++) {
 	    BUG_ON(0 != xrecv(sfd, &payload));
 	    DEBUG_OFF("%d recv", sfd);

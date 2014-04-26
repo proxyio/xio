@@ -17,7 +17,11 @@ int xsend(int xd, char *xbuf);
 void xclose(int xd);
 
 
+/* Following sockopt-level are provided by xsocket */
+#define XL_SOCKET          1
+#define XL_TRANSPORT       2
 
+/* Following sockopt-field are provided by xsocket */
 #define XNOBLOCK           0x0001
 #define XSNDBUF            0x0002
 #define XRCVBUF            0x0004
@@ -29,8 +33,9 @@ void xclose(int xd);
 #define XRECONNECT_IVLMAX  0x0100
 #define XSOCKETKEY         0x0200
 
-int xsetopt(int xd, int opt, void *val, int valsz);
-int xgetopt(int xd, int opt, void *val, int valsz);
+int xsetsockopt(int xd, int level, int optname, void *optval, int optlen);
+int xgetsockopt(int xd, int level, int optname, void *optval, int *optlen);
+
 
 
 #endif
