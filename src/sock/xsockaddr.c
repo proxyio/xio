@@ -1,13 +1,13 @@
 #include <base.h>
 #include <xio/sock.h>
-#include "xurl.h"
+#include "xsockaddr.h"
 
-/* XURL example : 
+/* XSOCKADDR example : 
  * ipc    group@ipc://tmp/ipc.sock
  * net    group@net://182.33.49.10
  * inproc group@inproc://inproc.sock
  */
-int xurl_group(const char *url, char *buff, u32 size) {
+int xsockaddr_group(const char *url, char *buff, u32 size) {
     char *at = strchr(url, '@');;
 
     if (!at) {
@@ -18,7 +18,7 @@ int xurl_group(const char *url, char *buff, u32 size) {
     return 0;
 }
 
-int xurl_pf(const char *url) {
+int xsockaddr_pf(const char *url) {
     char *at = strchr(url, '@');;
     char *pf = strstr(url, "://");;
 
@@ -40,7 +40,7 @@ int xurl_pf(const char *url) {
     return -1;
 }
 
-int xurl_sockaddr(const char *url, char *buff, u32 size) {
+int xsockaddr_addr(const char *url, char *buff, u32 size) {
     char *tok = "://";
     char *sock = strstr(url, tok);
 
