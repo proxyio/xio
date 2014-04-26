@@ -1,0 +1,49 @@
+xpoll(3)
+==========
+
+NAME
+----
+xpoll - I/O event notification facility for xsocket
+
+SYNOPSIS
+--------
+*#include <xio/poll.h>*
+
+*struct xpoll_t *xpoll_create();*
+*void xpoll_close(struct xpoll_t *po);*
+
+DESCRIPTION
+-----------
+xpoll is a variant of epoll(2) that scales well to large numbers of watched
+file descriptors.  The following xio calls are provided  to create and manage
+an xpoll instance:
+
+    * An xpoll instance created by xpoll_create(), which returns a xpoll_t
+      pointerreferring to the xpoll instance.
+      
+    * Interest in particular xsocket's file descriptors is then registered via
+      xpoll_ctl().  The set of file  descriptors  currently registered on an
+      xpoll instance is sometimes called an xpoll set.
+      
+    * Finally, the actual wait is started by xpoll_wait().
+
+RETURN VALUE
+------------
+On success, A new xpoll instance is returned.  On error, null is returned,
+and errno is set appropriately.
+
+ERRORS
+------
+*ENOMEM*::
+No memory available.
+
+SEE ALSO
+--------
+linkxio:xpoll_ctl[3]
+linkxio:xpoll_wait[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>

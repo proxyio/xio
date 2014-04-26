@@ -1,0 +1,81 @@
+xio(7)
+==========
+
+
+NAME
+----
+xio - scalability protocols library
+
+
+SYNOPSIS
+--------
+*cc* ['flags'] 'files' *-lxio* ['libraries']
+
+
+DESCRIPTION
+-----------
+
+Following functions are exported by xio library:
+
+Create an xsock::
+    linkxio:xsocket[3]
+
+Close an xsock::
+    linkxio:xclose[3]
+
+Set a xsock option::
+    linkxio:xsetsockopt[3]
+
+Get a xsock option::
+    linkxio:xgetsockopt[3]
+
+Add local endpoint or remote endpoint to the xsock::
+    linkxio:xbind[3]
+
+Add a local endpoint to the xsock::
+    linkxio:xlisten[3]
+
+Add a remote endpoint to the xsock::
+    linkxio:xconnect[3]
+    
+Send a message::
+    linkxio:xsend[3]
+
+Receive a message::
+    linkxio:xrecv[3]
+
+Allocate a xmsg::
+    linkxio:xallocmsg[3]
+
+Deallocate a xmsg::
+    linkxio:xfreemsg[3]
+
+Get xmsg length::
+    linkxio:xmsglen[3]
+    
+Multiplexing::
+    linkxio:xpoll_create[3]
+    linkxio:xpoll_ctl[3]
+    linkxio:xpoll_wait[3]    
+
+Following transport mechanisms are provided by xsock:
+
+In-process transport::
+    linkxio:xpf_inp[7]
+
+Inter-process transport::
+    linkxio:xpf_ipc[7]
+
+TCP transport::
+    linkxio:xpf_tcp[7]
+
+Following tools are installed with the library:
+
+xiobc::
+    linkxio:xiobc[1]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

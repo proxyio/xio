@@ -1,0 +1,96 @@
+xsocket(3)
+============
+
+NAME
+----
+xsocket - create an xsock
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int xsocket(int 'pf', int 'socktype');*
+
+
+DESCRIPTION
+-----------
+Creates an xsocket with specified 'pf' and 'socktype'. Returns a file
+descriptor for the newly created xsocket.
+
+Following pfs are defined at the moment:
+
+*XPF_NET*::
+TCP transport mechanism
+
+*XPF_IPC*::
+inter-process transport mechanism
+
+*XPF_INP*::
+in-process transport mechanism
+
+
+'socktype' parameter defines the type of the socket, which in turn determines
+the exact semantics of the socket. 
+
+Following socktypes are defined at the moment:
+
+*XLISTENER*::
+xsocket listener, that is, as a xsocket that will be used to accept incoming
+connection requests using xbind[3] or using helper API xlisten[3]
+
+*XCONNECTOR*::
+xsocket connector, a xsocket that will be used to connect to remote listening
+xsocket using xbind[3] or using helper API xconnect[3]
+
+The newly created xsocket is initially not associated with any endpoints.
+In order to establish a message flow at least one endpoint has to be added
+to the socket using linkxio:xbind[3] function.
+
+RETURN VALUE
+------------
+If the function succeeds file descriptor of the new xsocket is returned.
+Otherwise, -1 is returned and 'errno' is set to to one of the values defined
+below.
+
+Note that file descriptors returned are not standard system file descriptors
+and will exhibit undefined behaviour when used with system functions.
+Moreover, it may happen that a system file descriptor and file descriptor of
+an xsocket will incidentally collide (be equal).
+
+
+ERRORS
+------
+*EPROTO*::
+Specified address family is not supported or unknown protocol.
+*EMFILE*::
+The limit on the total number of open xsockets or OS limit for file
+descriptors has been reached.
+
+EXAMPLE
+-------
+
+----
+int s = xsocket (XPF_NET, XLISTENER);
+
+or
+
+int s = xsocket (XPF_NET|XPF_IPC, XLISTENER);
+
+
+----
+
+
+SEE ALSO
+--------
+linkxio:xbind[3]
+linkxio:xlisten[3]
+linkxio:xconnect[3]
+linkxio:xclose[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

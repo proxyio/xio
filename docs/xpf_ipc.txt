@@ -1,0 +1,48 @@
+xpf_ipc(7)
+=========
+
+NAME
+----
+XPF_IPC - inter-process transport mechanism
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+
+DESCRIPTION
+-----------
+Inter-process transport allows for sending messages between processes within
+a single box. The implementation uses native IPC mechanism provided by the local
+operating system and the IPC addresses are thus OS-specific.
+
+On POSIX-compliant systems, UNIX domain sockets are used and IPC addresses are
+file references. Note that both relative (ipc://test.ipc) and absolute
+(ipc:///tmp/test.ipc) paths may be used. Also note that access rights on the IPC
+files must be set in such a way that the appropriate applications can actually
+use them.
+
+EXAMPLE
+-------
+
+----
+s2 = xlisten ("ipc:///tmp/test.ipc");
+s = xconnect ("ipc:///tmp/test.ipc");
+
+----
+
+SEE ALSO
+--------
+linkxio:xpf_inp[7]
+linkxio:xpf_tcp[7]
+linkxio:xbind[3]
+linkxio:xlisten[3]
+linkxio:xconnect[3]
+linkxio:xio[7]
+
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>

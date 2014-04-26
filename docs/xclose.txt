@@ -1,0 +1,60 @@
+xclose(3)
+===========
+
+NAME
+----
+xclose - close a xsocket
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int xclose (int 's');*
+
+
+DESCRIPTION
+-----------
+Close the xsocket 's'. Any buffered inbound messages that were not yet received
+by the application will be discarded. The library will try to deliver any
+outstanding outbound messages for the time specified by _XLINGER_ xsocket option.
+The call will block in the meantime.
+
+RETURN VALUE
+------------
+On success, 0 is returned.  On error, -1 is returned, and errno is set
+appropriately.
+
+
+ERRORS
+------
+*EBADF*::
+The provided socket is invalid.
+*EINTR*::
+Operation was interrupted by a signal. The socket is not fully closed yet.
+Operation can be re-started by calling _xclose()_ again.
+
+
+EXAMPLE
+-------
+
+----
+int s = xsocket (XPF_NET, XLISTENER);
+int rc = xclose (s);
+assert (rc == 0);
+----
+
+
+SEE ALSO
+--------
+linkxio:xlisten[3]
+linkxio:xconnect[3]
+linkxio:xsetsockopt[3]
+linkxio:xgetsockopt[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

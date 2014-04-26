@@ -1,0 +1,91 @@
+xpoll_ctl(3)
+==========
+
+NAME
+----
+xpoll_ctl - control interface for an xpoll instance
+
+SYNOPSIS
+--------
+*#include <xio/poll.h>*
+
+*#define XPOLL_ADD 1*
+*#define XPOLL_DEL 2*
+*#define XPOLL_MOD 3*
+
+*int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ev);*
+
+
+DESCRIPTION
+-----------
+This call performs control operations on the xpoll instance referred to by
+the xp.  It requests that the operation op be performed for the target
+xsocket descriptor: xd.
+
+Valid values for the op argument are :
+
+XPOLL_ADD
+    Register the target xsocket descriptor xd on the xpoll instance referred
+    to by xp and associate the event event with the internal xsocket descriptor
+    linked to xd.
+
+XPOLL_MOD
+    Change the event event associated with the target xsocket. 
+
+XPOLL_DEL
+    Remove (deregister) the target xsocket descriptor from the epoll instance
+    referred to by xp.
+
+    The event argument describes the xsocket poll events.  The struct
+    xpoll_event is defined as :
+    
+    struct xpoll_event {
+        int xd;
+	void *self;
+	
+	/* What xsocket events i care about ... */
+    	uint32_t care;
+
+	/* What events happened now */
+	uint32_t happened;
+    };
+
+    The care member is a bit set composed using the following available
+    event types:
+    XPOLLIN:
+	The associated xsocket is available for xrecv[3] operations.
+    XPOLLOUT:
+        The associated file is available for xsend[3] operations.
+    XPOLLERR:
+        Error condition happened on the associated xsocket.  xpoll_wait[3] will
+	always wait for this event; it is not necessary to set it in events.
+
+RETURN VALUE
+------------
+When successful, xpoll_ctl() returns zero.  When an error occurs, xpoll_ctl()
+returns -1 and errno is set appropriately.
+
+ERRORS
+------
+*EEXIST*::
+op was XPOLL_ADD, and the supplied xsocket is already registered with this
+xpoll instance.
+*EINVAL*::
+the requested operation op is not supported by this interface.
+
+*ENOENT*::
+op was XPOLL_MOD or XPOLL_DEL, and xsocket is not registered on with this
+xpoll instance.
+
+*ENOMEM*::
+There was insufficient memory to handle the requested op control operation.
+
+SEE ALSO
+--------
+linkxio:xpoll_wait[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>

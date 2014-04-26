@@ -1,0 +1,49 @@
+xmsglen(3)
+==============
+
+NAME
+----
+xmsglen - return length of xmsg
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int *xmsglen (void '*xmsg');*
+
+
+DESCRIPTION
+-----------
+Return the xmessage size allocated by xallocmsg[3]
+
+RETURN VALUE
+------------
+On success, length is returned.  On error, -1 is returned,
+and errno is set appropriately.
+
+
+ERRORS
+------
+*EINVAL*::
+xmsg is not a valid xsockmsg
+
+EXAMPLE
+-------
+
+----
+void *buf = xallocmsg (12);
+assert (xmsglen(buf) == 12)
+----
+
+
+SEE ALSO
+--------
+linkxio:xallocmsg[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

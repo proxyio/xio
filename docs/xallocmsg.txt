@@ -1,0 +1,55 @@
+xallocmsg(3)
+==============
+
+NAME
+----
+xallocmsg - allocate a message
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*void *xallocmsg (size_t 'size');*
+
+
+DESCRIPTION
+-----------
+Allocate a message of the specified 'size' to be sent in zero-copy fashion.
+The content of the message is undefined after allocation and it should be filled
+in by the user.
+
+RETURN VALUE
+------------
+On success, zero is returned.  On error, -1 is returned, and errno is set
+appropriately.
+
+ERRORS
+------
+*EINVAL*::
+Supplied allocation 'size' is invalid.
+*ENOMEM*::
+Not enough memory to allocate the message.
+
+
+EXAMPLE
+-------
+
+----
+void *buf = xallocmsg (12);
+memcpy (buf, "Hello world!", 12);
+xsend (s, &buf);
+----
+
+
+SEE ALSO
+--------
+linkxio:xfreemsg[3]
+linkxio:xsend[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

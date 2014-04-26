@@ -1,0 +1,112 @@
+xgetsockopt(3)
+================
+
+NAME
+----
+xgetsockopt - retrieve a xsocket option
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int xgetsockopt (int 's', int 'level', int 'option', void '*val',
+    size_t '*vallen');*
+
+DESCRIPTION
+-----------
+Retrieves the value for the 'option'. The 'level' argument specifies the
+protocol level at which the option resides. For generic socket-level
+options use _XSOCKET_ level. For transport-specific options use ID of the
+transport as the 'level' argument (e.g. _XTCP_).
+
+The value is stored in the buffer pointed to by 'val' argument. Size of the
+buffer is specified by the 'vallen' argument. If the size of the option is
+greater than size of the buffer, the value will be silently truncated.
+Otherwise, the 'vallen' will be modified to indicate the actual length of
+the option.
+
+_<xio/sock.h>_ header defines generic xsocket options (_XSOCKET_ level).
+The options are as follows:
+
+*XPF*::
+    Returns the address family constant as it was passed to _xsocket()_.
+*XSOCKTYPE*::
+    Returns the protocol constant as it was passed to _xsocket()_.
+*XNOBLOCK*::
+    Send/Recv on Non-blocking mode
+*XLINGER*::
+    Specifies how long should the socket try to send pending outbound messages
+    after _xclose()_ have been called, in milliseconds. Negative value means
+    infinite linger. The type of the option is int. Default value is 1000 (1s).
+*XSNDBUF*::
+    Size of the send buffer, in bytes. To prevent blocking for messages larger
+    than the buffer, exactly one message may be buffered in addition to the data
+    in the send buffer. The type of this option is int. Default value is 128kB.
+*XRCVBUF*::
+    Size of the receive buffer, in bytes. To prevent blocking for messages
+    larger than the buffer, exactly one message may be buffered in addition
+    to the data in the receive buffer. The type of this option is int. Default
+    value is 128kB.
+*XSNDTIMEO*::
+    The timeout for send operation on the socket, in milliseconds. If message
+    cannot be sent within the specified timeout, EAGAIN error is returned.
+    Negative value means infinite timeout. The type of the option is int.
+    Default value is -1.
+*XRCVTIMEO*::
+    The timeout for recv operation on the socket, in milliseconds. If message
+    cannot be received within the specified timeout, EAGAIN error is returned.
+    Negative value means infinite timeout. The type of the option is int.
+    Default value is -1.
+*XRECONNECT_IVL*::
+    For connection-based transports such as TCP, this option specifies how
+    long to wait, in milliseconds, when connection is broken before trying
+    to re-establish it. Note that actual reconnect interval may be randomised
+    to some extent to prevent severe reconnection storms. The type of the option
+    is int. Default value is 100 (0.1 second).
+*XRECONNECT_IVL_MAX*::
+    This option is to be used only in addition to _XRECONNECT_IVL_ option.
+    It specifies maximum reconnection interval. On each reconnect attempt,
+    the previous interval is doubled until _XRECONNECT_IVL_MAX_ is reached.
+    Value of zero means that no exponential backoff is performed and reconnect
+    interval is based only on _XRECONNECT_IVL_. If _XRECONNECT_IVL_MAX_ is
+    less than _XRECONNECT_IVL_, it is ignored. The type of the option is int.
+    Default value is 0.
+*XSOCKETKEY*::
+    Socket name for error reporting and statistics. The type of the option
+    is string. Default value is "socket.N" where N is socket integer.
+
+RETURN VALUE
+------------
+On success, zero is returned.  On error, -1 is returned, and errno is set
+appropriately.
+
+
+ERRORS
+------
+*EBADF*::
+The provided socket is invalid.
+*EINVAL*::
+The option is unknown or option is invalid.
+
+EXAMPLE
+-------
+
+----
+int linger;
+size_t sz = sizeof (linger);
+xgetsockopt (s, XSOCKET, XLINGER, &linger, &sz);
+----
+
+
+SEE ALSO
+--------
+linkxio:xsocket[3]
+linkxio:xsetsockopt[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

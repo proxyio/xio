@@ -1,0 +1,63 @@
+xlisten(3)
+=============
+
+NAME
+----
+xlisten - listen for connections and return a new listener socket
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int xlisten (int 'pf', const char '*addr');*
+
+
+DESCRIPTION
+-----------
+Listen on the specified sockaddr, this is a helper function for xsocket[3] +
+xbind[3].
+
+Maximum length of the 'addr' parameter is specified by _XSOCKADDRLEN_
+defined in '<xio/sock.h>' header file.
+
+
+RETURN VALUE
+------------
+If listen succeeds, a listener xsocket file descriptor is returned. On error,
+-1 is returned, and errno is set appropriately.
+
+ERRORS
+------
+*EMFILE*::
+Maximum number of active endpoints was reached.
+*EINVAL*::
+The syntax of the supplied address is invalid.
+*EPROTO*::
+The requested transport protocol is not supported.
+
+
+EXAMPLE
+-------
+
+----
+s = xlisten (XPF_IPC, "/tmp/test.ipc");
+assert (s >= 0);
+----
+
+
+SEE ALSO
+--------
+linkxio:xpf_inp[7]
+linkxio:xpf_ipc[7]
+linkxio:xpf_tcp[7]
+linkxio:xsocket[3]
+linkxio:xbind[3]
+linkxio:xclose[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+

@@ -1,0 +1,43 @@
+xrecv(3)
+==========
+
+NAME
+----
+xrecv - receive a message
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int xrecv (int 's', void '**xmsg');*
+
+
+DESCRIPTION
+-----------
+Receive a message from the socket 's' and store it in the buffer referenced by
+the 'xmsg' argument.
+
+RETURN VALUE
+------------
+On success, zero is returned.  On error, -1 is returned, and errno is set
+appropriately.
+
+
+ERRORS
+------
+*EAGAIN*::
+Non-blocking mode was requested and there's no message to receive at the moment.
+*EINTR*::
+The operation was interrupted by delivery of a signal before the message was
+received.
+
+SEE ALSO
+--------
+linkxio:xsend[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>

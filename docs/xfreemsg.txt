@@ -1,0 +1,54 @@
+xfreemsg(3)
+=============
+
+NAME
+----
+xfreemsg - deallocate a message
+
+
+SYNOPSIS
+--------
+*#include <xio/sock.h>*
+
+*int xfreemsg (void '*msg');*
+
+
+DESCRIPTION
+-----------
+Deallocates a message allocated using linkxio:xallocmsg[3] function or
+received via linkxio:xrecv[3] function. when message send, it maybe directly
+push into the peer xmq. it allows for using zero-copy techniques.
+
+RETURN VALUE
+------------
+On success, zero is returned.  On error, -1 is returned, and errno is set
+appropriately.
+
+ERRORS
+------
+*EFAULT*::
+The message pointer is invalid.
+
+
+EXAMPLE
+-------
+
+----
+void *buf;
+xrecv (s, &buf);
+xfreemsg (buf);
+----
+
+
+SEE ALSO
+--------
+linkxio:xallocmsg[3]
+linkxio:xmsglen[3]
+linkxio:xrecv[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+Martin Sustrik <sustrik@250bpm.com>
+Dong Fang <yp.fangdong@gmail.com>
+
