@@ -1,5 +1,5 @@
-#ifndef _HPIO_X
-#define _HPIO_X
+#ifndef _HPIO_XSOCK_
+#define _HPIO_XSOCK_
 
 #include <inttypes.h>
 
