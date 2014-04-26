@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <time.h>
 #include <string.h>
+#include <string>
 extern "C" {
 #include <sync/spin.h>
 #include <runner/thread.h>
@@ -9,19 +10,22 @@ extern "C" {
 #include <xio/poll.h>
 }
 
+using namespace std;
+
 extern int randstr(char *buf, int len);
 
 static int cnt = 10;
 
-static void xclient(int pf) {
+static void xclient(string pf) {
     int sfd, i;
     int buf_sz = 0;
     int64_t nbytes;
     char buf[1024] = {};
     char *payload;
+    string host(pf + "://127.0.0.1:18894");
 
     randstr(buf, 1024);
-    BUG_ON((sfd = xconnect(pf, "127.0.0.1:18894")) < 0);
+    BUG_ON((sfd = xconnect(host.c_str())) < 0);
     xsetopt(sfd, XSNDBUF, &buf_sz, sizeof(buf_sz));
     xsetopt(sfd, XRCVBUF, &buf_sz, sizeof(buf_sz));
     for (i = 0; i < cnt; i++) {
@@ -38,8 +42,8 @@ static void xclient(int pf) {
 }
 
 static int xclient_thread(void *arg) {
-    xclient(XPF_TCP);
-    xclient(XPF_INPROC);
+    xclient("tcp");
+    xclient("inproc");
     return 0;
 }
 
@@ -49,8 +53,9 @@ static void xserver() {
     int afd, sfd;
     thread_t cli_thread = {};
     char *payload;
-
-    BUG_ON((afd = xlisten(XPF_TCP|XPF_INPROC, "127.0.0.1:18894")) < 0);
+    string host("tcp+inproc://127.0.0.1:18894");
+    
+    BUG_ON((afd = xlisten(host.c_str())) < 0);
     thread_start(&cli_thread, xclient_thread, 0);
 
     for (j = 0; j < 2; j++) {
@@ -71,13 +76,14 @@ static void xserver() {
 
 static struct xpoll_t *po = 0;
 
-static void xclient2(int pf) {
+static void xclient2(string pf) {
     int i;
     int sfd[cnt];
     struct xpoll_event event[cnt];
+    string host(pf + "://127.0.0.1:18895");
 
     for (i = 0; i < cnt; i++) {
-	BUG_ON((sfd[i] = xconnect(pf, "127.0.0.1:18895")) < 0);
+	BUG_ON((sfd[i] = xconnect(host.c_str())) < 0);
 	event[i].xd = sfd[i];
 	event[i].self = po;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -88,9 +94,9 @@ static void xclient2(int pf) {
 }
 
 static int xclient_thread2(void *arg) {
-    xclient2(XPF_TCP);
-    xclient2(XPF_IPC);
-    xclient2(XPF_INPROC);
+    xclient2("tcp");
+    xclient2("ipc");
+    xclient2("inproc");
     return 0;
 }
 
@@ -102,7 +108,7 @@ static void xserver2() {
 
     po = xpoll_create();
     DEBUG_OFF("%p", po);
-    BUG_ON((afd = xlisten(XPF_TCP|XPF_IPC|XPF_INPROC, "127.0.0.1:18895")) < 0);
+    BUG_ON((afd = xlisten("tcp+ipc+inproc://127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, 0);
     event[0].xd = afd;
     event[0].self = po;
@@ -158,7 +164,7 @@ static void inproc_client2() {
     int sfd, i;
 
     for (i = 0; i < cnt2/2; i++) {
-	if ((sfd = xconnect(XPF_INPROC, "/b_inproc")) < 0)
+	if ((sfd = xconnect("inproc://b_inproc")) < 0)
 	    break;
 	xclose(sfd);
     }
@@ -173,7 +179,7 @@ static void inproc_client3() {
     int sfd, i;
 
     for (i = 0; i < cnt2/2; i++) {
-	if ((sfd = xconnect(XPF_INPROC, "/b_inproc")) < 0)
+	if ((sfd = xconnect("inproc://b_inproc")) < 0)
 	    break;
 	xclose(sfd);
     }
@@ -188,7 +194,7 @@ static void inproc_server_thread2() {
     int i, afd, sfd;
     thread_t cli_thread[2] = {};
 
-    BUG_ON((afd = xlisten(XPF_INPROC, "/b_inproc")) < 0);
+    BUG_ON((afd = xlisten("inproc://b_inproc")) < 0);
     thread_start(&cli_thread[0], inproc_client_thread2, NULL);
     thread_start(&cli_thread[1], inproc_client_thread3, NULL);
 

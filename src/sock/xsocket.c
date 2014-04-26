@@ -87,6 +87,8 @@ int xsocket(int pf, int type) {
     return sx->xd;
 }
 
+extern int _xlisten(int pf, const char *addr);
+
 static int xmultiple_listen(int xd, const char *addr) {
     int sub_xd;
     struct xsock_protocol *l4proto, *nx;
@@ -97,7 +99,7 @@ static int xmultiple_listen(int xd, const char *addr) {
 	if (!(pf & l4proto->pf) || l4proto->type != XLISTENER)
 	    continue;
 	pf &= ~l4proto->pf;
-	if ((sub_xd = xlisten(l4proto->pf, addr)) < 0)
+	if ((sub_xd = _xlisten(l4proto->pf, addr)) < 0)
 	    goto BAD;
 	sub_sx = xget(sub_xd);
 	sub_sx->parent = xd;

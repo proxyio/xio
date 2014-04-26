@@ -18,8 +18,18 @@
 
 #define null NULL
 
+#define XPF_TCP       TP_TCP
+#define XPF_IPC       TP_IPC
+#define XPF_INPROC    TP_INPROC
+
 /* Multiple protocols */
 #define XPF_MULE      (XPF_TCP|XPF_IPC|XPF_INPROC)
+
+#define XLISTENER   1
+#define XCONNECTOR  2
+
+int xsocket(int pf, int type);
+int xbind(int xd, const char *addr);
 
 /* Max number of concurrent socks. */
 #define XSOCK_MAX_SOCKS 10240

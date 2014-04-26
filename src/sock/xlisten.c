@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include <runner/taskpool.h>
+#include <transport/sockaddr.h>
 #include "xsock_struct.h"
 
 int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
@@ -55,4 +56,30 @@ int xaccept(int xd) {
 	return new_sx->xd;
     errno = EAGAIN;
     return -1;
+}
+
+int _xlisten(int pf, const char *addr) {
+    int xd = xsocket(pf, XLISTENER);
+
+    if (pf <= 0) {
+	errno = EPROTO;
+	return -1;
+    }
+    if (xd < 0) {
+	errno = EMFILE;
+	return -1;
+    }
+    if (xbind(xd, addr) != 0)
+	return -1;
+    return xd;
+}
+
+
+int xlisten(const char *addr) {
+    int pf = sockaddr_pf(addr);
+    char sx_addr[TP_SOCKADDRLEN] = {};
+
+    if (sockaddr_addr(addr, sx_addr, sizeof(sx_addr)) != 0)
+	return -1;
+    return _xlisten(pf, sx_addr);
 }

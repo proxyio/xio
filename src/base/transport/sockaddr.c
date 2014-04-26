@@ -7,7 +7,7 @@
  * net    group@net://182.33.49.10:8080
  * inproc group@inproc://inproc.sock
  */
-int xsockaddr_group(const char *url, char *buff, u32 size) {
+int sockaddr_group(const char *url, char *buff, u32 size) {
     char *at = strchr(url, '@');;
 
     if (!at) {
@@ -18,11 +18,12 @@ int xsockaddr_group(const char *url, char *buff, u32 size) {
     return 0;
 }
 
-int xsockaddr_pf(const char *url) {
+int sockaddr_pf(const char *url) {
+    int pf = 0;
     char *at = strchr(url, '@');;
-    char *pf = strstr(url, "://");;
+    char *pfp = strstr(url, "://");;
 
-    if (!pf || at >= pf) {
+    if (!pfp || at >= pfp) {
 	errno = EINVAL;
 	return -1;
     }
@@ -30,17 +31,18 @@ int xsockaddr_pf(const char *url) {
 	++at;
     else
 	at = (char *)url;
-    if (strncmp(at, "tcp", pf - at) == 0)
-	return TP_TCP;
-    else if (strncmp(at, "ipc", pf - at) == 0)
-	return TP_IPC;
-    else if (strncmp(at, "inproc", pf - at) == 0)
-	return TP_INPROC;
-    errno = EINVAL;
-    return -1;
+    pfp = strndup(at, pfp - at);
+    pf |= strstr(pfp, "tcp") ? TP_TCP : 0;
+    pf |= strstr(pfp, "ipc") ? TP_IPC : 0;
+    pf |= strstr(pfp, "inproc") ? TP_INPROC : 0;
+    if (!pf) {
+	errno = EINVAL;
+	return -1;
+    }
+    return pf;
 }
 
-int xsockaddr_addr(const char *url, char *buff, u32 size) {
+int sockaddr_addr(const char *url, char *buff, u32 size) {
     char *tok = "://";
     char *sock = strstr(url, tok);
 
