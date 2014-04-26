@@ -23,7 +23,7 @@ const char *xprotocol_str[] = {
     "PF_NET|PF_IPC|PF_INPROC",
 };
 
-static int __shutdown_socks_task_hndl(struct xcpu *cpu) {
+static void __shutdown_socks_task_hndl(struct xcpu *cpu) {
     struct xtask *ts, *nx_ts;
     struct list_head st_head = {};
 
@@ -37,7 +37,6 @@ static int __shutdown_socks_task_hndl(struct xcpu *cpu) {
 	list_del_init(&ts->link);
 	ts->f(ts);
     }
-    return 0;
 }
 
 static int cpu_task_hndl(eloop_t *el, ev_t *et) {
@@ -79,13 +78,6 @@ static inline int kcpud(void *args) {
 }
 
 
-extern struct xsock_protocol xinp_listener_protocol;
-extern struct xsock_protocol xinp_connector_protocol;
-extern struct xsock_protocol xipc_listener_protocol;
-extern struct xsock_protocol xipc_connector_protocol;
-extern struct xsock_protocol xtcp_listener_protocol;
-extern struct xsock_protocol xtcp_connector_protocol;
-
 struct xsock_protocol *l4proto_lookup(int pf, int type) {
     struct xsock_protocol *l4proto, *nx;
 
@@ -96,6 +88,13 @@ struct xsock_protocol *l4proto_lookup(int pf, int type) {
     return 0;
 }
 
+extern struct xsock_protocol xinp_listener_protocol;
+extern struct xsock_protocol xinp_connector_protocol;
+extern struct xsock_protocol xipc_listener_protocol;
+extern struct xsock_protocol xipc_connector_protocol;
+extern struct xsock_protocol xtcp_listener_protocol;
+extern struct xsock_protocol xtcp_connector_protocol;
+extern struct xsock_protocol xmul_listener_protocol[3];
 
 void xmodule_init() {
     waitgroup_t wg;
@@ -135,6 +134,10 @@ void xmodule_init() {
     list_add_tail(&xipc_connector_protocol.link, protocol_head);
     list_add_tail(&xtcp_listener_protocol.link, protocol_head);
     list_add_tail(&xtcp_connector_protocol.link, protocol_head);
+    list_add_tail(&xmul_listener_protocol[0].link, protocol_head);
+    list_add_tail(&xmul_listener_protocol[1].link, protocol_head);
+    list_add_tail(&xmul_listener_protocol[2].link, protocol_head);
+    list_add_tail(&xmul_listener_protocol[3].link, protocol_head);
 }
 
 void xmodule_exit() {

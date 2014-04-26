@@ -46,7 +46,7 @@ int xbind(int xd, const char *addr);
 #define XMQ_NONFULL      0x20
 
 struct xtask;
-typedef int (*xtask_func) (struct xtask *ts);
+typedef void (*xtask_func) (struct xtask *ts);
 
 struct xtask {
     xtask_func f;

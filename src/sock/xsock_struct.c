@@ -64,7 +64,7 @@ struct xsock *xget(int xd) {
     return &xgb.socks[xd];
 }
 
-extern int xshutdown_task_f(struct xtask *ts);
+extern void xshutdown_task_f(struct xtask *ts);
 
 static void xsock_init(int xd) {
     struct xsock *sx = xget(xd);
