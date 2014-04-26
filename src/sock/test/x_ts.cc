@@ -38,7 +38,7 @@ static void xclient(int pf) {
 }
 
 static int xclient_thread(void *arg) {
-    xclient(XPF_NET);
+    xclient(XPF_TCP);
     xclient(XPF_INPROC);
     return 0;
 }
@@ -50,7 +50,7 @@ static void xserver() {
     thread_t cli_thread = {};
     char *payload;
 
-    BUG_ON((afd = xlisten(XPF_NET|XPF_INPROC, "127.0.0.1:18894")) < 0);
+    BUG_ON((afd = xlisten(XPF_TCP|XPF_INPROC, "127.0.0.1:18894")) < 0);
     thread_start(&cli_thread, xclient_thread, 0);
 
     for (j = 0; j < 2; j++) {
@@ -88,7 +88,7 @@ static void xclient2(int pf) {
 }
 
 static int xclient_thread2(void *arg) {
-    xclient2(XPF_NET);
+    xclient2(XPF_TCP);
     xclient2(XPF_IPC);
     xclient2(XPF_INPROC);
     return 0;
@@ -102,7 +102,7 @@ static void xserver2() {
 
     po = xpoll_create();
     DEBUG_OFF("%p", po);
-    BUG_ON((afd = xlisten(XPF_NET|XPF_IPC|XPF_INPROC, "127.0.0.1:18895")) < 0);
+    BUG_ON((afd = xlisten(XPF_TCP|XPF_IPC|XPF_INPROC, "127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, 0);
     event[0].xd = afd;
     event[0].self = po;

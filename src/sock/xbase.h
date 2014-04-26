@@ -19,7 +19,7 @@
 #define null NULL
 
 /* Multiple protocols */
-#define XPF_MULE      (XPF_NET|XPF_IPC|XPF_INPROC)
+#define XPF_MULE      (XPF_TCP|XPF_IPC|XPF_INPROC)
 
 /* Max number of concurrent socks. */
 #define XSOCK_MAX_SOCKS 10240

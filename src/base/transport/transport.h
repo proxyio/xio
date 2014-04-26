@@ -3,19 +3,19 @@
 
 #include "ds/list.h"
 
-#define TP_TCP 1
-#define TP_IPC 2
-#define TP_MOCK_INPROC 4
+#define TP_TCP            1
+#define TP_IPC            2
+#define TP_INPROC         4
 
-#define TP_LINGER 1
-#define TP_SNDBUF 2
-#define TP_RCVBUF 3
-#define TP_NOBLOCK 4
-#define TP_NODELAY 5
-#define TP_RCVTIMEO 6
-#define TP_SNDTIMEO 7
-#define TP_REUSEADDR 8
-#define TP_SOCKADDRLEN 128
+#define TP_LINGER         1
+#define TP_SNDBUF         2
+#define TP_RCVBUF         3
+#define TP_NOBLOCK        4
+#define TP_NODELAY        5
+#define TP_RCVTIMEO       6
+#define TP_SNDTIMEO       7
+#define TP_REUSEADDR      8
+#define TP_SOCKADDRLEN    128
 
 struct transport {
     const char *name;

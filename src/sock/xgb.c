@@ -103,7 +103,11 @@ void xmodule_init() {
     int cpu_no;
     int i;
     struct list_head *protocol_head = &xgb.xsock_protocol_head;
-    
+
+    BUG_ON(TP_TCP != XPF_TCP);
+    BUG_ON(TP_IPC != XPF_IPC);
+    BUG_ON(TP_INPROC != XPF_INPROC);
+
     waitgroup_init(&wg);
     xgb.exiting = false;
     mutex_init(&xgb.lock);

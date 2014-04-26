@@ -20,7 +20,7 @@ char *xiov_base(char *xbuf) {
     return (char *)&msg->vec;
 }
 
-char *xallocmsg(u32 size) {
+char *xallocmsg(int size) {
     struct xmsg *msg;
     char *chunk = (char *)mem_zalloc(sizeof(*msg) + size);
     if (!chunk)
@@ -36,7 +36,7 @@ void xfreemsg(char *xbuf) {
     mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 
-u32 xmsglen(char *xbuf) {
+int xmsglen(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     return msg->vec.size;
 }

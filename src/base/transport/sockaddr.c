@@ -1,10 +1,10 @@
 #include <base.h>
-#include <xio/sock.h>
-#include "xsockaddr.h"
+#include "transport.h"
+#include "sockaddr.h"
 
-/* XSOCKADDR example : 
+/* SOCKADDR example : 
  * ipc    group@ipc://tmp/ipc.sock
- * net    group@net://182.33.49.10
+ * net    group@net://182.33.49.10:8080
  * inproc group@inproc://inproc.sock
  */
 int xsockaddr_group(const char *url, char *buff, u32 size) {
@@ -30,12 +30,12 @@ int xsockaddr_pf(const char *url) {
 	++at;
     else
 	at = (char *)url;
-    if (strncmp(at, "net", pf - at) == 0)
-	return XPF_NET;
+    if (strncmp(at, "tcp", pf - at) == 0)
+	return TP_TCP;
     else if (strncmp(at, "ipc", pf - at) == 0)
-	return XPF_IPC;
+	return TP_IPC;
     else if (strncmp(at, "inproc", pf - at) == 0)
-	return XPF_INPROC;
+	return TP_INPROC;
     errno = EINVAL;
     return -1;
 }

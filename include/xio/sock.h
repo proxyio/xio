@@ -3,7 +3,7 @@
 
 #include <inttypes.h>
 
-#define XPF_NET       1
+#define XPF_TCP       1
 #define XPF_IPC       2
 #define XPF_INPROC    4
 
