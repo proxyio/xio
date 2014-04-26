@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 struct xmsg *pop_rcv(struct xsock *sx) {
     struct xmsg *msg = 0;

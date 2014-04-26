@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 
 int xsetopt(int xd, int opt, void *on, int size) {

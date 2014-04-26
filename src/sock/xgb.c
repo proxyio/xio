@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 /* Backend poller wait kernel timeout msec */
 #define DEF_ELOOPTIMEOUT 1

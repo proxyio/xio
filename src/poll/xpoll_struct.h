@@ -6,7 +6,7 @@
 #include <sync/condition.h>
 #include <ds/list.h>
 #include <xio/poll.h>
-#include <sock/xbase.h>
+#include <sock/xsock_struct.h>
 
 
 struct xpoll_entry;

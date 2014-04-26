@@ -1,6 +1,6 @@
 #include <os/timesz.h>
 #include <base.h>
-#include <sock/xbase.h>
+#include <sock/xsock_struct.h>
 #include <poll/xpoll_struct.h>
 
 struct xpoll_entry *xent_new() {

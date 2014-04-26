@@ -1,5 +1,5 @@
-#ifndef _HPIO_XSOCKBASE_
-#define _HPIO_XSOCKBASE_
+#ifndef _HPIO_XSOCK_STRUCT_
+#define _HPIO_XSOCK_STRUCT_
 
 #include <base.h>
 #include <ds/map.h>

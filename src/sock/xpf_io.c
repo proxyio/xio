@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct xsock *sx = cont_of(ops, struct xsock, io.ops);

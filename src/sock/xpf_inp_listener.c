@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 /******************************************************************************
  *  xsock's proc field operation.

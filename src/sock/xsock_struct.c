@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 /* Default input/output buffer size */
 static int DEF_SNDBUF = 10485760;

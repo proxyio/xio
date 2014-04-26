@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 /* Generic xpoll_t notify function. always called by xsock_protocol
  * when has any message come or can send any massage into network

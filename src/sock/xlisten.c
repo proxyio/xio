@@ -3,8 +3,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sync/waitgroup.h>
-#include "runner/taskpool.h"
-#include "xbase.h"
+#include <runner/taskpool.h>
+#include "xsock_struct.h"
 
 int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
     int rc = 0;

@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sync/waitgroup.h>
 #include "runner/taskpool.h"
-#include "xbase.h"
+#include "xsock_struct.h"
 
 static void xshutdown(struct xsock *sx) {
     struct xcpu *cpu = xcpuget(sx->cpu_no);
