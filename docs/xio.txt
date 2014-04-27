@@ -1,14 +1,14 @@
-xio(3)
+proxyio(7)
 ==========
 
 NAME
 ----
-xio - scalability protocols library
+proxyio(xio) - scalability protocols library.
 
 
 SYNOPSIS
 --------
-*cc* ['flags'] 'files' *-lxio* ['libraries']
+cc ['flags'] 'files' *-lxio* ['libraries']
 
 
 DESCRIPTION
