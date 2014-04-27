@@ -3,6 +3,10 @@
 
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 char *xallocmsg(int size);
 void xfreemsg(char *xbuf);
 int xmsglen(char *xbuf);
@@ -37,5 +41,8 @@ int xsetsockopt(int xd, int level, int optname, void *optval, int optlen);
 int xgetsockopt(int xd, int level, int optname, void *optval, int *optlen);
 
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,6 +1,11 @@
 #ifndef _HPIO_POLL_
 #define _HPIO_POLL_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define XPOLLIN   1
 #define XPOLLOUT  2
 #define XPOLLERR  4
@@ -29,5 +34,8 @@ int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ue);
 int xpoll_wait(struct xpoll_t *xp, struct xpoll_event *events, int n,
 	       u32 timeout);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
