@@ -3,20 +3,24 @@ xconnect(3)
 
 NAME
 ----
-xconnect - create a xsocket connection
+xconnect - create a connector xsocket
 
 
 SYNOPSIS
 --------
 *#include <xio/sock.h>*
 
-*int xconnect (int 'pf', const char '*addr');*
+*int xconnect (const char '*addr');*
 
 
 DESCRIPTION
 -----------
 Connect to the specified remote sockaddr. this is a helper function for
 xsocket[3] + xbind[3].
+
+The 'addr' argument consists of two parts as follows: 'transport'`://`'address'.
+The 'transport' specifies the underlying transport protocol to use. The meaning
+of the 'address' part is specific to the underlying transport protocol.
 
 Maximum length of the 'addr' parameter is specified by _XSOCKADDRLEN_
 defined in '<xio/sock.h>' header file.
@@ -40,13 +44,13 @@ EXAMPLE
 -------
 
 ----
-s = xconnect (XPF_NET, "127.0.0.1:8080");
+s = xconnect ("ipc://127.0.0.1:8080");
 assert (s >= 0);
 ----
 
 SEE ALSO
 --------
-linkxio:xpf_inp[7]
+linkxio:xpf_inproc[7]
 linkxio:xpf_ipc[7]
 linkxio:xpf_net[7]
 linkxio:xsocket[3]

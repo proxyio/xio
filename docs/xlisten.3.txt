@@ -4,24 +4,27 @@ xlisten(3)
 
 NAME
 ----
-xlisten - listen for connections and return a new listener socket
+xlisten - create a listener xsocket
 
 
 SYNOPSIS
 --------
 *#include <xio/sock.h>*
 
-*int xlisten (int 'pf', const char '*addr');*
+*int xlisten (const char '*addr');*
 
 
 DESCRIPTION
 -----------
-Listen on the specified sockaddr, this is a helper function for xsocket[3] +
-xbind[3].
+Listen on the specified sockaddr, this is a helper function for
+xsocket[3] + xbind[3].
+
+The 'addr' argument consists of two parts as follows: 'transport'`://`'address'.
+The 'transport' specifies the underlying transport protocol to use. The meaning
+of the 'address' part is specific to the underlying transport protocol.
 
 Maximum length of the 'addr' parameter is specified by _XSOCKADDRLEN_
 defined in '<xio/sock.h>' header file.
-
 
 RETURN VALUE
 ------------
@@ -42,14 +45,14 @@ EXAMPLE
 -------
 
 ----
-s = xlisten (XPF_IPC, "/tmp/test.ipc");
+s = xlisten ("ipc:///tmp/test.ipc");
 assert (s >= 0);
 ----
 
 
 SEE ALSO
 --------
-linkxio:xpf_inp[7]
+linkxio:xpf_inproc[7]
 linkxio:xpf_ipc[7]
 linkxio:xpf_tcp[7]
 linkxio:xsocket[3]

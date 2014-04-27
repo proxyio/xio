@@ -10,7 +10,7 @@ SYNOPSIS
 --------
 *#include <xio/sock.h>*
 
-*int xclose (int 's');*
+*void xclose (int 's');*
 
 
 DESCRIPTION
@@ -22,26 +22,18 @@ The call will block in the meantime.
 
 RETURN VALUE
 ------------
-On success, 0 is returned.  On error, -1 is returned, and errno is set
-appropriately.
-
+Nothing returned for this function.
 
 ERRORS
 ------
-*EBADF*::
-The provided socket is invalid.
-*EINTR*::
-Operation was interrupted by a signal. The socket is not fully closed yet.
-Operation can be re-started by calling _xclose()_ again.
-
+No errors for this function.
 
 EXAMPLE
 -------
 
 ----
-int s = xsocket (XPF_NET, XLISTENER);
-int rc = xclose (s);
-assert (rc == 0);
+int s = xlisten ("tcp://127.0.0.1:8080");
+xclose (s);
 ----
 
 

@@ -20,13 +20,13 @@ descriptor for the newly created xsocket.
 
 Following pfs are defined at the moment:
 
-*XPF_NET*::
+*XPF_TCP*::
 TCP transport mechanism
 
 *XPF_IPC*::
 inter-process transport mechanism
 
-*XPF_INP*::
+*XPF_INPROC*::
 in-process transport mechanism
 
 
@@ -43,21 +43,18 @@ connection requests using xbind[3] or using helper API xlisten[3]
 xsocket connector, a xsocket that will be used to connect to remote listening
 xsocket using xbind[3] or using helper API xconnect[3]
 
-The newly created xsocket is initially not associated with any endpoints.
-In order to establish a message flow at least one endpoint has to be added
-to the socket using linkxio:xbind[3] function.
+The newly created xsocket exists in a name space (address family) but has no
+address assigned to it. see linkxio:xbind[3] function.
 
 RETURN VALUE
 ------------
-If the function succeeds file descriptor of the new xsocket is returned.
-Otherwise, -1 is returned and 'errno' is set to to one of the values defined
-below.
+On success, a xsocket descriptor for the new xsocket is returned.  On error,
+-1 is returned, and errno is set appropriately.
 
-Note that file descriptors returned are not standard system file descriptors
-and will exhibit undefined behaviour when used with system functions.
+Note that xsocket file descriptors returned are not standard system file
+descriptors and will exhibit undefined behaviour when used with system functions.
 Moreover, it may happen that a system file descriptor and file descriptor of
 an xsocket will incidentally collide (be equal).
-
 
 ERRORS
 ------
@@ -71,11 +68,11 @@ EXAMPLE
 -------
 
 ----
-int s = xsocket (XPF_NET, XLISTENER);
+int s = xsocket (XPF_TCP, XLISTENER);
 
 or
 
-int s = xsocket (XPF_NET|XPF_IPC, XLISTENER);
+int s = xsocket (XPF_TCP|XPF_IPC, XLISTENER);
 
 
 ----

@@ -15,15 +15,11 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-Adds a endpoint to the xsocket 's'. if the xsocket's type is XLISTENER, the
-endpoint can be then used by other applications to connect to. or if the
-xsocket's type is XCONNECTOR, the endpoint can be then used by caller connect
-to remote listend xsocket.
+xbind() assigns the address specified to by addr to the socket referred to by
+'s'. if the xsocket type is XLISTENER, it is the same as xlisten[3]. or if the
+xsocket's type is XCONNECTOR, it is the same as xconnect[3].
 
 The 'addr' is specific to the underlying transport protocol.
-
-For the list of available transport protocols check the list on linkxio:xio[7]
-manual page.
 
 Maximum length of the 'addr' parameter is specified by XSOCKADDRLEN defined in
 '<xio/sock.h>' header file.
@@ -48,26 +44,26 @@ EXAMPLE
 -------
 
 ----
-s = xsocket (XPF_NET, XLISTENER);
+s = xsocket (XPF_TCP, XLISTENER);
 assert (xbind (s, "192.168.1.2:8080") == 0);
 
 same as:
-s = xlisten(XPF_NET, "192.168.1.2:8080");
+s = xlisten("tcp://192.168.1.2:8080");
 
 
-s = xsocket (XPF_NET, XCONNECTOR);
+s = xsocket (XPF_TCP, XCONNECTOR);
 assert (xbind (s, "192.168.1.2:8080") == 0);
 
 same as:
-s = xconnect(XPF_NET, "192.168.1.2:8080");
+s = xconnect("tcp://192.168.1.2:8080");
 
 ----
 
 SEE ALSO
 --------
-linkxio:xpf_inp[7]
+linkxio:xpf_inproc[7]
 linkxio:xpf_ipc[7]
-linkxio:xpf_net[7]
+linkxio:xpf_tcp[7]
 linkxio:xsocket[3]
 linkxio:xlisten[3]
 linkxio:xconnect[3]

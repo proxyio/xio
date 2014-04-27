@@ -397,13 +397,10 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Adds a endpoint to the xsocket <em>s</em>. if the xsocket&#8217;s type is XLISTENER, the
-endpoint can be then used by other applications to connect to. or if the
-xsocket&#8217;s type is XCONNECTOR, the endpoint can be then used by caller connect
-to remote listend xsocket.</p></div>
+<div class="paragraph"><p>xbind() assigns the address specified to by addr to the socket referred to by
+<em>s</em>. if the xsocket type is XLISTENER, it is the same as xlisten[3]. or if the
+xsocket&#8217;s type is XCONNECTOR, it is the same as xconnect[3].</p></div>
 <div class="paragraph"><p>The <em>addr</em> is specific to the underlying transport protocol.</p></div>
-<div class="paragraph"><p>For the list of available transport protocols check the list on <a href="xio.7.html">xio(7)</a>
-manual page.</p></div>
 <div class="paragraph"><p>Maximum length of the <em>addr</em> parameter is specified by XSOCKADDRLEN defined in
 <em>&lt;xio/sock.h&gt;</em> header file.</p></div>
 </div>
@@ -453,25 +450,25 @@ The requested local endpoint is already in use.
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
-<pre><tt>s = xsocket (XPF_NET, XLISTENER);
+<pre><tt>s = xsocket (XPF_TCP, XLISTENER);
 assert (xbind (s, "192.168.1.2:8080") == 0);
 
 same as:
-s = xlisten(XPF_NET, "192.168.1.2:8080");
+s = xlisten("tcp://192.168.1.2:8080");
 
 
-s = xsocket (XPF_NET, XCONNECTOR);
+s = xsocket (XPF_TCP, XCONNECTOR);
 assert (xbind (s, "192.168.1.2:8080") == 0);
 
 same as:
-s = xconnect(XPF_NET, "192.168.1.2:8080");</tt></pre>
+s = xconnect("tcp://192.168.1.2:8080");</tt></pre>
 </div></div>
 </div>
 <h2 id="_see_also">SEE ALSO</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><a href="xpf_inp.7.html">xpf_inp(7)</a>
+<div class="paragraph"><p><a href="xpf_inproc.7.html">xpf_inproc(7)</a>
 <a href="xpf_ipc.7.html">xpf_ipc(7)</a>
-<a href="xpf_net.7.html">xpf_net(7)</a>
+<a href="xpf_tcp.7.html">xpf_tcp(7)</a>
 <a href="xsocket.3.html">xsocket(3)</a>
 <a href="xlisten.3.html">xlisten(3)</a>
 <a href="xconnect.3.html">xconnect(3)</a>
@@ -490,7 +487,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 14:29:16 CST
+Last updated 2014-04-27 14:54:45 CST
 </div>
 </div>
 </body>

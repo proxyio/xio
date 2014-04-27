@@ -53,7 +53,7 @@ Get xmsg length::
     linkxio:xmsglen[3]
     
 Multiplexing::
-    linkxio:xpoll_create[3]
+    linkxio:xpoll[3]
     linkxio:xpoll_ctl[3]
     linkxio:xpoll_wait[3]    
 

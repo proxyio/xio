@@ -393,10 +393,13 @@ div#toc a:visited { color: blue; }
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>#include &lt;xio/poll.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>#define XPOLL_ADD 1</strong>
-<strong>#define XPOLL_DEL 2</strong>
-<strong>#define XPOLL_MOD 3</strong></p></div>
-<div class="paragraph"><p><strong>int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ev);</strong></p></div>
+<div class="literalblock">
+<div class="content">
+<pre><tt>          #define XPOLL_ADD 1
+          #define XPOLL_DEL 2
+          #define XPOLL_MOD 3
+*int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ev);*</tt></pre>
+</div></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
@@ -420,7 +423,8 @@ xpoll_event is defined as :</tt></pre>
 </div></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>struct xpoll_event {
+<pre><tt>----
+struct xpoll_event {
     int xd;
     void *self;</tt></pre>
 </div></div>
@@ -433,13 +437,16 @@ uint32_t care;</tt></pre>
 <div class="content">
 <pre><tt>    /* What events happened now */
     uint32_t happened;
-};</tt></pre>
+};
+----</tt></pre>
 </div></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>The care member is a bit set composed using the following available
-event types:
-XPOLLIN:
+<pre><tt>The care member is a bit set composed using the following available event types:</tt></pre>
+</div></div>
+<div class="literalblock">
+<div class="content">
+<pre><tt>XPOLLIN:
     The associated xsocket is available for xrecv[3] operations.
 XPOLLOUT:
     The associated file is available for xsend[3] operations.
@@ -509,7 +516,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 14:30:13 CST
+Last updated 2014-04-27 15:10:07 CST
 </div>
 </div>
 </body>

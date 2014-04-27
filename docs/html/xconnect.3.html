@@ -388,17 +388,20 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xconnect - create a xsocket connection</p></div>
+<div class="paragraph"><p>xconnect - create a connector xsocket</p></div>
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>#include &lt;xio/sock.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>int xconnect (int <em>pf</em>, const char <em>*addr</em>);</strong></p></div>
+<div class="paragraph"><p><strong>int xconnect (const char <em>*addr</em>);</strong></p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Connect to the specified remote sockaddr. this is a helper function for
 xsocket[3] + xbind[3].</p></div>
+<div class="paragraph"><p>The <em>addr</em> argument consists of two parts as follows: <em>transport</em><tt>://</tt><em>address</em>.
+The <em>transport</em> specifies the underlying transport protocol to use. The meaning
+of the <em>address</em> part is specific to the underlying transport protocol.</p></div>
 <div class="paragraph"><p>Maximum length of the <em>addr</em> parameter is specified by <em>XSOCKADDRLEN</em>
 defined in <em>&lt;xio/sock.h&gt;</em> header file.</p></div>
 </div>
@@ -440,13 +443,13 @@ The requested transport protocol is not supported.
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
-<pre><tt>s = xconnect (XPF_NET, "127.0.0.1:8080");
+<pre><tt>s = xconnect ("ipc://127.0.0.1:8080");
 assert (s &gt;= 0);</tt></pre>
 </div></div>
 </div>
 <h2 id="_see_also">SEE ALSO</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><a href="xpf_inp.7.html">xpf_inp(7)</a>
+<div class="paragraph"><p><a href="xpf_inproc.7.html">xpf_inproc(7)</a>
 <a href="xpf_ipc.7.html">xpf_ipc(7)</a>
 <a href="xpf_net.7.html">xpf_net(7)</a>
 <a href="xsocket.3.html">xsocket(3)</a>
@@ -465,7 +468,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 14:29:38 CST
+Last updated 2014-04-27 15:04:49 CST
 </div>
 </div>
 </body>

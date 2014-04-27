@@ -47,7 +47,7 @@ EXAMPLE
 -------
 
 ----
-s = xlisten ("tcp@eth0://127.0.0.1:5555");
+s = xlisten ("tcp://127.0.0.1:5555");
 ----
 
 SEE ALSO

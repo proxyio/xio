@@ -34,7 +34,7 @@ s = xconnect ("ipc:///tmp/test.ipc");
 
 SEE ALSO
 --------
-linkxio:xpf_inp[7]
+linkxio:xpf_inproc[7]
 linkxio:xpf_tcp[7]
 linkxio:xbind[3]
 linkxio:xlisten[3]

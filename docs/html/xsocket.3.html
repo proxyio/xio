@@ -402,7 +402,7 @@ descriptor for the newly created xsocket.</p></div>
 <div class="paragraph"><p>Following pfs are defined at the moment:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
-<strong>XPF_NET</strong>
+<strong>XPF_TCP</strong>
 </dt>
 <dd>
 <p>
@@ -418,7 +418,7 @@ inter-process transport mechanism
 </p>
 </dd>
 <dt class="hdlist1">
-<strong>XPF_INP</strong>
+<strong>XPF_INPROC</strong>
 </dt>
 <dd>
 <p>
@@ -449,17 +449,15 @@ xsocket using xbind[3] or using helper API xconnect[3]
 </p>
 </dd>
 </dl></div>
-<div class="paragraph"><p>The newly created xsocket is initially not associated with any endpoints.
-In order to establish a message flow at least one endpoint has to be added
-to the socket using <a href="xbind.3.html">xbind(3)</a> function.</p></div>
+<div class="paragraph"><p>The newly created xsocket exists in a name space (address family) but has no
+address assigned to it. see <a href="xbind.3.html">xbind(3)</a> function.</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>If the function succeeds file descriptor of the new xsocket is returned.
-Otherwise, -1 is returned and <em>errno</em> is set to to one of the values defined
-below.</p></div>
-<div class="paragraph"><p>Note that file descriptors returned are not standard system file descriptors
-and will exhibit undefined behaviour when used with system functions.
+<div class="paragraph"><p>On success, a xsocket descriptor for the new xsocket is returned.  On error,
+-1 is returned, and errno is set appropriately.</p></div>
+<div class="paragraph"><p>Note that xsocket file descriptors returned are not standard system file
+descriptors and will exhibit undefined behaviour when used with system functions.
 Moreover, it may happen that a system file descriptor and file descriptor of
 an xsocket will incidentally collide (be equal).</p></div>
 </div>
@@ -489,11 +487,11 @@ descriptors has been reached.
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
-<pre><tt>int s = xsocket (XPF_NET, XLISTENER);
+<pre><tt>int s = xsocket (XPF_TCP, XLISTENER);
 
 or
 
-int s = xsocket (XPF_NET|XPF_IPC, XLISTENER);</tt></pre>
+int s = xsocket (XPF_TCP|XPF_IPC, XLISTENER);</tt></pre>
 </div></div>
 </div>
 <h2 id="_see_also">SEE ALSO</h2>
@@ -516,7 +514,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 14:30:30 CST
+Last updated 2014-04-27 14:58:01 CST
 </div>
 </div>
 </body>

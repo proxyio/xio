@@ -9,10 +9,9 @@ SYNOPSIS
 --------
 *#include <xio/poll.h>*
 
-*#define XPOLL_ADD 1*
-*#define XPOLL_DEL 2*
-*#define XPOLL_MOD 3*
-
+	  #define XPOLL_ADD 1
+	  #define XPOLL_DEL 2
+	  #define XPOLL_MOD 3
 *int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ev);*
 
 
@@ -38,7 +37,8 @@ XPOLL_DEL
 
     The event argument describes the xsocket poll events.  The struct
     xpoll_event is defined as :
-    
+
+    ----
     struct xpoll_event {
         int xd;
 	void *self;
@@ -49,9 +49,10 @@ XPOLL_DEL
 	/* What events happened now */
 	uint32_t happened;
     };
+    ----
 
-    The care member is a bit set composed using the following available
-    event types:
+    The care member is a bit set composed using the following available event types:
+
     XPOLLIN:
 	The associated xsocket is available for xrecv[3] operations.
     XPOLLOUT:
@@ -60,6 +61,7 @@ XPOLL_DEL
         Error condition happened on the associated xsocket.  xpoll_wait[3] will
 	always wait for this event; it is not necessary to set it in events.
 
+	
 RETURN VALUE
 ------------
 When successful, xpoll_ctl() returns zero.  When an error occurs, xpoll_ctl()

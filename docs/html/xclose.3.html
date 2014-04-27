@@ -393,7 +393,7 @@ div#toc a:visited { color: blue; }
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>#include &lt;xio/sock.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>int xclose (int <em>s</em>);</strong></p></div>
+<div class="paragraph"><p><strong>void xclose (int <em>s</em>);</strong></p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
@@ -404,38 +404,18 @@ The call will block in the meantime.</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>On success, 0 is returned.  On error, -1 is returned, and errno is set
-appropriately.</p></div>
+<div class="paragraph"><p>Nothing returned for this function.</p></div>
 </div>
 <h2 id="_errors">ERRORS</h2>
 <div class="sectionbody">
-<div class="dlist"><dl>
-<dt class="hdlist1">
-<strong>EBADF</strong>
-</dt>
-<dd>
-<p>
-The provided socket is invalid.
-</p>
-</dd>
-<dt class="hdlist1">
-<strong>EINTR</strong>
-</dt>
-<dd>
-<p>
-Operation was interrupted by a signal. The socket is not fully closed yet.
-Operation can be re-started by calling <em>xclose()</em> again.
-</p>
-</dd>
-</dl></div>
+<div class="paragraph"><p>No errors for this function.</p></div>
 </div>
 <h2 id="_example">EXAMPLE</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
-<pre><tt>int s = xsocket (XPF_NET, XLISTENER);
-int rc = xclose (s);
-assert (rc == 0);</tt></pre>
+<pre><tt>int s = xlisten ("tcp://127.0.0.1:8080");
+xclose (s);</tt></pre>
 </div></div>
 </div>
 <h2 id="_see_also">SEE ALSO</h2>
@@ -458,7 +438,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 14:29:35 CST
+Last updated 2014-04-27 15:01:30 CST
 </div>
 </div>
 </body>
