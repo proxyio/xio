@@ -6,8 +6,8 @@
 extern "C" {
 #include <sync/spin.h>
 #include <runner/thread.h>
-#include <xio/sock.h>
 #include <xio/poll.h>
+#include <xio/socket.h>
 }
 
 using namespace std;
