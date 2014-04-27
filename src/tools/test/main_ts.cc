@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <sys/signal.h>
 extern "C" {
-#include "base/base.h"
+#include <base.h>
 }
 
 int gargc = 0;
