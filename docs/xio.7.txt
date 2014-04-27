@@ -1,9 +1,9 @@
-proxyio(7)
-==========
+xio(7)
+======
 
 NAME
 ----
-proxyio(xio) - scalability protocols library.
+xio - scalability protocols library.
 
 
 SYNOPSIS
@@ -75,8 +75,8 @@ xiobc::
 
 AUTHORS
 -------
-Dong Fang <yp.fangdong@gmail.com>
-Martin Sustrik <sustrik@250bpm.com>
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
 
 
 

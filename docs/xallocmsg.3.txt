@@ -50,7 +50,7 @@ linkxio:xio[7]
 
 AUTHORS
 -------
-Dong Fang <yp.fangdong@gmail.com>
-Martin Sustrik <sustrik@250bpm.com>
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
 
 
