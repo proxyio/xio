@@ -3,7 +3,12 @@
 
 #include <xio/ep.h>
 
+struct ep {
+};
 
+struct ep_global {
+
+};
 
 
 
