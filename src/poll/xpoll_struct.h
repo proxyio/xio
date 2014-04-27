@@ -28,7 +28,7 @@
 #include <sync/condition.h>
 #include <ds/list.h>
 #include <xio/poll.h>
-#include <sock/xsock_struct.h>
+#include <socket/xsock_struct.h>
 
 
 struct xpoll_entry;
