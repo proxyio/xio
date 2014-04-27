@@ -7,10 +7,6 @@ include_directories(
 	${PROJECT_SOURCE_DIR}/include/
 )
 
-link_directories(
-	${PROJECT_BUILD_DIR}/lib/
-)
-
 ## this setting must place before add_subdirectory ...
 set(CMAKE_VERBOSE_MAKEFILE off)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -31,3 +27,7 @@ enable_testing()
 add_subdirectory(src)
 
 ## include( src/CMakeTest.cmake )
+
+
+install( DIRECTORY ${PROJECT_SOURCE_DIR}/include/xio DESTINATION /usr/local/include )
+install( PROGRAMS ${PROJECT_BINARY_DIR}/lib/libxio.a DESTINATION /usr/local/lib/ )

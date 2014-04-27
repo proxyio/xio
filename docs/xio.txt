@@ -1,6 +1,5 @@
-xio(7)
+xio(3)
 ==========
-
 
 NAME
 ----
@@ -76,6 +75,8 @@ xiobc::
 
 AUTHORS
 -------
-Martin Sustrik <sustrik@250bpm.com>
 Dong Fang <yp.fangdong@gmail.com>
+Martin Sustrik <sustrik@250bpm.com>
+
+
 
