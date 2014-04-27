@@ -112,14 +112,27 @@ static void xinp_connector_close(int xd) {
 }
 
 
-static void snd_head_notify(int xd, uint32_t events) {
+static void snd_head_notify(int xd, u32 events) {
     if (events & XMQ_PUSH)
 	snd_head_push(xd);
 }
 
-static void rcv_head_notify(int xd, uint32_t events) {
+static void rcv_head_notify(int xd, u32 events) {
     if (events & XMQ_POP)
 	rcv_head_pop(xd);
+}
+
+static void xinp_connector_notify(int xd, int type, u32 events) {
+    switch (type) {
+    case RECV_Q:
+	rcv_head_notify(xd, events);
+	break;
+    case SEND_Q:
+	snd_head_notify(xd, events);
+	break;
+    default:
+	BUG_ON(1);
+    }
 }
 
 struct xsock_protocol xinp_connector_protocol = {
@@ -127,6 +140,5 @@ struct xsock_protocol xinp_connector_protocol = {
     .pf = XPF_INPROC,
     .bind = xinp_connector_bind,
     .close = xinp_connector_close,
-    .snd_notify = snd_head_notify,
-    .rcv_notify = rcv_head_notify,
+    .notify = xinp_connector_notify,
 };

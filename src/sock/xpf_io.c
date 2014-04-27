@@ -155,7 +155,7 @@ static void xio_connector_close(int xd) {
 }
 
 
-static void rcv_head_notify(int xd, uint32_t events) {
+static void rcv_head_notify(int xd, u32 events) {
     if (events & XMQ_POP)
 	rcv_head_pop(xd);
     if (events & XMQ_FULL)
@@ -164,12 +164,27 @@ static void rcv_head_notify(int xd, uint32_t events) {
 	rcv_head_nonfull(xd);
 }
 
-static void snd_head_notify(int xd, uint32_t events) {
+static void snd_head_notify(int xd, u32 events) {
     if (events & XMQ_EMPTY)
 	snd_head_empty(xd);
     else if (events & XMQ_NONEMPTY)
 	snd_head_nonempty(xd);
 }
+
+static void xio_connector_notify(int xd, int type, u32 events) {
+    switch (type) {
+    case RECV_Q:
+	rcv_head_notify(xd, events);
+	break;
+    case SEND_Q:
+	snd_head_notify(xd, events);
+	break;
+    default:
+	BUG_ON(1);
+    }
+}
+
+
 
 static int msg_ready(struct bio *b, i64 *chunk_sz) {
     struct xmsg msg = {};
@@ -245,8 +260,7 @@ struct xsock_protocol xtcp_connector_protocol = {
     .pf = XPF_TCP,
     .bind = xio_connector_bind,
     .close = xio_connector_close,
-    .rcv_notify = rcv_head_notify,
-    .snd_notify = snd_head_notify,
+    .notify = xio_connector_notify,
 };
 
 struct xsock_protocol xipc_connector_protocol = {
@@ -254,6 +268,5 @@ struct xsock_protocol xipc_connector_protocol = {
     .pf = XPF_IPC,
     .bind = xio_connector_bind,
     .close = xio_connector_close,
-    .rcv_notify = rcv_head_notify,
-    .snd_notify = snd_head_notify,
+    .notify = xio_connector_notify,
 };

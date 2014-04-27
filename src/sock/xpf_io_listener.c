@@ -82,12 +82,21 @@ static void xio_listener_close(int xd) {
     xsock_free(sx);
 }
 
-
-static void request_socks_notify(int xd, uint32_t events) {
+static void request_socks_notify(int xd, u32 events) {
     if (events & XMQ_FULL)
 	request_socks_full(xd);
     else if (events & XMQ_NONFULL)
 	request_socks_nonfull(xd);
+}
+
+static void xio_listener_notify(int xd, int type, uint32_t events) {
+    switch (type) {
+    case SOCKS_REQ:
+	request_socks_notify(xd, events);
+	break;
+    default:
+	BUG_ON(1);
+    }
 }
 
 extern int xio_connector_handler(eloop_t *el, ev_t *et);
@@ -125,8 +134,7 @@ struct xsock_protocol xtcp_listener_protocol = {
     .pf = XPF_TCP,
     .bind = xio_listener_bind,
     .close = xio_listener_close,
-    .rcv_notify = request_socks_notify,
-    .snd_notify = null,
+    .notify = xio_listener_notify,
 };
 
 struct xsock_protocol xipc_listener_protocol = {
@@ -134,6 +142,5 @@ struct xsock_protocol xipc_listener_protocol = {
     .pf = XPF_IPC,
     .bind = xio_listener_bind,
     .close = xio_listener_close,
-    .rcv_notify = request_socks_notify,
-    .snd_notify = null,
+    .notify = xio_listener_notify,
 };

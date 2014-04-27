@@ -33,8 +33,8 @@ struct xmsg *pop_rcv(struct xsock *sx) {
 	}
     }
 
-    if (events && l4proto->rcv_notify)
-	l4proto->rcv_notify(sx->xd, events);
+    if (events && l4proto->notify)
+	l4proto->notify(sx->xd, RECV_Q, events);
 
     mutex_unlock(&sx->lock);
     return msg;
@@ -60,8 +60,8 @@ void push_rcv(struct xsock *sx, struct xmsg *msg) {
     if (sx->rcv_waiters > 0)
 	condition_broadcast(&sx->cond);
 
-    if (events && l4proto->rcv_notify)
-	l4proto->rcv_notify(sx->xd, events);
+    if (events && l4proto->notify)
+	l4proto->notify(sx->xd, RECV_Q, events);
     mutex_unlock(&sx->lock);
 }
 

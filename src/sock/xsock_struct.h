@@ -36,7 +36,12 @@
 int xsocket(int pf, int type);
 int xbind(int xd, const char *addr);
 
-/* XSock MQ events */
+/* xsock_protocol notify types */
+#define RECV_Q           1
+#define SEND_Q           2
+#define SOCKS_REQ        3
+
+/* Following xmq events are provided by xsock */
 #define XMQ_PUSH         0x01
 #define XMQ_POP          0x02
 #define XMQ_EMPTY        0x04
@@ -123,7 +128,6 @@ static inline int can_recv(struct xsock *cn) {
 struct xsock *xget(int cd);
 void xsock_free(struct xsock *cn);
 struct xsock *xsock_alloc();
-void xsock_free(struct xsock *sx);
 
 struct xmsg *pop_rcv(struct xsock *cn);
 void push_rcv(struct xsock *cn, struct xmsg *msg);

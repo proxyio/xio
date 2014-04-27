@@ -32,8 +32,8 @@ struct xmsg *pop_snd(struct xsock *sx) {
 	    condition_broadcast(&sx->cond);
     }
 
-    if (events && l4proto->snd_notify)
-	l4proto->snd_notify(sx->xd, events);
+    if (events && l4proto->notify)
+	l4proto->notify(sx->xd, SEND_Q, events);
 
     __xpoll_notify(sx, 0);
     mutex_unlock(&sx->lock);
@@ -64,8 +64,8 @@ int push_snd(struct xsock *sx, struct xmsg *msg) {
 	DEBUG_OFF("xsock %d", sx->xd);
     }
 
-    if (events && l4proto->snd_notify)
-	l4proto->snd_notify(sx->xd, events);
+    if (events && l4proto->notify)
+	l4proto->notify(sx->xd, SEND_Q, events);
 
     mutex_unlock(&sx->lock);
     return rc;

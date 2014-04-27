@@ -80,6 +80,5 @@ struct xsock_protocol xinp_listener_protocol = {
     .pf = XPF_INPROC,
     .bind = xinp_listener_bind,
     .close = xinp_listener_close,
-    .snd_notify = null,
-    .rcv_notify = null,
+    .notify = 0,
 };
