@@ -1,9 +1,9 @@
-xpf_inp(7)
+xpf_inproc(7)
 ============
 
 NAME
 ----
-XPF_INP - in-process transport mechanism
+XPF_INPROC - in-process transport mechanism
 
 
 SYNOPSIS

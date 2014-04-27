@@ -60,7 +60,7 @@ Multiplexing::
 Following transport mechanisms are provided by xsock:
 
 In-process transport::
-    linkxio:xpf_inp[7]
+    linkxio:xpf_inproc[7]
 
 Inter-process transport::
     linkxio:xpf_ipc[7]
