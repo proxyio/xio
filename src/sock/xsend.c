@@ -6,7 +6,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *pop_snd(struct xsock *sx) {
+struct xmsg *sendq_pop(struct xsock *sx) {
     struct xsock_protocol *l4proto = sx->l4proto;
     struct xmsg *msg = 0;
     i64 msgsz;
@@ -40,7 +40,7 @@ struct xmsg *pop_snd(struct xsock *sx) {
     return msg;
 }
 
-int push_snd(struct xsock *sx, struct xmsg *msg) {
+int sendq_push(struct xsock *sx, struct xmsg *msg) {
     int rc = -1;
     struct xsock_protocol *l4proto = sx->l4proto;
     u32 events = 0;
@@ -85,7 +85,7 @@ int xsend(int xd, char *xbuf) {
 	return -1;
     }
     msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    if ((rc = push_snd(sx, msg)) < 0) {
+    if ((rc = sendq_push(sx, msg)) < 0) {
 	errno = sx->fok ? EAGAIN : EPIPE;
     }
     return rc;

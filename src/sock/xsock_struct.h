@@ -129,13 +129,11 @@ struct xsock *xget(int cd);
 void xsock_free(struct xsock *cn);
 struct xsock *xsock_alloc();
 
-struct xmsg *pop_rcv(struct xsock *cn);
-void push_rcv(struct xsock *cn, struct xmsg *msg);
-struct xmsg *pop_snd(struct xsock *cn);
-int push_snd(struct xsock *cn, struct xmsg *msg);
+void recvq_push(struct xsock *cn, struct xmsg *msg);
+struct xmsg *sendq_pop(struct xsock *cn);
 
-int push_request_sock(struct xsock *sx, struct xsock *req_sx);
-struct xsock *pop_request_sock(struct xsock *sx);
+int reqsocks_push(struct xsock *sx, struct xsock *req_sx);
+struct xsock *reqsocks_pop(struct xsock *sx);
 
 void __xpoll_notify(struct xsock *cn, u32 protocol_spec);
 void xpoll_notify(struct xsock *cn, u32 protocol_spec);

@@ -212,7 +212,7 @@ static int xio_connector_rcv(struct xsock *sx) {
 	chunk = xallocmsg(chunk_sz);
 	bio_read(&sx->io.in, xiov_base(chunk), xiov_len(chunk));
 	msg = cont_of(chunk, struct xmsg, vec.chunk);
-	push_rcv(sx, msg);
+	recvq_push(sx, msg);
     }
     return rc;
 }
@@ -222,7 +222,7 @@ static int xio_connector_snd(struct xsock *sx) {
     char *chunk;
     struct xmsg *msg;
 
-    while ((msg = pop_snd(sx))) {
+    while ((msg = sendq_pop(sx))) {
 	chunk = msg->vec.chunk;
 	bio_write(&sx->io.out, xiov_base(chunk), xiov_len(chunk));
 	xfreemsg(chunk);

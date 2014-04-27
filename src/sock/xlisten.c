@@ -7,7 +7,7 @@
 #include <transport/sockaddr.h>
 #include "xgb.h"
 
-int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
+int reqsocks_push(struct xsock *sx, struct xsock *req_sx) {
     int rc = 0;
 
     while (sx->parent >= 0)
@@ -23,7 +23,7 @@ int push_request_sock(struct xsock *sx, struct xsock *req_sx) {
     return rc;
 }
 
-struct xsock *pop_request_sock(struct xsock *sx) {
+struct xsock *reqsocks_pop(struct xsock *sx) {
     struct xsock *req_sx = 0;
 
     mutex_lock(&sx->lock);
@@ -52,7 +52,7 @@ int xaccept(int xd) {
 	errno = EPROTO;
 	return -1;
     }
-    if ((new_sx = pop_request_sock(sx)))
+    if ((new_sx = reqsocks_pop(sx)))
 	return new_sx->xd;
     errno = EAGAIN;
     return -1;

@@ -37,8 +37,8 @@ static int snd_head_push(int xd) {
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-    if ((msg = pop_snd(sx)))
-	push_rcv(peer, msg);
+    if ((msg = sendq_pop(sx)))
+	recvq_push(peer, msg);
 
     mutex_lock(&sx->lock);
     return rc;
@@ -90,7 +90,7 @@ static int xinp_connector_bind(int xd, const char *sock) {
     sx->proc.xsock_peer = req_sx;
     req_sx->proc.xsock_peer = sx;
 
-    if (push_request_sock(listener, req_sx) < 0) {
+    if (reqsocks_push(listener, req_sx) < 0) {
 	errno = ECONNREFUSED;
 	xsock_free(req_sx);
 	return -1;

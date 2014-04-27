@@ -6,7 +6,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *pop_rcv(struct xsock *sx) {
+struct xmsg *recvq_pop(struct xsock *sx) {
     struct xmsg *msg = 0;
     struct xsock_protocol *l4proto = sx->l4proto;
     i64 msgsz;
@@ -40,7 +40,7 @@ struct xmsg *pop_rcv(struct xsock *sx) {
     return msg;
 }
 
-void push_rcv(struct xsock *sx, struct xmsg *msg) {
+void recvq_push(struct xsock *sx, struct xmsg *msg) {
     struct xsock_protocol *l4proto = sx->l4proto;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
@@ -78,7 +78,7 @@ int xrecv(int xd, char **xbuf) {
 	errno = EPROTO;
 	return -1;
     }
-    if (!(msg = pop_rcv(sx))) {
+    if (!(msg = recvq_pop(sx))) {
 	errno = sx->fok ? EAGAIN : EPIPE;
 	rc = -1;
     } else
