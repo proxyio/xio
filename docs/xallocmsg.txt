@@ -38,7 +38,7 @@ EXAMPLE
 ----
 void *buf = xallocmsg (12);
 memcpy (buf, "Hello world!", 12);
-xsend (s, &buf);
+xsend (s, buf);
 ----
 
 
