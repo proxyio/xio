@@ -30,29 +30,30 @@
 
 
 /* Max number of cpu core */
-#define XSOCK_MAX_CPUS 32
+#define XIO_MAX_CPUS 32
 
 struct xglobal {
     int exiting;
     mutex_t lock;
 
     /* The global table of existing xsock. The descriptor representing
-       the xsock is the index to this table. This pointer is also used to
-       find out whether context is initialised. If it is null, context is
-       uninitialised. */
-    struct xsock socks[XSOCK_MAX_SOCKS];
+     * the xsock is the index to this table. This pointer is also used to
+     * find out whether context is initialised. If it is null, context is
+     * uninitialised.
+     */
+    struct xsock socks[XIO_MAX_SOCKS];
 
     /* Stack of unused xsock descriptors.  */
-    int unused[XSOCK_MAX_SOCKS];
+    int unused[XIO_MAX_SOCKS];
 
     /* Number of actual socks. */
     size_t nsocks;
     
 
-    struct xcpu cpus[XSOCK_MAX_CPUS];
+    struct xcpu cpus[XIO_MAX_CPUS];
 
     /* Stack of unused xsock descriptors.  */
-    int cpu_unused[XSOCK_MAX_CPUS];
+    int cpu_unused[XIO_MAX_CPUS];
     
     /* Number of actual runner poller.  */
     size_t ncpus;

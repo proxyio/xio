@@ -52,7 +52,7 @@
 #define XCONNECTOR  2
 
 /* Max number of concurrent socks. */
-#define XSOCK_MAX_SOCKS 10240
+#define XIO_MAX_SOCKS 10240
 
 
 int xsocket(int pf, int type);

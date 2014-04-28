@@ -64,7 +64,7 @@ static inline int kcpud(void *args) {
     INIT_LIST_HEAD(&cpu->shutdown_socks);
 
     /* Init eventloop and wakeup parent */
-    BUG_ON(eloop_init(&cpu->el, XSOCK_MAX_SOCKS/XSOCK_MAX_CPUS,
+    BUG_ON(eloop_init(&cpu->el, XIO_MAX_SOCKS/XIO_MAX_CPUS,
 		      DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
     BUG_ON(efd_init(&cpu->efd));
     cpu->efd_et.events = EPOLLIN|EPOLLERR;
@@ -122,9 +122,9 @@ void xmodule_init() {
     xgb.exiting = false;
     mutex_init(&xgb.lock);
 
-    for (xd = 0; xd < XSOCK_MAX_SOCKS; xd++)
+    for (xd = 0; xd < XIO_MAX_SOCKS; xd++)
 	xgb.unused[xd] = xd;
-    for (cpu_no = 0; cpu_no < XSOCK_MAX_CPUS; cpu_no++)
+    for (cpu_no = 0; cpu_no < XIO_MAX_CPUS; cpu_no++)
 	xgb.cpu_unused[cpu_no] = cpu_no;
 
     xgb.cpu_cores = 1;

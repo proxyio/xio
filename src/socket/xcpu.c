@@ -27,7 +27,7 @@ int xcpu_alloc() {
     int cpu_no;
 
     mutex_lock(&xgb.lock);
-    BUG_ON(xgb.ncpus >= XSOCK_MAX_CPUS);
+    BUG_ON(xgb.ncpus >= XIO_MAX_CPUS);
     cpu_no = xgb.cpu_unused[xgb.ncpus++];
     mutex_unlock(&xgb.lock);
     return cpu_no;

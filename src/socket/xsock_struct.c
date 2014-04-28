@@ -35,7 +35,7 @@ static int DEF_RCVBUF = 10485760;
 int xd_alloc() {
     int xd;
     mutex_lock(&xgb.lock);
-    BUG_ON(xgb.nsocks >= XSOCK_MAX_SOCKS);
+    BUG_ON(xgb.nsocks >= XIO_MAX_SOCKS);
     xd = xgb.unused[xgb.nsocks++];
     mutex_unlock(&xgb.lock);
     return xd;
