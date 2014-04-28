@@ -18,9 +18,9 @@ aux_source_directory( libc/sync XLIBC )
 add_library( xlibc STATIC ${XLIBC} )
 
 ## compile socket
-aux_source_directory( ep XIO )
 aux_source_directory( socket XIO )
 aux_source_directory( poll XIO )
+aux_source_directory( pipeline XIO )
 add_library( xio STATIC ${XIO} )
 target_link_libraries( xio xlibc uuid )
 
