@@ -15,7 +15,9 @@ struct endsock {
 };
 
 struct endpoint {
+    int listener_sz;
     struct list_head listener_socks;
+    int connector_sz;
     struct list_head connector_socks;
 };
 

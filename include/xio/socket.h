@@ -20,6 +20,9 @@ int xrecv(int xd, char **xbuf);
 int xsend(int xd, char *xbuf);
 void xclose(int xd);
 
+#define XLISTENER   1
+#define XCONNECTOR  2
+    
 /* Following sockopt-level are provided by xsocket */
 #define XL_SOCKET          1
 #define XL_TRANSPORT       2
@@ -35,7 +38,9 @@ void xclose(int xd);
 #define XRECONNECT_IVL     0x0080
 #define XRECONNECT_IVLMAX  0x0100
 #define XSOCKETKEY         0x0200
-
+#define XSOCKTYPE          0x0400
+#define XSOCKPROTO         0x0800
+    
 int xsetsockopt(int xd, int level, int optname, void *optval, int optlen);
 int xgetsockopt(int xd, int level, int optname, void *optval, int *optlen);
 

@@ -48,9 +48,6 @@
 /* Multiple protocols */
 #define XPF_MULE      (XPF_TCP|XPF_IPC|XPF_INPROC)
 
-#define XLISTENER   1
-#define XCONNECTOR  2
-
 /* Max number of concurrent socks. */
 #define XIO_MAX_SOCKS 10240
 
