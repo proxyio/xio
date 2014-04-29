@@ -154,7 +154,7 @@ int xpoll_ctl(struct xpoll_t *po, int op, struct xpoll_event *event) {
 }
 
 int xpoll_wait(struct xpoll_t *po, struct xpoll_event *ev_buf,
-	       int size, u32 timeout) {
+	       int size, int timeout) {
     int n = 0;
     struct xpoll_entry *ent, *nx;
 

@@ -16,10 +16,10 @@ extern "C" {
 	void *self;
 
 	/* What events i care about ... */
-	uint32_t care;
+	int care;
 
 	/* What events happened now */
-	uint32_t happened;
+	int happened;
     };
 
     struct xpoll_t;
@@ -33,7 +33,7 @@ extern "C" {
     int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ue);
 
     int xpoll_wait(struct xpoll_t *xp, struct xpoll_event *events, int n,
-		   u32 timeout);
+		   int timeout);
 
 #ifdef __cplusplus
 }

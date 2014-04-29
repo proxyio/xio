@@ -4,7 +4,7 @@
 #include <base.h>
 #include <ds/list.h>
 #include <sync/mutex.h>
-#include <xio/pipeline.h>
+#include <xio/endpoint.h>
 
 
 #define XIO_MAX_ENDPOINTS 10240
@@ -15,10 +15,9 @@ struct endsock {
 };
 
 struct endpoint {
-    int listener_sz;
-    struct list_head listener_socks;
-    int connector_sz;
-    struct list_head connector_socks;
+    struct list_head bsocks;
+    struct list_head csocks;
+    struct list_head bad_socks;
 };
 
 #define xendpoint_walk_sock(ep, nep, head)				\
@@ -48,7 +47,7 @@ extern struct xep_global epgb;
 int efd_alloc();
 void efd_free(int efd);
 struct endpoint *efd_get(int efd);
-
+void accept_incoming_endsocks(int efd);
 
 
 

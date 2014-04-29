@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <xio/socket.h>
+#include <xio/poll.h>
 #include "ep_struct.h"
 
 struct xep_global epgb = {};
@@ -37,3 +39,23 @@ void efd_free(int efd) {
 struct endpoint *efd_get(int efd) {
     return &epgb.endpoints[efd];
 }
+
+void accept_incoming_endsocks(int efd) {
+    struct endpoint *ep = efd_get(efd);
+    int tmp, s;
+    struct endsock *es, *next_es;
+
+    xendpoint_walk_sock(es, next_es, &ep->bsocks) {
+	if (xselect(XPOLLIN|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
+	    continue;
+	BUG_ON(es->sockfd != tmp);
+	if ((s = xaccept(es->sockfd)) < 0) {
+	    if (errno != EAGAIN)
+		list_move_tail(&es->link, &ep->bad_socks);
+	    continue;
+	}
+	if (xep_add(efd, s) < 0)
+	    xclose(s);
+    }
+}
+
