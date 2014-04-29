@@ -157,8 +157,9 @@ struct xmsg *sendq_pop(struct xsock *cn);
 int reqsocks_push(struct xsock *sx, struct xsock *req_sx);
 struct xsock *reqsocks_pop(struct xsock *sx);
 
-void __xpoll_notify(struct xsock *cn, u32 protocol_spec);
-void xpoll_notify(struct xsock *cn, u32 protocol_spec);
+int xpoll_check_events(struct xsock *sx, int events);
+void __xpoll_notify(struct xsock *sx);
+void xpoll_notify(struct xsock *sx);
 
 
 #endif

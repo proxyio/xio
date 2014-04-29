@@ -271,7 +271,7 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
     }
 
     /* Check events for xpoll */
-    xpoll_notify(sx, 0);
+    xpoll_notify(sx);
     return rc;
 }
 

@@ -40,7 +40,7 @@ int reqsocks_push(struct xsock *sx, struct xsock *req_sx) {
 	condition_broadcast(&sx->accept_cond);
     }
     list_add_tail(&req_sx->rqs_link, &sx->request_socks);
-    __xpoll_notify(sx, XPOLLIN);
+    __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
     return rc;
 }

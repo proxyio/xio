@@ -75,7 +75,7 @@ void recvq_push(struct xsock *sx, struct xmsg *msg) {
     events |= XMQ_PUSH;
     sx->rcv += msgsz;
     list_add_tail(&msg->item, &sx->rcv_head);    
-    __xpoll_notify(sx, 0);
+    __xpoll_notify(sx);
     DEBUG_OFF("xsock %d", sx->xd);
 
     /* Wakeup the blocking waiters. */

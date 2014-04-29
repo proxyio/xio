@@ -28,28 +28,41 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
+int xsock_check_events(struct xsock *sx, int events) {
+    int happened = 0;
+
+    if (events & XPOLLIN) {
+	if (sx->type == XCONNECTOR)
+	    happened |= !list_empty(&sx->rcv_head) ? XPOLLIN : 0;
+	else if (sx->type == XLISTENER)
+	    happened |= !list_empty(&sx->request_socks) ? XPOLLIN : 0;
+    }
+    if (events & XPOLLOUT)
+	happened |= can_send(sx) ? XPOLLOUT : 0;
+    if (events & XPOLLERR)
+	happened |= !sx->fok ? XPOLLERR : 0;
+    DEBUG_OFF("%d happen %s", sx->xd, xpoll_str[happened]);
+    return happened;
+}
+
 /* Generic xpoll_t notify function. always called by xsock_protocol
  * when has any message come or can send any massage into network
  * or has a new connection wait for established.
  * here we only check the mq events and l4proto_spec saved the other
  * events gived by xsock_protocol
  */
-void __xpoll_notify(struct xsock *sx, u32 l4proto_spec) {
-    int events = 0;
+void __xpoll_notify(struct xsock *sx) {
+    int happened = 0;
     struct xpoll_entry *ent, *nx;
 
-    events |= l4proto_spec;
-    events |= !list_empty(&sx->rcv_head) ? XPOLLIN : 0;
-    events |= can_send(sx) ? XPOLLOUT : 0;
-    events |= !sx->fok ? XPOLLERR : 0;
-    DEBUG_OFF("%d xsock events %d happen", sx->xd, events);
+    happened |= xsock_check_events(sx, XPOLLIN|XPOLLOUT|XPOLLERR);
     xsock_walk_ent(ent, nx, &sx->xpoll_head) {
-	ent->notify->event(ent->notify, ent, ent->event.care & events);
+	ent->notify->event(ent->notify, ent, ent->event.care & happened);
     }
 }
 
-void xpoll_notify(struct xsock *sx, u32 l4proto_spec) {
+void xpoll_notify(struct xsock *sx) {
     mutex_lock(&sx->lock);
-    __xpoll_notify(sx, l4proto_spec);
+    __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
 }
