@@ -13,6 +13,8 @@ int xpipeline_open(struct xpipeline *pp);
 void xpipeline_close(struct xpipeline *pp);
 int xpipeline_add(int xpipefd, int xsockfd);
 int xpipeline_rm(int xpipefd, int xsockfd);
+int xpipeline_recv(int xpipefd, void **xbuf);
+int xpipeline_send(int xpipefd, void *xbuf);
 
-
+    
 #endif
