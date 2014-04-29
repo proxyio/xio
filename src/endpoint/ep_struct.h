@@ -1,0 +1,56 @@
+#ifndef _HPIO_XPIPE_STRUCT_
+#define _HPIO_XPIPE_STRUCT_
+
+#include <base.h>
+#include <ds/list.h>
+#include <sync/mutex.h>
+#include <xio/pipeline.h>
+
+
+#define XIO_MAX_ENDPOINTS 10240
+
+struct endsock {
+    int sockfd;
+    struct list_head link;
+};
+
+struct endpoint {
+    struct list_head listener_socks;
+    struct list_head connector_socks;
+};
+
+#define xendpoint_walk_sock(ep, nep, head)				\
+    list_for_each_entry_safe(ep, nep, head, struct endsock, link)
+
+void endpoint_init(struct endpoint *ep);
+void endpoint_exit(struct endpoint *ep);
+
+struct xep_global {
+    int exiting;
+    mutex_t lock;
+
+    /* The global table of existing endpoint. The descriptor representing
+     * the endpoint is the index to this table. This pointer is also used to
+     * find out whether context is initialised. If it is null, context
+     * is uninitialised.
+     */
+    struct endpoint endpoints[XIO_MAX_ENDPOINTS];
+
+    /* Stack of unused endpoint descriptors.  */
+    int unused[XIO_MAX_ENDPOINTS];
+
+    /* Number of actual socks. */
+    size_t nendpoints;
+};
+
+
+extern struct xep_global epgb;
+
+int efd_alloc();
+void efd_free(int efd);
+struct endpoint *efd_get(int efd);
+
+
+
+
+#endif
