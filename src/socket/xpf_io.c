@@ -283,6 +283,8 @@ struct xsock_protocol xtcp_connector_protocol = {
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .notify = xio_connector_notify,
+    .setsockopt = 0,
+    .getsockopt = 0,
 };
 
 struct xsock_protocol xipc_connector_protocol = {
@@ -291,4 +293,6 @@ struct xsock_protocol xipc_connector_protocol = {
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .notify = xio_connector_notify,
+    .setsockopt = 0,
+    .getsockopt = 0,
 };

@@ -29,33 +29,94 @@
 #include "xgb.h"
 
 
-int xgetsockopt(int xd, int level, int opt, void *on, int *size) {
-    int rc = 0;
+typedef int (*xsockopf) (struct xsock *sx, void *val, int *vallen);
+
+static int get_noblock(struct xsock *sx, void *val, int *vallen) {
+    mutex_lock(&sx->lock);
+    *(int *)val = sx->fasync ? true : false;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
+static int get_sndbuf(struct xsock *sx, void *val, int *vallen) {
+    mutex_lock(&sx->lock);
+    *(int *)val = sx->snd_wnd;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
+static int get_rcvbuf(struct xsock *sx, void *val, int *vallen) {
+    mutex_lock(&sx->lock);
+    *(int *)val = sx->rcv_wnd;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+static int get_linger(struct xsock *sx, void *val, int *vallen) {
+    return -1;
+}
+
+static int get_sndtimeo(struct xsock *sx, void *val, int *vallen) {
+    return -1;
+}
+
+static int get_rcvtimeo(struct xsock *sx, void *val, int *vallen) {
+    return -1;
+}
+
+static int get_reconnect(struct xsock *sx, void *val, int *vallen) {
+    return -1;
+}
+
+static int get_reconn_ivl(struct xsock *sx, void *val, int *vallen) {
+    return -1;
+}
+
+static int get_reconn_ivlmax(struct xsock *sx, void *val, int *vallen) {
+    return -1;
+}
+
+static int get_socktype(struct xsock *sx, void *val, int *vallen) {
+    *(int *)val = sx->type;
+    return -1;
+}
+
+static int get_sockproto(struct xsock *sx, void *val, int *vallen) {
+    *(int *)val = sx->pf;
+    return -1;
+}
+
+
+const xsockopf getopt_vf[] = {
+    get_noblock,
+    get_sndbuf,
+    get_rcvbuf,
+    get_linger,
+    get_sndtimeo,
+    get_rcvtimeo,
+    get_reconnect,
+    get_reconn_ivl,
+    get_reconn_ivlmax,
+    get_socktype,
+    get_sockproto,
+};
+
+
+int xgetsockopt(int xd, int level, int opt, void *val, int *vallen) {
     struct xsock *sx = xget(xd);
 
-    if (!on) {
+    BUG_ON(NELEM(getopt_vf, xsockopf) != 11);
+    if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
+	((level == XL_SOCKET && !getopt_vf[opt]) ||
+	 (opt >= NELEM(getopt_vf, xsockopf)))) {
 	errno = EINVAL;
 	return -1;
     }
-    switch (opt) {
-    case XNOBLOCK:
-	mutex_lock(&sx->lock);
-	*(int *)on = sx->fasync ? true : false;
-	mutex_unlock(&sx->lock);
-	break;
-    case XSNDBUF:
-	mutex_lock(&sx->lock);
-	*(int *)on = sx->snd_wnd;
-	mutex_unlock(&sx->lock);
-	break;
-    case XRCVBUF:
-	mutex_lock(&sx->lock);
-	*(int *)on = sx->rcv_wnd;
-	mutex_unlock(&sx->lock);
+    switch (level) {
+    case XL_SOCKET:
+	getopt_vf[opt](sx, val, vallen);
 	break;
     default:
-	errno = EINVAL;
-	return -1;
+	sx->l4proto->getsockopt(xd, level, opt, val, vallen);
     }
-    return rc;
+    return 0;
 }

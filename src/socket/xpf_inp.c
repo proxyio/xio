@@ -163,4 +163,6 @@ struct xsock_protocol xinp_connector_protocol = {
     .bind = xinp_connector_bind,
     .close = xinp_connector_close,
     .notify = xinp_connector_notify,
+    .getsockopt = 0,
+    .setsockopt = 0,
 };

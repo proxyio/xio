@@ -28,35 +28,83 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
+typedef int (*xsockopf) (struct xsock *sx, void *val, int vallen);
 
-int xsetsockopt(int xd, int level, int opt, void *on, int size) {
-    int rc = 0;
+static int set_noblock(struct xsock *sx, void *val, int vallen) {
+    mutex_lock(&sx->lock);
+    sx->fasync = *(int *)val ? true : false;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
+static int set_sndbuf(struct xsock *sx, void *val, int vallen) {
+    mutex_lock(&sx->lock);
+    sx->snd_wnd = (*(int *)val);
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
+static int set_rcvbuf(struct xsock *sx, void *val, int vallen) {
+    mutex_lock(&sx->lock);
+    sx->rcv_wnd = (*(int *)val);
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+static int set_linger(struct xsock *sx, void *val, int vallen) {
+    return -1;
+}
+
+static int set_sndtimeo(struct xsock *sx, void *val, int vallen) {
+    return -1;
+}
+
+static int set_rcvtimeo(struct xsock *sx, void *val, int vallen) {
+    return -1;
+}
+
+static int set_reconnect(struct xsock *sx, void *val, int vallen) {
+    return -1;
+}
+
+static int set_reconn_ivl(struct xsock *sx, void *val, int vallen) {
+    return -1;
+}
+
+static int set_reconn_ivlmax(struct xsock *sx, void *val, int vallen) {
+    return -1;
+}
+
+const xsockopf setopt_vf[] = {
+    set_noblock,
+    set_sndbuf,
+    set_rcvbuf,
+    set_linger,
+    set_sndtimeo,
+    set_rcvtimeo,
+    set_reconnect,
+    set_reconn_ivl,
+    set_reconn_ivlmax,
+    0,
+    0,
+};
+
+int xsetsockopt(int xd, int level, int opt, void *val, int vallen) {
     struct xsock *sx = xget(xd);
 
-    if (!on || size <= 0) {
+    BUG_ON(NELEM(setopt_vf, xsockopf) != 11);
+    if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
+	((level == XL_SOCKET && !setopt_vf[opt]) ||
+	 (opt >= NELEM(setopt_vf, xsockopf)))) {
 	errno = EINVAL;
 	return -1;
     }
-    switch (opt) {
-    case XNOBLOCK:
-	mutex_lock(&sx->lock);
-	sx->fasync = *(int *)on ? true : false;
-	mutex_unlock(&sx->lock);
-	break;
-    case XSNDBUF:
-	mutex_lock(&sx->lock);
-	sx->snd_wnd = (*(int *)on);
-	mutex_unlock(&sx->lock);
-	break;
-    case XRCVBUF:
-	mutex_lock(&sx->lock);
-	sx->rcv_wnd = (*(int *)on);
-	mutex_unlock(&sx->lock);
+    switch (level) {
+    case XL_SOCKET:
+	setopt_vf[opt](sx, val, vallen);
 	break;
     default:
-	errno = EINVAL;
-	return -1;
+	sx->l4proto->setsockopt(xd, level, opt, val, vallen);
     }
-    return rc;
+    return 0;
 }
 

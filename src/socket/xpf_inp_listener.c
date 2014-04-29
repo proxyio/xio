@@ -103,4 +103,6 @@ struct xsock_protocol xinp_listener_protocol = {
     .bind = xinp_listener_bind,
     .close = xinp_listener_close,
     .notify = 0,
+    .getsockopt = 0,
+    .setsockopt = 0,
 };

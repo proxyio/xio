@@ -77,6 +77,8 @@ struct xsock_protocol xmul_listener_protocol[4] = {
 	.pf = XPF_TCP|XPF_IPC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
+	.setsockopt = 0,
+	.getsockopt = 0,
 	.notify = 0,
     },
     {
@@ -84,6 +86,8 @@ struct xsock_protocol xmul_listener_protocol[4] = {
 	.pf = XPF_IPC|XPF_INPROC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
+	.setsockopt = 0,
+	.getsockopt = 0,
 	.notify = 0,
     },
     {
@@ -91,6 +95,8 @@ struct xsock_protocol xmul_listener_protocol[4] = {
 	.pf = XPF_TCP|XPF_INPROC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
+	.setsockopt = 0,
+	.getsockopt = 0,
 	.notify = 0,
     },
     {
@@ -98,6 +104,8 @@ struct xsock_protocol xmul_listener_protocol[4] = {
 	.pf = XPF_TCP|XPF_IPC|XPF_INPROC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
+	.setsockopt = 0,
+	.getsockopt = 0,
 	.notify = 0,
     }
 };

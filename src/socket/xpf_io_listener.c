@@ -157,6 +157,8 @@ struct xsock_protocol xtcp_listener_protocol = {
     .bind = xio_listener_bind,
     .close = xio_listener_close,
     .notify = xio_listener_notify,
+    .getsockopt = 0,
+    .setsockopt = 0,
 };
 
 struct xsock_protocol xipc_listener_protocol = {
@@ -165,4 +167,6 @@ struct xsock_protocol xipc_listener_protocol = {
     .bind = xio_listener_bind,
     .close = xio_listener_close,
     .notify = xio_listener_notify,
+    .getsockopt = 0,
+    .setsockopt = 0,
 };
