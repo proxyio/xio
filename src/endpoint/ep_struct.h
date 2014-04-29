@@ -22,9 +22,6 @@ struct endpoint {
 #define xendpoint_walk_sock(ep, nep, head)				\
     list_for_each_entry_safe(ep, nep, head, struct endsock, link)
 
-void endpoint_init(struct endpoint *ep);
-void endpoint_exit(struct endpoint *ep);
-
 struct xep_global {
     int exiting;
     mutex_t lock;
