@@ -57,6 +57,7 @@ int sockaddr_pf(const char *url) {
     pf |= strstr(pfp, "tcp") ? TP_TCP : 0;
     pf |= strstr(pfp, "ipc") ? TP_IPC : 0;
     pf |= strstr(pfp, "inproc") ? TP_INPROC : 0;
+    free(pfp);
     if (!pf) {
 	errno = EINVAL;
 	return -1;

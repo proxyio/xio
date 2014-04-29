@@ -25,7 +25,7 @@ add_library( xio STATIC ${XIO} )
 target_link_libraries( xio xlibc uuid )
 
 ## compile unit_test
-aux_source_directory( tools/test UNIT_TEST )
+aux_source_directory( poll/test UNIT_TEST )
 aux_source_directory( libc/test UNIT_TEST )
 aux_source_directory( socket/test UNIT_TEST )
 add_executable( unit_test ${UNIT_TEST} )

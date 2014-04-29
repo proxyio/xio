@@ -20,7 +20,6 @@ int xrecv(int xd, char **xbuf);
 int xsend(int xd, char *xbuf);
 void xclose(int xd);
 
-
 /* Following sockopt-level are provided by xsocket */
 #define XL_SOCKET          1
 #define XL_TRANSPORT       2

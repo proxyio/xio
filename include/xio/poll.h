@@ -5,34 +5,35 @@
 extern "C" {
 #endif
 
-
 #define XPOLLIN   1
 #define XPOLLOUT  2
 #define XPOLLERR  4
 
-struct xpoll_event {
-    int xd;
-    void *self;
+    int xselect(int events, int nin, int *in_set, int nout, int *out_set);
 
-    /* What events i care about ... */
-    uint32_t care;
+    struct xpoll_event {
+	int xd;
+	void *self;
 
-    /* What events happened now */
-    uint32_t happened;
-};
+	/* What events i care about ... */
+	uint32_t care;
 
-struct xpoll_t;
+	/* What events happened now */
+	uint32_t happened;
+    };
 
-struct xpoll_t *xpoll_create();
-void xpoll_close(struct xpoll_t *po);
+    struct xpoll_t;
+
+    struct xpoll_t *xpoll_create();
+    void xpoll_close(struct xpoll_t *po);
 
 #define XPOLL_ADD 1
 #define XPOLL_DEL 2
 #define XPOLL_MOD 3
-int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ue);
+    int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ue);
 
-int xpoll_wait(struct xpoll_t *xp, struct xpoll_event *events, int n,
-	       u32 timeout);
+    int xpoll_wait(struct xpoll_t *xp, struct xpoll_event *events, int n,
+		   u32 timeout);
 
 #ifdef __cplusplus
 }
