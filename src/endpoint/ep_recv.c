@@ -19,9 +19,9 @@ static struct endsock *get_available_csock(int efd) {
 }
 
 int xep_recv(int efd, void **xbuf) {
+    struct endpoint *ep = efd_get(efd);
     char *xmsg;
     struct endsock *at_sock;
-    struct endpoint *ep = efd_get(efd);
 
     accept_incoming_endsocks(efd);
     if ((at_sock = get_available_csock(efd)) == 0) {
@@ -36,6 +36,8 @@ int xep_recv(int efd, void **xbuf) {
 	    errno = EBADF;
 	return -1;
     }
+
+    /* Make endpoint buf to user-space msg */
     return 0;
 }
 
