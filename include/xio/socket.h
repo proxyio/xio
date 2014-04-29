@@ -25,21 +25,19 @@ void xclose(int xd);
     
 /* Following sockopt-level are provided by xsocket */
 #define XL_SOCKET          1
-#define XL_TRANSPORT       2
 
 /* Following sockopt-field are provided by xsocket */
-#define XNOBLOCK           0x0001
-#define XSNDBUF            0x0002
-#define XRCVBUF            0x0004
-#define XLINGER            0x0008
-#define XSNDTIMEO          0x0010
-#define XRCVTIMEO          0x0020
-#define XRECONNECT         0x0040
-#define XRECONNECT_IVL     0x0080
-#define XRECONNECT_IVLMAX  0x0100
-#define XSOCKETKEY         0x0200
-#define XSOCKTYPE          0x0400
-#define XSOCKPROTO         0x0800
+#define XNOBLOCK           0
+#define XSNDBUF            1
+#define XRCVBUF            2
+#define XLINGER            3
+#define XSNDTIMEO          4
+#define XRCVTIMEO          5
+#define XRECONNECT         6
+#define XRECONNECT_IVL     7
+#define XRECONNECT_IVLMAX  8
+#define XSOCKTYPE          9
+#define XSOCKPROTO         10
     
 int xsetsockopt(int xd, int level, int optname, void *optval, int optlen);
 int xgetsockopt(int xd, int level, int optname, void *optval, int *optlen);
