@@ -1,11 +1,12 @@
 #ifndef _HPIO_ENDPOINT_
 #define _HPIO_ENDPOINT_
 
-#define XIO_PRODUCER 1
-#define XIO_COMSUMER 2
-
+#define XEPBUF_CLONEHDR  0x01
 void *xep_allocbuf(int flags, int size, ...);
 void xep_freebuf(void *buf);
+
+#define XIO_PRODUCER 1
+#define XIO_COMSUMER 2
 
 int xep_open();
 void xep_close(int eid);

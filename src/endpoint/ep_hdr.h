@@ -41,11 +41,39 @@ struct uhdr {
     u16 ephdr_off;
 };
 
-struct ephdr *udata2ephdr(char *udata) {
+static inline u32 ephdr_rtlen(struct ephdr *h) {
+    u32 ttl = h->go ? h->ttl : h->end_ttl;
+    return ttl * sizeof(struct epr);
+}
+
+/* The ep_buf length = ephdr_ctlen() + ephdr_dlen() */
+static inline u32 ephdr_ctlen(struct ephdr *h) {
+    return sizeof(*h) + ephdr_rtlen(h) + sizeof(struct uhdr);
+}
+
+static inline u32 ephdr_dlen(struct ephdr *h) {
+    return h->size;
+}
+
+struct ephdr *udata2ephdr(void *udata) {
     struct uhdr *uh = (struct uhdr *)(udata - sizeof(*uh));
     return (struct ephdr *)(udata - uh->ephdr_off);
 }
 
+void *ephdr2udata(struct ephdr *h) {
+    return ((void *)h) + ephdr_ctlen(h);
+}
 
+static inline int ephdr_timeout(struct ephdr *h) {
+    return h->timeout && (h->sendstamp + h->timeout < rt_mstime());
+}
+
+static inline struct epr *rt_cur(struct ephdr *h) {
+    return &h->rt[h->ttl - 1];
+}
+
+static inline struct epr *rt_prev(struct ephdr *h) {
+    return &h->rt[h->ttl - 2];
+}
 
 #endif
