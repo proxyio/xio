@@ -12,6 +12,7 @@
 
 struct endsock {
     int sockfd;
+    uuid_t uuid;
     struct list_head link;
 };
 

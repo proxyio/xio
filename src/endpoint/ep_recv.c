@@ -3,11 +3,10 @@
 #include <xio/poll.h>
 #include "ep_struct.h"
 
-static struct endsock *get_available_csock(int efd) {
+static struct endsock *available_csock(struct endpoint *ep) {
     struct endsock *es, *next_es;
-    struct endpoint *ep = efd_get(efd);
     int tmp;
-    
+
     xendpoint_walk_sock(es, next_es, &ep->csocks) {
 	if (xselect(XPOLLIN|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
 	    continue;
@@ -18,30 +17,63 @@ static struct endsock *get_available_csock(int efd) {
     return 0;
 }
 
-
-/* For producer. recv response.
- * For comsumer. recv request.
- */
-int xep_recv(int efd, void **xbuf) {
-    struct endpoint *ep = efd_get(efd);
-    char *xmsg;
+static int generic_recv(struct endpoint *ep, char **ubuf) {
+    int rc;
+    struct ephdr *eh;
     struct endsock *at_sock;
 
-    accept_incoming_endsocks(efd);
-    if ((at_sock = get_available_csock(efd)) == 0) {
+    if (!(at_sock = available_csock(ep))) {
 	errno = EAGAIN;
 	return -1;
     }
-    if (xrecv(at_sock->sockfd, &xmsg) < 0) {
-	if (errno != EAGAIN)
+    if ((rc = xrecv(at_sock->sockfd, (char **)&eh)) < 0) {
+	if (errno != EAGAIN) {
+	    errno = EPIPE;
 	    list_move_tail(&at_sock->link, &ep->bad_socks);
-	errno = EAGAIN;
+	}
 	if (list_empty(&ep->bsocks) && list_empty(&ep->csocks))
 	    errno = EBADF;
+    } else
+	*ubuf = ephdr2ubuf(eh);
+    return rc;
+}
+
+static int producer_recv(struct endpoint *ep, char **ubuf) {
+    int rc;
+    struct ephdr *eh;
+    struct epr *rt;
+    
+    if ((rc = generic_recv(ep, ubuf)) == 0) {
+	eh = ubuf2ephdr(*ubuf);
+	rt = rt_cur(eh);
+	eh->ttl--;
+    }
+    return rc;
+}
+
+static int comsumer_recv(struct endpoint *ep, char **ubuf) {
+    int rc;
+    rc = generic_recv(ep, ubuf);
+    return rc;
+}
+
+typedef int (*rcvfunc) (struct endpoint *ep, char **ubuf);
+const static rcvfunc recv_vfptr[] = {
+    producer_recv,
+    comsumer_recv,
+};
+
+
+int xep_recv(int efd, char **ubuf) {
+    int rc;
+    struct endpoint *ep = efd_get(efd);
+
+    if (!(ep->type & (XEP_PRODUCER|XEP_COMSUMER))) {
+	errno = EBADF;
 	return -1;
     }
-
-    /* Make endpoint buf to user-space msg */
-    return 0;
+    accept_incoming_endsocks(efd);
+    rc = recv_vfptr[ep->type] (ep, ubuf);
+    return rc;
 }
 

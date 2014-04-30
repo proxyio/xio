@@ -50,7 +50,7 @@ TEST(xpoll, select) {
 
     BUG_ON((afd = xlisten("tcp+ipc+inproc://127.0.0.1:18897")) < 0);
     thread_start(&cli_thread, xclient_thread, 0);
-    usleep(10000);
+    usleep(100000);
     BUG_ON(xselect(XPOLLIN, 1, &afd, 1, &tmp) <= 0);
     BUG_ON((sfd = xaccept(afd)) < 0);
     for (i = 0; i < cnt; i++) {

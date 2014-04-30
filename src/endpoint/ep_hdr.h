@@ -8,9 +8,9 @@
 #include <hash/crc.h>
 
 /* The ephdr looks like this:
- * +-------+---------+-------+----------------+
- * | ephdr |  epr[]  |  uhdr |  udata content |
- * +-------+---------+-------+----------------+
+ * +-------+---------+-------+--------+
+ * | ephdr |  epr[]  |  uhdr |  ubuf  |
+ * +-------+---------+-------+--------+
  */
 
 struct epr {
@@ -55,13 +55,17 @@ static inline u32 ephdr_dlen(struct ephdr *h) {
     return h->size;
 }
 
-struct ephdr *udata2ephdr(void *udata) {
-    struct uhdr *uh = (struct uhdr *)(udata - sizeof(*uh));
-    return (struct ephdr *)(udata - uh->ephdr_off);
+static inline struct ephdr *ubuf2ephdr(char *ubuf) {
+    struct uhdr *uh = (struct uhdr *)((char *)ubuf - sizeof(*uh));
+    return (struct ephdr *)((char *)ubuf - uh->ephdr_off);
 }
 
-void *ephdr2udata(struct ephdr *h) {
-    return ((void *)h) + ephdr_ctlen(h);
+static inline char *ephdr2ubuf(struct ephdr *h) {
+    return ((char *)h) + ephdr_ctlen(h);
+}
+
+static inline struct uhdr *ephdr_uhdr(struct ephdr *h) {
+    return (struct uhdr *)(ephdr2ubuf(h) - sizeof(struct uhdr));
 }
 
 static inline int ephdr_timeout(struct ephdr *h) {
