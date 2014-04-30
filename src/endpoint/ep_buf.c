@@ -4,7 +4,7 @@
 
 void *xep_allocbuf(int flags, int size, ...) {
     va_list ap;
-    struct ephdr *h1 = 0, h2 = 0;
+    struct ephdr *h1 = 0, *h2 = 0;
 
     if (flags & XEPBUF_CLONEHDR) {
 	va_start(ap, size);
@@ -12,8 +12,8 @@ void *xep_allocbuf(int flags, int size, ...) {
 	va_end(ap);
     }
     size += h1 ? ephdr_ctlen(h1) : 0;
-    if (!(h2 = (struct ephdr *)xmsgalloc(size)))
-	return -1;
+    if (!(h2 = (struct ephdr *)xallocmsg(size)))
+	return 0;
     memcpy((void *)h2, (void *)h1, ephdr_ctlen(h1));
     return ephdr2udata(h2);
 }

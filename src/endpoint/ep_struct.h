@@ -4,6 +4,7 @@
 #include <base.h>
 #include <ds/list.h>
 #include <sync/mutex.h>
+#include <xio/socket.h>
 #include <xio/endpoint.h>
 #include "ep_hdr.h"
 
