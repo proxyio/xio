@@ -1,14 +1,16 @@
 #ifndef _HPIO_ENDPOINT_
 #define _HPIO_ENDPOINT_
 
+#define XIO_PRODUCER 1
+#define XIO_COMSUMER 2
 
 void *xep_allocbuf(int flags, int size, ...);
 void xep_freebuf(void *buf);
 
 int xep_open();
 void xep_close(int eid);
-int xep_add(int eid, int xsockfd);
-int xep_rm(int eid, int xsockfd);
+int xep_add(int eid, int sfd);
+int xep_rm(int eid, int sfd);
 int xep_recv(int eid, void **xbuf);
 int xep_send(int eid, void *xbuf);
 int xep_pipeline(int receiver_eid, int dispatcher_eid);

@@ -5,7 +5,7 @@
 #include <ds/list.h>
 #include <sync/mutex.h>
 #include <xio/endpoint.h>
-
+#include "ep_hdr.h"
 
 #define XIO_MAX_ENDPOINTS 10240
 
@@ -15,6 +15,7 @@ struct endsock {
 };
 
 struct endpoint {
+    int type;
     struct list_head bsocks;
     struct list_head csocks;
     struct list_head bad_socks;

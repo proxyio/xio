@@ -11,7 +11,7 @@ int xep_add(int efd, int sockfd) {
     struct endsock *s;
     struct list_head *head;
 
-    if (!(socktype & XCONNECTOR|XLISTENER)) {
+    if (!(socktype & (XCONNECTOR|XLISTENER))) {
 	errno = EBADF;
 	return -1;
     }

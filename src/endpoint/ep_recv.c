@@ -18,6 +18,10 @@ static struct endsock *get_available_csock(int efd) {
     return 0;
 }
 
+
+/* For producer. recv response.
+ * For comsumer. recv request.
+ */
 int xep_recv(int efd, void **xbuf) {
     struct endpoint *ep = efd_get(efd);
     char *xmsg;

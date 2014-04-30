@@ -26,15 +26,13 @@
 #include <base.h>
 #include <ds/list.h>
 
-/*
-  The transport protocol header is 6 bytes long and looks like this:
-
-  +--------+------------+------------+
-  | 0xffff | 0xffffffff | 0xffffffff |
-  +--------+------------+------------+
-  |  crc16 |    size    |    chunk   |
-  +--------+------------+------------+
-*/
+/* The transport protocol header is 6 bytes long and looks like this:
+ * +--------+------------+------------+
+ * | 0xffff | 0xffffffff | 0xffffffff |
+ * +--------+------------+------------+
+ * |  crc16 |    size    |    chunk   |
+ * +--------+------------+------------+
+ */
 
 struct xiov {
     u16 checksum;

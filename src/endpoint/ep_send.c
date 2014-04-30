@@ -18,6 +18,9 @@ static struct endsock *get_available_csock(int efd) {
     return 0;
 }
 
+/* For producer. send request. using roundrobin algo
+ * For comsumer. send response. using routeinfo back
+ */
 int xep_send(int efd, void *xbuf) {
     struct endpoint *ep = efd_get(efd);
     struct endsock *at_sock;
