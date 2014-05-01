@@ -50,7 +50,7 @@ extern struct xep_global epgb;
 int efd_alloc();
 void efd_free(int efd);
 struct endpoint *efd_get(int efd);
-void accept_incoming_endsocks(int efd);
+void accept_endsocks(int efd);
 
 
 

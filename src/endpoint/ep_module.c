@@ -40,7 +40,7 @@ struct endpoint *efd_get(int efd) {
     return &epgb.endpoints[efd];
 }
 
-void accept_incoming_endsocks(int efd) {
+void accept_endsocks(int efd) {
     struct endpoint *ep = efd_get(efd);
     int tmp, s;
     struct endsock *es, *next_es;
@@ -49,11 +49,13 @@ void accept_incoming_endsocks(int efd) {
 	if (xselect(XPOLLIN|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
 	    continue;
 	BUG_ON(es->sockfd != tmp);
+	DEBUG_ON("endsocks accept start");
 	if ((s = xaccept(es->sockfd)) < 0) {
 	    if (errno != EAGAIN)
 		list_move_tail(&es->link, &ep->bad_socks);
 	    continue;
 	}
+	DEBUG_ON("endsocks accept end");
 	if (xep_add(efd, s) < 0)
 	    xclose(s);
     }

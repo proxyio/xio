@@ -21,13 +21,12 @@ static int producer_send(struct endpoint *ep, char *ubuf) {
     int rc;
     struct endsock *go_sock;
     struct ephdr *eh = ubuf2ephdr(ubuf);
-    struct epr *rt = &eh->rt[0];
-    
+    struct epr *rt = rt_cur(eh);
+
     if (!(go_sock = rrbin_forward(ep))) {
 	errno = EAGAIN;
 	return -1;
     }
-    eh->ttl = 1;
     eh->go = 1;
     uuid_copy(rt->uuid, go_sock->uuid);
     if ((rc = xsend(go_sock->sockfd, (char *)eh)) < 0) {
@@ -76,6 +75,7 @@ static int comsumer_send(struct endpoint *ep, char *ubuf) {
 
 typedef int (*sndfunc) (struct endpoint *ep, char *ubuf);
 const static sndfunc send_vfptr[] = {
+    0,
     producer_send,
     comsumer_send,
 };
@@ -89,7 +89,7 @@ int xep_send(int efd, char *ubuf) {
 	errno = EBADF;
 	return -1;
     }
-    accept_incoming_endsocks(efd);
+    accept_endsocks(efd);
     rc = send_vfptr[ep->type] (ep, ubuf);
     return rc;
 }

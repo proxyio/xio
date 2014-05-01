@@ -22,17 +22,17 @@ char *xep_allocubuf(int flags, int size, ...) {
 	h1 = ubuf2ephdr(va_arg(ap, char *));
 	va_end(ap);
     }
-    size += h1 ? ephdr_ctlen(h1) : 0;
+    size += h1 ? ephdr_ctlen(h1) :
+	sizeof(struct ephdr) + sizeof(struct epr) + sizeof(struct uhdr);
     if (!(h2 = (struct ephdr *)xallocmsg(size)))
 	return 0;
     if (!h1) {
-	/* One request */
 	ephdr_init(h2);
+	h2->ttl = 1;
 	h2->size = size;
 	uh = ephdr_uhdr(h2);
 	uh->ephdr_off = ephdr_ctlen(h2);
     } else {
-	/* One response */
 	memcpy((char *)h2, (char *)h1, ephdr_ctlen(h1));
     }
     return ephdr2ubuf(h2);

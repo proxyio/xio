@@ -37,18 +37,24 @@ char *xiov_base(char *xbuf) {
 }
 
 char *xallocmsg(int size) {
+    char *xbuf;
     struct xmsg *msg;
+
     char *chunk = (char *)mem_zalloc(sizeof(*msg) + size);
     if (!chunk)
 	return 0;
     msg = (struct xmsg *)chunk;
     msg->vec.size = size;
     msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
-    return msg->vec.chunk;
+    xbuf = msg->vec.chunk;
+    DEBUG_OFF("%p", xbuf);
+    return xbuf;
 }
 
 void xfreemsg(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+
+    DEBUG_OFF("%p", xbuf);
     mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 

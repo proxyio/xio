@@ -59,6 +59,7 @@ static int comsumer_recv(struct endpoint *ep, char **ubuf) {
 
 typedef int (*rcvfunc) (struct endpoint *ep, char **ubuf);
 const static rcvfunc recv_vfptr[] = {
+    0,
     producer_recv,
     comsumer_recv,
 };
@@ -72,7 +73,7 @@ int xep_recv(int efd, char **ubuf) {
 	errno = EBADF;
 	return -1;
     }
-    accept_incoming_endsocks(efd);
+    accept_endsocks(efd);
     rc = recv_vfptr[ep->type] (ep, ubuf);
     return rc;
 }

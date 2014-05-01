@@ -1,20 +1,22 @@
 #include <stdio.h>
 #include "ep_struct.h"
 
-static void endpoint_init(struct endpoint *ep) {
-    INIT_LIST_HEAD(&ep->bsocks);
-    INIT_LIST_HEAD(&ep->csocks);
-}
-
-int xep_open() {
-    int efd = efd_alloc();
+int xep_open(int type) {
+    int efd;
     struct endpoint *ep;
-    
-    if (efd < 0) {
+
+    if (!(type & (XEP_PRODUCER|XEP_COMSUMER))) {
+	errno = EINVAL;
+	return -1;
+    }
+    if ((efd = efd_alloc()) < 0) {
 	errno = EMFILE;
 	return -1;
     }
     ep = efd_get(efd);
-    endpoint_init(ep);
+    ep->type = type;
+    INIT_LIST_HEAD(&ep->bsocks);
+    INIT_LIST_HEAD(&ep->csocks);
+    INIT_LIST_HEAD(&ep->bad_socks);
     return efd;
 }

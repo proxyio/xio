@@ -31,7 +31,10 @@
 #include <errno.h>
 #include <libgen.h>
 #include <inttypes.h>
+#include <sys/syscall.h>
 
+
+#define gettid() syscall(__NR_gettid)
 
 void base_init();
 void base_exit();

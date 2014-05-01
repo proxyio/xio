@@ -32,7 +32,7 @@
 #include <sys/syscall.h>
 
 
-#define gettid() syscall(__NR_gettid)
+
 
 typedef int (*thread_func)(void *);
 typedef struct thread {
