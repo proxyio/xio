@@ -97,10 +97,13 @@ struct xsock {
     struct xsock_protocol *l4proto;
     struct list_head xpoll_head;
     struct xtask shutdown;
-    condition_t acceptq_cond;
-    int acceptq_waiters;
-    struct list_head acceptq;
-    struct list_head acceptq_link;
+
+    struct {
+	condition_t cond;
+	int waiters;
+	struct list_head head;
+	struct list_head link;
+    } acceptq;
 
     union {
 	/* Only for transport xsock */

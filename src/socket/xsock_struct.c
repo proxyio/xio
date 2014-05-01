@@ -88,9 +88,10 @@ static void xsock_init(int xd) {
     INIT_LIST_HEAD(&sx->xpoll_head);
     sx->shutdown.f = xshutdown_task_f;
     INIT_LIST_HEAD(&sx->shutdown.link);
-    condition_init(&sx->acceptq_cond);
-    sx->acceptq_waiters = 0;
-    INIT_LIST_HEAD(&sx->acceptq);
+    condition_init(&sx->acceptq.cond);
+    sx->acceptq.waiters = 0;
+    INIT_LIST_HEAD(&sx->acceptq.head);
+    INIT_LIST_HEAD(&sx->acceptq.link);
 }
 
 static void xsock_exit(int xd) {
@@ -133,8 +134,8 @@ static void xsock_exit(int xd) {
      * this is a user's bug.
      */
     BUG_ON(!list_empty(&sx->xpoll_head));
-    sx->acceptq_waiters = -1;
-    condition_destroy(&sx->acceptq_cond);
+    sx->acceptq.waiters = -1;
+    condition_destroy(&sx->acceptq.cond);
 
     /* TODO: destroy acceptq's connection */
 }

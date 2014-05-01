@@ -36,10 +36,10 @@ int reqsocks_push(struct xsock *sx, struct xsock *req_sx) {
 	sx = xget(sx->parent);
 
     mutex_lock(&sx->lock);
-    if (list_empty(&sx->acceptq) && sx->acceptq_waiters > 0) {
-	condition_broadcast(&sx->acceptq_cond);
+    if (list_empty(&sx->acceptq.head) && sx->acceptq.waiters > 0) {
+	condition_broadcast(&sx->acceptq.cond);
     }
-    list_add_tail(&req_sx->acceptq_link, &sx->acceptq);
+    list_add_tail(&req_sx->acceptq.link, &sx->acceptq.head);
     __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
     return rc;
@@ -49,14 +49,14 @@ struct xsock *reqsocks_pop(struct xsock *sx) {
     struct xsock *req_sx = 0;
 
     mutex_lock(&sx->lock);
-    while (list_empty(&sx->acceptq) && !sx->fasync) {
-	sx->acceptq_waiters++;
-	condition_wait(&sx->acceptq_cond, &sx->lock);
-	sx->acceptq_waiters--;
+    while (list_empty(&sx->acceptq.head) && !sx->fasync) {
+	sx->acceptq.waiters++;
+	condition_wait(&sx->acceptq.cond, &sx->lock);
+	sx->acceptq.waiters--;
     }
-    if (!list_empty(&sx->acceptq)) {
-	req_sx = list_first(&sx->acceptq, struct xsock, acceptq_link);
-	list_del_init(&req_sx->acceptq_link);
+    if (!list_empty(&sx->acceptq.head)) {
+	req_sx = list_first(&sx->acceptq.head, struct xsock, acceptq.link);
+	list_del_init(&req_sx->acceptq.link);
     }
     mutex_unlock(&sx->lock);
     return req_sx;

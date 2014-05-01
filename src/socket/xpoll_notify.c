@@ -35,7 +35,7 @@ int xsock_check_events(struct xsock *sx, int events) {
 	if (sx->type == XCONNECTOR)
 	    happened |= !list_empty(&sx->rcv_head) ? XPOLLIN : 0;
 	else if (sx->type == XLISTENER)
-	    happened |= !list_empty(&sx->acceptq) ? XPOLLIN : 0;
+	    happened |= !list_empty(&sx->acceptq.head) ? XPOLLIN : 0;
     }
     if (events & XPOLLOUT)
 	happened |= can_send(sx) ? XPOLLOUT : 0;
