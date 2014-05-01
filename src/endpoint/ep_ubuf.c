@@ -39,7 +39,7 @@ char *xep_allocubuf(int flags, int size, ...) {
     struct uhdr *uh;
     struct ephdr *h1 = 0, *h2 = 0;
 
-    if (flags & XEPBUF_CLONEHDR) {
+    if (flags & XEPUBUF_CLONEHDR) {
 	va_start(ap, size);
 	h1 = ubuf2ephdr(va_arg(ap, char *));
 	va_end(ap);
