@@ -107,7 +107,7 @@ extern struct xsock_protocol xtcp_listener_protocol;
 extern struct xsock_protocol xtcp_connector_protocol;
 extern struct xsock_protocol xmul_listener_protocol[3];
 
-void xmodule_init() {
+void xsocket_module_init() {
     waitgroup_t wg;
     int xd;
     int cpu_no;
@@ -151,7 +151,7 @@ void xmodule_init() {
     list_add_tail(&xmul_listener_protocol[3].link, protocol_head);
 }
 
-void xmodule_exit() {
+void xsocket_module_exit() {
     DEBUG_OFF();
     xgb.exiting = true;
     taskpool_stop(&xgb.tpool);

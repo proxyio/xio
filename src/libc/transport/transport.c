@@ -41,13 +41,13 @@ static inline void add_transport(struct transport *tp) {
     list_add(&tp->item, transport_head);
 }
 
-void global_transport_init() {
+void transport_module_init() {
     INIT_LIST_HEAD(transport_head);
     add_transport(tcp_transport);
     add_transport(ipc_transport);
 }
 
-void global_transport_exit() {
+void transport_module_exit() {
 }
 
 
