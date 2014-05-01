@@ -37,19 +37,20 @@ static int set_noblock(struct xsock *sx, void *val, int vallen) {
     return 0;
 }
 
-static int set_sndbuf(struct xsock *sx, void *val, int vallen) {
+static int set_sndwin(struct xsock *sx, void *val, int vallen) {
     mutex_lock(&sx->lock);
     sx->snd_wnd = (*(int *)val);
     mutex_unlock(&sx->lock);
     return 0;
 }
 
-static int set_rcvbuf(struct xsock *sx, void *val, int vallen) {
+static int set_rcvwin(struct xsock *sx, void *val, int vallen) {
     mutex_lock(&sx->lock);
     sx->rcv_wnd = (*(int *)val);
     mutex_unlock(&sx->lock);
     return 0;
 }
+
 static int set_linger(struct xsock *sx, void *val, int vallen) {
     return -1;
 }
@@ -76,8 +77,10 @@ static int set_reconn_ivlmax(struct xsock *sx, void *val, int vallen) {
 
 const xsockopf setopt_vf[] = {
     set_noblock,
-    set_sndbuf,
-    set_rcvbuf,
+    set_sndwin,
+    set_rcvwin,
+    0,
+    0,
     set_linger,
     set_sndtimeo,
     set_rcvtimeo,
@@ -89,9 +92,10 @@ const xsockopf setopt_vf[] = {
 };
 
 int xsetsockopt(int xd, int level, int opt, void *val, int vallen) {
+    int rc;
     struct xsock *sx = xget(xd);
 
-    BUG_ON(NELEM(setopt_vf, xsockopf) != 11);
+    BUG_ON(NELEM(setopt_vf, xsockopf) != 13);
     if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
 	((level == XL_SOCKET && !setopt_vf[opt]) ||
 	 (opt >= NELEM(setopt_vf, xsockopf)))) {
@@ -103,8 +107,8 @@ int xsetsockopt(int xd, int level, int opt, void *val, int vallen) {
 	setopt_vf[opt](sx, val, vallen);
 	break;
     default:
-	sx->l4proto->setsockopt(xd, level, opt, val, vallen);
+	rc = sx->l4proto->setsockopt(xd, level, opt, val, vallen);
     }
-    return 0;
+    return rc;
 }
 

@@ -38,19 +38,35 @@ static int get_noblock(struct xsock *sx, void *val, int *vallen) {
     return 0;
 }
 
-static int get_sndbuf(struct xsock *sx, void *val, int *vallen) {
+static int get_sndwin(struct xsock *sx, void *val, int *vallen) {
     mutex_lock(&sx->lock);
     *(int *)val = sx->snd_wnd;
     mutex_unlock(&sx->lock);
     return 0;
 }
 
-static int get_rcvbuf(struct xsock *sx, void *val, int *vallen) {
+static int get_rcvwin(struct xsock *sx, void *val, int *vallen) {
     mutex_lock(&sx->lock);
     *(int *)val = sx->rcv_wnd;
     mutex_unlock(&sx->lock);
     return 0;
 }
+
+static int get_sndbuf(struct xsock *sx, void *val, int *vallen) {
+    mutex_lock(&sx->lock);
+    *(int *)val = sx->snd;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
+static int get_rcvbuf(struct xsock *sx, void *val, int *vallen) {
+    mutex_lock(&sx->lock);
+    *(int *)val = sx->rcv;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
+
 static int get_linger(struct xsock *sx, void *val, int *vallen) {
     return -1;
 }
@@ -88,6 +104,8 @@ static int get_sockproto(struct xsock *sx, void *val, int *vallen) {
 
 const xsockopf getopt_vf[] = {
     get_noblock,
+    get_sndwin,
+    get_rcvwin,
     get_sndbuf,
     get_rcvbuf,
     get_linger,
@@ -102,9 +120,10 @@ const xsockopf getopt_vf[] = {
 
 
 int xgetsockopt(int xd, int level, int opt, void *val, int *vallen) {
+    int rc = 0;
     struct xsock *sx = xget(xd);
 
-    BUG_ON(NELEM(getopt_vf, xsockopf) != 11);
+    BUG_ON(NELEM(getopt_vf, xsockopf) != 13);
     if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
 	((level == XL_SOCKET && !getopt_vf[opt]) ||
 	 (opt >= NELEM(getopt_vf, xsockopf)))) {
@@ -116,7 +135,7 @@ int xgetsockopt(int xd, int level, int opt, void *val, int *vallen) {
 	getopt_vf[opt](sx, val, vallen);
 	break;
     default:
-	sx->l4proto->getsockopt(xd, level, opt, val, vallen);
+	rc = sx->l4proto->getsockopt(xd, level, opt, val, vallen);
     }
-    return 0;
+    return rc;
 }
