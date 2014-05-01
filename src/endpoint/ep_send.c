@@ -55,8 +55,7 @@ static struct endsock *route_backward(struct endpoint *ep, char *ubuf) {
     return 0;
 }
 
-typedef struct endsock *(*select_algo) (struct endpoint *ep, char *ubuf);
-const select_algo select_vfptr[] = {
+const target_algo send_target_vfptr[] = {
     0,
     rrbin_forward,
     route_backward,
@@ -97,8 +96,7 @@ static int comsumer_send(struct endpoint *ep, struct endsock *sk, char *ubuf) {
     return rc;
 }
 
-typedef int (*sndfunc) (struct endpoint *ep, struct endsock *sk, char *ubuf);
-const sndfunc send_vfptr[] = {
+const send_action send_vfptr[] = {
     0,
     producer_send,
     comsumer_send,
@@ -116,7 +114,7 @@ int xep_send(int eid, char *ubuf) {
 	return -1;
     }
     accept_endsocks(eid);
-    if (!(sk = select_vfptr[ep->type] (ep, ubuf)))
+    if (!(sk = send_target_vfptr[ep->type] (ep, ubuf)))
 	return -1;
     rc = send_vfptr[ep->type] (ep, sk, ubuf);
     return rc;
