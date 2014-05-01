@@ -25,7 +25,7 @@
 #include <xio/poll.h>
 #include "ep_struct.h"
 
-static struct endsock *get_available_csock(struct endpoint *ep) {
+static struct endsock *get_active_sk(struct endpoint *ep) {
     struct endsock *es, *next_es;
     int tmp;
 
@@ -36,6 +36,7 @@ static struct endsock *get_available_csock(struct endpoint *ep) {
 	list_move_tail(&es->link, &ep->csocks);
 	return es;
     }
+    errno = EAGAIN;
     return 0;
 }
 
@@ -100,10 +101,8 @@ int xep_recv(int eid, char **ubuf) {
 	return -1;
     }
     accept_endsocks(eid);
-    if (!(sk = get_available_csock(ep))) {
-	errno = EAGAIN;
+    if (!(sk = get_active_sk (ep)))
 	return -1;
-    }
     rc = recv_vfptr[ep->type] (ep, sk, ubuf);
     return rc;
 }
