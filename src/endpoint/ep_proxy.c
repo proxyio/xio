@@ -25,3 +25,17 @@
 #include <xio/poll.h>
 #include "ep_struct.h"
 
+
+struct xeppy *xeppy_open(int front_eid, int backend_eid) {
+    struct xeppy *py = (struct xeppy *)mem_zalloc(sizeof(*py));
+
+    if (py) {
+	py->frontend = eid_get(front_eid);
+	py->backend = eid_get(backend_eid);
+    }
+    return 0;
+}
+
+void xeppy_close(struct xeppy *py) {
+
+}

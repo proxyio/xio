@@ -26,6 +26,7 @@
 #include <base.h>
 #include <ds/list.h>
 #include <sync/mutex.h>
+#include <runner/thread.h>
 #include <xio/socket.h>
 #include <xio/endpoint.h>
 #include "ep_hdr.h"
@@ -47,6 +48,15 @@ struct endpoint {
 
 #define xendpoint_walk_sock(ep, nep, head)				\
     list_for_each_entry_safe(ep, nep, head, struct endsock, link)
+
+
+struct xeppy {
+    struct endpoint *frontend;
+    struct endpoint *backend;
+    thread_t py_worker;
+};
+
+
 
 struct xep_global {
     int exiting;

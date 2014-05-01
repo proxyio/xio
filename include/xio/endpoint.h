@@ -18,8 +18,12 @@ int xep_add(int eid, int sfd);
 int xep_rm(int eid, int sfd);
 int xep_recv(int eid, char **ubuf);
 int xep_send(int eid, char *ubuf);
-int xep_proxy(int front_eid, int backend_eid);
-    
+
+struct xeppy;
+struct xeppy *xeppy_open(int front_eid, int backend_eid);
+void xeppy_close(struct xeppy *py);
+
+
 #ifdef __cplusplus
 }
 #endif
