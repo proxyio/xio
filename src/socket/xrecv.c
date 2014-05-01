@@ -41,7 +41,7 @@ struct xmsg *recvq_pop(struct xsock *sx) {
 	sx->rcv_waiters--;
     }
     if (!list_empty(&sx->rcv_head)) {
-	DEBUG_OFF("xsock %d", sx->xd);
+	DEBUG_OFF("%d", sx->xd);
 	msg = list_first(&sx->rcv_head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
@@ -76,7 +76,7 @@ void recvq_push(struct xsock *sx, struct xmsg *msg) {
     sx->rcv += msgsz;
     list_add_tail(&msg->item, &sx->rcv_head);    
     __xpoll_notify(sx);
-    DEBUG_OFF("xsock %d", sx->xd);
+    DEBUG_OFF("%d", sx->xd);
 
     /* Wakeup the blocking waiters. */
     if (sx->rcv_waiters > 0)
@@ -103,8 +103,9 @@ int xrecv(int xd, char **xbuf) {
     if (!(msg = recvq_pop(sx))) {
 	errno = sx->fok ? EAGAIN : EPIPE;
 	rc = -1;
-    } else
+    } else {
 	*xbuf = msg->vec.chunk;
+    }
     return rc;
 }
 

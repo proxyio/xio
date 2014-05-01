@@ -21,27 +21,27 @@ void xep_module_exit() {
     mutex_destroy(&epgb.lock);
 }
 
-int efd_alloc() {
-    int efd;
+int eid_alloc() {
+    int eid;
     mutex_lock(&epgb.lock);
     BUG_ON(epgb.nendpoints >= XIO_MAX_ENDPOINTS);
-    efd = epgb.unused[epgb.nendpoints++];
+    eid = epgb.unused[epgb.nendpoints++];
     mutex_unlock(&epgb.lock);
-    return efd;
+    return eid;
 }
 
-void efd_free(int efd) {
+void eid_free(int eid) {
     mutex_lock(&epgb.lock);
-    epgb.unused[--epgb.nendpoints] = efd;
+    epgb.unused[--epgb.nendpoints] = eid;
     mutex_unlock(&epgb.lock);
 }
 
-struct endpoint *efd_get(int efd) {
-    return &epgb.endpoints[efd];
+struct endpoint *eid_get(int eid) {
+    return &epgb.endpoints[eid];
 }
 
-void accept_endsocks(int efd) {
-    struct endpoint *ep = efd_get(efd);
+void accept_endsocks(int eid) {
+    struct endpoint *ep = eid_get(eid);
     int tmp, s;
     struct endsock *es, *next_es;
 
@@ -49,15 +49,17 @@ void accept_endsocks(int efd) {
 	if (xselect(XPOLLIN|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
 	    continue;
 	BUG_ON(es->sockfd != tmp);
-	DEBUG_ON("endsocks accept start");
 	if ((s = xaccept(es->sockfd)) < 0) {
 	    if (errno != EAGAIN)
 		list_move_tail(&es->link, &ep->bad_socks);
+	    DEBUG_OFF("listener %d bad status", es->sockfd);
 	    continue;
 	}
-	DEBUG_ON("endsocks accept end");
-	if (xep_add(efd, s) < 0)
+	if (xep_add(eid, s) < 0) {
 	    xclose(s);
+	    continue;
+	}
+	DEBUG_OFF("accept new endsock %d", s);	
     }
 }
 

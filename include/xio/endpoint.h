@@ -20,6 +20,8 @@ int xep_recv(int eid, char **xbuf);
 int xep_send(int eid, char *xbuf);
 int xep_pipeline(int receiver_eid, int dispatcher_eid);
 
+void efd_strace(int efd);
+    
 #ifdef __cplusplus
 }
 #endif

@@ -29,6 +29,7 @@ char *xep_allocubuf(int flags, int size, ...) {
     if (!h1) {
 	ephdr_init(h2);
 	h2->ttl = 1;
+	h2->go = 1;
 	h2->size = size;
 	uh = ephdr_uhdr(h2);
 	uh->ephdr_off = ephdr_ctlen(h2);

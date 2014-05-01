@@ -26,16 +26,18 @@ extern void xmodule_init();
 extern void xmodule_exit();
 extern void global_transport_init();
 extern void global_transport_exit();
-
-
+extern void xep_module_init();
+extern void xep_module_exit();
 
 void base_init() {
-    xmodule_init();
     global_transport_init();
+    xmodule_init();
+    xep_module_init();
 }
 
 
 void base_exit() {
-    global_transport_exit();
+    xep_module_exit();
     xmodule_exit();
+    global_transport_exit();
 }

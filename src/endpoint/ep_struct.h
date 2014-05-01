@@ -47,10 +47,10 @@ struct xep_global {
 
 extern struct xep_global epgb;
 
-int efd_alloc();
-void efd_free(int efd);
-struct endpoint *efd_get(int efd);
-void accept_endsocks(int efd);
+int eid_alloc();
+void eid_free(int eid);
+struct endpoint *eid_get(int eid);
+void accept_endsocks(int eid);
 
 
 

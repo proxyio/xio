@@ -22,6 +22,14 @@ struct ts_hdr {
     char ubuf[128];
 };
 
+TEST(endpoint, eid) {
+    int eid1, eid2;
+
+    eid1 = xep_open(XCONNECTOR);
+    eid2 = xep_open(XCONNECTOR);
+    BUG_ON(eid1 == eid2);
+}
+
 TEST(endpoint, hdr) {
     struct ts_hdr th;
     char *ubuf;
@@ -47,61 +55,65 @@ static int producer_thread(void *args) {
     char buf[128];
     int s;
     int i;
-    int efd;
+    int eid;
     char *sbuf, *rbuf;
 
     host.assign((char *)args);
     host += "://127.0.0.1:18898";
     randstr(buf, sizeof(buf));
-    BUG_ON((efd = xep_open(XEP_PRODUCER)) < 0);
+    BUG_ON((eid = xep_open(XEP_PRODUCER)) < 0);
     for (i = 0; i < 3; i++) {
 	BUG_ON((s = xconnect(host.c_str())) < 0);
-	BUG_ON(xep_add(efd, s) < 0);
+	BUG_ON(xep_add(eid, s) < 0);
     }
     for (i = 0; i < 30; i++) {
 	sbuf = rbuf = 0;
 	sbuf = xep_allocubuf(0, sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
-	BUG_ON(xep_send(efd, sbuf) != 0);
-	while (xep_recv(efd, &rbuf) != 0)
-	    usleep(20000);
-	BUG_ON(sbuf == rbuf);
+	BUG_ON(xep_send(eid, sbuf) != 0);
+	DEBUG_OFF("producer send %d", i);
+	while (xep_recv(eid, &rbuf) != 0) {
+	    usleep(1000);
+	}
+	DEBUG_OFF("producer recv %d", i);
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xep_freeubuf(rbuf);
     }
-    xep_close(efd);
+    xep_close(eid);
     return 0;
 }
 
 TEST(endpoint, route) {
     string host("tcp+inproc+ipc://127.0.0.1:18898");
     u32 i;
-    thread_t t[1];
+    thread_t t[3];
     const char *pf[] = {
 	"tcp",
 	"ipc",
 	"inproc",
     };
     int s;
-    int efd;
+    int eid;
     char *ubuf;
 
     BUG_ON((s = xlisten(host.c_str())) < 0);
-    BUG_ON((efd = xep_open(XEP_COMSUMER)) < 0);
-    BUG_ON(xep_add(efd, s) < 0);
+    BUG_ON((eid = xep_open(XEP_COMSUMER)) < 0);
+    BUG_ON(xep_add(eid, s) < 0);
 
     for (i = 0; i < NELEM(t, thread_t); i++) {
 	thread_start(&t[i], producer_thread, (void *)pf[i]);
     }
 
     for (i = 0; i < 90; i++) {
-	while (xep_recv(efd, &ubuf) != 0)
-	    usleep(20000);
-	BUG_ON(xep_send(efd, ubuf));
+	while (xep_recv(eid, &ubuf) != 0) {
+	    usleep(1000);
+	}
+	DEBUG_OFF("comsumer recv %d", i);
+	BUG_ON(xep_send(eid, ubuf));
     }
 
     for (i = 0; i < NELEM(t, thread_t); i++) {
 	thread_stop(&t[i]);
     }
-    xep_close(efd);
+    xep_close(eid);
 }

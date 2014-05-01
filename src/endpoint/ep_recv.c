@@ -17,7 +17,8 @@ static struct endsock *available_csock(struct endpoint *ep) {
     return 0;
 }
 
-static int generic_recv(struct endpoint *ep, char **ubuf) {
+static int generic_recv(struct endpoint *ep,
+			char **ubuf, struct endsock **s) {
     int rc;
     struct ephdr *eh;
     struct endsock *at_sock;
@@ -29,12 +30,15 @@ static int generic_recv(struct endpoint *ep, char **ubuf) {
     if ((rc = xrecv(at_sock->sockfd, (char **)&eh)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
+	    DEBUG_OFF("socket %d EPIPE", at_sock->sockfd);
 	    list_move_tail(&at_sock->link, &ep->bad_socks);
 	}
 	if (list_empty(&ep->bsocks) && list_empty(&ep->csocks))
 	    errno = EBADF;
-    } else
+    } else {
+	*s = at_sock;
 	*ubuf = ephdr2ubuf(eh);
+    }
     return rc;
 }
 
@@ -42,8 +46,9 @@ static int producer_recv(struct endpoint *ep, char **ubuf) {
     int rc;
     struct ephdr *eh;
     struct epr *rt;
+    struct endsock *sock;
     
-    if ((rc = generic_recv(ep, ubuf)) == 0) {
+    if ((rc = generic_recv(ep, ubuf, &sock)) == 0) {
 	eh = ubuf2ephdr(*ubuf);
 	rt = rt_cur(eh);
 	eh->ttl--;
@@ -53,7 +58,16 @@ static int producer_recv(struct endpoint *ep, char **ubuf) {
 
 static int comsumer_recv(struct endpoint *ep, char **ubuf) {
     int rc;
-    rc = generic_recv(ep, ubuf);
+    struct ephdr *eh;
+    struct epr *rt;
+    struct endsock *sock;
+    
+    if ((rc = generic_recv(ep, ubuf, &sock)) == 0) {
+	eh = ubuf2ephdr(*ubuf);
+	rt = rt_cur(eh);
+	if (memcmp(rt->uuid, sock->uuid, sizeof(sock->uuid)) != 0)
+	    uuid_copy(sock->uuid, rt->uuid);
+    }
     return rc;
 }
 
@@ -65,15 +79,15 @@ const static rcvfunc recv_vfptr[] = {
 };
 
 
-int xep_recv(int efd, char **ubuf) {
+int xep_recv(int eid, char **ubuf) {
     int rc;
-    struct endpoint *ep = efd_get(efd);
+    struct endpoint *ep = eid_get(eid);
 
     if (!(ep->type & (XEP_PRODUCER|XEP_COMSUMER))) {
 	errno = EBADF;
 	return -1;
     }
-    accept_endsocks(efd);
+    accept_endsocks(eid);
     rc = recv_vfptr[ep->type] (ep, ubuf);
     return rc;
 }

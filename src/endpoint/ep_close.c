@@ -1,13 +1,20 @@
 #include <stdio.h>
+#include <os/alloc.h>
 #include "ep_struct.h"
 
-static void endpoint_exit(struct endpoint *ep) {
-    INIT_LIST_HEAD(&ep->bsocks);
-    INIT_LIST_HEAD(&ep->csocks);
-}
+void xep_close(int eid) {
+    struct list_head closed_head;
+    struct endpoint *ep = eid_get(eid);
+    struct endsock *es, *next_es;
 
-void xep_close(int efd) {
-    struct endpoint *ep = efd_get(efd);
-    endpoint_exit(ep);
-    efd_free(efd);
+    eid_free(eid);
+    INIT_LIST_HEAD(&closed_head);
+    list_splice(&ep->bsocks, &closed_head);
+    list_splice(&ep->csocks, &closed_head);
+    list_splice(&ep->bad_socks, &closed_head);
+    xendpoint_walk_sock(es, next_es, &closed_head) {
+	xclose(es->sockfd);
+	list_del_init(&es->link);
+	mem_free(es, sizeof(*es));
+    }
 }

@@ -62,6 +62,7 @@ static int comsumer_send(struct endpoint *ep, char *ubuf) {
 	return -1;
     }
     eh->go = 0;
+    eh->end_ttl = eh->ttl;
     if ((rc = xsend(back_sock->sockfd, (char *)eh)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
@@ -81,15 +82,15 @@ const static sndfunc send_vfptr[] = {
 };
 
 
-int xep_send(int efd, char *ubuf) {
+int xep_send(int eid, char *ubuf) {
     int rc;
-    struct endpoint *ep = efd_get(efd);
+    struct endpoint *ep = eid_get(eid);
 
     if (!(ep->type & (XEP_PRODUCER|XEP_COMSUMER))) {
 	errno = EBADF;
 	return -1;
     }
-    accept_endsocks(efd);
+    accept_endsocks(eid);
     rc = send_vfptr[ep->type] (ep, ubuf);
     return rc;
 }
