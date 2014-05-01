@@ -62,26 +62,40 @@ struct endpoint *eid_get(int eid) {
     return &epgb.endpoints[eid];
 }
 
-void accept_endsocks(int eid) {
-    struct endpoint *ep = eid_get(eid);
-    int tmp, s;
-    struct endsock *es, *next_es;
+int ep2eid(struct endpoint *ep) {
+    return ep - &epgb.endpoints[0];
+}
 
-    xendpoint_walk_sock(es, next_es, &ep->bsocks) {
-	if (xselect(XPOLLIN|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
-	    continue;
-	BUG_ON(es->sockfd != tmp);
-	if ((s = xaccept(es->sockfd)) < 0) {
-	    if (errno != EAGAIN)
-		list_move_tail(&es->link, &ep->bad_socks);
-	    DEBUG_OFF("listener %d bad status", es->sockfd);
-	    continue;
-	}
+/* Accept all new incoming sockets from listener socket sk
+ * until xaccept return EAGAIN errno
+ */
+void endpoint_accept(int eid, struct endsock *sk) {
+    struct endpoint *ep = eid_get(eid);
+    int s;
+
+    while ((s = xaccept(sk->sockfd)) >= 0) {
 	if (xep_add(eid, s) < 0) {
 	    xclose(s);
-	    continue;
+	    DEBUG_OFF("accept a bad status socket %d", s);
 	}
-	DEBUG_OFF("accept new endsock %d", s);	
+	DEBUG_OFF("accept new endsock %d", s);
+    }
+    if (errno != EAGAIN) {
+	list_move_tail(&sk->link, &ep->bad_socks);
+	DEBUG_OFF("listener %d bad status", sk->sockfd);
+    }
+}
+
+void accept_endsocks(int eid) {
+    struct endpoint *ep = eid_get(eid);
+    int tmp;
+    struct endsock *sk, *next_sk;
+
+    xendpoint_walk_sock(sk, next_sk, &ep->bsocks) {
+	if (xselect(XPOLLIN|XPOLLERR, 1, &sk->sockfd, 1, &tmp) == 0)
+	    continue;
+	BUG_ON(sk->sockfd != tmp);
+	endpoint_accept(eid, sk);
     }
 }
 

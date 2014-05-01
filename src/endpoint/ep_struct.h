@@ -26,20 +26,27 @@
 #include <base.h>
 #include <ds/list.h>
 #include <sync/mutex.h>
+#include <sync/spin.h>
 #include <runner/thread.h>
 #include <xio/socket.h>
+#include <xio/poll.h>
 #include <xio/endpoint.h>
 #include "ep_hdr.h"
 
 #define XIO_MAX_ENDPOINTS 10240
 
+struct endpoint;
+
 struct endsock {
+    struct endpoint *owner;
+    struct xpoll_event ent;
     int sockfd;
     uuid_t uuid;
     struct list_head link;
 };
 
 struct endpoint {
+    struct xeppy *owner;
     int type;
     struct list_head bsocks;
     struct list_head csocks;
@@ -51,6 +58,9 @@ struct endpoint {
 
 
 struct xeppy {
+    int exiting;
+    spin_t lock;
+    struct xpoll_t *po;
     struct endpoint *frontend;
     struct endpoint *backend;
     thread_t py_worker;
@@ -82,6 +92,7 @@ extern struct xep_global epgb;
 int eid_alloc();
 void eid_free(int eid);
 struct endpoint *eid_get(int eid);
+int ep2eid(struct endpoint *ep);
 void accept_endsocks(int eid);
 
 typedef struct endsock *(*target_algo) (struct endpoint *ep, char *ubuf);

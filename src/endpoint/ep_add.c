@@ -40,6 +40,7 @@ int xep_add(int eid, int sockfd) {
     }
     if (!(s = (struct endsock *)mem_zalloc(sizeof(*s))))
 	return -1;
+    s->owner = ep;
     s->sockfd = sockfd;
     xsetsockopt(sockfd, XL_SOCKET, XNOBLOCK, &fnb, sizeof(fnb));
     xgetsockopt(sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);

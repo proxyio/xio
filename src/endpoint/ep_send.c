@@ -109,6 +109,7 @@ int xep_send(int eid, char *ubuf) {
     struct endsock *sk;
     struct endpoint *ep = eid_get(eid);
 
+    BUG_ON(ep2eid(eid_get(11)) != 11);
     if (!(ep->type & (XEP_PRODUCER|XEP_COMSUMER))) {
 	errno = EBADF;
 	return -1;
