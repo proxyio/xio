@@ -64,6 +64,7 @@ static struct __task *_taskpool_pop(taskpool_t *tp) {
     if (!list_empty(&tp->task_head)) {
 	te = list_first(&tp->task_head, struct __task, node);
 	list_del(&te->node);
+	tp->tasks--;
     }
     return te;
 }
