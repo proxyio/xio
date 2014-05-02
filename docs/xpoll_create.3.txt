@@ -3,7 +3,7 @@ xpoll_create(3)
 
 NAME
 ----
-xpoll_create - open an xpoll file descriptor
+xpoll_create - open an xpoll instance
 
 SYNOPSIS
 --------

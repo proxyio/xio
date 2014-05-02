@@ -56,7 +56,7 @@ XPOLL_DEL
     XPOLLIN:
 	The associated xio socket is available for xrecv[3] operations.
     XPOLLOUT:
-        The associated file is available for xsend[3] operations.
+        The associated xio socket is available for xsend[3] operations.
     XPOLLERR:
         Error condition happened on the associated xio socket.  xpoll_wait[3] will
 	always wait for this event; it is not necessary to set it in events.
