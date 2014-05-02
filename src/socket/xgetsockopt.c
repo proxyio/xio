@@ -128,7 +128,6 @@ int xgetsockopt(int xd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
     struct xsock *sx = xget(xd);
 
-    BUG_ON(NELEM(getopt_vf, xsockopf) != 13);
     if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
 	((level == XL_SOCKET && !getopt_vf[opt]) ||
 	 (opt >= NELEM(getopt_vf, xsockopf)))) {

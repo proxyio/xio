@@ -34,6 +34,8 @@ int xcpu_alloc() {
 }
 
 int xcpu_choosed(int xd) {
+    if (xgb.ncpus == 0)
+	sleep(0xfffffff);
     return xd % xgb.ncpus;
 }
 

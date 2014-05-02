@@ -103,7 +103,6 @@ int xsetsockopt(int xd, int level, int opt, void *val, int vallen) {
     int rc;
     struct xsock *sx = xget(xd);
 
-    BUG_ON(NELEM(setopt_vf, xsockopf) != 13);
     if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
 	((level == XL_SOCKET && !setopt_vf[opt]) ||
 	 (opt >= NELEM(setopt_vf, xsockopf)))) {

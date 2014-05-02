@@ -56,6 +56,16 @@ struct endpoint {
 #define xendpoint_walk_sock(ep, nep, head)				\
     list_for_each_entry_safe(ep, nep, head, struct endsock, link)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void eid_strace(int eid);
+
+#ifdef __cplusplus
+}
+#endif
+
 struct endsock *__xep_add(int eid, int sockfd);
 struct endsock *endpoint_accept(int eid, struct endsock *sk);
 

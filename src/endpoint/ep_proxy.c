@@ -25,23 +25,25 @@
 #include <xio/poll.h>
 #include "ep_struct.h"
 
-extern int __xep_send(struct endpoint *ep, char *ubuf);
+extern int __xep_send(struct endpoint *ep, char *ubuf, struct endsock **go);
 
 static void producer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
     struct xeppy *py = ep->owner;
     int rc;
     char *ubuf = 0;
-
+    struct endsock *dst = 0;
+    
     BUG_ON(ep->type != XEP_PRODUCER);
     if ((rc = recv_vfptr[ep->type] (sk, &ubuf)) == 0) {
-	if (__xep_send(py->frontend, ubuf) < 0 && errno != EAGAIN) {
+	rc = __xep_send(py->frontend, ubuf, &dst);
+	DEBUG_OFF("ep(%d)'s dispatcher %d route resp: %10.10s backto %d", ep2eid(ep),
+		  sk->sockfd, ubuf, dst ? dst->sockfd : -1);
+	if (rc < 0)
 	    xep_freeubuf(ubuf);
-	    DEBUG_ON("ubuf route back with errno %d", errno);
-	}
-	DEBUG_OFF("dispatcher %d recv response", sk->sockfd);
     } else if (errno != EAGAIN)
-	DEBUG_OFF("dispatcher %d bad status of errno %d", sk->sockfd, errno);
+	DEBUG_OFF("ep(%d)'s dispatcher %d bad status of errno %d", ep2eid(ep),
+		  sk->sockfd, errno);
 }
 
 static void comsumer_event_hndl(struct endsock *sk) {
@@ -49,7 +51,8 @@ static void comsumer_event_hndl(struct endsock *sk) {
     struct xeppy *py = ep->owner;
     int rc;
     char *ubuf, *ubuf2;
-
+    struct endsock *dst = 0;
+    
     BUG_ON(ep->type != XEP_COMSUMER);
     if ((rc = recv_vfptr[ep->type] (sk, &ubuf)) == 0) {
 	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR|XEPUBUF_APPENDRT,
@@ -58,13 +61,18 @@ static void comsumer_event_hndl(struct endsock *sk) {
 	memcpy(ubuf2, ubuf, xep_ubuflen(ubuf));
 	xep_freeubuf(ubuf);
 
-	if (__xep_send(py->backend, ubuf2) < 0 && errno != EAGAIN) {
+	BUG_ON(ep != py->frontend);
+	rc = __xep_send(py->backend, ubuf2, &dst);
+	if (dst)
+	    BUG_ON(dst->owner != py->backend);
+
+	DEBUG_OFF("ep(%d)'s receiver %d send req: %10.10s goto %d", ep2eid(ep),
+		  sk->sockfd, ubuf2, dst ? dst->sockfd : -1);
+	if (rc < 0)
 	    xep_freeubuf(ubuf2);
-	    DEBUG_ON("ubuf dispatcher with errno %d", errno);
-	}
-	DEBUG_OFF("receiver %d recv request", sk->sockfd);
     } else if (errno != EAGAIN)
-	DEBUG_OFF("receiver %d bad status of errno %d", sk->sockfd, errno);
+	DEBUG_OFF("ep(%d)'s receiver %d bad status of errno %d", ep2eid(ep),
+		  sk->sockfd, errno);
 }
 
 
@@ -94,9 +102,12 @@ static void listener_event_hndl(struct endsock *sk) {
     struct xeppy *py = ep->owner;
     struct endsock *newsk;
 
-    DEBUG_OFF("socket %d events %s", sk->sockfd, xpoll_str[sk->ent.happened]);
-    if ((newsk = endpoint_accept(ep2eid(ep), sk))) {
+    DEBUG_OFF("ep(%d)'s listener %d events %s", ep2eid(ep), sk->sockfd,
+	      xpoll_str[sk->ent.happened]);
+    while ((newsk = endpoint_accept(ep2eid(ep), sk))) {
 	BUG_ON(sk_enable_poll(py->po, newsk));
+	DEBUG_OFF("ep(%d)'s listener %d accept %d", ep2eid(ep), sk->sockfd,
+		  newsk->sockfd);
     }
 }
 
@@ -132,8 +143,8 @@ static int py_routine(void *args) {
 	}
 	DEBUG_OFF("%d sockets happened events", rc);
 	for (i = 0; i < rc; i++) {
-	    DEBUG_ON("socket %d with events %s", ent[i].xd,
-		     xpoll_str[ent[i].happened]);
+	    DEBUG_OFF("socket %d with events %s", ent[i].xd,
+		      xpoll_str[ent[i].happened]);
 	    event_hndl(&ent[i]);
 	}
     }
@@ -158,9 +169,11 @@ static void enable_sockets_poll(struct endpoint *ep) {
 
     xendpoint_walk_sock(sk, next_sk, &ep->bsocks) {
 	BUG_ON(sk_enable_poll(py->po, sk));
+	DEBUG_OFF("ep(%d)'s xpoll add listener %d", ep2eid(ep), sk->sockfd);
     }
     xendpoint_walk_sock(sk, next_sk, &ep->csocks) {
 	BUG_ON(sk_enable_poll(py->po, sk));
+	DEBUG_OFF("ep(%d)'s xpoll add connector %d", ep2eid(ep), sk->sockfd);
     }
 }
 
@@ -173,6 +186,7 @@ struct xeppy *xeppy_open(int front_eid, int backend_eid) {
 	mem_free(py, sizeof(*py));
 	return 0;
     }
+    DEBUG_OFF("front endpoint %d and back endpoint %d", front_eid, backend_eid);
     py->exiting = false;
     spin_init(&py->lock);
     py->frontend = eid_get(front_eid);

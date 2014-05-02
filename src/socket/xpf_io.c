@@ -269,8 +269,6 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
 	DEBUG_OFF("io xsock %d EPIPE", sx->xd);
 	sx->fok = false;
     }
-
-    /* Check events for xpoll */
     xpoll_notify(sx);
     return rc;
 }

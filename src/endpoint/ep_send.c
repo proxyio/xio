@@ -106,12 +106,14 @@ const send_action send_vfptr[] = {
     comsumer_send,
 };
 
-int __xep_send(struct endpoint *ep, char *ubuf) {
+int __xep_send(struct endpoint *ep, char *ubuf, struct endsock **go) {
     int rc;
     struct endsock *sk;
 
     if (!(sk = send_target_vfptr[ep->type] (ep, ubuf)))
 	return -1;
+    if (go)
+	*go = sk;
     rc = send_vfptr[ep->type] (sk, ubuf);
     return rc;
 }
@@ -124,5 +126,5 @@ int xep_send(int eid, char *ubuf) {
 	return -1;
     }
     accept_endsocks(eid);
-    return __xep_send(ep, ubuf);
+    return __xep_send(ep, ubuf, 0);
 }

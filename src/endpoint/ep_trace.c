@@ -73,6 +73,6 @@ void ep_strace(struct endpoint *ep) {
     trace_bad_sockets(ep);
 }
 
-void eid_strace(int eid) {
+void xep_strace(int eid) {
     ep_strace(eid_get(eid));
 }

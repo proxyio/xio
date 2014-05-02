@@ -26,6 +26,7 @@ struct xeppy;
 struct xeppy *xeppy_open(int front_eid, int backend_eid);
 void xeppy_close(struct xeppy *py);
 
+void xep_strace(int eid);
 
 #ifdef __cplusplus
 }
