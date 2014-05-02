@@ -4,7 +4,7 @@ xlisten(3)
 
 NAME
 ----
-xlisten - create a listener xsocket
+xlisten - create a listener xio socket
 
 
 SYNOPSIS
@@ -28,7 +28,7 @@ defined in '<xio/sock.h>' header file.
 
 RETURN VALUE
 ------------
-If listen succeeds, a listener xsocket file descriptor is returned. On error,
+If listen succeeds, a listener xio socket file descriptor is returned. On error,
 -1 is returned, and errno is set appropriately.
 
 ERRORS

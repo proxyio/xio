@@ -3,7 +3,7 @@ xsocket(3)
 
 NAME
 ----
-xsocket - create an xsocket
+xsocket - create an xio socket
 
 
 SYNOPSIS
@@ -15,8 +15,8 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-Creates an xsocket with specified 'pf' and 'socktype'. Returns a file
-descriptor for the newly created xsocket.
+Creates an xio socket with specified 'pf' and 'socktype'. Returns a file
+descriptor for the newly created xio socket.
 
 Following pfs are defined at the moment:
 
@@ -36,32 +36,32 @@ the exact semantics of the socket.
 Following socktypes are defined at the moment:
 
 *XLISTENER*::
-xsocket listener, that is, as a xsocket that will be used to accept incoming
-connection requests using xbind[3] or using helper API xlisten[3]
+xio listener socket, that is, as a socket that will be used to accept
+incoming connection requests using xbind[3] or using helper API xlisten[3]
 
 *XCONNECTOR*::
-xsocket connector, a xsocket that will be used to connect to remote listening
-xsocket using xbind[3] or using helper API xconnect[3]
+xio connector socket, a socket that will be used to connect to remote listening
+xio socket using xbind[3] or using helper API xconnect[3]
 
-The newly created xsocket exists in a name space (address family) but has no
+The newly created xio socket exists in a name space (address family) but has no
 address assigned to it. see linkxio:xbind[3] function.
 
 RETURN VALUE
 ------------
-On success, a xsocket descriptor for the new xsocket is returned.  On error,
+On success, a xio socket descriptor for the new socket is returned.  On error,
 -1 is returned, and errno is set appropriately.
 
-Note that xsocket file descriptors returned are not standard system file
+Note that xio socket file descriptors returned are not standard system file
 descriptors and will exhibit undefined behaviour when used with system functions.
 Moreover, it may happen that a system file descriptor and file descriptor of
-an xsocket will incidentally collide (be equal).
+an xio socket will incidentally collide (be equal).
 
 ERRORS
 ------
 *EPROTO*::
 Specified address family is not supported or unknown protocol.
 *EMFILE*::
-The limit on the total number of open xsockets or OS limit for file
+The limit on the total number of open xio sockets or OS limit for file
 descriptors has been reached.
 
 EXAMPLE

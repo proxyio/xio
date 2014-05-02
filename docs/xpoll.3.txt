@@ -3,7 +3,7 @@ xpoll(3)
 
 NAME
 ----
-xpoll - I/O event notification facility for xsocket
+xpoll - I/O event notification facility for xio socket
 
 SYNOPSIS
 --------
@@ -21,9 +21,9 @@ an xpoll instance:
     * An xpoll instance created by xpoll_create(), which returns a xpoll_t
       pointerreferring to the xpoll instance.
       
-    * Interest in particular xsocket's file descriptors is then registered via
-      xpoll_ctl().  The set of file  descriptors  currently registered on an
-      xpoll instance is sometimes called an xpoll set.
+    * Interest in particular xio socket's file descriptors is then registered
+      via xpoll_ctl().  The set of file  descriptors  currently registered
+      on an xpoll instance is sometimes called an xpoll set.
       
     * Finally, the actual wait is started by xpoll_wait().
 

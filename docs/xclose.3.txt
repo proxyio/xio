@@ -3,7 +3,7 @@ xclose(3)
 
 NAME
 ----
-xclose - close a xsocket
+xclose - close a xio socket
 
 
 SYNOPSIS
@@ -15,9 +15,9 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-Close the xsocket 's'. Any buffered inbound messages that were not yet received
+Close the xio socket 's'. Any buffered inbound messages that were not yet received
 by the application will be discarded. The library will try to deliver any
-outstanding outbound messages for the time specified by _XLINGER_ xsocket option.
+outstanding outbound messages for the time specified by _XLINGER_ xio socket option.
 The call will block in the meantime.
 
 RETURN VALUE

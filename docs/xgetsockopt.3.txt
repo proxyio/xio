@@ -3,7 +3,7 @@ xgetsockopt(3)
 
 NAME
 ----
-xgetsockopt - retrieve a xsocket option
+xgetsockopt - retrieve a xio socket option
 
 
 SYNOPSIS
@@ -26,7 +26,7 @@ greater than size of the buffer, the value will be silently truncated.
 Otherwise, the 'vallen' will be modified to indicate the actual length of
 the option.
 
-_<xio/sock.h>_ header defines generic xsocket options (_XSOCKET_ level).
+_<xio/sock.h>_ header defines generic xio socket options (_XSOCKET_ level).
 The options are as follows:
 
 *XPF*::

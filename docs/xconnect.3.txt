@@ -3,7 +3,7 @@ xconnect(3)
 
 NAME
 ----
-xconnect - create a connector xsocket
+xconnect - create a connector xio socket
 
 
 SYNOPSIS
@@ -27,13 +27,13 @@ defined in '<xio/sock.h>' header file.
 
 RETURN VALUE
 ------------
-If the connection succeeds, a xsocket file descriptor for the new socket
+If the connection succeeds, a xio socket file descriptor for the new socket
 is returned. On error, -1 is returned, and errno is set appropriately.
 
 ERRORS
 ------
 *EMFILE*::
-Maximum number of active xsockets was reached.
+Maximum number of active xio sockets was reached.
 *EINVAL*::
 The syntax of the supplied address is invalid.
 *EPROTO*::

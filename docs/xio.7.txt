@@ -1,9 +1,9 @@
-xio(7)
+xsock(7)
 ======
 
 NAME
 ----
-xio - scalability protocols library.
+xio socket - [MTP] The Message Control Protocol.
 
 
 SYNOPSIS
@@ -16,25 +16,25 @@ DESCRIPTION
 
 Following functions are exported by xio library:
 
-Create an xsock::
+Create an xio socket::
     linkxio:xsocket[3]
 
-Close an xsock::
+Close an xio socket::
     linkxio:xclose[3]
 
-Set a xsock option::
+Set a xio socket option::
     linkxio:xsetsockopt[3]
 
-Get a xsock option::
+Get a xio socket option::
     linkxio:xgetsockopt[3]
 
-Add local endpoint or remote endpoint to the xsock::
+Add local endpoint or remote endpoint to the xio socket::
     linkxio:xbind[3]
 
-Add a local endpoint to the xsock::
+Add a local endpoint to the xio socket::
     linkxio:xlisten[3]
 
-Add a remote endpoint to the xsock::
+Add a remote endpoint to the xio socket::
     linkxio:xconnect[3]
     
 Send a message::
@@ -57,7 +57,7 @@ Multiplexing::
     linkxio:xpoll_ctl[3]
     linkxio:xpoll_wait[3]    
 
-Following transport mechanisms are provided by xsock:
+Following transport mechanisms are provided by xio socket:
 
 In-process transport::
     linkxio:xpf_inproc[7]
@@ -70,8 +70,6 @@ TCP transport::
 
 Following tools are installed with the library:
 
-xiobc::
-    linkxio:xiobc[1]
 
 AUTHORS
 -------

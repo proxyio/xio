@@ -16,8 +16,8 @@ SYNOPSIS
 DESCRIPTION
 -----------
 xbind() assigns the address specified to by addr to the socket referred to by
-'s'. if the xsocket type is XLISTENER, it is the same as xlisten[3]. or if the
-xsocket's type is XCONNECTOR, it is the same as xconnect[3].
+'s'. if the xio socket type is XLISTENER, it is the same as xlisten[3]. or
+if the xio socket's type is XCONNECTOR, it is the same as xconnect[3].
 
 The 'addr' is specific to the underlying transport protocol.
 
