@@ -86,7 +86,8 @@ static int comsumer_send(struct endsock *sk, char *ubuf) {
     struct ephdr *eh = ubuf2ephdr(ubuf);
 
     eh->go = 0;
-    eh->end_ttl = eh->ttl;
+    if (!eh->end_ttl)
+	eh->end_ttl = eh->ttl;
     if ((rc = xsend(sk->sockfd, (char *)eh)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
@@ -95,6 +96,7 @@ static int comsumer_send(struct endsock *sk, char *ubuf) {
 	if (list_empty(&ep->bsocks) && list_empty(&ep->csocks))
 	    errno = EBADF;
     }
+    DEBUG_OFF("%d send with rc %d", sk->sockfd, rc);
     return rc;
 }
 

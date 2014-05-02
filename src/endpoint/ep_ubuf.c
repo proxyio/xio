@@ -46,8 +46,7 @@ char *ubuf_clone(int flags, int size, char *ubuf) {
     if (flags & XEPUBUF_APPENDRT) {
 	h2->ttl++;
 	uh = ephdr_uhdr(h2);
-	uh->ephdr_off += sizeof(struct epr);
-	BUG_ON(uh->ephdr_off != ephdr_ctlen(h2));
+	uh->ephdr_off += ephdr_ctlen(h2);
     }
     return ephdr2ubuf(h2);
 }

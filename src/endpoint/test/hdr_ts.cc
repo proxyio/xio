@@ -71,11 +71,11 @@ static int producer_thread(void *args) {
 	sbuf = xep_allocubuf(0, sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
 	BUG_ON(xep_send(eid, sbuf) != 0);
-	DEBUG_OFF("producer send %d", i);
+	DEBUG_ON("producer send %d", i);
 	while (xep_recv(eid, &rbuf) != 0) {
 	    usleep(1000);
 	}
-	DEBUG_OFF("producer recv %d", i);
+	DEBUG_ON("producer recv %d", i);
 	BUG_ON(xep_ubuflen(rbuf) != sizeof(buf));
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xep_freeubuf(rbuf);
@@ -114,7 +114,7 @@ TEST(endpoint, proxy) {
     string addr("://127.0.0.1:18899"), host;
     u32 i;
     thread_t pyt;
-    thread_t t[3];
+    thread_t t[1];
     const char *pf[] = {
 	"tcp",
 	"ipc",
@@ -137,11 +137,11 @@ TEST(endpoint, proxy) {
 	thread_start(&t[i], producer_thread, (void *)pf[i]);
     }
 
-    for (i = 0; i < 90; i++) {
+    for (i = 0; i < NELEM(t, thread_t) * 30; i++) {
 	while (xep_recv(eid, &ubuf) != 0) {
 	    usleep(1000);
 	}
-	DEBUG_OFF("comsumer recv %d %u", i, xep_ubuflen(ubuf));
+	DEBUG_ON("comsumer recv %d %u", i, xep_ubuflen(ubuf));
 	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR, xep_ubuflen(ubuf), ubuf);
 	memcpy(ubuf2, ubuf, xep_ubuflen(ubuf));
 	xep_freeubuf(ubuf);

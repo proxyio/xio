@@ -26,7 +26,7 @@
 #include "ep_struct.h"
 
 
-int xep_add(int eid, int sockfd) {
+struct endsock *__xep_add(int eid, int sockfd) {
     struct endpoint *ep = eid_get(eid);
     int fnb = 1;
     int socktype = XCONNECTOR;
@@ -36,10 +36,10 @@ int xep_add(int eid, int sockfd) {
 
     if (!(socktype & (XCONNECTOR|XLISTENER))) {
 	errno = EBADF;
-	return -1;
+	return 0;
     }
     if (!(s = (struct endsock *)mem_zalloc(sizeof(*s))))
-	return -1;
+	return 0;
     s->owner = ep;
     s->sockfd = sockfd;
     xsetsockopt(sockfd, XL_SOCKET, XNOBLOCK, &fnb, sizeof(fnb));
@@ -49,5 +49,13 @@ int xep_add(int eid, int sockfd) {
     if (ep->type == XEP_PRODUCER)
 	uuid_generate(s->uuid);
     DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
+    return s;
+}
+
+int xep_add(int eid, int sockfd) {
+    struct endsock *s = __xep_add(eid, sockfd);
+    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
+    if (!s)
+	return -1;
     return 0;
 }

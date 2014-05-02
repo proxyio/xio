@@ -56,6 +56,8 @@ struct endpoint {
 #define xendpoint_walk_sock(ep, nep, head)				\
     list_for_each_entry_safe(ep, nep, head, struct endsock, link)
 
+struct endsock *__xep_add(int eid, int sockfd);
+struct endsock *endpoint_accept(int eid, struct endsock *sk);
 
 struct xeppy {
     int exiting;

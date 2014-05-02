@@ -69,21 +69,23 @@ int ep2eid(struct endpoint *ep) {
 /* Accept all new incoming sockets from listener socket sk
  * until xaccept return EAGAIN errno
  */
-void endpoint_accept(int eid, struct endsock *sk) {
+struct endsock *endpoint_accept(int eid, struct endsock *sk) {
     struct endpoint *ep = eid_get(eid);
-    int s;
-
-    while ((s = xaccept(sk->sockfd)) >= 0) {
-	if (xep_add(eid, s) < 0) {
-	    xclose(s);
-	    DEBUG_OFF("accept a bad status socket %d", s);
+    int sockfd;
+    struct endsock *newsk = 0;
+    
+    while ((sockfd = xaccept(sk->sockfd)) >= 0) {
+	if (!(newsk = __xep_add(eid, sockfd))) {
+	    xclose(sockfd);
+	    DEBUG_OFF("accept a bad status socket %d", sockfd);
 	}
-	DEBUG_OFF("accept new endsock %d", s);
+	DEBUG_OFF("accept new endsock %d", sockfd);
     }
     if (errno != EAGAIN) {
 	list_move_tail(&sk->link, &ep->bad_socks);
 	DEBUG_OFF("listener %d bad status", sk->sockfd);
     }
+    return newsk;
 }
 
 void accept_endsocks(int eid) {
