@@ -75,6 +75,13 @@ static int set_reconn_ivlmax(struct xsock *sx, void *val, int vallen) {
     return -1;
 }
 
+static int set_tracedebug(struct xsock *sx, void *val, int vallen) {
+    mutex_lock(&sx->lock);
+    sx->ftracedebug = *(int *)val ? true : false;
+    mutex_unlock(&sx->lock);
+    return 0;
+}
+
 const xsockopf setopt_vf[] = {
     set_noblock,
     set_sndwin,
@@ -89,6 +96,7 @@ const xsockopf setopt_vf[] = {
     set_reconn_ivlmax,
     0,
     0,
+    set_tracedebug,
 };
 
 int xsetsockopt(int xd, int level, int opt, void *val, int vallen) {

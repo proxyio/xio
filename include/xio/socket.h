@@ -40,7 +40,7 @@ void xclose(int xd);
 #define XRECONNECT_IVLMAX  10
 #define XSOCKTYPE          11
 #define XSOCKPROTO         12
-
+#define XTRACEDEBUG        13
     
 int xsetsockopt(int xd, int level, int optname, void *optval, int optlen);
 int xgetsockopt(int xd, int level, int optname, void *optval, int *optlen);

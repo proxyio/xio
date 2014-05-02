@@ -147,7 +147,7 @@ static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk) {
     sk->ent.xd = sk->sockfd;
     sk->ent.self = sk;
     sk->ent.care = XPOLLIN|XPOLLERR;
-    rc = xpoll_ctl(po, XPOLL_ADD, &sk->ent);
+    BUG_ON((rc = xpoll_ctl(po, XPOLL_ADD, &sk->ent)) != 0);
     return rc;
 }
 

@@ -93,14 +93,18 @@ static int get_reconn_ivlmax(struct xsock *sx, void *val, int *vallen) {
 
 static int get_socktype(struct xsock *sx, void *val, int *vallen) {
     *(int *)val = sx->type;
-    return -1;
+    return 0;
 }
 
 static int get_sockproto(struct xsock *sx, void *val, int *vallen) {
     *(int *)val = sx->pf;
-    return -1;
+    return 0;
 }
 
+static int get_tracedebug(struct xsock *sx, void *val, int *vallen) {
+    *(int *)val = (int)sx->ftracedebug;
+    return 0;
+}
 
 const xsockopf getopt_vf[] = {
     get_noblock,
@@ -116,6 +120,7 @@ const xsockopf getopt_vf[] = {
     get_reconn_ivlmax,
     get_socktype,
     get_sockproto,
+    get_tracedebug,
 };
 
 

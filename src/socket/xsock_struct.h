@@ -79,6 +79,7 @@ struct xsock {
     u64 fasync:1;
     u64 fok:1;
     u64 fclosed:1;
+    u64 ftracedebug:1;
 
     int parent;
     struct list_head sub_socks;
