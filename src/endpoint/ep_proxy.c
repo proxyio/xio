@@ -25,17 +25,6 @@
 #include <xio/poll.h>
 #include "ep_struct.h"
 
-
-static int sk_xpoll_enable(struct xeppy *py, struct endsock *sk) {
-    int rc;
-    sk->ent.xd = sk->sockfd;
-    sk->ent.self = sk;
-    sk->ent.care = XPOLLIN|XPOLLOUT|XPOLLERR;
-    rc = xpoll_ctl(py->po, XPOLL_ADD, &sk->ent);
-    return 0;
-}
-
-
 extern int __xep_send(struct endpoint *ep, char *ubuf);
 
 static void producer_event_hndl(struct endsock *sk) {
@@ -57,19 +46,13 @@ static void comsumer_event_hndl(struct endsock *sk) {
     struct xeppy *py = ep->owner;
     int rc;
     char *ubuf, *ubuf2;
-    struct uhdr *uh;
-    struct ephdr *eh;
-    
+
     if ((rc = recv_vfptr[XEP_COMSUMER] (sk, &ubuf)) == 0) {
-	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR, xep_ubuflen(ubuf), ubuf);
+	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR|XEPUBUF_APPENDRT,
+			      xep_ubuflen(ubuf), ubuf);
 	BUG_ON(!ubuf2);
 	memcpy(ubuf2, ubuf, xep_ubuflen(ubuf));
 	xep_freeubuf(ubuf);
-
-	eh = ubuf2ephdr(ubuf2);
-	eh->ttl++;
-	uh = ephdr_uhdr(eh);
-	uh->ephdr_off = ephdr_ctlen(eh);
 
 	if (__xep_send(py->backend, ubuf2) < 0 && errno != EAGAIN) {
 	    xep_freeubuf(ubuf2);
@@ -98,9 +81,11 @@ static void connector_event_hndl(struct endsock *sk) {
 }
 
 extern void endpoint_accept(int eid, struct endsock *sk);
+extern const char *xpoll_str[];
 
 static void listener_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
+    DEBUG_ON("socket %d events %s", sk->sockfd, xpoll_str[sk->ent.happened]);
     endpoint_accept(ep2eid(ep), sk);
 }
 
@@ -134,11 +119,37 @@ static int py_routine(void *args) {
 	    usleep(10000);
 	    return -1;
 	}
+	DEBUG_OFF("%d sockets happened events", rc);
 	for (i = 0; i < rc; i++) {
+	    DEBUG_OFF();
 	    event_hndl(&ent[i]);
 	}
     }
     return 0;
+}
+
+
+
+static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk) {
+    int rc;
+    sk->ent.xd = sk->sockfd;
+    sk->ent.self = sk;
+    sk->ent.care = XPOLLIN|XPOLLERR;
+    rc = xpoll_ctl(po, XPOLL_ADD, &sk->ent);
+    return 0;
+}
+
+
+static void enable_sockets_poll(struct endpoint *ep) {
+    struct xeppy *py = ep->owner;
+    struct endsock *sk, *next_sk;
+
+    xendpoint_walk_sock(sk, next_sk, &ep->bsocks) {
+	sk_enable_poll(py->po, sk);
+    }
+    xendpoint_walk_sock(sk, next_sk, &ep->csocks) {
+	sk_enable_poll(py->po, sk);
+    }
 }
 
 struct xeppy *xeppy_open(int front_eid, int backend_eid) {
@@ -154,6 +165,9 @@ struct xeppy *xeppy_open(int front_eid, int backend_eid) {
     spin_init(&py->lock);
     py->frontend = eid_get(front_eid);
     py->backend = eid_get(backend_eid);
+    py->frontend->owner = py->backend->owner = py;
+    enable_sockets_poll(py->frontend);
+    enable_sockets_poll(py->backend);
     thread_start(&py->py_worker, py_routine, py);
     return py;
 }

@@ -89,6 +89,7 @@ int sendq_push(struct xsock *sx, struct xmsg *msg) {
     if (events && l4proto->notify)
 	l4proto->notify(sx->xd, SEND_Q, events);
 
+    __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
     return rc;
 }

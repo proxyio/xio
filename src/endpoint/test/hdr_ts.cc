@@ -84,9 +84,36 @@ static int producer_thread(void *args) {
     return 0;
 }
 
-TEST(endpoint, route) {
-    string host("tcp+inproc+ipc://127.0.0.1:18898");
+volatile static int proxy_stopped = 1;
+
+static int proxy_thread(void *args) {
+    string fronthost("tcp+inproc+ipc://127.0.0.1:18898");
+    string backhost("tcp+inproc+ipc://127.0.0.1:18899");
+    int s;
+    int front_eid, back_eid;
+    struct xeppy *py;
+    
+    BUG_ON((front_eid = xep_open(XEP_COMSUMER)) < 0);
+    BUG_ON((back_eid = xep_open(XEP_PRODUCER)) < 0);
+
+    BUG_ON((s = xlisten(fronthost.c_str())) < 0);
+    BUG_ON(xep_add(front_eid, s) < 0);
+
+    BUG_ON((s = xlisten(backhost.c_str())) < 0);
+    BUG_ON(xep_add(back_eid, s) < 0);
+
+    py = xeppy_open(front_eid, back_eid);
+    proxy_stopped = 0;
+    while (!proxy_stopped)
+	usleep(20000);
+    xeppy_close(py);
+    return 0;
+}
+
+TEST(endpoint, proxy) {
+    string addr("://127.0.0.1:18899"), host;
     u32 i;
+    thread_t pyt;
     thread_t t[3];
     const char *pf[] = {
 	"tcp",
@@ -97,10 +124,15 @@ TEST(endpoint, route) {
     int eid;
     char *ubuf, *ubuf2;
 
-    BUG_ON((s = xlisten(host.c_str())) < 0);
+    thread_start(&pyt, proxy_thread, 0);
+    while (proxy_stopped)
+	usleep(20000);
     BUG_ON((eid = xep_open(XEP_COMSUMER)) < 0);
-    BUG_ON(xep_add(eid, s) < 0);
-
+    for (i = 0; i < 3; i++) {
+	host = pf[i] + addr;
+	BUG_ON((s = xconnect(host.c_str())) < 0);
+	BUG_ON(xep_add(eid, s) < 0);
+    }
     for (i = 0; i < NELEM(t, thread_t); i++) {
 	thread_start(&t[i], producer_thread, (void *)pf[i]);
     }
@@ -120,4 +152,6 @@ TEST(endpoint, route) {
 	thread_stop(&t[i]);
     }
     xep_close(eid);
+    proxy_stopped = 1;
+    thread_stop(&pyt);
 }

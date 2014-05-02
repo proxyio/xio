@@ -58,6 +58,7 @@ struct xmsg *recvq_pop(struct xsock *sx) {
     if (events && l4proto->notify)
 	l4proto->notify(sx->xd, RECV_Q, events);
 
+    __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
     return msg;
 }
@@ -75,7 +76,6 @@ void recvq_push(struct xsock *sx, struct xmsg *msg) {
     events |= XMQ_PUSH;
     sx->rcv += msgsz;
     list_add_tail(&msg->item, &sx->rcv_head);    
-    __xpoll_notify(sx);
     DEBUG_OFF("%d", sx->xd);
 
     /* Wakeup the blocking waiters. */
@@ -84,6 +84,8 @@ void recvq_push(struct xsock *sx, struct xmsg *msg) {
 
     if (events && l4proto->notify)
 	l4proto->notify(sx->xd, RECV_Q, events);
+
+    __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
 }
 
