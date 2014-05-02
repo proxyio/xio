@@ -15,10 +15,10 @@ uint32_t xep_ubuflen(char *ubuf);
 #define XEP_PRODUCER 1
 #define XEP_COMSUMER 2
 
-int xep_open(int type);
+int xep_open(int eptype);
 void xep_close(int eid);
-int xep_add(int eid, int sfd);
-int xep_rm(int eid, int sfd);
+int xep_add(int eid, int xsockfd);
+int xep_rm(int eid, int xsockfd);
 int xep_recv(int eid, char **ubuf);
 int xep_send(int eid, char *ubuf);
 
