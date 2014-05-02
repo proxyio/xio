@@ -54,6 +54,8 @@ static int cpu_task_hndl(eloop_t *el, ev_t *et) {
     return 0;
 }
 
+volatile static int kcpud_exits = 0;
+
 static inline int kcpud(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
     int rc = 0;
@@ -79,7 +81,9 @@ static inline int kcpud(void *args) {
     while (!xgb.exiting) {
 	eloop_once(&cpu->el);
 	__shutdown_socks_task_hndl(cpu);
+	BUG_ON(xgb.exiting != 0 && xgb.exiting != 1);
     }
+    kcpud_exits++;
 
     /* Release the poll descriptor when kcpud exit. */
     xcpu_free(cpu_no);

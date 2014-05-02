@@ -188,7 +188,8 @@ int64_t bio_flush(struct bio *b, struct io *io_ops) {
     char page[PAGE_SIZE];
     
     while (!list_empty(&b->page_head)) {
-	if ((nbytes = io_ops->write(io_ops, page, bio_copy(b, page, PAGE_SIZE))) < 0)
+	if ((nbytes = io_ops->write(io_ops, page, bio_copy(b, page,
+	   PAGE_SIZE))) < 0)
 	    break;
 	sum += nbytes;
 	BUG_ON(nbytes != bio_read(b, page, nbytes));
