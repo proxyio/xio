@@ -1,0 +1,63 @@
+xep_allocubuf(3)
+================
+
+NAME
+----
+xep_allocubuf - allocate a user-space buf for endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*char *xep_allocubuf(int 'flags', int 'size', ... /* src ubuf */);*
+
+
+DESCRIPTION
+-----------
+Allocate a user-space buf of the specified 'size' for endpoint.
+The content of the ubuf is ZERO after allocation and it should be filled
+in by the user.
+
+The argument flags must include one of the following:
+    XEPUBUF_CLONEHDR, 0.
+
+When XEPUBUF_CLONEHDR is specified, the third arguments must be provided.
+
+In addition, zero or more ubuf allocation flags and can be bitwise-or’d in flags:
+    XEPUBUF_APPENDRT
+
+RETURN VALUE
+------------
+On success, ubuf pointer is returned.  On error, 0 is returned, and errno is set
+appropriately.
+
+ERRORS
+------
+*EINVAL*::
+Supplied allocation 'size' is invalid.
+*ENOMEM*::
+Not enough memory to allocate the message.
+
+
+EXAMPLE
+-------
+
+----
+char *ubuf = xep_allocubuf (12);
+memcpy (ubuf, "Hello world!", 12);
+----
+
+
+SEE ALSO
+--------
+linkxio:xep_freeubuf[3]
+linkxio:xep_ubuflen[3]
+linkxio:xendpoint[7]
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
+
+

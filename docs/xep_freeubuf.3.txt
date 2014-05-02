@@ -1,0 +1,51 @@
+xep_freeubuf(3)
+===============
+
+NAME
+----
+xep_freeubuf - deallocate a endpoint user-space buf
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*void xep_freeubuf (char '*ubuf');*
+
+
+DESCRIPTION
+-----------
+Deallocates a ep_ubuf allocated using linkxio:xep_allocubuf[3] function or
+received via linkxio:xep_recv[3] function.
+
+RETURN VALUE
+------------
+Nothing return
+
+ERRORS
+------
+
+EXAMPLE
+-------
+
+----
+char *ubuf;
+assert( xep_recv (eid, &ubuf) == 0);
+xep_freeubuf (ubuf);
+----
+
+
+SEE ALSO
+--------
+linkxio:xep_allocubuf[3]
+linkxio:xep_ubuflen[3]
+linkxio:xep_recv[3]
+linkxio:xep_send[3]
+linkxio:xendpoint[7]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+
+

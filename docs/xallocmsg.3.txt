@@ -21,7 +21,7 @@ in by the user.
 
 RETURN VALUE
 ------------
-On success, zero is returned.  On error, -1 is returned, and errno is set
+On success, xmsg pointer is returned.  On error, 0 is returned, and errno is set
 appropriately.
 
 ERRORS

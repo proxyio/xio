@@ -4,7 +4,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="generator" content="AsciiDoc 8.4.5" />
-<title>xfreemsg(3)</title>
+<title>xep_allocubuf(3)</title>
 <style type="text/css">
 /* Debug borders */
 p, li, dt, dd, div, pre, h1, h2, h3, h4, h5, h6 {
@@ -384,45 +384,67 @@ div#toc a:visited { color: blue; }
 </head>
 <body>
 <div id="header">
-<h1>xfreemsg(3)</h1>
+<h1>xep_allocubuf(3)</h1>
 </div>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xfreemsg - deallocate a message</p></div>
+<div class="paragraph"><p>xep_allocubuf - allocate a user-space buf for endpoint</p></div>
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><strong>#include &lt;xio/sock.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>void xfreemsg (void <em>*msg</em>);</strong></p></div>
+<div class="paragraph"><p><strong>#include &lt;xio/endpoint.h&gt;</strong></p></div>
+<div class="paragraph"><p><strong>char *xep_allocubuf(int <em>flags</em>, int <em>size</em>, &#8230; /</strong> src ubuf <strong>/);</strong></p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Deallocates a message allocated using <a href="xallocmsg.3.html">xallocmsg(3)</a> function or
-received via <a href="xrecv.3.html">xrecv(3)</a> function. when message send, it maybe directly
-push into the peer xmq. it allows for using zero-copy techniques.</p></div>
+<div class="paragraph"><p>Allocate a user-space buf of the specified <em>size</em> for endpoint.
+The content of the ubuf is ZERO after allocation and it should be filled
+in by the user.</p></div>
+<div class="paragraph"><p>The argument flags must include one of the following:
+    XEPUBUF_CLONEHDR, 0.</p></div>
+<div class="paragraph"><p>When XEPUBUF_CLONEHDR is specified, the third arguments must be provided.</p></div>
+<div class="paragraph"><p>In addition, zero or more ubuf allocation flags and can be bitwise-or’d in flags:
+    XEPUBUF_APPENDRT</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Nothing return.</p></div>
+<div class="paragraph"><p>On success, ubuf pointer is returned.  On error, 0 is returned, and errno is set
+appropriately.</p></div>
 </div>
 <h2 id="_errors">ERRORS</h2>
 <div class="sectionbody">
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<strong>EINVAL</strong>
+</dt>
+<dd>
+<p>
+Supplied allocation <em>size</em> is invalid.
+</p>
+</dd>
+<dt class="hdlist1">
+<strong>ENOMEM</strong>
+</dt>
+<dd>
+<p>
+Not enough memory to allocate the message.
+</p>
+</dd>
+</dl></div>
 </div>
 <h2 id="_example">EXAMPLE</h2>
 <div class="sectionbody">
 <div class="listingblock">
 <div class="content">
-<pre><tt>void *buf;
-xrecv (s, &amp;buf);
-xfreemsg (buf);</tt></pre>
+<pre><tt>char *ubuf = xep_allocubuf (12);
+memcpy (ubuf, "Hello world!", 12);</tt></pre>
 </div></div>
 </div>
 <h2 id="_see_also">SEE ALSO</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><a href="xallocmsg.3.html">xallocmsg(3)</a>
-<a href="xmsglen.3.html">xmsglen(3)</a>
-<a href="xrecv.3.html">xrecv(3)</a>
-<a href="xio.7.html">xio(7)</a></p></div>
+<div class="paragraph"><p><a href="xep_freeubuf.3.html">xep_freeubuf(3)</a>
+<a href="xep_ubuflen.3.html">xep_ubuflen(3)</a>
+<a href="xendpoint.7.html">xendpoint(7)</a></p></div>
 </div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
@@ -436,7 +458,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-02 22:18:50 CST
+Last updated 2014-05-02 22:26:42 CST
 </div>
 </div>
 </body>

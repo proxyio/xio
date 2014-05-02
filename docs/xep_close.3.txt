@@ -1,0 +1,51 @@
+xep_close(3)
+============
+
+NAME
+----
+xep_close - close an endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*void xclose (int 'eid');*
+
+
+DESCRIPTION
+-----------
+Close the endpoint 'eid'.
+
+RETURN VALUE
+------------
+Nothing returned for this function.
+
+ERRORS
+------
+No errors for this function.
+
+EXAMPLE
+-------
+
+----
+int eid = xep_open (XEP_PRODUCER);
+xep_close (eid);
+----
+
+
+SEE ALSO
+--------
+linkxio:xep_open[3]
+linkxio:xep_add[3]
+linkxio:xep_rm[3]
+linkxio:xep_send[3]
+linkxio:xep_recv[3]
+linkxio:xep_endpoint[7]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+
+

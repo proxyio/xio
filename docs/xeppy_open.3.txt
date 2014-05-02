@@ -1,0 +1,47 @@
+xeppy_open(3)
+=============
+
+NAME
+----
+xeppy_open - proxy endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*struct xeppy *xeppy_open(int 'front_eid', int 'backend_eid');*
+
+
+DESCRIPTION
+-----------
+
+
+RETURN VALUE
+------------
+
+
+ERRORS
+------
+
+
+EXAMPLE
+-------
+
+----
+struct xeppy *py = xeppy_open (1, 9);
+assert( py );
+----
+
+
+SEE ALSO
+--------
+linkxio:xeppy_close[3]
+linkxio:xendpoint[7]
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
+
+

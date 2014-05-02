@@ -1,0 +1,49 @@
+xep_rm(3)
+=========
+
+NAME
+----
+xep_rm - remove xio socket into endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*int xep_rm(int 'eid', int 'xsockfd');*
+
+
+DESCRIPTION
+-----------
+
+
+RETURN VALUE
+------------
+
+
+ERRORS
+------
+
+
+EXAMPLE
+-------
+
+----
+assert( xep_add(eid, sockfd) == 0 );
+assert( xep_rm(eid, sockfd) == 0 );
+----
+
+
+SEE ALSO
+--------
+linkxio:xep_add[3]
+linkxio:xep_send[3]
+linkxio:xep_recv[3]
+linkxio:xendpoint[7]
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
+
+

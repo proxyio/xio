@@ -1,0 +1,71 @@
+xep_open(3)
+===========
+
+NAME
+----
+xep_open - create an endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*int xep_open(int eptype);*
+
+
+DESCRIPTION
+-----------
+Creates an endpoint with specified 'eptype'. Returns a endpoint id
+for the newly created endpoint.  'eptype' parameter defines the type
+of the endpoint, which in turn determines the exact semantics of the
+endpoint. 
+
+Following eptypes are defined at the moment:
+
+*XEP_PRODUCER*::
+producer endpoint, recv request from network and send response
+
+*XEP_COMSUMER*::
+comsumer endpoint, send request into network and recv response
+
+
+RETURN VALUE
+------------
+On success, an eid for the endpoint is returned.  On error, -1 is returned,
+and errno is set appropriately.
+
+Note that eid returned are not standard system file descriptors and will
+exhibit undefined behaviour when used with system functions. Moreover, it may
+happen that a system file descriptor and eid will incidentally collide (be equal).
+
+ERRORS
+------
+*EINVAL*::
+Specified endpoint type is not supported or unknown.
+*EMFILE*::
+The limit on the total number of open endpoints or OS limit for file
+descriptors has been reached.
+
+EXAMPLE
+-------
+
+----
+int eid = xep_open (XEP_PRODUCER);
+assert( eid >= 0 );
+----
+
+SEE ALSO
+--------
+linkxio:xep_close[3]
+linkxio:xep_add[3]
+linkxio:xep_rm[3]
+linkxio:xep_send[3]
+linkxio:xep_recv[3]
+linkxio:xendpoint[7]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+
+

@@ -1,0 +1,54 @@
+xendpoint(7)
+============
+
+NAME
+----
+xendpoint - A endpoint for building large distributed cluster
+
+SYNOPSIS
+--------
+cc ['flags'] 'files' *-lxio* ['libraries']
+
+
+DESCRIPTION
+-----------
+Following transport mechanisms are provided by xendpoint:
+
+Alloc a xendpoint ubuf::
+    linkxio:xep_allocubuf[3]
+
+Free a xendpoint ubuf::
+    linkxio:xep_freeubuf[3]
+
+The user-space length of ubuf::
+    linkxio:xep_ubuflen[3]
+
+Create an xendpoint id::
+    linkxio:xep_open[3]
+
+Close an xendpoint id::
+    linkxio:xep_close[3]
+
+Add a xio socket into endpoint::
+    linkxio:xep_add[3]
+
+Remove a xio socket from endpoint::
+    linkxio:xep_rm[3]
+
+Recv one ubuf from endpoint::
+    linkxio:xep_recv[3]
+
+Send one ubuf into endpoint::
+    linkxio:xep_send[3]
+
+Start an async endpoint proxy::
+    linkxio:xeppy_open[3]
+
+Stop endpoint proxy::
+    linkxio:xeppy_close[3]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+

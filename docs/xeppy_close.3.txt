@@ -1,0 +1,48 @@
+xeppy_close(3)
+===============
+
+NAME
+----
+xeppy_close - close an endpoint proxy
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*void xeppy_close(struct xeppy *py);*
+
+
+DESCRIPTION
+-----------
+
+
+RETURN VALUE
+------------
+
+
+ERRORS
+------
+
+
+EXAMPLE
+-------
+
+----
+struct xeppy *py = xeppy_open (1, 9);
+assert( py );
+xeppy_close( py );
+----
+
+
+SEE ALSO
+--------
+linkxio:xeppy_open[3]
+linkxio:xendpoint[7]
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
+
+

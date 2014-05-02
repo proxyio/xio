@@ -13,7 +13,6 @@ cc ['flags'] 'files' *-lxio* ['libraries']
 
 DESCRIPTION
 -----------
-
 Following transport mechanisms are provided by xio socket:
 
 In-process transport::

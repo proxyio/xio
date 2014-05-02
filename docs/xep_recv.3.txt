@@ -1,0 +1,43 @@
+xep_recv(3)
+===========
+
+NAME
+----
+xep_recv - receive one ubuf from endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/endpoint.h>*
+
+*int xep_recv (int 'eid', char '**ubuf');*
+
+
+DESCRIPTION
+-----------
+Receive a ubuf from the endpoint 'eid' and store it in the buffer referenced by
+the 'ubuf' argument.
+
+RETURN VALUE
+------------
+On success, zero is returned.  On error, -1 is returned, and errno is set
+appropriately.
+
+
+ERRORS
+------
+*EAGAIN*::
+No any available ubuf. try again.
+
+SEE ALSO
+--------
+linkxio:xep_send[3]
+linkxio:xep_close[3]
+linkxio:xendpoint[7]
+
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+
