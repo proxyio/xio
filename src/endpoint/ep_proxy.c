@@ -35,7 +35,34 @@ static int sk_xpoll_enable(struct xeppy *py, struct endsock *sk) {
     return 0;
 }
 
+
+static void producer_event_hndl(struct endsock *sk) {
+    struct endpoint *ep = sk->owner;
+    struct xeppy *py = ep->owner;
+    int rc;
+    char *ubuf = 0;
+}
+
+static void comsumer_event_hndl(struct endsock *sk) {
+    struct endpoint *ep = sk->owner;
+    struct xeppy *py = ep->owner;
+}
+
+
 static void connector_event_hndl(struct endsock *sk) {
+    struct endpoint *ep = sk->owner;
+
+    switch (ep->type) {
+    case XEP_PRODUCER:
+	producer_event_hndl(sk);
+	break;
+    case XEP_COMSUMER:
+	comsumer_event_hndl(sk);
+	break;
+    default:
+	BUG_ON(1);
+    }
+    /* TODO: bad status socket */
 }
 
 extern void endpoint_accept(int eid, struct endsock *sk);
@@ -45,12 +72,13 @@ static void listener_event_hndl(struct endsock *sk) {
     endpoint_accept(ep2eid(ep), sk);
 }
 
-static void event_hndl(struct endsock *sk) {
+static void event_hndl(struct xpoll_event *ent) {
     int socktype = 0;
     int optlen;
+    struct endsock *sk = (struct endsock *)ent->self;
 
+    sk->ent.happened = ent->happened;
     xgetsockopt(sk->sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
-
     switch (socktype) {
     case XCONNECTOR:
 	connector_event_hndl(sk);
@@ -75,7 +103,7 @@ static int py_routine(void *args) {
 	    return -1;
 	}
 	for (i = 0; i < rc; i++) {
-	    event_hndl((struct endsock *)ent[i].self);
+	    event_hndl(&ent[i]);
 	}
     }
     return 0;
