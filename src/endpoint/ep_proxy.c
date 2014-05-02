@@ -207,4 +207,5 @@ void xeppy_close(struct xeppy *py) {
     thread_stop(&py->py_worker);
     xpoll_close(py->po);
     spin_destroy(&py->lock);
+    mem_free(py, sizeof(*py));
 }

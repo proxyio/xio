@@ -108,6 +108,8 @@ static int proxy_thread(void *args) {
     while (!proxy_stopped)
 	usleep(20000);
     xeppy_close(py);
+    xep_close(front_eid);
+    xep_close(back_eid);
     return 0;
 }
 
