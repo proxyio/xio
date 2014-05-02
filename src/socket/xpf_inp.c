@@ -112,7 +112,7 @@ static int xinp_connector_bind(int xd, const char *sock) {
     sx->proc.xsock_peer = req_sx;
     req_sx->proc.xsock_peer = sx;
 
-    if (reqsocks_push(listener, req_sx) < 0) {
+    if (acceptq_push(listener, req_sx) < 0) {
 	errno = ECONNREFUSED;
 	xsock_free(req_sx);
 	return -1;

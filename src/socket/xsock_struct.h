@@ -154,8 +154,8 @@ struct xsock *xsock_alloc();
 void recvq_push(struct xsock *cn, struct xmsg *msg);
 struct xmsg *sendq_pop(struct xsock *cn);
 
-int reqsocks_push(struct xsock *sx, struct xsock *req_sx);
-struct xsock *reqsocks_pop(struct xsock *sx);
+int acceptq_push(struct xsock *sx, struct xsock *req_sx);
+struct xsock *acceptq_pop(struct xsock *sx);
 
 int xpoll_check_events(struct xsock *sx, int events);
 void __xpoll_notify(struct xsock *sx);

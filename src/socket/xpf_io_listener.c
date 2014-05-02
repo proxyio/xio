@@ -147,7 +147,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     req_sx->pf = sx->pf;
     req_sx->l4proto = l4proto_lookup(req_sx->pf, req_sx->type);
     xio_connector_init(req_sx, tp, s);
-    reqsocks_push(sx, req_sx);
+    acceptq_push(sx, req_sx);
     return 0;
 }
 

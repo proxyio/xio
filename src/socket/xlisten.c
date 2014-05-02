@@ -29,7 +29,7 @@
 #include <transport/sockaddr.h>
 #include "xgb.h"
 
-int reqsocks_push(struct xsock *sx, struct xsock *req_sx) {
+int acceptq_push(struct xsock *sx, struct xsock *req_sx) {
     int rc = 0;
 
     while (sx->parent >= 0)
@@ -45,7 +45,7 @@ int reqsocks_push(struct xsock *sx, struct xsock *req_sx) {
     return rc;
 }
 
-struct xsock *reqsocks_pop(struct xsock *sx) {
+struct xsock *acceptq_pop(struct xsock *sx) {
     struct xsock *req_sx = 0;
 
     mutex_lock(&sx->lock);
@@ -58,6 +58,7 @@ struct xsock *reqsocks_pop(struct xsock *sx) {
 	req_sx = list_first(&sx->acceptq.head, struct xsock, acceptq.link);
 	list_del_init(&req_sx->acceptq.link);
     }
+    __xpoll_notify(sx);
     mutex_unlock(&sx->lock);
     return req_sx;
 }
@@ -74,7 +75,7 @@ int xaccept(int xd) {
 	errno = EPROTO;
 	return -1;
     }
-    if ((new_sx = reqsocks_pop(sx)))
+    if ((new_sx = acceptq_pop(sx)))
 	return new_sx->xd;
     errno = EAGAIN;
     return -1;
