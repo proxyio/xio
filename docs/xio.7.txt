@@ -1,9 +1,9 @@
-xsock(7)
+xio(7)
 ======
 
 NAME
 ----
-xio socket - [MTP] The Message Control Protocol.
+xio - proxyio. Message Transmission Control Protocol
 
 
 SYNOPSIS
@@ -14,7 +14,18 @@ cc ['flags'] 'files' *-lxio* ['libraries']
 DESCRIPTION
 -----------
 
-Following functions are exported by xio library:
+Following transport mechanisms are provided by xio socket:
+
+In-process transport::
+    linkxio:xpf_inproc[7]
+
+Inter-process transport::
+    linkxio:xpf_ipc[7]
+
+TCP transport::
+    linkxio:xpf_tcp[7]
+
+Following APIs are exported by xio xsocket:
 
 Create an xio socket::
     linkxio:xsocket[3]
@@ -51,23 +62,8 @@ Deallocate a xmsg::
 
 Get xmsg length::
     linkxio:xmsglen[3]
+
     
-Multiplexing::
-    linkxio:xpoll[3]
-    linkxio:xpoll_ctl[3]
-    linkxio:xpoll_wait[3]    
-
-Following transport mechanisms are provided by xio socket:
-
-In-process transport::
-    linkxio:xpf_inproc[7]
-
-Inter-process transport::
-    linkxio:xpf_ipc[7]
-
-TCP transport::
-    linkxio:xpf_tcp[7]
-
 Following tools are installed with the library:
 
 

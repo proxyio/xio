@@ -388,7 +388,7 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xsocket - create an xsocket</p></div>
+<div class="paragraph"><p>xsocket - create an xio socket</p></div>
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
@@ -397,8 +397,8 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Creates an xsocket with specified <em>pf</em> and <em>socktype</em>. Returns a file
-descriptor for the newly created xsocket.</p></div>
+<div class="paragraph"><p>Creates an xio socket with specified <em>pf</em> and <em>socktype</em>. Returns a file
+descriptor for the newly created xio socket.</p></div>
 <div class="paragraph"><p>Following pfs are defined at the moment:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
@@ -435,8 +435,8 @@ the exact semantics of the socket.</p></div>
 </dt>
 <dd>
 <p>
-xsocket listener, that is, as a xsocket that will be used to accept incoming
-connection requests using xbind[3] or using helper API xlisten[3]
+xio listener socket, that is, as a socket that will be used to accept
+incoming connection requests using xbind[3] or using helper API xlisten[3]
 </p>
 </dd>
 <dt class="hdlist1">
@@ -444,22 +444,22 @@ connection requests using xbind[3] or using helper API xlisten[3]
 </dt>
 <dd>
 <p>
-xsocket connector, a xsocket that will be used to connect to remote listening
-xsocket using xbind[3] or using helper API xconnect[3]
+xio connector socket, a socket that will be used to connect to remote listening
+xio socket using xbind[3] or using helper API xconnect[3]
 </p>
 </dd>
 </dl></div>
-<div class="paragraph"><p>The newly created xsocket exists in a name space (address family) but has no
+<div class="paragraph"><p>The newly created xio socket exists in a name space (address family) but has no
 address assigned to it. see <a href="xbind.3.html">xbind(3)</a> function.</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>On success, a xsocket descriptor for the new xsocket is returned.  On error,
+<div class="paragraph"><p>On success, a xio socket descriptor for the new socket is returned.  On error,
 -1 is returned, and errno is set appropriately.</p></div>
-<div class="paragraph"><p>Note that xsocket file descriptors returned are not standard system file
+<div class="paragraph"><p>Note that xio socket file descriptors returned are not standard system file
 descriptors and will exhibit undefined behaviour when used with system functions.
 Moreover, it may happen that a system file descriptor and file descriptor of
-an xsocket will incidentally collide (be equal).</p></div>
+an xio socket will incidentally collide (be equal).</p></div>
 </div>
 <h2 id="_errors">ERRORS</h2>
 <div class="sectionbody">
@@ -477,7 +477,7 @@ Specified address family is not supported or unknown protocol.
 </dt>
 <dd>
 <p>
-The limit on the total number of open xsockets or OS limit for file
+The limit on the total number of open xio sockets or OS limit for file
 descriptors has been reached.
 </p>
 </dd>
@@ -514,7 +514,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 14:58:01 CST
+Last updated 2014-05-02 21:15:07 CST
 </div>
 </div>
 </body>

@@ -388,7 +388,7 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xio - scalability protocols library.</p></div>
+<div class="paragraph"><p>xio - proxyio. Message Transmission Control Protocol</p></div>
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
@@ -396,10 +396,10 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Following functions are exported by xio library:</p></div>
+<div class="paragraph"><p>Following APIs are exported by xio xsocket:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
-Create an xsock
+Create an xio socket
 </dt>
 <dd>
 <p>
@@ -407,7 +407,7 @@ Create an xsock
 </p>
 </dd>
 <dt class="hdlist1">
-Close an xsock
+Close an xio socket
 </dt>
 <dd>
 <p>
@@ -415,7 +415,7 @@ Close an xsock
 </p>
 </dd>
 <dt class="hdlist1">
-Set a xsock option
+Set a xio socket option
 </dt>
 <dd>
 <p>
@@ -423,7 +423,7 @@ Set a xsock option
 </p>
 </dd>
 <dt class="hdlist1">
-Get a xsock option
+Get a xio socket option
 </dt>
 <dd>
 <p>
@@ -431,7 +431,7 @@ Get a xsock option
 </p>
 </dd>
 <dt class="hdlist1">
-Add local endpoint or remote endpoint to the xsock
+Add local endpoint or remote endpoint to the xio socket
 </dt>
 <dd>
 <p>
@@ -439,7 +439,7 @@ Add local endpoint or remote endpoint to the xsock
 </p>
 </dd>
 <dt class="hdlist1">
-Add a local endpoint to the xsock
+Add a local endpoint to the xio socket
 </dt>
 <dd>
 <p>
@@ -447,7 +447,7 @@ Add a local endpoint to the xsock
 </p>
 </dd>
 <dt class="hdlist1">
-Add a remote endpoint to the xsock
+Add a remote endpoint to the xio socket
 </dt>
 <dd>
 <p>
@@ -494,18 +494,8 @@ Get xmsg length
     <a href="xmsglen.3.html">xmsglen(3)</a>
 </p>
 </dd>
-<dt class="hdlist1">
-Multiplexing
-</dt>
-<dd>
-<p>
-    <a href="xpoll.3.html">xpoll(3)</a>
-    <a href="xpoll_ctl.3.html">xpoll_ctl(3)</a>
-    <a href="xpoll_wait.3.html">xpoll_wait(3)</a>
-</p>
-</dd>
 </dl></div>
-<div class="paragraph"><p>Following transport mechanisms are provided by xsock:</p></div>
+<div class="paragraph"><p>Following transport mechanisms are provided by xio socket:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
 In-process transport
@@ -532,17 +522,11 @@ TCP transport
 </p>
 </dd>
 </dl></div>
+<div class="paragraph"><p>Following APIs are exported by xio poll:
+    <a href="xpoll.3.html">xpoll(3)</a>
+    <a href="xpoll_ctl.3.html">xpoll_ctl(3)</a>
+    <a href="xpoll_wait.3.html">xpoll_wait(3)</a></p></div>
 <div class="paragraph"><p>Following tools are installed with the library:</p></div>
-<div class="dlist"><dl>
-<dt class="hdlist1">
-xiobc
-</dt>
-<dd>
-<p>
-    <a href="xiobc.1.html">xiobc(1)</a>
-</p>
-</dd>
-</dl></div>
 </div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
@@ -556,7 +540,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 15:06:54 CST
+Last updated 2014-05-02 21:19:37 CST
 </div>
 </div>
 </body>

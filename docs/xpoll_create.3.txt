@@ -1,0 +1,42 @@
+xpoll_create(3)
+===============
+
+NAME
+----
+xpoll_create - open an xpoll file descriptor
+
+SYNOPSIS
+--------
+*#include <xio/poll.h>*
+
+*struct xpoll_t *xpoll_create();*
+
+DESCRIPTION
+-----------
+xpoll_create() creates an xpoll  "instance", and returns a xpoll_t pointer
+referring to the new xpoll instance.  This pointer is used for all the
+subsequent calls to the xpoll interface.  When no longer required, the pointer
+returned by xpoll_create() should be  closed  by  using  xpoll_close[3].
+
+RETURN VALUE
+------------
+On success, A new xpoll instance is returned.  On error, null is returned,
+and errno is set appropriately.
+
+ERRORS
+------
+*ENOMEM*::
+No memory available.
+
+SEE ALSO
+--------
+linkxio:xpoll_close[3]
+linkxio:xpoll_ctl[3]
+linkxio:xpoll_wait[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+

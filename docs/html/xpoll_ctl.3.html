@@ -405,20 +405,20 @@ div#toc a:visited { color: blue; }
 <div class="sectionbody">
 <div class="paragraph"><p>This call performs control operations on the xpoll instance referred to by
 the xp.  It requests that the operation op be performed for the target
-xsocket descriptor: xd.</p></div>
+xio socket descriptor: xd.</p></div>
 <div class="paragraph"><p>Valid values for the op argument are :</p></div>
 <div class="paragraph"><p>XPOLL_ADD
-    Register the target xsocket descriptor xd on the xpoll instance referred
-    to by xp and associate the event event with the internal xsocket descriptor
+    Register the target xio socket descriptor xd on the xpoll instance referred
+    to by xp and associate the event event with the internal xio socket descriptor
     linked to xd.</p></div>
 <div class="paragraph"><p>XPOLL_MOD
-    Change the event event associated with the target xsocket.</p></div>
+    Change the event event associated with the target xio socket.</p></div>
 <div class="paragraph"><p>XPOLL_DEL
-    Remove (deregister) the target xsocket descriptor from the epoll instance
+    Remove (deregister) the target xio socket descriptor from the epoll instance
     referred to by xp.</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>The event argument describes the xsocket poll events.  The struct
+<pre><tt>The event argument describes the xio socket poll events.  The struct
 xpoll_event is defined as :</tt></pre>
 </div></div>
 <div class="literalblock">
@@ -430,7 +430,7 @@ struct xpoll_event {
 </div></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>/* What xsocket events i care about ... */
+<pre><tt>/* What xio socket events i care about ... */
 uint32_t care;</tt></pre>
 </div></div>
 <div class="literalblock">
@@ -447,11 +447,11 @@ uint32_t care;</tt></pre>
 <div class="literalblock">
 <div class="content">
 <pre><tt>XPOLLIN:
-    The associated xsocket is available for xrecv[3] operations.
+    The associated xio socket is available for xrecv[3] operations.
 XPOLLOUT:
     The associated file is available for xsend[3] operations.
 XPOLLERR:
-    Error condition happened on the associated xsocket.  xpoll_wait[3] will
+    Error condition happened on the associated xio socket.  xpoll_wait[3] will
     always wait for this event; it is not necessary to set it in events.</tt></pre>
 </div></div>
 </div>
@@ -468,7 +468,7 @@ returns -1 and errno is set appropriately.</p></div>
 </dt>
 <dd>
 <p>
-op was XPOLL_ADD, and the supplied xsocket is already registered with this
+op was XPOLL_ADD, and the supplied xio socket is already registered with this
 xpoll instance.
 </p>
 </dd>
@@ -485,7 +485,7 @@ the requested operation op is not supported by this interface.
 </dt>
 <dd>
 <p>
-op was XPOLL_MOD or XPOLL_DEL, and xsocket is not registered on with this
+op was XPOLL_MOD or XPOLL_DEL, and xio socket is not registered on with this
 xpoll instance.
 </p>
 </dd>
@@ -516,7 +516,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-04-27 15:10:07 CST
+Last updated 2014-05-02 21:15:07 CST
 </div>
 </div>
 </body>

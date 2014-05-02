@@ -1,0 +1,37 @@
+xpoll_close(3)
+==============
+
+NAME
+----
+xpoll_close - close a xpoll instance
+
+SYNOPSIS
+--------
+*#include <xio/poll.h>*
+
+*void xpoll_close(struct xpoll_t *po);*
+
+DESCRIPTION
+-----------
+
+
+RETURN VALUE
+------------
+Nothing
+
+ERRORS
+------
+Nothing
+
+
+SEE ALSO
+--------
+linkxio:xpoll_ctl[3]
+linkxio:xpoll_wait[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+
