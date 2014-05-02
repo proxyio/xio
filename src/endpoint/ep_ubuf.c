@@ -34,32 +34,51 @@ static void ephdr_init(struct ephdr *h) {
     h->sendstamp = 0;
 }
 
+char *ubuf_clone(int flags, int size, char *ubuf) {
+    struct uhdr *uh;
+    struct ephdr *h1 = ubuf2ephdr(ubuf), *h2;
+    int ctlen = ephdr_ctlen(h1);
+
+    ctlen += (flags & XEPUBUF_APPENDRT) ? sizeof(struct epr) : 0;
+    if (!(h2 = (struct ephdr *)xallocmsg(size + ctlen)))
+	return 0;
+    memcpy((char *)h2, (char *)h1, ephdr_ctlen(h1));
+    if (flags & XEPUBUF_APPENDRT) {
+	h2->ttl++;
+	uh = ephdr_uhdr(h2);
+	uh->ephdr_off += sizeof(struct epr);
+	BUG_ON(uh->ephdr_off != ephdr_ctlen(h2));
+    }
+    return ephdr2ubuf(h2);
+}
+
+char *ubuf_new(int size) {
+    int ctlen = sizeof(struct ephdr) + sizeof(struct epr) + sizeof(struct uhdr);
+    struct uhdr *uh;
+    struct ephdr *eh;
+
+    if (!(eh = (struct ephdr *)xallocmsg(size + ctlen)))
+	return 0;
+    ephdr_init(eh);
+    eh->ttl = 1;
+    eh->go = 1;
+    eh->size = size;
+    uh = ephdr_uhdr(eh);
+    uh->ephdr_off = ephdr_ctlen(eh);
+    return ephdr2ubuf(eh);
+}
+
 char *xep_allocubuf(int flags, int size, ...) {
     va_list ap;
-    struct uhdr *uh;
-    struct ephdr *h1 = 0, *h2 = 0;
-    int ctlen = 0;
+    char *ubuf;
 
     if (flags & XEPUBUF_CLONEHDR) {
 	va_start(ap, size);
-	h1 = ubuf2ephdr(va_arg(ap, char *));
+	ubuf = va_arg(ap, char *);
 	va_end(ap);
+	return ubuf_clone((flags & ~XEPUBUF_CLONEHDR), size, ubuf);
     }
-    ctlen = h1 ? ephdr_ctlen(h1) :
-	sizeof(struct ephdr) + sizeof(struct epr) + sizeof(struct uhdr);
-    if (!(h2 = (struct ephdr *)xallocmsg(size + ctlen)))
-	return 0;
-    if (!h1) {
-	ephdr_init(h2);
-	h2->ttl = 1;
-	h2->go = 1;
-	h2->size = size;
-	uh = ephdr_uhdr(h2);
-	uh->ephdr_off = ephdr_ctlen(h2);
-    } else {
-	memcpy((char *)h2, (char *)h1, ephdr_ctlen(h1));
-    }
-    return ephdr2ubuf(h2);
+    return ubuf_new(size);
 }
 
 void xep_freeubuf(char *ubuf) {
