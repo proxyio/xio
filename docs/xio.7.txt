@@ -3,7 +3,7 @@ xio(7)
 
 NAME
 ----
-xio - proxyio. Message Transmission Control Protocol
+xio - Message Transmission Control Protocol
 
 
 SYNOPSIS
