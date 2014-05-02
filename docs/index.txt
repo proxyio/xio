@@ -1,20 +1,28 @@
 proxyio
 ========
 
-Download  http://github.com/pipul
-Development http://github.com/pipul
-Community http://github.com/pipul
-Blog http://pipul.org
+http://github.com/pipul[Development]
+http://github.com/pipul[Community]
+http://github.com/pipul[Download]
+http://pipul.org[Blog]
+http://nanomsg.org[nanomsg]
 
+
+DESCRIPTION
+-----------
 WARNING: proxyio is still in beta stage!
 
 proxyio is a socket library that provides several common communication patterns.
-It aims to make the networking layer fast, scalable, and easy to use.
-Implemented in C, now only support unix/linux.
+It aims to make the networking layer scalable, and easy to use. proxyio is
+implemented in C, now only support unix/linux, we will support windows and other
+os platform in the near future.
+
+image:images/arch.png[The Architecture of proxyio]
 
 The communication patterns, also called "scalability protocols", are basic blocks
 for building distributed systems. By combining them you can create a vast array of
-distributed applications. The following scalability protocols are currently available:
+distributed applications. The following scalability protocols are currently
+available:
 
     PAIR - simple one-to-one communication
     BUS - simple many-to-many communication
@@ -27,7 +35,7 @@ distributed applications. The following scalability protocols are currently avai
 Scalability protocols are layered on top of the transport layer in the network stack.
 At the moment, the library supports the following transports mechanisms:
 
-    INPROC - transport within a process (between threads, modules etc.)
+    INPROC - transport within a process (between threads, etc.)
     IPC - transport between processes on a single machine
     TCP - network transport via TCP 
 

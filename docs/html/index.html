@@ -388,10 +388,15 @@ div#toc a:visited { color: blue; }
 </div>
 <div id="preamble">
 <div class="sectionbody">
-<div class="paragraph"><p>Download  <a href="http://github.com/pipul">http://github.com/pipul</a>
-Development <a href="http://github.com/pipul">http://github.com/pipul</a>
-Community <a href="http://github.com/pipul">http://github.com/pipul</a>
-Blog <a href="http://pipul.org">http://pipul.org</a></p></div>
+<div class="paragraph"><p><a href="http://github.com/pipul">Development</a>
+<a href="http://github.com/pipul">Community</a>
+<a href="http://github.com/pipul">Download</a>
+<a href="http://pipul.org">Blog</a>
+<a href="http://nanomsg.org">nanomsg</a></p></div>
+</div>
+</div>
+<h2 id="_description">DESCRIPTION</h2>
+<div class="sectionbody">
 <div class="admonitionblock">
 <table><tr>
 <td class="icon">
@@ -401,11 +406,16 @@ Blog <a href="http://pipul.org">http://pipul.org</a></p></div>
 </tr></table>
 </div>
 <div class="paragraph"><p>proxyio is a socket library that provides several common communication patterns.
-It aims to make the networking layer fast, scalable, and easy to use.
-Implemented in C, now only support unix/linux.</p></div>
+It aims to make the networking layer scalable, and easy to use. proxyio is
+implemented in C, now only support unix/linux, we will support windows and other
+os platform in the near future.</p></div>
+<div class="paragraph"><p><span class="image">
+<img src="images/arch.png" alt="images/arch.png" />
+</span></p></div>
 <div class="paragraph"><p>The communication patterns, also called "scalability protocols", are basic blocks
 for building distributed systems. By combining them you can create a vast array of
-distributed applications. The following scalability protocols are currently available:</p></div>
+distributed applications. The following scalability protocols are currently
+available:</p></div>
 <div class="literalblock">
 <div class="content">
 <pre><tt>PAIR - simple one-to-one communication
@@ -420,13 +430,12 @@ SURVEY - allows to query state of multiple applications in a single go</tt></pre
 At the moment, the library supports the following transports mechanisms:</p></div>
 <div class="literalblock">
 <div class="content">
-<pre><tt>INPROC - transport within a process (between threads, modules etc.)
+<pre><tt>INPROC - transport within a process (between threads, etc.)
 IPC - transport between processes on a single machine
 TCP - network transport via TCP</tt></pre>
 </div></div>
 <div class="paragraph"><p>The library exposes a BSD-socket-like C API to the applications.</p></div>
 <div class="paragraph"><p>It is licensed under MIT/X11 license.</p></div>
-</div>
 </div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
@@ -440,7 +449,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-02 23:11:45 CST
+Last updated 2014-05-03 01:01:07 CST
 </div>
 </div>
 </body>
