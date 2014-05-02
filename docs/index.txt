@@ -19,6 +19,11 @@ os platform in the near future.
 
 image:images/arch.png[The Architecture of proxyio]
 
+For more details, see APIs:
+linkxio:xio[7]
+linkxio:xpoll[7]
+linkxio:xendpoint[7]
+
 The communication patterns, also called "scalability protocols", are basic blocks
 for building distributed systems. By combining them you can create a vast array of
 distributed applications. The following scalability protocols are currently
