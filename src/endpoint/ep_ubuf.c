@@ -38,15 +38,16 @@ char *xep_allocubuf(int flags, int size, ...) {
     va_list ap;
     struct uhdr *uh;
     struct ephdr *h1 = 0, *h2 = 0;
+    int ctlen = 0;
 
     if (flags & XEPUBUF_CLONEHDR) {
 	va_start(ap, size);
 	h1 = ubuf2ephdr(va_arg(ap, char *));
 	va_end(ap);
     }
-    size += h1 ? ephdr_ctlen(h1) :
+    ctlen = h1 ? ephdr_ctlen(h1) :
 	sizeof(struct ephdr) + sizeof(struct epr) + sizeof(struct uhdr);
-    if (!(h2 = (struct ephdr *)xallocmsg(size)))
+    if (!(h2 = (struct ephdr *)xallocmsg(size + ctlen)))
 	return 0;
     if (!h1) {
 	ephdr_init(h2);
@@ -64,4 +65,9 @@ char *xep_allocubuf(int flags, int size, ...) {
 void xep_freeubuf(char *ubuf) {
     struct ephdr *h = ubuf2ephdr(ubuf);
     xfreemsg((char *)h);
+}
+
+u32 xep_ubuflen(char *ubuf) {
+    struct ephdr *h = ubuf2ephdr(ubuf);
+    return h->size;
 }

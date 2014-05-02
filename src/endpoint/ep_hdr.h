@@ -35,6 +35,8 @@
  * +-------+---------+-------+--------+
  */
 
+#define XEPUBUF_APPENDRT 0x02
+
 struct epr {
     uuid_t uuid;
     u8 ip[4];

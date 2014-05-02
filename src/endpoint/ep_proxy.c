@@ -36,16 +36,46 @@ static int sk_xpoll_enable(struct xeppy *py, struct endsock *sk) {
 }
 
 
+extern int __xep_send(struct endpoint *ep, char *ubuf);
+
 static void producer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
     struct xeppy *py = ep->owner;
     int rc;
     char *ubuf = 0;
+
+    if ((rc = recv_vfptr[XEP_PRODUCER] (sk, &ubuf)) == 0) {
+	if (__xep_send(py->frontend, ubuf) < 0 && errno != EAGAIN) {
+	    xep_freeubuf(ubuf);
+	    DEBUG_ON("ubuf route back with errno %d", errno);
+	}
+    }
 }
 
 static void comsumer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
     struct xeppy *py = ep->owner;
+    int rc;
+    char *ubuf, *ubuf2;
+    struct uhdr *uh;
+    struct ephdr *eh;
+    
+    if ((rc = recv_vfptr[XEP_COMSUMER] (sk, &ubuf)) == 0) {
+	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR, xep_ubuflen(ubuf), ubuf);
+	BUG_ON(!ubuf2);
+	memcpy(ubuf2, ubuf, xep_ubuflen(ubuf));
+	xep_freeubuf(ubuf);
+
+	eh = ubuf2ephdr(ubuf2);
+	eh->ttl++;
+	uh = ephdr_uhdr(eh);
+	uh->ephdr_off = ephdr_ctlen(eh);
+
+	if (__xep_send(py->backend, ubuf2) < 0 && errno != EAGAIN) {
+	    xep_freeubuf(ubuf2);
+	    DEBUG_ON("ubuf dispatcher with errno %d", errno);
+	}
+    }
 }
 
 
@@ -53,10 +83,12 @@ static void connector_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
 
     switch (ep->type) {
-    case XEP_PRODUCER:
+    case /* dispatcher */
+	XEP_PRODUCER:
 	producer_event_hndl(sk);
 	break;
-    case XEP_COMSUMER:
+    case /* receiver */
+	XEP_COMSUMER:
 	comsumer_event_hndl(sk);
 	break;
     default:

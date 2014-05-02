@@ -104,21 +104,23 @@ const send_action send_vfptr[] = {
     comsumer_send,
 };
 
-
-
-int xep_send(int eid, char *ubuf) {
+int __xep_send(struct endpoint *ep, char *ubuf) {
     int rc;
     struct endsock *sk;
+
+    if (!(sk = send_target_vfptr[ep->type] (ep, ubuf)))
+	return -1;
+    rc = send_vfptr[ep->type] (sk, ubuf);
+    return rc;
+}
+
+int xep_send(int eid, char *ubuf) {
     struct endpoint *ep = eid_get(eid);
 
-    BUG_ON(ep2eid(eid_get(11)) != 11);
     if (!(ep->type & (XEP_PRODUCER|XEP_COMSUMER))) {
 	errno = EBADF;
 	return -1;
     }
     accept_endsocks(eid);
-    if (!(sk = send_target_vfptr[ep->type] (ep, ubuf)))
-	return -1;
-    rc = send_vfptr[ep->type] (sk, ubuf);
-    return rc;
+    return __xep_send(ep, ubuf);
 }

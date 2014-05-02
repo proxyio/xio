@@ -6,9 +6,12 @@ extern "C" {
 #endif
 
 #define XEPUBUF_CLONEHDR  0x01
+    
 char *xep_allocubuf(int flags, int size, ...);
 void xep_freeubuf(char *ubuf);
+uint32_t xep_ubuflen(char *ubuf);
 
+    
 #define XEP_PRODUCER 1
 #define XEP_COMSUMER 2
 

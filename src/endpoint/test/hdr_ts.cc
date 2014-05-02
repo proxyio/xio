@@ -76,6 +76,7 @@ static int producer_thread(void *args) {
 	    usleep(1000);
 	}
 	DEBUG_OFF("producer recv %d", i);
+	BUG_ON(xep_ubuflen(rbuf) != sizeof(buf));
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xep_freeubuf(rbuf);
     }
@@ -94,7 +95,7 @@ TEST(endpoint, route) {
     };
     int s;
     int eid;
-    char *ubuf;
+    char *ubuf, *ubuf2;
 
     BUG_ON((s = xlisten(host.c_str())) < 0);
     BUG_ON((eid = xep_open(XEP_COMSUMER)) < 0);
@@ -108,8 +109,11 @@ TEST(endpoint, route) {
 	while (xep_recv(eid, &ubuf) != 0) {
 	    usleep(1000);
 	}
-	DEBUG_OFF("comsumer recv %d", i);
-	BUG_ON(xep_send(eid, ubuf));
+	DEBUG_OFF("comsumer recv %d %u", i, xep_ubuflen(ubuf));
+	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR, xep_ubuflen(ubuf), ubuf);
+	memcpy(ubuf2, ubuf, xep_ubuflen(ubuf));
+	xep_freeubuf(ubuf);
+	BUG_ON(xep_send(eid, ubuf2));
     }
 
     for (i = 0; i < NELEM(t, thread_t); i++) {
