@@ -118,7 +118,7 @@ void xsocket_module_init() {
     BUG_ON(TP_IPC != XPF_IPC);
     BUG_ON(TP_INPROC != XPF_INPROC);
 
-    waitgroup_init(&wg);
+
     xgb.exiting = false;
     mutex_init(&xgb.lock);
 
@@ -130,6 +130,8 @@ void xsocket_module_init() {
     xgb.cpu_cores = 1;
     taskpool_init(&xgb.tpool, xgb.cpu_cores);
     taskpool_start(&xgb.tpool);
+
+    waitgroup_init(&wg);
     waitgroup_adds(&wg, xgb.cpu_cores);
     for (i = 0; i < xgb.cpu_cores; i++)
 	taskpool_run(&xgb.tpool, kcpud, &wg);

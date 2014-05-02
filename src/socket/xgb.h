@@ -57,6 +57,8 @@ struct xglobal {
     
     /* Number of actual runner poller.  */
     size_t ncpus;
+    size_t ncpus_low;
+    size_t ncpus_high;
 
     /* Backend cpu_cores and taskpool for cpu_worker.  */
     int cpu_cores;

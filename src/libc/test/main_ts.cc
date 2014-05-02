@@ -17,6 +17,13 @@ int randstr(char *buf, int len) {
     return 0;
 }
 
+int runall_gtest() {
+    int rc;
+    testing::InitGoogleTest(&gargc, gargv);
+    rc = RUN_ALL_TESTS();
+    return rc;
+}
+
 int main(int argc, char **argv) {
 
     int rc;
@@ -25,13 +32,11 @@ int main(int argc, char **argv) {
     gargv = argv;
 
     base_init();
-    // Ignore SIGPIPE
     if (SIG_ERR == signal(SIGPIPE, SIG_IGN)) {
         fprintf(stderr, "signal SIG_IGN");
         return -1;
     }
-    testing::InitGoogleTest(&gargc, gargv);
-    rc = RUN_ALL_TESTS();
+    rc = runall_gtest();
     base_exit();
     return rc;
 }

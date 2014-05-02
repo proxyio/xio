@@ -29,6 +29,10 @@ int xcpu_alloc() {
     mutex_lock(&xgb.lock);
     BUG_ON(xgb.ncpus >= XIO_MAX_CPUS);
     cpu_no = xgb.cpu_unused[xgb.ncpus++];
+    if (xgb.ncpus <= xgb.ncpus_low)
+	xgb.ncpus_low = xgb.ncpus;
+    if (xgb.ncpus >= xgb.ncpus_high)
+	xgb.ncpus_high = xgb.ncpus;
     mutex_unlock(&xgb.lock);
     return cpu_no;
 }
@@ -42,6 +46,10 @@ int xcpu_choosed(int xd) {
 void xcpu_free(int cpu_no) {
     mutex_lock(&xgb.lock);
     xgb.cpu_unused[--xgb.ncpus] = cpu_no;
+    if (xgb.ncpus <= xgb.ncpus_low)
+	xgb.ncpus_low = xgb.ncpus;
+    if (xgb.ncpus >= xgb.ncpus_high)
+	xgb.ncpus_high = xgb.ncpus;
     mutex_unlock(&xgb.lock);
 }
 
