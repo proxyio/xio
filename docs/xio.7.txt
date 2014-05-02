@@ -13,17 +13,20 @@ cc ['flags'] 'files' *-lxio* ['libraries']
 
 DESCRIPTION
 -----------
-Following transport mechanisms are provided by xio socket:
+At the moment, xio socket supports the following transports mechanisms:
 
-In-process transport::
+INPROC - transport within a process (between threads, etc.)::
     linkxio:xpf_inproc[7]
 
-Inter-process transport::
+IPC - transport between processes on a single machine::
     linkxio:xpf_ipc[7]
 
-TCP transport::
+TCP - network transport via TCP::
     linkxio:xpf_tcp[7]
 
+
+APIs
+-----
 Following APIs are exported by xio xsocket:
 
 Create an xio socket::

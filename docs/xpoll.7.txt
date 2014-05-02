@@ -24,7 +24,9 @@ and manage an xpoll instance:
       
     * Finally, the actual wait is started by xpoll_wait().
 
-    
+
+APIs
+----
 Following APIs are exported by xio poll:
 
 Create an xpoll instance::

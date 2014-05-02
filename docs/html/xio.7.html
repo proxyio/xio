@@ -396,10 +396,10 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Following transport mechanisms are provided by xio socket:</p></div>
+<div class="paragraph"><p>At the moment, xio socket supports the following transports mechanisms:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
-In-process transport
+INPROC - transport within a process (between threads, etc.)
 </dt>
 <dd>
 <p>
@@ -407,7 +407,7 @@ In-process transport
 </p>
 </dd>
 <dt class="hdlist1">
-Inter-process transport
+IPC - transport between processes on a single machine
 </dt>
 <dd>
 <p>
@@ -415,7 +415,7 @@ Inter-process transport
 </p>
 </dd>
 <dt class="hdlist1">
-TCP transport
+TCP - network transport via TCP
 </dt>
 <dd>
 <p>
@@ -423,6 +423,9 @@ TCP transport
 </p>
 </dd>
 </dl></div>
+</div>
+<h2 id="_apis">APIs</h2>
+<div class="sectionbody">
 <div class="paragraph"><p>Following APIs are exported by xio xsocket:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
@@ -536,7 +539,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-02 23:02:17 CST
+Last updated 2014-05-03 01:51:01 CST
 </div>
 </div>
 </body>

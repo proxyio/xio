@@ -37,13 +37,6 @@ available:
               many destinations
     SURVEY - allows to query state of multiple applications in a single go 
 
-Scalability protocols are layered on top of the transport layer in the network stack.
-At the moment, the library supports the following transports mechanisms:
-
-    INPROC - transport within a process (between threads, etc.)
-    IPC - transport between processes on a single machine
-    TCP - network transport via TCP 
-
 The library exposes a BSD-socket-like C API to the applications.
 
 It is licensed under MIT/X11 license.
