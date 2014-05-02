@@ -99,10 +99,10 @@ typedef struct endsock *(*target_algo) (struct endpoint *ep, char *ubuf);
 extern const target_algo send_target_vfptr[];
 extern const target_algo recv_target_vfptr[];
 
-typedef int (*send_action) (struct endpoint *ep, struct endsock *sk, char *ubuf);
+typedef int (*send_action) (struct endsock *sk, char *ubuf);
 extern const send_action send_vfptr[];
 
-typedef int (*recv_action) (struct endpoint *ep, struct endsock *sk, char **ubuf);
+typedef int (*recv_action) (struct endsock *sk, char **ubuf);
 extern const recv_action recv_vfptr[];
 
 

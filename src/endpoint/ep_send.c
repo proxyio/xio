@@ -61,7 +61,8 @@ const target_algo send_target_vfptr[] = {
     route_backward,
 };
 
-static int producer_send(struct endpoint *ep, struct endsock *sk, char *ubuf) {
+static int producer_send(struct endsock *sk, char *ubuf) {
+    struct endpoint *ep = sk->owner;
     int rc;
     struct ephdr *eh = ubuf2ephdr(ubuf);
     struct epr *rt = rt_cur(eh);
@@ -79,7 +80,8 @@ static int producer_send(struct endpoint *ep, struct endsock *sk, char *ubuf) {
     return rc;
 }
 
-static int comsumer_send(struct endpoint *ep, struct endsock *sk, char *ubuf) {
+static int comsumer_send(struct endsock *sk, char *ubuf) {
+    struct endpoint *ep = sk->owner;
     int rc;
     struct ephdr *eh = ubuf2ephdr(ubuf);
 
@@ -117,6 +119,6 @@ int xep_send(int eid, char *ubuf) {
     accept_endsocks(eid);
     if (!(sk = send_target_vfptr[ep->type] (ep, ubuf)))
 	return -1;
-    rc = send_vfptr[ep->type] (ep, sk, ubuf);
+    rc = send_vfptr[ep->type] (sk, ubuf);
     return rc;
 }

@@ -40,7 +40,8 @@ static struct endsock *get_active_sk(struct endpoint *ep) {
     return 0;
 }
 
-static int generic_recv(struct endpoint *ep, struct endsock *sk, char **ubuf) {
+static int generic_recv(struct endsock *sk, char **ubuf) {
+    struct endpoint *ep = sk->owner;
     int rc;
     struct ephdr *eh;
 
@@ -58,12 +59,12 @@ static int generic_recv(struct endpoint *ep, struct endsock *sk, char **ubuf) {
     return rc;
 }
 
-static int producer_recv(struct endpoint *ep, struct endsock *sk, char **ubuf) {
+static int producer_recv(struct endsock *sk, char **ubuf) {
     int rc;
     struct ephdr *eh;
     struct epr *rt;
 
-    if ((rc = generic_recv(ep, sk, ubuf)) == 0) {
+    if ((rc = generic_recv(sk, ubuf)) == 0) {
 	eh = ubuf2ephdr(*ubuf);
 	rt = rt_cur(eh);
 	eh->ttl--;
@@ -71,12 +72,12 @@ static int producer_recv(struct endpoint *ep, struct endsock *sk, char **ubuf) {
     return rc;
 }
 
-static int comsumer_recv(struct endpoint *ep, struct endsock *sk, char **ubuf) {
+static int comsumer_recv(struct endsock *sk, char **ubuf) {
     int rc;
     struct ephdr *eh;
     struct epr *rt;
 
-    if ((rc = generic_recv(ep, sk, ubuf)) == 0) {
+    if ((rc = generic_recv(sk, ubuf)) == 0) {
 	eh = ubuf2ephdr(*ubuf);
 	rt = rt_cur(eh);
 	if (memcmp(rt->uuid, sk->uuid, sizeof(sk->uuid)) != 0)
@@ -103,7 +104,7 @@ int xep_recv(int eid, char **ubuf) {
     accept_endsocks(eid);
     if (!(sk = get_active_sk (ep)))
 	return -1;
-    rc = recv_vfptr[ep->type] (ep, sk, ubuf);
+    rc = recv_vfptr[ep->type] (sk, ubuf);
     return rc;
 }
 
