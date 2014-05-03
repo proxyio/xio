@@ -29,11 +29,11 @@
 struct xsock_protocol {
     int type;
     int pf;
-    int (*bind) (int xd, const char *sock);
-    void (*close) (int xd);
-    void (*notify) (int xd, int type, u32 events);
-    int (*setsockopt) (int xd, int level, int opt, void *val, int vallen);
-    int (*getsockopt) (int xd, int level, int opt, void *val, int *vallen);
+    int (*bind) (int fd, const char *sock);
+    void (*close) (int fd);
+    void (*notify) (int fd, int type, u32 events);
+    int (*setsockopt) (int fd, int level, int opt, void *val, int vallen);
+    int (*getsockopt) (int fd, int level, int opt, void *val, int *vallen);
     struct list_head link;
 };
 

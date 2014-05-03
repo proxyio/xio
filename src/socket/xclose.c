@@ -28,9 +28,9 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-static void xshutdown(struct xsock *sx) {
-    struct xcpu *cpu = xcpuget(sx->cpu_no);
-    struct xtask *ts = &sx->shutdown;    
+static void xshutdown(struct xsock *xsk) {
+    struct xcpu *cpu = xcpuget(xsk->cpu_no);
+    struct xtask *ts = &xsk->shutdown;    
 
     mutex_lock(&cpu->lock);
     while (efd_signal(&cpu->efd) < 0) {
@@ -38,23 +38,23 @@ static void xshutdown(struct xsock *sx) {
 	mutex_unlock(&cpu->lock);
 	mutex_lock(&cpu->lock);
     }
-    if (!sx->fclosed && !attached(&ts->link)) {
-	sx->fclosed = true;
+    if (!xsk->fclosed && !attached(&ts->link)) {
+	xsk->fclosed = true;
 	list_add_tail(&ts->link, &cpu->shutdown_socks);
     }
     mutex_unlock(&cpu->lock);
 }
 
-void xclose(int xd) {
-    struct xsock *sx = xget(xd);
+void xclose(int fd) {
+    struct xsock *xsk = xget(fd);
     struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
     struct list_head xpoll_head = {};
 
     INIT_LIST_HEAD(&xpoll_head);
-    mutex_lock(&sx->lock);
-    list_splice(&sx->xpoll_head, &xpoll_head);
-    mutex_unlock(&sx->lock);
+    mutex_lock(&xsk->lock);
+    list_splice(&xsk->xpoll_head, &xpoll_head);
+    mutex_unlock(&xsk->lock);
 
     xsock_walk_ent(ent, nx, &xpoll_head) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
@@ -63,5 +63,5 @@ void xclose(int xd) {
 	xent_put(ent);
     }
 
-    xshutdown(sx);
+    xshutdown(xsk);
 }

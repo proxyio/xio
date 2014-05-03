@@ -37,10 +37,10 @@ int xcpu_alloc() {
     return cpu_no;
 }
 
-int xcpu_choosed(int xd) {
+int xcpu_choosed(int fd) {
     if (xgb.ncpus == 0)
 	sleep(0xfffffff);
-    return xd % xgb.ncpus;
+    return fd % xgb.ncpus;
 }
 
 void xcpu_free(int cpu_no) {

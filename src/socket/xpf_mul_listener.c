@@ -30,45 +30,45 @@
 extern int _xlisten(int pf, const char *addr);
 
 
-static void xmultiple_close(int xd) {
-    struct xsock *sub_sx, *nx;
-    struct xsock *sx = xget(xd);
+static void xmultiple_close(int fd) {
+    struct xsock *sub_xsk, *nx;
+    struct xsock *xsk = xget(fd);
 
-    xsock_walk_sub_socks(sub_sx, nx, &sx->sub_socks) {
-	sub_sx->owner = -1;
-	list_del_init(&sub_sx->sib_link);
-	xclose(sub_sx->xd);
+    xsock_walk_sub_socks(sub_xsk, nx, &xsk->sub_socks) {
+	sub_xsk->owner = -1;
+	list_del_init(&sub_xsk->sib_link);
+	xclose(sub_xsk->fd);
     }
 }
 
-static int xmul_listener_bind(int xd, const char *sock) {
+static int xmul_listener_bind(int fd, const char *sock) {
     struct xsock_protocol *l4proto, *nx;
-    struct xsock *sx = xget(xd), *sub_sx;
-    int sub_xd;
-    int pf = sx->pf;
+    struct xsock *xsk = xget(fd), *sub_xsk;
+    int sub_fd;
+    int pf = xsk->pf;
 
     xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
 	if (!(pf & l4proto->pf) || l4proto->type != XLISTENER)
 	    continue;
 	pf &= ~l4proto->pf;
-	if ((sub_xd = _xlisten(l4proto->pf, sock)) < 0)
+	if ((sub_fd = _xlisten(l4proto->pf, sock)) < 0)
 	    goto BAD;
-	sub_sx = xget(sub_xd);
-	sub_sx->owner = xd;
-	list_add_tail(&sub_sx->sib_link, &sx->sub_socks);
+	sub_xsk = xget(sub_fd);
+	sub_xsk->owner = fd;
+	list_add_tail(&sub_xsk->sib_link, &xsk->sub_socks);
     }
-    if (!list_empty(&sx->sub_socks))
+    if (!list_empty(&xsk->sub_socks))
 	return 0;
  BAD:
-    xmultiple_close(xd);
+    xmultiple_close(fd);
     return -1;
 }
 
-static void xmul_listener_close(int xd) {
-    struct xsock *sx = xget(xd);
-    xmultiple_close(xd);
-    xsock_free(sx);
-    DEBUG_OFF("xsock %d multiple_close", xd);
+static void xmul_listener_close(int fd) {
+    struct xsock *xsk = xget(fd);
+    xmultiple_close(fd);
+    xsock_free(xsk);
+    DEBUG_OFF("xsock %d multiple_close", fd);
 }
 
 struct xsock_protocol xmul_listener_protocol[4] = {

@@ -27,12 +27,12 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-static int xinp_put(struct xsock *sx) {
+static int xinp_put(struct xsock *xsk) {
     int old;
-    mutex_lock(&sx->lock);
-    old = sx->proc.ref--;
-    sx->fok = false;
-    mutex_unlock(&sx->lock);
+    mutex_lock(&xsk->lock);
+    old = xsk->proc.ref--;
+    xsk->fok = false;
+    mutex_unlock(&xsk->lock);
     return old;
 }
 
@@ -43,14 +43,14 @@ extern struct xsock *find_listener(const char *addr);
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_head_push(int xd) {
+static int snd_head_push(int fd) {
     int rc = 0, can = false;
     struct xmsg *msg;
-    struct xsock *sx = xget(xd);
-    struct xsock *peer = sx->proc.xsock_peer;
+    struct xsock *xsk = xget(fd);
+    struct xsock *peer = xsk->proc.xsock_peer;
 
     // Unlock myself first because i hold the lock
-    mutex_unlock(&sx->lock);
+    mutex_unlock(&xsk->lock);
 
     // TODO: maybe the peer xsock can't recv anymore after the check.
     mutex_lock(&peer->lock);
@@ -59,10 +59,10 @@ static int snd_head_push(int xd) {
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-    if ((msg = sendq_pop(sx)))
+    if ((msg = sendq_pop(xsk)))
 	recvq_push(peer, msg);
 
-    mutex_lock(&sx->lock);
+    mutex_lock(&xsk->lock);
     return rc;
 }
 
@@ -70,12 +70,12 @@ static int snd_head_push(int xd) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_head_pop(int xd) {
+static int rcv_head_pop(int fd) {
     int rc = 0;
-    struct xsock *sx = xget(xd);
+    struct xsock *xsk = xget(fd);
 
-    if (sx->snd_waiters)
-	condition_signal(&sx->cond);
+    if (xsk->snd_waiters)
+	condition_signal(&xsk->cond);
     return rc;
 }
 
@@ -85,72 +85,72 @@ static int rcv_head_pop(int xd) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_connector_bind(int xd, const char *sock) {
-    struct xsock *sx = xget(xd);
-    struct xsock *req_sx = xsock_alloc();
+static int xinp_connector_bind(int fd, const char *sock) {
+    struct xsock *xsk = xget(fd);
+    struct xsock *req_xsk = xsock_alloc();
     struct xsock *listener = find_listener(sock);
 
     if (!listener) {
 	errno = ENOENT;	
 	return -1;
     }
-    if (!req_sx) {
+    if (!req_xsk) {
 	errno = EMFILE;
 	return -1;
     }
 
-    ZERO(sx->proc);
-    ZERO(req_sx->proc);
+    ZERO(xsk->proc);
+    ZERO(req_xsk->proc);
 
-    req_sx->pf = sx->pf;
-    req_sx->type = sx->type;
-    req_sx->l4proto = sx->l4proto;
-    strncpy(sx->peer, sock, TP_SOCKADDRLEN);
-    strncpy(req_sx->addr, sock, TP_SOCKADDRLEN);
+    req_xsk->pf = xsk->pf;
+    req_xsk->type = xsk->type;
+    req_xsk->l4proto = xsk->l4proto;
+    strncpy(xsk->peer, sock, TP_SOCKADDRLEN);
+    strncpy(req_xsk->addr, sock, TP_SOCKADDRLEN);
 
-    req_sx->proc.ref = sx->proc.ref = 2;
-    sx->proc.xsock_peer = req_sx;
-    req_sx->proc.xsock_peer = sx;
+    req_xsk->proc.ref = xsk->proc.ref = 2;
+    xsk->proc.xsock_peer = req_xsk;
+    req_xsk->proc.xsock_peer = xsk;
 
-    if (acceptq_push(listener, req_sx) < 0) {
+    if (acceptq_push(listener, req_xsk) < 0) {
 	errno = ECONNREFUSED;
-	xsock_free(req_sx);
+	xsock_free(req_xsk);
 	return -1;
     }
     return 0;
 }
 
-static void xinp_connector_close(int xd) {
-    struct xsock *sx = xget(xd);    
-    struct xsock *peer = sx->proc.xsock_peer;
+static void xinp_connector_close(int fd) {
+    struct xsock *xsk = xget(fd);    
+    struct xsock *peer = xsk->proc.xsock_peer;
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
     if (xinp_put(peer) == 1) {
 	xsock_free(peer);
     }
-    if (xinp_put(sx) == 1) {
-	xsock_free(sx);
+    if (xinp_put(xsk) == 1) {
+	xsock_free(xsk);
     }
 }
 
 
-static void snd_head_notify(int xd, u32 events) {
+static void snd_head_notify(int fd, u32 events) {
     if (events & XMQ_PUSH)
-	snd_head_push(xd);
+	snd_head_push(fd);
 }
 
-static void rcv_head_notify(int xd, u32 events) {
+static void rcv_head_notify(int fd, u32 events) {
     if (events & XMQ_POP)
-	rcv_head_pop(xd);
+	rcv_head_pop(fd);
 }
 
-static void xinp_connector_notify(int xd, int type, u32 events) {
+static void xinp_connector_notify(int fd, int type, u32 events) {
     switch (type) {
     case RECV_Q:
-	rcv_head_notify(xd, events);
+	rcv_head_notify(fd, events);
 	break;
     case SEND_Q:
-	snd_head_notify(xd, events);
+	snd_head_notify(fd, events);
 	break;
     default:
 	BUG_ON(1);

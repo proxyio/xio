@@ -29,80 +29,80 @@
 #include <transport/sockaddr.h>
 #include "xgb.h"
 
-int acceptq_push(struct xsock *sx, struct xsock *req_sx) {
+int acceptq_push(struct xsock *xsk, struct xsock *req_xsk) {
     int rc = 0;
 
-    while (sx->owner >= 0)
-	sx = xget(sx->owner);
+    while (xsk->owner >= 0)
+	xsk = xget(xsk->owner);
 
-    mutex_lock(&sx->lock);
-    if (list_empty(&sx->acceptq.head) && sx->acceptq.waiters > 0) {
-	condition_broadcast(&sx->acceptq.cond);
+    mutex_lock(&xsk->lock);
+    if (list_empty(&xsk->acceptq.head) && xsk->acceptq.waiters > 0) {
+	condition_broadcast(&xsk->acceptq.cond);
     }
-    list_add_tail(&req_sx->acceptq.link, &sx->acceptq.head);
-    __xpoll_notify(sx);
-    mutex_unlock(&sx->lock);
+    list_add_tail(&req_xsk->acceptq.link, &xsk->acceptq.head);
+    __xpoll_notify(xsk);
+    mutex_unlock(&xsk->lock);
     return rc;
 }
 
-struct xsock *acceptq_pop(struct xsock *sx) {
-    struct xsock *req_sx = 0;
+struct xsock *acceptq_pop(struct xsock *xsk) {
+    struct xsock *req_xsk = 0;
 
-    mutex_lock(&sx->lock);
-    while (list_empty(&sx->acceptq.head) && !sx->fasync) {
-	sx->acceptq.waiters++;
-	condition_wait(&sx->acceptq.cond, &sx->lock);
-	sx->acceptq.waiters--;
+    mutex_lock(&xsk->lock);
+    while (list_empty(&xsk->acceptq.head) && !xsk->fasync) {
+	xsk->acceptq.waiters++;
+	condition_wait(&xsk->acceptq.cond, &xsk->lock);
+	xsk->acceptq.waiters--;
     }
-    if (!list_empty(&sx->acceptq.head)) {
-	req_sx = list_first(&sx->acceptq.head, struct xsock, acceptq.link);
-	list_del_init(&req_sx->acceptq.link);
+    if (!list_empty(&xsk->acceptq.head)) {
+	req_xsk = list_first(&xsk->acceptq.head, struct xsock, acceptq.link);
+	list_del_init(&req_xsk->acceptq.link);
     }
-    __xpoll_notify(sx);
-    mutex_unlock(&sx->lock);
-    return req_sx;
+    __xpoll_notify(xsk);
+    mutex_unlock(&xsk->lock);
+    return req_xsk;
 }
 
-int xaccept(int xd) {
-    struct xsock *sx = xget(xd);
-    struct xsock *new_sx = 0;
+int xaccept(int fd) {
+    struct xsock *xsk = xget(fd);
+    struct xsock *new_xsk = 0;
 
-    if (!sx->fok) {
+    if (!xsk->fok) {
 	errno = EPIPE;
 	return -1;
     }
-    if (sx->type != XLISTENER) {
+    if (xsk->type != XLISTENER) {
 	errno = EPROTO;
 	return -1;
     }
-    if ((new_sx = acceptq_pop(sx)))
-	return new_sx->xd;
+    if ((new_xsk = acceptq_pop(xsk)))
+	return new_xsk->fd;
     errno = EAGAIN;
     return -1;
 }
 
 int _xlisten(int pf, const char *addr) {
-    int xd = xsocket(pf, XLISTENER);
+    int fd = xsocket(pf, XLISTENER);
 
     if (pf <= 0) {
 	errno = EPROTO;
 	return -1;
     }
-    if (xd < 0) {
+    if (fd < 0) {
 	errno = EMFILE;
 	return -1;
     }
-    if (xbind(xd, addr) != 0)
+    if (xbind(fd, addr) != 0)
 	return -1;
-    return xd;
+    return fd;
 }
 
 
 int xlisten(const char *addr) {
     int pf = sockaddr_pf(addr);
-    char sx_addr[TP_SOCKADDRLEN] = {};
+    char xsk_addr[TP_SOCKADDRLEN] = {};
 
-    if (sockaddr_addr(addr, sx_addr, sizeof(sx_addr)) != 0)
+    if (sockaddr_addr(addr, xsk_addr, sizeof(xsk_addr)) != 0)
 	return -1;
-    return _xlisten(pf, sx_addr);
+    return _xlisten(pf, xsk_addr);
 }

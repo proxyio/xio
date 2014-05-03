@@ -33,16 +33,16 @@
 
 struct xsock *find_listener(const char *addr) {
     struct ssmap_node *node;
-    struct xsock *sx = 0;
+    struct xsock *xsk = 0;
     u32 size = strlen(addr);
 
     if (size > TP_SOCKADDRLEN)
 	size = TP_SOCKADDRLEN;
     xglobal_lock();
     if ((node = ssmap_find(&xgb.inproc_listeners, addr, size)))
-	sx = cont_of(node, struct xsock, proc.rb_link);
+	xsk = cont_of(node, struct xsock, proc.rb_link);
     xglobal_unlock();
-    return sx;
+    return xsk;
 }
 
 static int insert_listener(struct ssmap_node *node) {
@@ -69,17 +69,17 @@ static void remove_listener(struct ssmap_node *node) {
  *  xsock_inproc_protocol
  ******************************************************************************/
 
-static int xinp_listener_bind(int xd, const char *sock) {
+static int xinp_listener_bind(int fd, const char *sock) {
     int rc;
     struct ssmap_node *node = 0;
-    struct xsock *sx = xget(xd);
+    struct xsock *xsk = xget(fd);
 
-    ZERO(sx->proc);
-    strncpy(sx->addr, sock, TP_SOCKADDRLEN);
+    ZERO(xsk->proc);
+    strncpy(xsk->addr, sock, TP_SOCKADDRLEN);
 
-    node = &sx->proc.rb_link;
-    node->key = sx->addr;
-    node->keylen = strlen(sx->addr);
+    node = &xsk->proc.rb_link;
+    node->key = xsk->addr;
+    node->keylen = strlen(xsk->addr);
     if ((rc = insert_listener(node)) < 0) {
 	errno = EADDRINUSE;
 	return -1;
@@ -87,14 +87,14 @@ static int xinp_listener_bind(int xd, const char *sock) {
     return 0;
 }
 
-static void xinp_listener_close(int xd) {
-    struct xsock *sx = xget(xd);
+static void xinp_listener_close(int fd) {
+    struct xsock *xsk = xget(fd);
 
     /* Avoiding the new connectors */
-    remove_listener(&sx->proc.rb_link);
+    remove_listener(&xsk->proc.rb_link);
 
     /* Close the xsock and free xsock id. */
-    xsock_free(sx);
+    xsock_free(xsk);
 }
 
 struct xsock_protocol xinp_listener_protocol = {

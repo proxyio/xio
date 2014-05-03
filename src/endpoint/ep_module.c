@@ -72,15 +72,14 @@ int ep2eid(struct endpoint *ep) {
 
 struct endsock *endpoint_accept(int eid, struct endsock *sk) {
     struct endpoint *ep = eid_get(eid);
-    int sockfd;
+    int fd;
     struct endsock *newsk = 0;
 
-    if ((sockfd = xaccept(sk->fd)) >= 0) {
-	if (!(newsk = __xep_add(eid, sockfd))) {
-	    xclose(sockfd);
+    if ((fd = xaccept(sk->fd)) >= 0) {
+	if (!(newsk = __xep_add(eid, fd))) {
+	    xclose(fd);
 	}
-	DEBUG_OFF("listener %d accept new endsock %d", sk->fd,
-		  newsk ? sockfd : -1);
+	DEBUG_OFF("ep %d accept new socket %d", sk->fd, newsk ? fd : -1);
     } else if (errno != EAGAIN) {
 	list_move_tail(&sk->link, &ep->bad_socks);
 	DEBUG_OFF("listener %d bad status", sk->fd);

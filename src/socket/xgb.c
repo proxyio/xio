@@ -113,7 +113,7 @@ extern struct xsock_protocol xmul_listener_protocol[3];
 
 void xsocket_module_init() {
     waitgroup_t wg;
-    int xd;
+    int fd;
     int cpu_no;
     int i;
     struct list_head *protocol_head = &xgb.xsock_protocol_head;
@@ -126,8 +126,8 @@ void xsocket_module_init() {
     xgb.exiting = false;
     mutex_init(&xgb.lock);
 
-    for (xd = 0; xd < XIO_MAX_SOCKS; xd++)
-	xgb.unused[xd] = xd;
+    for (fd = 0; fd < XIO_MAX_SOCKS; fd++)
+	xgb.unused[fd] = fd;
     for (cpu_no = 0; cpu_no < XIO_MAX_CPUS; cpu_no++)
 	xgb.cpu_unused[cpu_no] = cpu_no;
 

@@ -53,7 +53,7 @@
 
 
 int xsocket(int pf, int type);
-int xbind(int xd, const char *addr);
+int xbind(int fd, const char *addr);
 
 /* xsock_protocol notify types */
 #define RECV_Q           1
@@ -85,7 +85,7 @@ struct xsock {
     struct list_head sub_socks;
     struct list_head sib_link;
 
-    int xd;
+    int fd;
     int cpu_no;
     int rcv_waiters;
     int snd_waiters;
@@ -113,7 +113,7 @@ struct xsock {
 	    struct bio in;
 	    struct bio out;
 	    struct io ops;
-	    int fd;
+	    int sys_fd;
 	    struct transport *tp;
 	} io;
 
@@ -155,12 +155,12 @@ struct xsock *xsock_alloc();
 void recvq_push(struct xsock *cn, struct xmsg *msg);
 struct xmsg *sendq_pop(struct xsock *cn);
 
-int acceptq_push(struct xsock *sx, struct xsock *req_sx);
-struct xsock *acceptq_pop(struct xsock *sx);
+int acceptq_push(struct xsock *xsk, struct xsock *req_xsk);
+struct xsock *acceptq_pop(struct xsock *xsk);
 
-int xpoll_check_events(struct xsock *sx, int events);
-void __xpoll_notify(struct xsock *sx);
-void xpoll_notify(struct xsock *sx);
+int xpoll_check_events(struct xsock *xsk, int events);
+void __xpoll_notify(struct xsock *xsk);
+void xpoll_notify(struct xsock *xsk);
 
 
 #endif

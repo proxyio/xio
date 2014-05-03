@@ -28,61 +28,61 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-typedef int (*socksetopt) (struct xsock *sx, void *val, int vallen);
+typedef int (*sock_setopt) (struct xsock *xsk, void *val, int vallen);
 
-static int set_noblock(struct xsock *sx, void *val, int vallen) {
-    mutex_lock(&sx->lock);
-    sx->fasync = *(int *)val ? true : false;
-    mutex_unlock(&sx->lock);
+static int set_noblock(struct xsock *xsk, void *val, int vallen) {
+    mutex_lock(&xsk->lock);
+    xsk->fasync = *(int *)val ? true : false;
+    mutex_unlock(&xsk->lock);
     return 0;
 }
 
-static int set_sndwin(struct xsock *sx, void *val, int vallen) {
-    mutex_lock(&sx->lock);
-    sx->snd_wnd = (*(int *)val);
-    mutex_unlock(&sx->lock);
+static int set_sndwin(struct xsock *xsk, void *val, int vallen) {
+    mutex_lock(&xsk->lock);
+    xsk->snd_wnd = (*(int *)val);
+    mutex_unlock(&xsk->lock);
     return 0;
 }
 
-static int set_rcvwin(struct xsock *sx, void *val, int vallen) {
-    mutex_lock(&sx->lock);
-    sx->rcv_wnd = (*(int *)val);
-    mutex_unlock(&sx->lock);
+static int set_rcvwin(struct xsock *xsk, void *val, int vallen) {
+    mutex_lock(&xsk->lock);
+    xsk->rcv_wnd = (*(int *)val);
+    mutex_unlock(&xsk->lock);
     return 0;
 }
 
-static int set_linger(struct xsock *sx, void *val, int vallen) {
+static int set_linger(struct xsock *xsk, void *val, int vallen) {
     return -1;
 }
 
-static int set_sndtimeo(struct xsock *sx, void *val, int vallen) {
+static int set_sndtimeo(struct xsock *xsk, void *val, int vallen) {
     return -1;
 }
 
-static int set_rcvtimeo(struct xsock *sx, void *val, int vallen) {
+static int set_rcvtimeo(struct xsock *xsk, void *val, int vallen) {
     return -1;
 }
 
-static int set_reconnect(struct xsock *sx, void *val, int vallen) {
+static int set_reconnect(struct xsock *xsk, void *val, int vallen) {
     return -1;
 }
 
-static int set_reconn_ivl(struct xsock *sx, void *val, int vallen) {
+static int set_reconn_ivl(struct xsock *xsk, void *val, int vallen) {
     return -1;
 }
 
-static int set_reconn_ivlmax(struct xsock *sx, void *val, int vallen) {
+static int set_reconn_ivlmax(struct xsock *xsk, void *val, int vallen) {
     return -1;
 }
 
-static int set_tracedebug(struct xsock *sx, void *val, int vallen) {
-    mutex_lock(&sx->lock);
-    sx->ftracedebug = *(int *)val ? true : false;
-    mutex_unlock(&sx->lock);
+static int set_tracedebug(struct xsock *xsk, void *val, int vallen) {
+    mutex_lock(&xsk->lock);
+    xsk->ftracedebug = *(int *)val ? true : false;
+    mutex_unlock(&xsk->lock);
     return 0;
 }
 
-const socksetopt setopt_vfptr[] = {
+const sock_setopt setopt_vfptr[] = {
     set_noblock,
     set_sndwin,
     set_rcvwin,
@@ -99,22 +99,22 @@ const socksetopt setopt_vfptr[] = {
     set_tracedebug,
 };
 
-int xsetopt(int xd, int level, int opt, void *val, int vallen) {
+int xsetopt(int fd, int level, int opt, void *val, int vallen) {
     int rc;
-    struct xsock *sx = xget(xd);
+    struct xsock *xsk = xget(fd);
 
-    if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
+    if ((level != XL_SOCKET && !xsk->l4proto->setsockopt) ||
 	((level == XL_SOCKET && !setopt_vfptr[opt]) ||
-	 (opt >= NELEM(setopt_vfptr, socksetopt)))) {
+	 (opt >= NELEM(setopt_vfptr, sock_setopt)))) {
 	errno = EINVAL;
 	return -1;
     }
     switch (level) {
     case XL_SOCKET:
-	setopt_vfptr[opt](sx, val, vallen);
+	setopt_vfptr[opt](xsk, val, vallen);
 	break;
     default:
-	rc = sx->l4proto->setsockopt(xd, level, opt, val, vallen);
+	rc = xsk->l4proto->setsockopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

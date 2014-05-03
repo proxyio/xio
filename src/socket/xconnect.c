@@ -31,12 +31,12 @@
 
 int xconnect(const char *peer) {
     int pf = sockaddr_pf(peer);
-    int xd = xsocket(pf, XCONNECTOR);
-    char sx_addr[TP_SOCKADDRLEN] = {};
+    int fd = xsocket(pf, XCONNECTOR);
+    char xsk_addr[TP_SOCKADDRLEN] = {};
 
-    if (xd < 0 ||
-	sockaddr_addr(peer, sx_addr, sizeof(sx_addr)) != 0 ||
-	xbind(xd, sx_addr) != 0)
+    if (fd < 0 ||
+	sockaddr_addr(peer, xsk_addr, sizeof(xsk_addr)) != 0 ||
+	xbind(fd, xsk_addr) != 0)
 	return -1;
-    return xd;
+    return fd;
 }

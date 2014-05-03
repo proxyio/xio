@@ -96,7 +96,7 @@ static int xpoll_add(struct xpoll_t *po, struct xpoll_event *event) {
 
     /* We hold a ref here. it is used for xsock */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
-    attach_to_xsock(ent, sx->xd);
+    attach_to_xsock(ent, sx->fd);
 
     xpoll_notify(sx);
     return 0;
