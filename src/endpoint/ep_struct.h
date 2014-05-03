@@ -46,7 +46,7 @@ struct endsock {
 };
 
 struct endpoint {
-    struct xeppy *owner;
+    struct xproxy *owner;
     int type;
     struct list_head bsocks;
     struct list_head csocks;
@@ -69,7 +69,7 @@ extern void eid_strace(int eid);
 struct endsock *__xep_add(int eid, int sockfd);
 struct endsock *endpoint_accept(int eid, struct endsock *sk);
 
-struct xeppy {
+struct xproxy {
     int exiting;
     spin_t lock;
     struct xpoll_t *po;
@@ -78,7 +78,8 @@ struct xeppy {
     thread_t py_worker;
 };
 
-
+struct xproxy *xproxy_open(int frontend_eid, int backend_eid);
+void xproxy_close(struct xproxy *py);
 
 struct xep_global {
     int exiting;

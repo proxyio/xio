@@ -92,7 +92,6 @@ static int proxy_thread(void *args) {
     string backhost("tcp+inproc+ipc://127.0.0.1:18899");
     int s;
     int front_eid, back_eid;
-    struct xeppy *py;
     
     BUG_ON((front_eid = xep_open(XEP_COMSUMER)) < 0);
     BUG_ON((back_eid = xep_open(XEP_PRODUCER)) < 0);
@@ -103,13 +102,13 @@ static int proxy_thread(void *args) {
     BUG_ON((s = xlisten(backhost.c_str())) < 0);
     BUG_ON(xep_add(back_eid, s) < 0);
 
-    py = xeppy_open(front_eid, back_eid);
+    BUG_ON(xep_setopt(front_eid, XEP_DISPATCHTO, &back_eid, sizeof(back_eid)));
     proxy_stopped = 0;
     while (!proxy_stopped)
 	usleep(20000);
-    xeppy_close(py);
-    xep_close(front_eid);
+    BUG_ON(xep_setopt(front_eid, XEP_DISPATCHTO, &back_eid, sizeof(back_eid)));
     xep_close(back_eid);
+    xep_close(front_eid);
     return 0;
 }
 

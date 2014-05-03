@@ -11,7 +11,7 @@ char *xep_allocubuf(int flags, int size, ...);
 void xep_freeubuf(char *ubuf);
 uint32_t xep_ubuflen(char *ubuf);
 
-    
+
 #define XEP_PRODUCER 1
 #define XEP_COMSUMER 2
 
@@ -22,11 +22,9 @@ int xep_rm(int eid, int xsockfd);
 int xep_recv(int eid, char **ubuf);
 int xep_send(int eid, char *ubuf);
 
-struct xeppy;
-struct xeppy *xeppy_open(int front_eid, int backend_eid);
-void xeppy_close(struct xeppy *py);
-
-void xep_strace(int eid);
+#define XEP_DISPATCHTO 1
+int xep_setopt(int eid, int opt, void *optval, int optlen);
+int xep_getopt(int eid, int opt, void *optval, int *optlen);
 
 #ifdef __cplusplus
 }

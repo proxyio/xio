@@ -21,41 +21,61 @@
 */
 
 #include <stdio.h>
-#include <os/alloc.h>
 #include <xio/socket.h>
+#include <xio/poll.h>
 #include "ep_struct.h"
 
+typedef int (*ep_setopt) (struct endpoint *ep, void *val, int len);
 
-struct endsock *__xep_add(int eid, int sockfd) {
-    struct endpoint *ep = eid_get(eid);
-    int fnb = 1;
-    int socktype = XCONNECTOR;
-    int optlen = sizeof(socktype);
-    struct endsock *s;
-    struct list_head *head;
 
-    if (!(socktype & (XCONNECTOR|XLISTENER))) {
-	errno = EBADF;
-	return 0;
+static int open_proxy(struct endpoint *ep, int backend_eid) {
+    struct xproxy *py;
+    struct endpoint *backend;
+
+    if (backend_eid < 0) {
+	errno = EINVAL;
+	return -1;
     }
-    if (!(s = (struct endsock *)mem_zalloc(sizeof(*s))))
-	return 0;
-    s->owner = ep;
-    s->sockfd = sockfd;
-    xsetopt(sockfd, XL_SOCKET, XNOBLOCK, &fnb, sizeof(fnb));
-    xgetopt(sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
-    head = socktype == XCONNECTOR ? &ep->csocks : &ep->bsocks;
-    list_add_tail(&s->link, head);
-    if (ep->type == XEP_PRODUCER)
-	uuid_generate(s->uuid);
-    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
-    return s;
-}
-
-int xep_add(int eid, int sockfd) {
-    struct endsock *s = __xep_add(eid, sockfd);
-    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
-    if (!s)
+    backend = eid_get(backend_eid);
+    if (ep->type != XEP_COMSUMER || backend->type != XEP_PRODUCER) {
+	errno = EINVAL;
+	return -1;
+    }
+    if (!(py = xproxy_open(ep2eid(ep), backend_eid)))
 	return -1;
     return 0;
+}
+
+static int shutdown_proxy(struct endpoint *ep) {
+    struct xproxy *py = ep->owner;
+
+    xproxy_close(py);
+    return 0;
+}
+
+static int set_dispatchto(struct endpoint *ep, void *val, int len) {
+    int rc;
+    int backend_eid = *(int *)val;
+
+    rc = ep->owner ? shutdown_proxy(ep) : open_proxy(ep, backend_eid);
+    return rc;
+}
+
+
+static const ep_setopt setopt_vfptr[] = {
+    0,
+    set_dispatchto,
+};
+
+
+int xep_setopt(int eid, int opt, void *optval, int optlen) {
+    int rc;
+    struct endpoint *ep = eid_get(eid);
+
+    if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = setopt_vfptr[opt] (ep, optval, optlen);
+    return rc;
 }

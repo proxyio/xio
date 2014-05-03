@@ -29,7 +29,7 @@ extern int __xep_send(struct endpoint *ep, char *ubuf, struct endsock **go);
 
 static void producer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
-    struct xeppy *py = ep->owner;
+    struct xproxy *py = ep->owner;
     int rc;
     char *ubuf = 0;
     struct endsock *dst = 0;
@@ -48,7 +48,7 @@ static void producer_event_hndl(struct endsock *sk) {
 
 static void comsumer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
-    struct xeppy *py = ep->owner;
+    struct xproxy *py = ep->owner;
     int rc;
     char *ubuf, *ubuf2;
     struct endsock *dst = 0;
@@ -99,7 +99,7 @@ static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk);
 
 static void listener_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
-    struct xeppy *py = ep->owner;
+    struct xproxy *py = ep->owner;
     struct endsock *newsk;
 
     DEBUG_OFF("ep(%d)'s listener %d events %s", ep2eid(ep), sk->sockfd,
@@ -117,7 +117,7 @@ static void event_hndl(struct xpoll_event *ent) {
     struct endsock *sk = (struct endsock *)ent->self;
 
     sk->ent.happened = ent->happened;
-    xgetsockopt(sk->sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
+    xgetopt(sk->sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
     switch (socktype) {
     case XCONNECTOR:
 	connector_event_hndl(sk);
@@ -132,7 +132,7 @@ static void event_hndl(struct xpoll_event *ent) {
 
 static int py_routine(void *args) {
     int i, rc;
-    struct xeppy *py = (struct xeppy *)args;
+    struct xproxy *py = (struct xproxy *)args;
     struct xpoll_event ent[100];
 
     while (!py->exiting) {
@@ -164,7 +164,7 @@ static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk) {
 
 
 static void enable_sockets_poll(struct endpoint *ep) {
-    struct xeppy *py = ep->owner;
+    struct xproxy *py = ep->owner;
     struct endsock *sk, *next_sk;
 
     xendpoint_walk_sock(sk, next_sk, &ep->bsocks) {
@@ -177,8 +177,8 @@ static void enable_sockets_poll(struct endpoint *ep) {
     }
 }
 
-struct xeppy *xeppy_open(int front_eid, int backend_eid) {
-    struct xeppy *py = (struct xeppy *)mem_zalloc(sizeof(*py));
+struct xproxy *xproxy_open(int front_eid, int backend_eid) {
+    struct xproxy *py = (struct xproxy *)mem_zalloc(sizeof(*py));
 
     if (!py)
 	return 0;
@@ -198,7 +198,7 @@ struct xeppy *xeppy_open(int front_eid, int backend_eid) {
     return py;
 }
 
-void xeppy_close(struct xeppy *py) {
+void xproxy_close(struct xproxy *py) {
     if (!py) {
 	errno = EINVAL;
 	return;

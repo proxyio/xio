@@ -21,41 +21,39 @@
 */
 
 #include <stdio.h>
-#include <os/alloc.h>
 #include <xio/socket.h>
+#include <xio/poll.h>
 #include "ep_struct.h"
 
+typedef int (*ep_getopt) (struct endpoint *ep, void *val, int *len);
 
-struct endsock *__xep_add(int eid, int sockfd) {
-    struct endpoint *ep = eid_get(eid);
-    int fnb = 1;
-    int socktype = XCONNECTOR;
-    int optlen = sizeof(socktype);
-    struct endsock *s;
-    struct list_head *head;
-
-    if (!(socktype & (XCONNECTOR|XLISTENER))) {
-	errno = EBADF;
-	return 0;
+static int get_dispatchto(struct endpoint *ep, void *val, int *len) {
+    struct xproxy *py = ep->owner;
+    
+    if (!py || ep->type != XEP_COMSUMER) {
+	errno = EINVAL;
+	return -1;
     }
-    if (!(s = (struct endsock *)mem_zalloc(sizeof(*s))))
-	return 0;
-    s->owner = ep;
-    s->sockfd = sockfd;
-    xsetopt(sockfd, XL_SOCKET, XNOBLOCK, &fnb, sizeof(fnb));
-    xgetopt(sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
-    head = socktype == XCONNECTOR ? &ep->csocks : &ep->bsocks;
-    list_add_tail(&s->link, head);
-    if (ep->type == XEP_PRODUCER)
-	uuid_generate(s->uuid);
-    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
-    return s;
+    BUG_ON(!py->backend);
+    *(int *)val = ep2eid(py->backend);
+    return 0;
 }
 
-int xep_add(int eid, int sockfd) {
-    struct endsock *s = __xep_add(eid, sockfd);
-    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
-    if (!s)
+
+static const ep_getopt getopt_vfptr[] = {
+    0,
+    get_dispatchto,
+};
+
+
+int xep_getopt(int eid, int opt, void *optval, int *optlen) {
+    int rc;
+    struct endpoint *ep = eid_get(eid);
+
+    if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
+	errno = EINVAL;
 	return -1;
-    return 0;
+    }
+    rc = getopt_vfptr[opt] (ep, optval, optlen);
+    return rc;
 }
