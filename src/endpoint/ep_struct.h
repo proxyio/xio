@@ -72,8 +72,14 @@ struct proxy {
     thread_t py_worker;
 };
 
+struct proxy *proxy_new();
+void proxy_free(struct proxy *py);
 struct proxy *proxy_open(int frontend_eid, int backend_eid);
 void proxy_close(struct proxy *py);
+int proxy_get(struct proxy *py);
+int proxy_put(struct proxy *py);
+
+
 
 struct xep_global {
     int exiting;

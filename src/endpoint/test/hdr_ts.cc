@@ -106,7 +106,6 @@ static int proxy_thread(void *args) {
     proxy_stopped = 0;
     while (!proxy_stopped)
 	usleep(20000);
-    BUG_ON(xep_setopt(front_eid, XEP_DISPATCHTO, &back_eid, sizeof(back_eid)));
     xep_close(back_eid);
     xep_close(front_eid);
     return 0;

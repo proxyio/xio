@@ -29,7 +29,12 @@ void xep_close(int eid) {
     struct endpoint *ep = eid_get(eid);
     struct endsock *es, *next_es;
 
-    eid_free(eid);
+    if (ep->owner) {
+	if (1 == proxy_put(ep->owner)) {
+	    proxy_close(ep->owner);
+	}
+	return;
+    }
     INIT_LIST_HEAD(&closed_head);
     list_splice(&ep->listeners, &closed_head);
     list_splice(&ep->connectors, &closed_head);
@@ -39,4 +44,5 @@ void xep_close(int eid) {
 	list_del_init(&es->link);
 	mem_free(es, sizeof(*es));
     }
+    eid_free(eid);
 }

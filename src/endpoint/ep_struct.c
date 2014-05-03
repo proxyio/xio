@@ -59,7 +59,7 @@ struct proxy *proxy_new() {
 	    mem_free(py, sizeof(*py));
 	    return 0;
 	}
-	py->exiting = 0;
+	py->exiting = true;
 	py->ref = 0;
 	spin_init(&py->lock);
 	py->frontend = 0;
@@ -72,4 +72,22 @@ void proxy_free(struct proxy *py) {
     spin_destroy(&py->lock);
     xpoll_close(py->po);
     mem_free(py, sizeof(*py));
+}
+
+
+int proxy_get(struct proxy *py) {
+    int ref;
+    spin_lock(&py->lock);
+    ref = py->ref++;
+    spin_unlock(&py->lock);
+    return ref;
+}
+
+
+int proxy_put(struct proxy *py) {
+    int ref;
+    spin_lock(&py->lock);
+    ref = py->ref--;
+    spin_unlock(&py->lock);
+    return ref;
 }

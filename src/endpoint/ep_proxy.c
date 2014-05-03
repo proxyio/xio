@@ -130,28 +130,6 @@ static void event_hndl(struct xpoll_event *ent) {
     }
 };
 
-static int py_routine(void *args) {
-    int i, rc;
-    struct proxy *py = (struct proxy *)args;
-    struct xpoll_event ent[100];
-
-    while (!py->exiting) {
-	if ((rc = xpoll_wait(py->po, ent, NELEM(ent, struct xpoll_event),
-			     1)) < 0) {
-	    usleep(10000);
-	    return -1;
-	}
-	DEBUG_OFF("%d sockets happened events", rc);
-	for (i = 0; i < rc; i++) {
-	    DEBUG_OFF("socket %d with events %s", ent[i].xd,
-		      xpoll_str[ent[i].happened]);
-	    event_hndl(&ent[i]);
-	}
-    }
-    return 0;
-}
-
-
 
 static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk) {
     int rc;
@@ -177,35 +155,62 @@ static void enable_sockets_poll(struct endpoint *ep) {
     }
 }
 
-struct proxy *proxy_open(int front_eid, int backend_eid) {
-    struct proxy *py = (struct proxy *)mem_zalloc(sizeof(*py));
+static int py_routine(void *args) {
+    int i, rc;
+    struct proxy *py = (struct proxy *)args;
+    struct xpoll_event ent[100];
 
-    if (!py)
-	return 0;
-    if (!(py->po = xpoll_create())) {
-	mem_free(py, sizeof(*py));
-	return 0;
+    enable_sockets_poll(py->frontend);
+    enable_sockets_poll(py->backend);
+
+    while (!py->exiting) {
+	if ((rc = xpoll_wait(py->po, ent, NELEM(ent, struct xpoll_event),
+			     1)) < 0) {
+	    usleep(10000);
+	    return -1;
+	}
+	DEBUG_OFF("%d sockets happened events", rc);
+	for (i = 0; i < rc; i++) {
+	    DEBUG_OFF("socket %d with events %s", ent[i].xd,
+		      xpoll_str[ent[i].happened]);
+	    event_hndl(&ent[i]);
+	}
     }
+    return 0;
+}
+
+struct proxy *proxy_open(int front_eid, int backend_eid) {
+    struct proxy *py;
+
+    if (!(py = proxy_new()))
+	return 0;
     DEBUG_OFF("front endpoint %d and back endpoint %d", front_eid, backend_eid);
     py->exiting = false;
     spin_init(&py->lock);
     py->frontend = eid_get(front_eid);
     py->backend = eid_get(backend_eid);
     py->frontend->owner = py->backend->owner = py;
-    enable_sockets_poll(py->frontend);
-    enable_sockets_poll(py->backend);
     thread_start(&py->py_worker, py_routine, py);
     return py;
 }
 
 void proxy_close(struct proxy *py) {
-    if (!py) {
-	errno = EINVAL;
-	return;
-    }
+    struct endpoint *ep;
+
+    BUG_ON(!py);
     py->exiting = true;
     thread_stop(&py->py_worker);
-    xpoll_close(py->po);
-    spin_destroy(&py->lock);
-    mem_free(py, sizeof(*py));
+
+    BUG_ON(!py->backend);
+    BUG_ON(!py->frontend);
+
+    ep = py->backend;
+    ep->owner = 0;
+    xep_close(ep2eid(ep));
+
+    ep = py->frontend;
+    ep->owner = 0;
+    xep_close(ep2eid(ep));
+
+    proxy_free(py);
 }
