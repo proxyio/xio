@@ -80,6 +80,13 @@ int proxy_get(struct proxy *py);
 int proxy_put(struct proxy *py);
 
 
+struct bus {
+
+};
+
+
+
+
 
 struct xep_global {
     int exiting;

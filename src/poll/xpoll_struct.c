@@ -37,15 +37,15 @@ struct xpoll_entry *xent_new() {
     return ent;
 }
 
-int xpoll_put(struct xpoll_t *po);
+int xpoll_put(struct xpoll_t *self);
 
 static void xent_destroy(struct xpoll_entry *ent) {
-    struct xpoll_t *po = cont_of(ent->notify, struct xpoll_t, notify);
+    struct xpoll_t *self = cont_of(ent->notify, struct xpoll_t, notify);
 
     BUG_ON(ent->ref != 0);
     spin_destroy(&ent->lock);
     mem_free(ent, sizeof(*ent));
-    xpoll_put(po);
+    xpoll_put(self);
 }
 
 
@@ -81,46 +81,46 @@ int xent_put(struct xpoll_entry *ent) {
 }
 
 struct xpoll_t *xpoll_new() {
-    struct xpoll_t *po = (struct xpoll_t *)mem_zalloc(sizeof(*po));
-    if (po) {
-	po->uwaiters = 0;
-	po->ref = 0;
-	po->size = 0;
-	mutex_init(&po->lock);
-	condition_init(&po->cond);
-	INIT_LIST_HEAD(&po->lru_head);
+    struct xpoll_t *self = (struct xpoll_t *)mem_zalloc(sizeof(*self));
+    if (self) {
+	self->uwaiters = 0;
+	self->ref = 0;
+	self->size = 0;
+	mutex_init(&self->lock);
+	condition_init(&self->cond);
+	INIT_LIST_HEAD(&self->lru_head);
     }
-    return po;
+    return self;
 }
 
-static void xpoll_destroy(struct xpoll_t *po) {
+static void xpoll_destroy(struct xpoll_t *self) {
     DEBUG_OFF();
-    mutex_destroy(&po->lock);
-    mem_free(po, sizeof(struct xpoll_t));
+    mutex_destroy(&self->lock);
+    mem_free(self, sizeof(struct xpoll_t));
 }
 
-int xpoll_get(struct xpoll_t *po) {
+int xpoll_get(struct xpoll_t *self) {
     int ref;
-    mutex_lock(&po->lock);
-    ref = po->ref++;
-    mutex_unlock(&po->lock);
+    mutex_lock(&self->lock);
+    ref = self->ref++;
+    mutex_unlock(&self->lock);
     return ref;
 }
 
-int xpoll_put(struct xpoll_t *po) {
+int xpoll_put(struct xpoll_t *self) {
     int ref;
-    mutex_lock(&po->lock);
-    ref = po->ref--;
-    BUG_ON(po->ref < 0);
-    mutex_unlock(&po->lock);
+    mutex_lock(&self->lock);
+    ref = self->ref--;
+    BUG_ON(self->ref < 0);
+    mutex_unlock(&self->lock);
     if (ref == 1)
-	xpoll_destroy(po);
+	xpoll_destroy(self);
     return ref;
 }
 
-struct xpoll_entry *__xpoll_find(struct xpoll_t *po, int xd) {
+struct xpoll_entry *__xpoll_find(struct xpoll_t *self, int xd) {
     struct xpoll_entry *ent, *nx;
-    xpoll_walk_ent(ent, nx, &po->lru_head) {
+    xpoll_walk_ent(ent, nx, &self->lru_head) {
 	if (ent->event.xd == xd)
 	    return ent;
     }
@@ -128,25 +128,25 @@ struct xpoll_entry *__xpoll_find(struct xpoll_t *po, int xd) {
 }
 
 /* Find xpoll_entry by xsock id and return with ref incr if exist. */
-struct xpoll_entry *xpoll_find(struct xpoll_t *po, int xd) {
+struct xpoll_entry *xpoll_find(struct xpoll_t *self, int xd) {
     struct xpoll_entry *ent = 0;
-    mutex_lock(&po->lock);
-    if ((ent = __xpoll_find(po, xd)))
+    mutex_lock(&self->lock);
+    if ((ent = __xpoll_find(self, xd)))
 	xent_get(ent);
-    mutex_unlock(&po->lock);
+    mutex_unlock(&self->lock);
     return ent;
 }
 
 
-void __attach_to_po(struct xpoll_entry *ent, struct xpoll_t *po) {
+void __attach_to_po(struct xpoll_entry *ent, struct xpoll_t *self) {
     BUG_ON(attached(&ent->lru_link));
-    po->size++;
-    list_add_tail(&ent->lru_link, &po->lru_head);
+    self->size++;
+    list_add_tail(&ent->lru_link, &self->lru_head);
 }
 
-void __detach_from_po(struct xpoll_entry *ent, struct xpoll_t *po) {
+void __detach_from_po(struct xpoll_entry *ent, struct xpoll_t *self) {
     BUG_ON(!attached(&ent->lru_link));
-    po->size--;
+    self->size--;
     list_del_init(&ent->lru_link);
 }
 
@@ -154,17 +154,17 @@ void __detach_from_po(struct xpoll_entry *ent, struct xpoll_t *po) {
 /* Create a new xpoll_entry if the xd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct xpoll_entry *xpoll_getent(struct xpoll_t *po, int xd) {
+struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int xd) {
     struct xpoll_entry *ent;
 
-    mutex_lock(&po->lock);
-    if ((ent = __xpoll_find(po, xd))) {
-	mutex_unlock(&po->lock);
+    mutex_lock(&self->lock);
+    if ((ent = __xpoll_find(self, xd))) {
+	mutex_unlock(&self->lock);
 	errno = EEXIST;
 	return 0;
     }
     if (!(ent = xent_new())) {
-	mutex_unlock(&po->lock);
+	mutex_unlock(&self->lock);
 	errno = ENOMEM;
 	return 0;
     }
@@ -174,11 +174,11 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *po, int xd) {
 
     /* Cycle reference of xpoll_t and xpoll_entry */
     ent->ref++;
-    po->ref++;
+    self->ref++;
 
     ent->event.xd = xd;
-    __attach_to_po(ent, po);
-    mutex_unlock(&po->lock);
+    __attach_to_po(ent, self);
+    mutex_unlock(&self->lock);
 
     return ent;
 }
@@ -187,21 +187,18 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *po, int xd) {
  * ref hold by xpoll_t. let caller do this.
  * xpoll_rm() call this.
  */
-struct xpoll_entry *xpoll_putent(struct xpoll_t *po, int xd) {
+struct xpoll_entry *xpoll_putent(struct xpoll_t *self, int xd) {
     struct xpoll_entry *ent;
 
-    mutex_lock(&po->lock);
-    if (!(ent = __xpoll_find(po, xd))) {
-	mutex_unlock(&po->lock);
+    mutex_lock(&self->lock);
+    if (!(ent = __xpoll_find(self, xd))) {
+	mutex_unlock(&self->lock);
 	errno = ENOENT;
 	return 0;
     }
-    __detach_from_po(ent, po);
-    mutex_unlock(&po->lock);
+    __detach_from_po(ent, self);
+    mutex_unlock(&self->lock);
 
-    /* Release the xpoll_t's ref hold by xpoll_entry
-     * xpoll_put(po);
-     */
     return ent;
 }
 
@@ -210,23 +207,19 @@ struct xpoll_entry *xpoll_putent(struct xpoll_t *po, int xd) {
  * by xpoll_t. let caller do this.
  * xpoll_close() call this.
  */
-struct xpoll_entry *xpoll_popent(struct xpoll_t *po) {
+struct xpoll_entry *xpoll_popent(struct xpoll_t *self) {
     struct xpoll_entry *ent;
 
-    mutex_lock(&po->lock);
-    if (list_empty(&po->lru_head)) {
-	mutex_unlock(&po->lock);
+    mutex_lock(&self->lock);
+    if (list_empty(&self->lru_head)) {
+	mutex_unlock(&self->lock);
 	errno = ENOENT;
 	return 0;
     }
-    ent = list_first(&po->lru_head, struct xpoll_entry, lru_link);
-    __detach_from_po(ent, po);
-    mutex_unlock(&po->lock);
+    ent = list_first(&self->lru_head, struct xpoll_entry, lru_link);
+    __detach_from_po(ent, self);
+    mutex_unlock(&self->lock);
 
-    /* Release the xpoll_t's ref hold by xpoll_entry. remember that this
-     * is an cycle ref
-     * xpoll_put(po);
-     */
     return ent;
 }
 

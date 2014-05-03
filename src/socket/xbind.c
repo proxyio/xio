@@ -30,26 +30,26 @@
 #include "xsock_struct.h"
 
 int xsocket(int pf, int type) {
-    struct xsock *xsk = xsock_alloc();
+    struct xsock *self = xsock_alloc();
 
-    if (!xsk) {
+    if (!self) {
 	errno = EMFILE;
 	return -1;
     }
-    if (!(xsk->l4proto = l4proto_lookup(pf, type))) {
+    if (!(self->l4proto = l4proto_lookup(pf, type))) {
 	errno = EPROTO;
 	return -1;
     }
-    xsk->pf = pf;
-    xsk->type = type;
-    return xsk->fd;
+    self->pf = pf;
+    self->type = type;
+    return self->fd;
 }
 
 int xbind(int fd, const char *addr) {
     int rc;
-    struct xsock *xsk = xget(fd);
+    struct xsock *self = xget(fd);
 
-    if (xsk->l4proto)
-	rc = xsk->l4proto->bind(fd, addr);
+    if (self->l4proto)
+	rc = self->l4proto->bind(fd, addr);
     return rc;
 }

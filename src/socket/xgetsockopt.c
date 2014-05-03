@@ -29,80 +29,80 @@
 #include "xgb.h"
 
 
-typedef int (*sock_getopt) (struct xsock *xsk, void *val, int *vallen);
+typedef int (*sock_getopt) (struct xsock *self, void *val, int *vallen);
 
-static int get_noblock(struct xsock *xsk, void *val, int *vallen) {
-    mutex_lock(&xsk->lock);
-    *(int *)val = xsk->fasync ? true : false;
-    mutex_unlock(&xsk->lock);
+static int get_noblock(struct xsock *self, void *val, int *vallen) {
+    mutex_lock(&self->lock);
+    *(int *)val = self->fasync ? true : false;
+    mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_sndwin(struct xsock *xsk, void *val, int *vallen) {
-    mutex_lock(&xsk->lock);
-    *(int *)val = xsk->snd_wnd;
-    mutex_unlock(&xsk->lock);
+static int get_sndwin(struct xsock *self, void *val, int *vallen) {
+    mutex_lock(&self->lock);
+    *(int *)val = self->snd_wnd;
+    mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_rcvwin(struct xsock *xsk, void *val, int *vallen) {
-    mutex_lock(&xsk->lock);
-    *(int *)val = xsk->rcv_wnd;
-    mutex_unlock(&xsk->lock);
+static int get_rcvwin(struct xsock *self, void *val, int *vallen) {
+    mutex_lock(&self->lock);
+    *(int *)val = self->rcv_wnd;
+    mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_sndbuf(struct xsock *xsk, void *val, int *vallen) {
-    mutex_lock(&xsk->lock);
-    *(int *)val = xsk->snd;
-    mutex_unlock(&xsk->lock);
+static int get_sndbuf(struct xsock *self, void *val, int *vallen) {
+    mutex_lock(&self->lock);
+    *(int *)val = self->snd;
+    mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_rcvbuf(struct xsock *xsk, void *val, int *vallen) {
-    mutex_lock(&xsk->lock);
-    *(int *)val = xsk->rcv;
-    mutex_unlock(&xsk->lock);
+static int get_rcvbuf(struct xsock *self, void *val, int *vallen) {
+    mutex_lock(&self->lock);
+    *(int *)val = self->rcv;
+    mutex_unlock(&self->lock);
     return 0;
 }
 
 
-static int get_linger(struct xsock *xsk, void *val, int *vallen) {
+static int get_linger(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_sndtimeo(struct xsock *xsk, void *val, int *vallen) {
+static int get_sndtimeo(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_rcvtimeo(struct xsock *xsk, void *val, int *vallen) {
+static int get_rcvtimeo(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_reconnect(struct xsock *xsk, void *val, int *vallen) {
+static int get_reconnect(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_reconn_ivl(struct xsock *xsk, void *val, int *vallen) {
+static int get_reconn_ivl(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_reconn_ivlmax(struct xsock *xsk, void *val, int *vallen) {
+static int get_reconn_ivlmax(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_socktype(struct xsock *xsk, void *val, int *vallen) {
-    *(int *)val = xsk->type;
+static int get_socktype(struct xsock *self, void *val, int *vallen) {
+    *(int *)val = self->type;
     return 0;
 }
 
-static int get_sockproto(struct xsock *xsk, void *val, int *vallen) {
-    *(int *)val = xsk->pf;
+static int get_sockproto(struct xsock *self, void *val, int *vallen) {
+    *(int *)val = self->pf;
     return 0;
 }
 
-static int get_tracedebug(struct xsock *xsk, void *val, int *vallen) {
-    *(int *)val = (int)xsk->ftracedebug;
+static int get_tracedebug(struct xsock *self, void *val, int *vallen) {
+    *(int *)val = (int)self->ftracedebug;
     return 0;
 }
 
@@ -126,9 +126,9 @@ const sock_getopt getopt_vfptr[] = {
 
 int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
-    struct xsock *xsk = xget(fd);
+    struct xsock *self = xget(fd);
 
-    if ((level != XL_SOCKET && !xsk->l4proto->setsockopt) ||
+    if ((level != XL_SOCKET && !self->l4proto->setsockopt) ||
 	((level == XL_SOCKET && !getopt_vfptr[opt]) ||
 	 (opt >= NELEM(getopt_vfptr, sock_getopt)))) {
 	errno = EINVAL;
@@ -136,10 +136,10 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     }
     switch (level) {
     case XL_SOCKET:
-	getopt_vfptr[opt](xsk, val, vallen);
+	getopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	rc = xsk->l4proto->getsockopt(fd, level, opt, val, vallen);
+	rc = self->l4proto->getsockopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

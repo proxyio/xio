@@ -52,79 +52,79 @@ struct xsock *xget(int fd) {
 }
 
 static void xshutdown_task_f(struct xtask *ts) {
-    struct xsock *xsk = cont_of(ts, struct xsock, shutdown);
+    struct xsock *self = cont_of(ts, struct xsock, shutdown);
 
-    DEBUG_OFF("xsock %d shutdown protocol %s", xsk->fd, xprotocol_str[xsk->pf]);
-    xsk->l4proto->close(xsk->fd);
+    DEBUG_OFF("xsock %d shutdown protocol %s", self->fd, xprotocol_str[self->pf]);
+    self->l4proto->close(self->fd);
 }
 
 static void xsock_init(int fd) {
-    struct xsock *xsk = xget(fd);
+    struct xsock *self = xget(fd);
 
-    mutex_init(&xsk->lock);
-    condition_init(&xsk->cond);
-    xsk->type = 0;
-    xsk->pf = 0;
-    ZERO(xsk->addr);
-    ZERO(xsk->peer);
-    xsk->fasync = false;
-    xsk->fok = true;
-    xsk->fclosed = false;
+    mutex_init(&self->lock);
+    condition_init(&self->cond);
+    self->type = 0;
+    self->pf = 0;
+    ZERO(self->addr);
+    ZERO(self->peer);
+    self->fasync = false;
+    self->fok = true;
+    self->fclosed = false;
 
-    xsk->owner = -1;
-    INIT_LIST_HEAD(&xsk->sub_socks);
-    INIT_LIST_HEAD(&xsk->sib_link);
+    self->owner = -1;
+    INIT_LIST_HEAD(&self->sub_socks);
+    INIT_LIST_HEAD(&self->sib_link);
     
-    xsk->fd = fd;
-    xsk->cpu_no = xcpu_choosed(fd);
-    xsk->rcv_waiters = 0;
-    xsk->snd_waiters = 0;
-    xsk->rcv = 0;
-    xsk->snd = 0;
-    xsk->rcv_wnd = DEF_RCVBUF;
-    xsk->snd_wnd = DEF_SNDBUF;
-    INIT_LIST_HEAD(&xsk->rcv_head);
-    INIT_LIST_HEAD(&xsk->snd_head);
-    INIT_LIST_HEAD(&xsk->xpoll_head);
-    xsk->shutdown.f = xshutdown_task_f;
-    INIT_LIST_HEAD(&xsk->shutdown.link);
-    condition_init(&xsk->acceptq.cond);
-    xsk->acceptq.waiters = 0;
-    INIT_LIST_HEAD(&xsk->acceptq.head);
-    INIT_LIST_HEAD(&xsk->acceptq.link);
+    self->fd = fd;
+    self->cpu_no = xcpu_choosed(fd);
+    self->rcv_waiters = 0;
+    self->snd_waiters = 0;
+    self->rcv = 0;
+    self->snd = 0;
+    self->rcv_wnd = DEF_RCVBUF;
+    self->snd_wnd = DEF_SNDBUF;
+    INIT_LIST_HEAD(&self->rcv_head);
+    INIT_LIST_HEAD(&self->snd_head);
+    INIT_LIST_HEAD(&self->xpoll_head);
+    self->shutdown.f = xshutdown_task_f;
+    INIT_LIST_HEAD(&self->shutdown.link);
+    condition_init(&self->acceptq.cond);
+    self->acceptq.waiters = 0;
+    INIT_LIST_HEAD(&self->acceptq.head);
+    INIT_LIST_HEAD(&self->acceptq.link);
 }
 
 static void xsock_exit(int fd) {
-    struct xsock *xsk = xget(fd);
+    struct xsock *self = xget(fd);
     struct list_head head = {};
     struct xmsg *pos, *nx;
 
-    mutex_destroy(&xsk->lock);
-    condition_destroy(&xsk->cond);
-    xsk->type = -1;
-    xsk->pf = -1;
-    ZERO(xsk->addr);
-    ZERO(xsk->peer);
-    xsk->fasync = 0;
-    xsk->fok = 0;
-    xsk->fclosed = 0;
+    mutex_destroy(&self->lock);
+    condition_destroy(&self->cond);
+    self->type = -1;
+    self->pf = -1;
+    ZERO(self->addr);
+    ZERO(self->peer);
+    self->fasync = 0;
+    self->fok = 0;
+    self->fclosed = 0;
 
-    xsk->owner = -1;
-    BUG_ON(!list_empty(&xsk->sub_socks));
-    BUG_ON(attached(&xsk->sib_link));
+    self->owner = -1;
+    BUG_ON(!list_empty(&self->sub_socks));
+    BUG_ON(attached(&self->sib_link));
     
-    xsk->fd = -1;
-    xsk->cpu_no = -1;
-    xsk->rcv_waiters = -1;
-    xsk->snd_waiters = -1;
-    xsk->rcv = -1;
-    xsk->snd = -1;
-    xsk->rcv_wnd = -1;
-    xsk->snd_wnd = -1;
+    self->fd = -1;
+    self->cpu_no = -1;
+    self->rcv_waiters = -1;
+    self->snd_waiters = -1;
+    self->rcv = -1;
+    self->snd = -1;
+    self->rcv_wnd = -1;
+    self->snd_wnd = -1;
 
     INIT_LIST_HEAD(&head);
-    list_splice(&xsk->rcv_head, &head);
-    list_splice(&xsk->snd_head, &head);
+    list_splice(&self->rcv_head, &head);
+    list_splice(&self->snd_head, &head);
     xmsg_walk_safe(pos, nx, &head) {
 	xfreemsg(pos->vec.chunk);
     }
@@ -133,9 +133,9 @@ static void xsock_exit(int fd) {
      * at the same time. and attach_to_xsock() happen after xclose().
      * this is a user's bug.
      */
-    BUG_ON(!list_empty(&xsk->xpoll_head));
-    xsk->acceptq.waiters = -1;
-    condition_destroy(&xsk->acceptq.cond);
+    BUG_ON(!list_empty(&self->xpoll_head));
+    self->acceptq.waiters = -1;
+    condition_destroy(&self->acceptq.cond);
 
     /* TODO: destroy acceptq's connection */
 }
@@ -143,13 +143,13 @@ static void xsock_exit(int fd) {
 
 struct xsock *xsock_alloc() {
     int fd = fd_alloc();
-    struct xsock *xsk = xget(fd);
+    struct xsock *self = xget(fd);
     xsock_init(fd);
-    return xsk;
+    return self;
 }
 
-void xsock_free(struct xsock *xsk) {
-    int fd = xsk->fd;
+void xsock_free(struct xsock *self) {
+    int fd = self->fd;
     xsock_exit(fd);
     fd_free(fd);
 }

@@ -21,21 +21,7 @@
 */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <sync/waitgroup.h>
-#include <runner/taskpool.h>
-#include <transport/sockaddr.h>
-#include "xgb.h"
+#include <xio/socket.h>
+#include <xio/poll.h>
+#include "ep_struct.h"
 
-int xconnect(const char *peer) {
-    int pf = sockaddr_pf(peer);
-    int fd = xsocket(pf, XCONNECTOR);
-    char sockaddr[TP_SOCKADDRLEN] = {};
-
-    if (fd < 0 || sockaddr_addr(peer, sockaddr, sizeof(sockaddr)) != 0 ||
-	xbind(fd, sockaddr) != 0)
-	return -1;
-    return fd;
-}

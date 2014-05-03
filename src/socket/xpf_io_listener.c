@@ -34,24 +34,24 @@ extern struct io default_xops;
  ***************************************************************************/
 
 static void request_socks_full(int fd) {
-    struct xsock *xsk = xget(fd);    
-    struct xcpu *cpu = xcpuget(xsk->cpu_no);
+    struct xsock *self = xget(fd);    
+    struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
-    if ((xsk->io.et.events & EPOLLIN)) {
-	xsk->io.et.events &= ~EPOLLIN;
-	BUG_ON(eloop_mod(&cpu->el, &xsk->io.et) != 0);
+    if ((self->io.et.events & EPOLLIN)) {
+	self->io.et.events &= ~EPOLLIN;
+	BUG_ON(eloop_mod(&cpu->el, &self->io.et) != 0);
     }
 }
 
 static void request_socks_nonfull(int fd) {
-    struct xsock *xsk = xget(fd);    
-    struct xcpu *cpu = xcpuget(xsk->cpu_no);
+    struct xsock *self = xget(fd);    
+    struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
-    if (!(xsk->io.et.events & EPOLLIN)) {
-	xsk->io.et.events |= EPOLLIN;
-	BUG_ON(eloop_mod(&cpu->el, &xsk->io.et) != 0);
+    if (!(self->io.et.events & EPOLLIN)) {
+	self->io.et.events |= EPOLLIN;
+	BUG_ON(eloop_mod(&cpu->el, &self->io.et) != 0);
     }
 }
 
@@ -59,49 +59,49 @@ static int xio_listener_handler(eloop_t *el, ev_t *et);
 
 static int xio_listener_bind(int fd, const char *sock) {
     int s, on = 1;
-    struct xsock *xsk = xget(fd);
-    struct xcpu *cpu = xcpuget(xsk->cpu_no);
-    struct transport *tp = transport_lookup(xsk->pf);
+    struct xsock *self = xget(fd);
+    struct xcpu *cpu = xcpuget(self->cpu_no);
+    struct transport *tp = transport_lookup(self->pf);
 
     BUG_ON(!tp);
     if ((s = tp->bind(sock)) < 0)
 	return -1;
 
-    ZERO(xsk->io);
-    strncpy(xsk->addr, sock, TP_SOCKADDRLEN);
+    ZERO(self->io);
+    strncpy(self->addr, sock, TP_SOCKADDRLEN);
 
     tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
-    xsk->io.sys_fd = s;
-    xsk->io.tp = tp;
-    xsk->io.et.events = EPOLLIN|EPOLLERR;
-    xsk->io.et.fd = s;
-    xsk->io.et.f = xio_listener_handler;
-    xsk->io.et.data = xsk;
+    self->io.sys_fd = s;
+    self->io.tp = tp;
+    self->io.et.events = EPOLLIN|EPOLLERR;
+    self->io.et.fd = s;
+    self->io.et.f = xio_listener_handler;
+    self->io.et.data = self;
 
-    BUG_ON(eloop_add(&cpu->el, &xsk->io.et) != 0);
+    BUG_ON(eloop_add(&cpu->el, &self->io.et) != 0);
     return 0;
 }
 
 static void xio_listener_close(int fd) {
-    struct xsock *xsk = xget(fd);
-    struct xcpu *cpu = xcpuget(xsk->cpu_no);
-    struct transport *tp = xsk->io.tp;
+    struct xsock *self = xget(fd);
+    struct xcpu *cpu = xcpuget(self->cpu_no);
+    struct transport *tp = self->io.tp;
 
     BUG_ON(!tp);
 
     /* Detach xsock low-level file descriptor from poller */
-    BUG_ON(eloop_del(&cpu->el, &xsk->io.et) != 0);
-    tp->close(xsk->io.sys_fd);
+    BUG_ON(eloop_del(&cpu->el, &self->io.et) != 0);
+    tp->close(self->io.sys_fd);
 
-    xsk->io.sys_fd = -1;
-    xsk->io.et.events = -1;
-    xsk->io.et.fd = -1;
-    xsk->io.et.f = 0;
-    xsk->io.et.data = 0;
-    xsk->io.tp = 0;
+    self->io.sys_fd = -1;
+    self->io.et.events = -1;
+    self->io.et.fd = -1;
+    self->io.et.f = 0;
+    self->io.et.data = 0;
+    self->io.tp = 0;
 
     /* Destroy the xsock base and free xsockid. */
-    xsock_free(xsk);
+    xsock_free(self);
 }
 
 static void request_socks_notify(int fd, u32 events) {
@@ -122,32 +122,32 @@ static void xio_listener_notify(int fd, int type, uint32_t events) {
 }
 
 extern int xio_connector_handler(eloop_t *el, ev_t *et);
-extern void xio_connector_init(struct xsock *xsk,
+extern void xio_connector_init(struct xsock *self,
 			       struct transport *tp, int s);
 
 static int xio_listener_handler(eloop_t *el, ev_t *et) {
     int s;
-    struct xsock *xsk = cont_of(et, struct xsock, io.et);
-    struct transport *tp = xsk->io.tp;
-    struct xsock *req_xsk;
+    struct xsock *self = cont_of(et, struct xsock, io.et);
+    struct transport *tp = self->io.tp;
+    struct xsock *new;
 
     if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
-	xsk->fok = false;
+	self->fok = false;
 	errno = EPIPE;
 	return -1;
     } 
-    if ((s = tp->accept(xsk->io.sys_fd)) < 0)
+    if ((s = tp->accept(self->io.sys_fd)) < 0)
 	return -1;
-    if (!(req_xsk = xsock_alloc())) {
+    if (!(new = xsock_alloc())) {
 	errno = EMFILE;
 	return -1;
     }
     DEBUG_OFF("xsock accept new connection %d", s);
-    req_xsk->type = XCONNECTOR;
-    req_xsk->pf = xsk->pf;
-    req_xsk->l4proto = l4proto_lookup(req_xsk->pf, req_xsk->type);
-    xio_connector_init(req_xsk, tp, s);
-    acceptq_push(xsk, req_xsk);
+    new->type = XCONNECTOR;
+    new->pf = self->pf;
+    new->l4proto = l4proto_lookup(new->pf, new->type);
+    xio_connector_init(new, tp, s);
+    acceptq_push(self, new);
     return 0;
 }
 

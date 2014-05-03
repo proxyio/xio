@@ -155,12 +155,12 @@ struct xsock *xsock_alloc();
 void recvq_push(struct xsock *cn, struct xmsg *msg);
 struct xmsg *sendq_pop(struct xsock *cn);
 
-int acceptq_push(struct xsock *xsk, struct xsock *req_xsk);
-struct xsock *acceptq_pop(struct xsock *xsk);
+int acceptq_push(struct xsock *self, struct xsock *req_self);
+struct xsock *acceptq_pop(struct xsock *self);
 
-int xpoll_check_events(struct xsock *xsk, int events);
-void __xpoll_notify(struct xsock *xsk);
-void xpoll_notify(struct xsock *xsk);
+int xpoll_check_events(struct xsock *self, int events);
+void __xpoll_notify(struct xsock *self);
+void xpoll_notify(struct xsock *self);
 
 
 #endif

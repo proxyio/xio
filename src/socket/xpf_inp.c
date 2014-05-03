@@ -27,12 +27,12 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-static int xinp_put(struct xsock *xsk) {
+static int xinp_put(struct xsock *self) {
     int old;
-    mutex_lock(&xsk->lock);
-    old = xsk->proc.ref--;
-    xsk->fok = false;
-    mutex_unlock(&xsk->lock);
+    mutex_lock(&self->lock);
+    old = self->proc.ref--;
+    self->fok = false;
+    mutex_unlock(&self->lock);
     return old;
 }
 
@@ -46,11 +46,11 @@ extern struct xsock *find_listener(const char *addr);
 static int snd_head_push(int fd) {
     int rc = 0, can = false;
     struct xmsg *msg;
-    struct xsock *xsk = xget(fd);
-    struct xsock *peer = xsk->proc.xsock_peer;
+    struct xsock *self = xget(fd);
+    struct xsock *peer = self->proc.xsock_peer;
 
     // Unlock myself first because i hold the lock
-    mutex_unlock(&xsk->lock);
+    mutex_unlock(&self->lock);
 
     // TODO: maybe the peer xsock can't recv anymore after the check.
     mutex_lock(&peer->lock);
@@ -59,10 +59,10 @@ static int snd_head_push(int fd) {
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-    if ((msg = sendq_pop(xsk)))
+    if ((msg = sendq_pop(self)))
 	recvq_push(peer, msg);
 
-    mutex_lock(&xsk->lock);
+    mutex_lock(&self->lock);
     return rc;
 }
 
@@ -72,10 +72,10 @@ static int snd_head_push(int fd) {
 
 static int rcv_head_pop(int fd) {
     int rc = 0;
-    struct xsock *xsk = xget(fd);
+    struct xsock *self = xget(fd);
 
-    if (xsk->snd_waiters)
-	condition_signal(&xsk->cond);
+    if (self->snd_waiters)
+	condition_signal(&self->cond);
     return rc;
 }
 
@@ -86,50 +86,50 @@ static int rcv_head_pop(int fd) {
  ******************************************************************************/
 
 static int xinp_connector_bind(int fd, const char *sock) {
-    struct xsock *xsk = xget(fd);
-    struct xsock *req_xsk = xsock_alloc();
+    struct xsock *self = xget(fd);
+    struct xsock *new = xsock_alloc();
     struct xsock *listener = find_listener(sock);
 
     if (!listener) {
 	errno = ENOENT;	
 	return -1;
     }
-    if (!req_xsk) {
+    if (!new) {
 	errno = EMFILE;
 	return -1;
     }
 
-    ZERO(xsk->proc);
-    ZERO(req_xsk->proc);
+    ZERO(self->proc);
+    ZERO(new->proc);
 
-    req_xsk->pf = xsk->pf;
-    req_xsk->type = xsk->type;
-    req_xsk->l4proto = xsk->l4proto;
-    strncpy(xsk->peer, sock, TP_SOCKADDRLEN);
-    strncpy(req_xsk->addr, sock, TP_SOCKADDRLEN);
+    new->pf = self->pf;
+    new->type = self->type;
+    new->l4proto = self->l4proto;
+    strncpy(self->peer, sock, TP_SOCKADDRLEN);
+    strncpy(new->addr, sock, TP_SOCKADDRLEN);
 
-    req_xsk->proc.ref = xsk->proc.ref = 2;
-    xsk->proc.xsock_peer = req_xsk;
-    req_xsk->proc.xsock_peer = xsk;
+    new->proc.ref = self->proc.ref = 2;
+    self->proc.xsock_peer = new;
+    new->proc.xsock_peer = self;
 
-    if (acceptq_push(listener, req_xsk) < 0) {
+    if (acceptq_push(listener, new) < 0) {
 	errno = ECONNREFUSED;
-	xsock_free(req_xsk);
+	xsock_free(new);
 	return -1;
     }
     return 0;
 }
 
 static void xinp_connector_close(int fd) {
-    struct xsock *xsk = xget(fd);    
-    struct xsock *peer = xsk->proc.xsock_peer;
+    struct xsock *self = xget(fd);    
+    struct xsock *peer = self->proc.xsock_peer;
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
     if (xinp_put(peer) == 1) {
 	xsock_free(peer);
     }
-    if (xinp_put(xsk) == 1) {
-	xsock_free(xsk);
+    if (xinp_put(self) == 1) {
+	xsock_free(self);
     }
 }
 

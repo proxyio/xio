@@ -28,20 +28,20 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-int xsock_check_events(struct xsock *xsk, int events) {
+int xsock_check_events(struct xsock *self, int events) {
     int happened = 0;
 
     if (events & XPOLLIN) {
-	if (xsk->type == XCONNECTOR)
-	    happened |= !list_empty(&xsk->rcv_head) ? XPOLLIN : 0;
-	else if (xsk->type == XLISTENER)
-	    happened |= !list_empty(&xsk->acceptq.head) ? XPOLLIN : 0;
+	if (self->type == XCONNECTOR)
+	    happened |= !list_empty(&self->rcv_head) ? XPOLLIN : 0;
+	else if (self->type == XLISTENER)
+	    happened |= !list_empty(&self->acceptq.head) ? XPOLLIN : 0;
     }
     if (events & XPOLLOUT)
-	happened |= can_send(xsk) ? XPOLLOUT : 0;
+	happened |= can_send(self) ? XPOLLOUT : 0;
     if (events & XPOLLERR)
-	happened |= !xsk->fok ? XPOLLERR : 0;
-    DEBUG_OFF("%d happen %s", xsk->fd, xpoll_str[happened]);
+	happened |= !self->fok ? XPOLLERR : 0;
+    DEBUG_OFF("%d happen %s", self->fd, xpoll_str[happened]);
     return happened;
 }
 
@@ -51,18 +51,18 @@ int xsock_check_events(struct xsock *xsk, int events) {
  * here we only check the mq events and l4proto_spec saved the other
  * events gived by xsock_protocol
  */
-void __xpoll_notify(struct xsock *xsk) {
+void __xpoll_notify(struct xsock *self) {
     int happened = 0;
     struct xpoll_entry *ent, *nx;
 
-    happened |= xsock_check_events(xsk, XPOLLIN|XPOLLOUT|XPOLLERR);
-    xsock_walk_ent(ent, nx, &xsk->xpoll_head) {
+    happened |= xsock_check_events(self, XPOLLIN|XPOLLOUT|XPOLLERR);
+    xsock_walk_ent(ent, nx, &self->xpoll_head) {
 	ent->notify->event(ent->notify, ent, ent->event.care & happened);
     }
 }
 
-void xpoll_notify(struct xsock *xsk) {
-    mutex_lock(&xsk->lock);
-    __xpoll_notify(xsk);
-    mutex_unlock(&xsk->lock);
+void xpoll_notify(struct xsock *self) {
+    mutex_lock(&self->lock);
+    __xpoll_notify(self);
+    mutex_unlock(&self->lock);
 }

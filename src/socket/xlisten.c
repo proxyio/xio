@@ -29,54 +29,54 @@
 #include <transport/sockaddr.h>
 #include "xgb.h"
 
-int acceptq_push(struct xsock *xsk, struct xsock *req_xsk) {
+int acceptq_push(struct xsock *self, struct xsock *new) {
     int rc = 0;
 
-    while (xsk->owner >= 0)
-	xsk = xget(xsk->owner);
+    while (self->owner >= 0)
+	self = xget(self->owner);
 
-    mutex_lock(&xsk->lock);
-    if (list_empty(&xsk->acceptq.head) && xsk->acceptq.waiters > 0) {
-	condition_broadcast(&xsk->acceptq.cond);
+    mutex_lock(&self->lock);
+    if (list_empty(&self->acceptq.head) && self->acceptq.waiters > 0) {
+	condition_broadcast(&self->acceptq.cond);
     }
-    list_add_tail(&req_xsk->acceptq.link, &xsk->acceptq.head);
-    __xpoll_notify(xsk);
-    mutex_unlock(&xsk->lock);
+    list_add_tail(&new->acceptq.link, &self->acceptq.head);
+    __xpoll_notify(self);
+    mutex_unlock(&self->lock);
     return rc;
 }
 
-struct xsock *acceptq_pop(struct xsock *xsk) {
-    struct xsock *req_xsk = 0;
+struct xsock *acceptq_pop(struct xsock *self) {
+    struct xsock *new = 0;
 
-    mutex_lock(&xsk->lock);
-    while (list_empty(&xsk->acceptq.head) && !xsk->fasync) {
-	xsk->acceptq.waiters++;
-	condition_wait(&xsk->acceptq.cond, &xsk->lock);
-	xsk->acceptq.waiters--;
+    mutex_lock(&self->lock);
+    while (list_empty(&self->acceptq.head) && !self->fasync) {
+	self->acceptq.waiters++;
+	condition_wait(&self->acceptq.cond, &self->lock);
+	self->acceptq.waiters--;
     }
-    if (!list_empty(&xsk->acceptq.head)) {
-	req_xsk = list_first(&xsk->acceptq.head, struct xsock, acceptq.link);
-	list_del_init(&req_xsk->acceptq.link);
+    if (!list_empty(&self->acceptq.head)) {
+	new = list_first(&self->acceptq.head, struct xsock, acceptq.link);
+	list_del_init(&new->acceptq.link);
     }
-    __xpoll_notify(xsk);
-    mutex_unlock(&xsk->lock);
-    return req_xsk;
+    __xpoll_notify(self);
+    mutex_unlock(&self->lock);
+    return new;
 }
 
 int xaccept(int fd) {
-    struct xsock *xsk = xget(fd);
-    struct xsock *new_xsk = 0;
+    struct xsock *self = xget(fd);
+    struct xsock *new_self = 0;
 
-    if (!xsk->fok) {
+    if (!self->fok) {
 	errno = EPIPE;
 	return -1;
     }
-    if (xsk->type != XLISTENER) {
+    if (self->type != XLISTENER) {
 	errno = EPROTO;
 	return -1;
     }
-    if ((new_xsk = acceptq_pop(xsk)))
-	return new_xsk->fd;
+    if ((new_self = acceptq_pop(self)))
+	return new_self->fd;
     errno = EAGAIN;
     return -1;
 }
@@ -100,9 +100,9 @@ int _xlisten(int pf, const char *addr) {
 
 int xlisten(const char *addr) {
     int pf = sockaddr_pf(addr);
-    char xsk_addr[TP_SOCKADDRLEN] = {};
+    char sockaddr[TP_SOCKADDRLEN] = {};
 
-    if (sockaddr_addr(addr, xsk_addr, sizeof(xsk_addr)) != 0)
+    if (sockaddr_addr(addr, sockaddr, sizeof(sockaddr)) != 0)
 	return -1;
-    return _xlisten(pf, xsk_addr);
+    return _xlisten(pf, sockaddr);
 }
