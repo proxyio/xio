@@ -71,7 +71,7 @@ static void xsock_init(int xd) {
     sx->fok = true;
     sx->fclosed = false;
 
-    sx->parent = -1;
+    sx->owner = -1;
     INIT_LIST_HEAD(&sx->sub_socks);
     INIT_LIST_HEAD(&sx->sib_link);
     
@@ -109,7 +109,7 @@ static void xsock_exit(int xd) {
     sx->fok = 0;
     sx->fclosed = 0;
 
-    sx->parent = -1;
+    sx->owner = -1;
     BUG_ON(!list_empty(&sx->sub_socks));
     BUG_ON(attached(&sx->sib_link));
     

@@ -35,7 +35,7 @@ static void xmultiple_close(int xd) {
     struct xsock *sx = xget(xd);
 
     xsock_walk_sub_socks(sub_sx, nx, &sx->sub_socks) {
-	sub_sx->parent = -1;
+	sub_sx->owner = -1;
 	list_del_init(&sub_sx->sib_link);
 	xclose(sub_sx->xd);
     }
@@ -54,7 +54,7 @@ static int xmul_listener_bind(int xd, const char *sock) {
 	if ((sub_xd = _xlisten(l4proto->pf, sock)) < 0)
 	    goto BAD;
 	sub_sx = xget(sub_xd);
-	sub_sx->parent = xd;
+	sub_sx->owner = xd;
 	list_add_tail(&sub_sx->sib_link, &sx->sub_socks);
     }
     if (!list_empty(&sx->sub_socks))

@@ -81,7 +81,7 @@ struct xsock {
     u64 fclosed:1;
     u64 ftracedebug:1;
 
-    int parent;
+    int owner;
     struct list_head sub_socks;
     struct list_head sib_link;
 

@@ -32,8 +32,8 @@
 int acceptq_push(struct xsock *sx, struct xsock *req_sx) {
     int rc = 0;
 
-    while (sx->parent >= 0)
-	sx = xget(sx->parent);
+    while (sx->owner >= 0)
+	sx = xget(sx->owner);
 
     mutex_lock(&sx->lock);
     if (list_empty(&sx->acceptq.head) && sx->acceptq.waiters > 0) {
