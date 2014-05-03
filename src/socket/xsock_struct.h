@@ -95,7 +95,7 @@ struct xsock {
     u64 snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    struct xsock_protocol *l4proto;
+    struct xsock_protocol *proto;
     struct list_head xpoll_head;
     struct xtask shutdown;
 

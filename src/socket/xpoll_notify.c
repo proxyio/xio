@@ -48,7 +48,7 @@ int xsock_check_events(struct xsock *self, int events) {
 /* Generic xpoll_t notify function. always called by xsock_protocol
  * when has any message come or can send any massage into network
  * or has a new connection wait for established.
- * here we only check the mq events and l4proto_spec saved the other
+ * here we only check the mq events and proto_spec saved the other
  * events gived by xsock_protocol
  */
 void __xpoll_notify(struct xsock *self) {

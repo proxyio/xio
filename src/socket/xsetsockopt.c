@@ -103,7 +103,7 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
     int rc;
     struct xsock *self = xget(fd);
 
-    if ((level != XL_SOCKET && !self->l4proto->setsockopt) ||
+    if ((level != XL_SOCKET && !self->proto->setsockopt) ||
 	((level == XL_SOCKET && !setopt_vfptr[opt]) ||
 	 (opt >= NELEM(setopt_vfptr, sock_setopt)))) {
 	errno = EINVAL;
@@ -114,7 +114,7 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
 	setopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	rc = self->l4proto->setsockopt(fd, level, opt, val, vallen);
+	rc = self->proto->setsockopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

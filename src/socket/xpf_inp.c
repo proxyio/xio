@@ -104,7 +104,7 @@ static int xinp_connector_bind(int fd, const char *sock) {
 
     new->pf = self->pf;
     new->type = self->type;
-    new->l4proto = self->l4proto;
+    new->proto = self->proto;
     strncpy(self->peer, sock, TP_SOCKADDRLEN);
     strncpy(new->addr, sock, TP_SOCKADDRLEN);
 

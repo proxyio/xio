@@ -145,7 +145,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     DEBUG_OFF("xsock accept new connection %d", s);
     new->type = XCONNECTOR;
     new->pf = self->pf;
-    new->l4proto = l4proto_lookup(new->pf, new->type);
+    new->proto = proto_lookup(new->pf, new->type);
     xio_connector_init(new, tp, s);
     acceptq_push(self, new);
     return 0;

@@ -93,12 +93,12 @@ static inline int kcpud(void *args) {
 }
 
 
-struct xsock_protocol *l4proto_lookup(int pf, int type) {
-    struct xsock_protocol *l4proto, *nx;
+struct xsock_protocol *proto_lookup(int pf, int type) {
+    struct xsock_protocol *proto, *nx;
 
-    xsock_protocol_walk_safe(l4proto, nx, &xgb.xsock_protocol_head) {
-	if (pf == l4proto->pf && l4proto->type == type)
-	    return l4proto;
+    xsock_protocol_walk_safe(proto, nx, &xgb.xsock_protocol_head) {
+	if (pf == proto->pf && proto->type == type)
+	    return proto;
     }
     return 0;
 }
