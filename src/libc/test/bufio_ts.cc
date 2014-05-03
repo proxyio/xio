@@ -87,7 +87,6 @@ static void bufio_fetch_flush_test() {
     BUG_ON(tio.ridx > 4 * PAGE_SIZE);
     BUG_ON(nbytes != tio.ridx);
     BUG_ON(nbytes > 4 * PAGE_SIZE);
-    return;
     bio_copy(&b, buf2, nbytes);
     EXPECT_TRUE(memcmp(buf1, buf2, nbytes) == 0);
     bio_copy(&b, buf2, nbytes);
