@@ -29,7 +29,7 @@ extern int __xep_send(struct endpoint *ep, char *ubuf, struct endsock **go);
 
 static void producer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
-    struct xproxy *py = ep->owner;
+    struct proxy *py = ep->owner;
     int rc;
     char *ubuf = 0;
     struct endsock *dst = 0;
@@ -38,17 +38,17 @@ static void producer_event_hndl(struct endsock *sk) {
     if ((rc = recv_vfptr[ep->type] (sk, &ubuf)) == 0) {
 	rc = __xep_send(py->frontend, ubuf, &dst);
 	DEBUG_OFF("ep(%d)'s dispatcher %d route resp: %10.10s backto %d", ep2eid(ep),
-		  sk->sockfd, ubuf, dst ? dst->sockfd : -1);
+		  sk->fd, ubuf, dst ? dst->fd : -1);
 	if (rc < 0)
 	    xep_freeubuf(ubuf);
     } else if (errno != EAGAIN)
 	DEBUG_OFF("ep(%d)'s dispatcher %d bad status of errno %d", ep2eid(ep),
-		  sk->sockfd, errno);
+		  sk->fd, errno);
 }
 
 static void comsumer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
-    struct xproxy *py = ep->owner;
+    struct proxy *py = ep->owner;
     int rc;
     char *ubuf, *ubuf2;
     struct endsock *dst = 0;
@@ -67,12 +67,12 @@ static void comsumer_event_hndl(struct endsock *sk) {
 	    BUG_ON(dst->owner != py->backend);
 
 	DEBUG_OFF("ep(%d)'s receiver %d send req: %10.10s goto %d", ep2eid(ep),
-		  sk->sockfd, ubuf2, dst ? dst->sockfd : -1);
+		  sk->fd, ubuf2, dst ? dst->fd : -1);
 	if (rc < 0)
 	    xep_freeubuf(ubuf2);
     } else if (errno != EAGAIN)
 	DEBUG_OFF("ep(%d)'s receiver %d bad status of errno %d", ep2eid(ep),
-		  sk->sockfd, errno);
+		  sk->fd, errno);
 }
 
 
@@ -99,15 +99,15 @@ static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk);
 
 static void listener_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
-    struct xproxy *py = ep->owner;
+    struct proxy *py = ep->owner;
     struct endsock *newsk;
 
-    DEBUG_OFF("ep(%d)'s listener %d events %s", ep2eid(ep), sk->sockfd,
+    DEBUG_OFF("ep(%d)'s listener %d events %s", ep2eid(ep), sk->fd,
 	      xpoll_str[sk->ent.happened]);
     while ((newsk = endpoint_accept(ep2eid(ep), sk))) {
 	BUG_ON(sk_enable_poll(py->po, newsk));
-	DEBUG_OFF("ep(%d)'s listener %d accept %d", ep2eid(ep), sk->sockfd,
-		  newsk->sockfd);
+	DEBUG_OFF("ep(%d)'s listener %d accept %d", ep2eid(ep), sk->fd,
+		  newsk->fd);
     }
 }
 
@@ -117,7 +117,7 @@ static void event_hndl(struct xpoll_event *ent) {
     struct endsock *sk = (struct endsock *)ent->self;
 
     sk->ent.happened = ent->happened;
-    xgetopt(sk->sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
+    xgetopt(sk->fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
     switch (socktype) {
     case XCONNECTOR:
 	connector_event_hndl(sk);
@@ -132,7 +132,7 @@ static void event_hndl(struct xpoll_event *ent) {
 
 static int py_routine(void *args) {
     int i, rc;
-    struct xproxy *py = (struct xproxy *)args;
+    struct proxy *py = (struct proxy *)args;
     struct xpoll_event ent[100];
 
     while (!py->exiting) {
@@ -155,7 +155,7 @@ static int py_routine(void *args) {
 
 static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk) {
     int rc;
-    sk->ent.xd = sk->sockfd;
+    sk->ent.xd = sk->fd;
     sk->ent.self = sk;
     sk->ent.care = XPOLLIN|XPOLLERR;
     BUG_ON((rc = xpoll_ctl(po, XPOLL_ADD, &sk->ent)) != 0);
@@ -164,21 +164,21 @@ static int sk_enable_poll(struct xpoll_t *po, struct endsock *sk) {
 
 
 static void enable_sockets_poll(struct endpoint *ep) {
-    struct xproxy *py = ep->owner;
+    struct proxy *py = ep->owner;
     struct endsock *sk, *next_sk;
 
-    xendpoint_walk_sock(sk, next_sk, &ep->bsocks) {
+    xendpoint_walk_sock(sk, next_sk, &ep->listeners) {
 	BUG_ON(sk_enable_poll(py->po, sk));
-	DEBUG_OFF("ep(%d)'s xpoll add listener %d", ep2eid(ep), sk->sockfd);
+	DEBUG_OFF("ep(%d)'s xpoll add listener %d", ep2eid(ep), sk->fd);
     }
-    xendpoint_walk_sock(sk, next_sk, &ep->csocks) {
+    xendpoint_walk_sock(sk, next_sk, &ep->connectors) {
 	BUG_ON(sk_enable_poll(py->po, sk));
-	DEBUG_OFF("ep(%d)'s xpoll add connector %d", ep2eid(ep), sk->sockfd);
+	DEBUG_OFF("ep(%d)'s xpoll add connector %d", ep2eid(ep), sk->fd);
     }
 }
 
-struct xproxy *xproxy_open(int front_eid, int backend_eid) {
-    struct xproxy *py = (struct xproxy *)mem_zalloc(sizeof(*py));
+struct proxy *proxy_open(int front_eid, int backend_eid) {
+    struct proxy *py = (struct proxy *)mem_zalloc(sizeof(*py));
 
     if (!py)
 	return 0;
@@ -198,7 +198,7 @@ struct xproxy *xproxy_open(int front_eid, int backend_eid) {
     return py;
 }
 
-void xproxy_close(struct xproxy *py) {
+void proxy_close(struct proxy *py) {
     if (!py) {
 	errno = EINVAL;
 	return;

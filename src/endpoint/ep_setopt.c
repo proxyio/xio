@@ -28,8 +28,8 @@
 typedef int (*ep_setopt) (struct endpoint *ep, void *val, int len);
 
 
-static int open_proxy(struct endpoint *ep, int backend_eid) {
-    struct xproxy *py;
+static int start_proxy(struct endpoint *ep, int backend_eid) {
+    struct proxy *py;
     struct endpoint *backend;
 
     if (backend_eid < 0) {
@@ -41,15 +41,15 @@ static int open_proxy(struct endpoint *ep, int backend_eid) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!(py = xproxy_open(ep2eid(ep), backend_eid)))
+    if (!(py = proxy_open(ep2eid(ep), backend_eid)))
 	return -1;
     return 0;
 }
 
-static int shutdown_proxy(struct endpoint *ep) {
-    struct xproxy *py = ep->owner;
+static int stop_proxy(struct endpoint *ep) {
+    struct proxy *py = ep->owner;
 
-    xproxy_close(py);
+    proxy_close(py);
     return 0;
 }
 
@@ -57,7 +57,7 @@ static int set_dispatchto(struct endpoint *ep, void *val, int len) {
     int rc;
     int backend_eid = *(int *)val;
 
-    rc = ep->owner ? shutdown_proxy(ep) : open_proxy(ep, backend_eid);
+    rc = ep->owner ? stop_proxy(ep) : start_proxy(ep, backend_eid);
     return rc;
 }
 

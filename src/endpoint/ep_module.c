@@ -75,15 +75,15 @@ struct endsock *endpoint_accept(int eid, struct endsock *sk) {
     int sockfd;
     struct endsock *newsk = 0;
 
-    if ((sockfd = xaccept(sk->sockfd)) >= 0) {
+    if ((sockfd = xaccept(sk->fd)) >= 0) {
 	if (!(newsk = __xep_add(eid, sockfd))) {
 	    xclose(sockfd);
 	}
-	DEBUG_OFF("listener %d accept new endsock %d", sk->sockfd,
+	DEBUG_OFF("listener %d accept new endsock %d", sk->fd,
 		  newsk ? sockfd : -1);
     } else if (errno != EAGAIN) {
 	list_move_tail(&sk->link, &ep->bad_socks);
-	DEBUG_OFF("listener %d bad status", sk->sockfd);
+	DEBUG_OFF("listener %d bad status", sk->fd);
     }
     return newsk;
 }
@@ -93,10 +93,10 @@ void accept_endsocks(int eid) {
     int tmp;
     struct endsock *sk, *next_sk;
 
-    xendpoint_walk_sock(sk, next_sk, &ep->bsocks) {
-	if (xselect(XPOLLIN|XPOLLERR, 1, &sk->sockfd, 1, &tmp) == 0)
+    xendpoint_walk_sock(sk, next_sk, &ep->listeners) {
+	if (xselect(XPOLLIN|XPOLLERR, 1, &sk->fd, 1, &tmp) == 0)
 	    continue;
-	BUG_ON(sk->sockfd != tmp);
+	BUG_ON(sk->fd != tmp);
 	while (endpoint_accept(eid, sk)) {
 	    /* ... */
 	}

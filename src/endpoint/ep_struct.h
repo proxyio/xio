@@ -40,37 +40,31 @@ struct endpoint;
 struct endsock {
     struct endpoint *owner;
     struct xpoll_event ent;
-    int sockfd;
+    int fd;
     uuid_t uuid;
     struct list_head link;
 };
 
+struct endsock *endsock_new();
+void endsock_free(struct endsock *sk);
+
 struct endpoint {
-    struct xproxy *owner;
+    struct proxy *owner;
     int type;
-    struct list_head bsocks;
-    struct list_head csocks;
+    struct list_head listeners;
+    struct list_head connectors;
     struct list_head bad_socks;
 };
 
 #define xendpoint_walk_sock(ep, nep, head)				\
     list_for_each_entry_safe(ep, nep, head, struct endsock, link)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern void eid_strace(int eid);
-
-#ifdef __cplusplus
-}
-#endif
-
 struct endsock *__xep_add(int eid, int sockfd);
 struct endsock *endpoint_accept(int eid, struct endsock *sk);
 
-struct xproxy {
+struct proxy {
     int exiting;
+    int ref;
     spin_t lock;
     struct xpoll_t *po;
     struct endpoint *frontend;
@@ -78,8 +72,8 @@ struct xproxy {
     thread_t py_worker;
 };
 
-struct xproxy *xproxy_open(int frontend_eid, int backend_eid);
-void xproxy_close(struct xproxy *py);
+struct proxy *proxy_open(int frontend_eid, int backend_eid);
+void proxy_close(struct proxy *py);
 
 struct xep_global {
     int exiting;

@@ -20,48 +20,56 @@
   IN THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <os/alloc.h>
-#include <xio/socket.h>
+
 #include "ep_struct.h"
 
-struct endsock *__xep_add(int eid, int sockfd) {
-    struct endpoint *ep = eid_get(eid);
-    int fnb = 1;
-    int socktype = XCONNECTOR;
-    int optlen = sizeof(socktype);
-    struct endsock *sk = endsock_new();
-
-    if (!(socktype & (XCONNECTOR|XLISTENER))) {
-	errno = EBADF;
-	return 0;
-    }
-    if (!sk)
-	return 0;
-    sk->owner = ep;
-    sk->fd = sockfd;
-    xsetopt(sockfd, XL_SOCKET, XNOBLOCK, &fnb, sizeof(fnb));
-    xgetopt(sockfd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
-    switch (socktype) {
-    case XCONNECTOR:
-	list_add_tail(&sk->link, &ep->connectors);
-	if (ep->type == XEP_PRODUCER)
-	    uuid_generate(sk->uuid);
-	break;
-    case XLISTENER:
-	list_add_tail(&sk->link, &ep->listeners);
-	break;
-    default:
-	BUG_ON(1);
-    }
-    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
+struct endsock *endsock_new() {
+    struct endsock *sk = (struct endsock *)mem_zalloc(sizeof(*sk));
     return sk;
 }
 
-int xep_add(int eid, int sockfd) {
-    struct endsock *s = __xep_add(eid, sockfd);
-    DEBUG_OFF("endpoint %d add %d socket", eid, sockfd);
-    if (!s)
-	return -1;
-    return 0;
+void endsock_free(struct endsock *sk) {
+    mem_free(sk, sizeof(*sk));
+}
+
+struct endpoint *endpoint_new() {
+    struct endpoint *ep = (struct endpoint *)mem_zalloc(sizeof(*ep));
+
+    if (ep) {
+	ep->owner = 0;
+	ep->type = 0;
+	INIT_LIST_HEAD(&ep->listeners);
+	INIT_LIST_HEAD(&ep->connectors);
+	INIT_LIST_HEAD(&ep->bad_socks);
+    }
+    return ep;
+}
+
+
+void endpoint_free(struct endpoint *ep) {
+    mem_free(ep, sizeof(*ep));
+}
+
+
+struct proxy *proxy_new() {
+    struct proxy *py = (struct proxy *)mem_zalloc(sizeof(*py));
+
+    if (py) {
+	if (!(py->po = xpoll_create())) {
+	    mem_free(py, sizeof(*py));
+	    return 0;
+	}
+	py->exiting = 0;
+	py->ref = 0;
+	spin_init(&py->lock);
+	py->frontend = 0;
+	py->backend = 0;
+    }
+    return py;
+}
+
+void proxy_free(struct proxy *py) {
+    spin_destroy(&py->lock);
+    xpoll_close(py->po);
+    mem_free(py, sizeof(*py));
 }

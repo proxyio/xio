@@ -29,11 +29,11 @@ static struct endsock *get_active_sk(struct endpoint *ep) {
     struct endsock *es, *next_es;
     int tmp;
 
-    xendpoint_walk_sock(es, next_es, &ep->csocks) {
-	if (xselect(XPOLLIN|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
+    xendpoint_walk_sock(es, next_es, &ep->connectors) {
+	if (xselect(XPOLLIN|XPOLLERR, 1, &es->fd, 1, &tmp) == 0)
 	    continue;
-	BUG_ON(es->sockfd != tmp);
-	list_move_tail(&es->link, &ep->csocks);
+	BUG_ON(es->fd != tmp);
+	list_move_tail(&es->link, &ep->connectors);
 	return es;
     }
     errno = EAGAIN;
@@ -45,13 +45,13 @@ static int generic_recv(struct endsock *sk, char **ubuf) {
     int rc;
     struct ephdr *eh;
 
-    if ((rc = xrecv(sk->sockfd, (char **)&eh)) < 0) {
+    if ((rc = xrecv(sk->fd, (char **)&eh)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
-	    DEBUG_OFF("socket %d epipe", sk->sockfd);
+	    DEBUG_OFF("socket %d epipe", sk->fd);
 	    list_move_tail(&sk->link, &ep->bad_socks);
 	}
-	if (list_empty(&ep->bsocks) && list_empty(&ep->csocks))
+	if (list_empty(&ep->listeners) && list_empty(&ep->connectors))
 	    errno = EBADF;
     } else {
 	*ubuf = ephdr2ubuf(eh);

@@ -37,8 +37,8 @@ int xep_open(int type) {
     }
     ep = eid_get(eid);
     ep->type = type;
-    INIT_LIST_HEAD(&ep->bsocks);
-    INIT_LIST_HEAD(&ep->csocks);
+    INIT_LIST_HEAD(&ep->listeners);
+    INIT_LIST_HEAD(&ep->connectors);
     INIT_LIST_HEAD(&ep->bad_socks);
     return eid;
 }

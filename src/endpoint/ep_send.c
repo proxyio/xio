@@ -30,11 +30,11 @@ static struct endsock *rrbin_forward(struct endpoint *ep, char *ubuf) {
     struct endsock *es, *next_es;
     int tmp;
     
-    xendpoint_walk_sock(es, next_es, &ep->csocks) {
-	if (xselect(XPOLLOUT|XPOLLERR, 1, &es->sockfd, 1, &tmp) == 0)
+    xendpoint_walk_sock(es, next_es, &ep->connectors) {
+	if (xselect(XPOLLOUT|XPOLLERR, 1, &es->fd, 1, &tmp) == 0)
 	    continue;
-	BUG_ON(es->sockfd != tmp);
-	list_move_tail(&es->link, &ep->csocks);
+	BUG_ON(es->fd != tmp);
+	list_move_tail(&es->link, &ep->connectors);
 	return es;
     }
     errno = ENXIO;
@@ -46,7 +46,7 @@ static struct endsock *route_backward(struct endpoint *ep, char *ubuf) {
     struct ephdr *eh = ubuf2ephdr(ubuf);
     struct epr *rt = rt_cur(eh);
 
-    xendpoint_walk_sock(es, next_es, &ep->csocks) {
+    xendpoint_walk_sock(es, next_es, &ep->connectors) {
 	if (memcmp(es->uuid, rt->uuid, sizeof(es->uuid)) != 0)
 	    continue;
 	return es;
@@ -69,12 +69,12 @@ static int producer_send(struct endsock *sk, char *ubuf) {
 
     eh->go = 1;
     uuid_copy(rt->uuid, sk->uuid);
-    if ((rc = xsend(sk->sockfd, (char *)eh)) < 0) {
+    if ((rc = xsend(sk->fd, (char *)eh)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
 	    list_move_tail(&sk->link, &ep->bad_socks);
 	}
-	if (list_empty(&ep->bsocks) && list_empty(&ep->csocks))
+	if (list_empty(&ep->listeners) && list_empty(&ep->connectors))
 	    errno = EBADF;
     }
     return rc;
@@ -88,15 +88,15 @@ static int comsumer_send(struct endsock *sk, char *ubuf) {
     eh->go = 0;
     if (!eh->end_ttl)
 	eh->end_ttl = eh->ttl;
-    if ((rc = xsend(sk->sockfd, (char *)eh)) < 0) {
+    if ((rc = xsend(sk->fd, (char *)eh)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
 	    list_move_tail(&sk->link, &ep->bad_socks);
 	}
-	if (list_empty(&ep->bsocks) && list_empty(&ep->csocks))
+	if (list_empty(&ep->listeners) && list_empty(&ep->connectors))
 	    errno = EBADF;
     }
-    DEBUG_OFF("%d send with rc %d", sk->sockfd, rc);
+    DEBUG_OFF("%d send with rc %d", sk->fd, rc);
     return rc;
 }
 

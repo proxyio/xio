@@ -28,7 +28,7 @@
 typedef int (*ep_getopt) (struct endpoint *ep, void *val, int *len);
 
 static int get_dispatchto(struct endpoint *ep, void *val, int *len) {
-    struct xproxy *py = ep->owner;
+    struct proxy *py = ep->owner;
     
     if (!py || ep->type != XEP_COMSUMER) {
 	errno = EINVAL;

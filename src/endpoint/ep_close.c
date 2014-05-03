@@ -31,11 +31,11 @@ void xep_close(int eid) {
 
     eid_free(eid);
     INIT_LIST_HEAD(&closed_head);
-    list_splice(&ep->bsocks, &closed_head);
-    list_splice(&ep->csocks, &closed_head);
+    list_splice(&ep->listeners, &closed_head);
+    list_splice(&ep->connectors, &closed_head);
     list_splice(&ep->bad_socks, &closed_head);
     xendpoint_walk_sock(es, next_es, &closed_head) {
-	xclose(es->sockfd);
+	xclose(es->fd);
 	list_del_init(&es->link);
 	mem_free(es, sizeof(*es));
     }

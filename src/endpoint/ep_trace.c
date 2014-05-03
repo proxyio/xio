@@ -32,11 +32,11 @@ static void trace_listener(struct endpoint *ep) {
     fprintf(stdout, "%10s %10s %10s\n", "listener", "rcvbuf", "sndbuf");
     fprintf(stdout, "----------------------------------------------\n");
 
-    xendpoint_walk_sock(es, next_es, &ep->bsocks) {
+    xendpoint_walk_sock(es, next_es, &ep->listeners) {
 	sndbuf = rcvbuf = 0;
-	xgetsockopt(es->sockfd, XL_SOCKET, XSNDBUF, &sndbuf, &optlen);
-	xgetsockopt(es->sockfd, XL_SOCKET, XRCVBUF, &rcvbuf, &optlen);
-	fprintf(stdout, "%10d %10d %10d\n", es->sockfd, sndbuf, rcvbuf);
+	xgetopt(es->fd, XL_SOCKET, XSNDBUF, &sndbuf, &optlen);
+	xgetopt(es->fd, XL_SOCKET, XRCVBUF, &rcvbuf, &optlen);
+	fprintf(stdout, "%10d %10d %10d\n", es->fd, sndbuf, rcvbuf);
     }
 }
 
@@ -49,11 +49,11 @@ static void trace_connector(struct endpoint *ep) {
     fprintf(stdout, "%10s %10s %10s\n", "connector", "rcvbuf", "sndbuf");
     fprintf(stdout, "-----------------------------------------------\n");
 
-    xendpoint_walk_sock(es, next_es, &ep->csocks) {
+    xendpoint_walk_sock(es, next_es, &ep->connectors) {
 	sndbuf = rcvbuf = 0;
-	xgetsockopt(es->sockfd, XL_SOCKET, XSNDBUF, &sndbuf, &optlen);
-	xgetsockopt(es->sockfd, XL_SOCKET, XRCVBUF, &rcvbuf, &optlen);
-	fprintf(stdout, "%10d %10d %10d\n", es->sockfd, sndbuf, rcvbuf);
+	xgetopt(es->fd, XL_SOCKET, XSNDBUF, &sndbuf, &optlen);
+	xgetopt(es->fd, XL_SOCKET, XRCVBUF, &rcvbuf, &optlen);
+	fprintf(stdout, "%10d %10d %10d\n", es->fd, sndbuf, rcvbuf);
     }
 }
 
@@ -63,7 +63,7 @@ static void trace_bad_sockets(struct endpoint *ep) {
     fprintf(stdout, "---------------------------------------------\n");
 
     xendpoint_walk_sock(es, next_es, &ep->bad_socks) {
-	fprintf(stdout, "%10d", es->sockfd);
+	fprintf(stdout, "%10d", es->fd);
     }
 }
 
