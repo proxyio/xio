@@ -8,16 +8,16 @@ extern "C" {
 #endif
 
 char *xallocmsg(int size);
-void xfreemsg(char *xbuf);
-int xmsglen(char *xbuf);
+void xfreemsg(char *xmsg);
+int xmsglen(char *xmsg);
 
 #define XSOCKADDRLEN 128
 int xlisten(const char *addr);
 int xaccept(int xd);
 int xconnect(const char *peer);
 
-int xrecv(int xd, char **xbuf);
-int xsend(int xd, char *xbuf);
+int xrecv(int xd, char **xmsg);
+int xsend(int xd, char *xmsg);
 void xclose(int xd);
 
 #define XLISTENER   1
@@ -42,8 +42,8 @@ void xclose(int xd);
 #define XSOCKPROTO         12
 #define XTRACEDEBUG        13
     
-int xsetsockopt(int xd, int level, int optname, void *optval, int optlen);
-int xgetsockopt(int xd, int level, int optname, void *optval, int *optlen);
+int xsetopt(int xd, int level, int opt, void *optval, int optlen);
+int xgetopt(int xd, int level, int opt, void *optval, int *optlen);
 
 
 #ifdef __cplusplus

@@ -29,7 +29,7 @@
 #include "xgb.h"
 
 
-typedef int (*xsockopf) (struct xsock *sx, void *val, int *vallen);
+typedef int (*sockgetopt) (struct xsock *sx, void *val, int *vallen);
 
 static int get_noblock(struct xsock *sx, void *val, int *vallen) {
     mutex_lock(&sx->lock);
@@ -106,7 +106,7 @@ static int get_tracedebug(struct xsock *sx, void *val, int *vallen) {
     return 0;
 }
 
-const xsockopf getopt_vf[] = {
+const sockgetopt getopt_vfptr[] = {
     get_noblock,
     get_sndwin,
     get_rcvwin,
@@ -124,19 +124,19 @@ const xsockopf getopt_vf[] = {
 };
 
 
-int xgetsockopt(int xd, int level, int opt, void *val, int *vallen) {
+int xgetopt(int xd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
     struct xsock *sx = xget(xd);
 
     if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
-	((level == XL_SOCKET && !getopt_vf[opt]) ||
-	 (opt >= NELEM(getopt_vf, xsockopf)))) {
+	((level == XL_SOCKET && !getopt_vfptr[opt]) ||
+	 (opt >= NELEM(getopt_vfptr, sockgetopt)))) {
 	errno = EINVAL;
 	return -1;
     }
     switch (level) {
     case XL_SOCKET:
-	getopt_vf[opt](sx, val, vallen);
+	getopt_vfptr[opt](sx, val, vallen);
 	break;
     default:
 	rc = sx->l4proto->getsockopt(xd, level, opt, val, vallen);

@@ -28,7 +28,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-typedef int (*xsockopf) (struct xsock *sx, void *val, int vallen);
+typedef int (*socksetopt) (struct xsock *sx, void *val, int vallen);
 
 static int set_noblock(struct xsock *sx, void *val, int vallen) {
     mutex_lock(&sx->lock);
@@ -82,7 +82,7 @@ static int set_tracedebug(struct xsock *sx, void *val, int vallen) {
     return 0;
 }
 
-const xsockopf setopt_vf[] = {
+const socksetopt setopt_vfptr[] = {
     set_noblock,
     set_sndwin,
     set_rcvwin,
@@ -99,19 +99,19 @@ const xsockopf setopt_vf[] = {
     set_tracedebug,
 };
 
-int xsetsockopt(int xd, int level, int opt, void *val, int vallen) {
+int xsetopt(int xd, int level, int opt, void *val, int vallen) {
     int rc;
     struct xsock *sx = xget(xd);
 
     if ((level != XL_SOCKET && !sx->l4proto->setsockopt) ||
-	((level == XL_SOCKET && !setopt_vf[opt]) ||
-	 (opt >= NELEM(setopt_vf, xsockopf)))) {
+	((level == XL_SOCKET && !setopt_vfptr[opt]) ||
+	 (opt >= NELEM(setopt_vfptr, socksetopt)))) {
 	errno = EINVAL;
 	return -1;
     }
     switch (level) {
     case XL_SOCKET:
-	setopt_vf[opt](sx, val, vallen);
+	setopt_vfptr[opt](sx, val, vallen);
 	break;
     default:
 	rc = sx->l4proto->setsockopt(xd, level, opt, val, vallen);
