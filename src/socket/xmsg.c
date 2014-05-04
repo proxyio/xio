@@ -120,7 +120,7 @@ static int msgctl_setoob(char *xbuf, void *optval) {
 	return -1;
     }
     msg->vec.oob++;
-    new->vec.oob_length += xiov_len(new->vec.chunk);
+    msg->vec.oob_length += xiov_len(new->vec.chunk);
     new->vec.oob = ent->pos;
     new->vec.oob_length = 0;
     list_add_tail(&new->item, &msg->oob);
