@@ -42,12 +42,12 @@ static void xmultiple_close(int fd) {
 }
 
 static int xmul_listener_bind(int fd, const char *sock) {
-    struct xsock_protocol *proto, *nx;
+    struct pfspec *proto, *nx;
     struct xsock *self = xget(fd), *sub;
     int sub_fd;
     int pf = self->pf;
 
-    xsock_protocol_walk_safe(proto, nx, &xgb.xsock_protocol_head) {
+    pfspec_walk_safe(proto, nx, &xgb.pfspec_head) {
 	if (!(pf & proto->pf) || proto->type != XLISTENER)
 	    continue;
 	pf &= ~proto->pf;
@@ -71,7 +71,7 @@ static void xmul_listener_close(int fd) {
     DEBUG_OFF("xsock %d multiple_close", fd);
 }
 
-struct xsock_protocol xmul_listener_protocol[4] = {
+struct pfspec xmul_listener_spec[4] = {
     {
 	.type = XLISTENER,
 	.pf = XPF_TCP|XPF_IPC,

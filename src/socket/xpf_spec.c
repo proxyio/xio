@@ -20,23 +20,17 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_PROTOCOL_
-#define _HPIO_PROTOCOL_
+#include <stdio.h>
+#include "xpf_spec.h"
 
-#include <base.h>
-#include <ds/list.h>
-
-struct xsock_protocol {
-    int type;
-    int pf;
-    int (*bind) (int fd, const char *sock);
-    void (*close) (int fd);
-    void (*notify) (int fd, int type, u32 events);
-    int (*setsockopt) (int fd, int level, int opt, void *val, int vallen);
-    int (*getsockopt) (int fd, int level, int opt, void *val, int *vallen);
-    struct list_head link;
+const char *pf_str[] = {
+    "",
+    "PF_NET",
+    "PF_IPC",
+    "PF_NET|PF_IPC",
+    "PF_INPROC",
+    "PF_NET|PF_INPROC",
+    "PF_IPC|PF_INPROC",
+    "PF_NET|PF_IPC|PF_INPROC",
 };
 
-extern const char *xprotocol_str[];
-
-#endif

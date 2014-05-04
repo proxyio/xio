@@ -37,7 +37,7 @@
 #include <xio/socket.h>
 #include "xmsg.h"
 #include "xcpu.h"
-#include "xprotocol.h"
+#include "xpf_spec.h"
 
 #define null NULL
 
@@ -55,7 +55,7 @@
 int xsocket(int pf, int type);
 int xbind(int fd, const char *addr);
 
-/* xsock_protocol notify types */
+/* pfspec notify types */
 #define RECV_Q           1
 #define SEND_Q           2
 #define SOCKS_REQ        3
@@ -95,7 +95,7 @@ struct xsock {
     u64 snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    struct xsock_protocol *proto;
+    struct pfspec *proto;
     struct list_head xpoll_head;
     struct xtask shutdown;
 

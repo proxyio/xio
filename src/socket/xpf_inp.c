@@ -82,7 +82,7 @@ static int rcv_head_pop(int fd) {
 
 
 /******************************************************************************
- *  xsock_inproc_protocol
+ *  xsock_inproc_spec
  ******************************************************************************/
 
 static int xinp_connector_bind(int fd, const char *sock) {
@@ -157,7 +157,7 @@ static void xinp_connector_notify(int fd, int type, u32 events) {
     }
 }
 
-struct xsock_protocol xinp_connector_protocol = {
+struct pfspec xinp_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_INPROC,
     .bind = xinp_connector_bind,

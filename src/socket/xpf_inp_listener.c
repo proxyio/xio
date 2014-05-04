@@ -66,7 +66,7 @@ static void remove_listener(struct ssmap_node *node) {
 }
 
 /******************************************************************************
- *  xsock_inproc_protocol
+ *  xsock_inproc_spec
  ******************************************************************************/
 
 static int xinp_listener_bind(int fd, const char *sock) {
@@ -97,7 +97,7 @@ static void xinp_listener_close(int fd) {
     xsock_free(self);
 }
 
-struct xsock_protocol xinp_listener_protocol = {
+struct pfspec xinp_listener_spec = {
     .type = XLISTENER,
     .pf = XPF_INPROC,
     .bind = xinp_listener_bind,

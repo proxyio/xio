@@ -67,15 +67,15 @@ struct xglobal {
     /* INPROC global listening address mapping */
     struct ssmap inproc_listeners;
 
-    /* xsock_protocol head */
-    struct list_head xsock_protocol_head;
+    /* pfspec head */
+    struct list_head pfspec_head;
 };
 
-#define xsock_protocol_walk_safe(pos, nx, head)			\
-    list_for_each_entry_safe(pos, nx, head,			\
-			     struct xsock_protocol, link)
+#define pfspec_walk_safe(pos, nx, head)			\
+    list_for_each_entry_safe(pos, nx, head,		\
+			     struct pfspec, link)
 
-struct xsock_protocol *proto_lookup(int pf, int type);
+struct pfspec *proto_lookup(int pf, int type);
 
 extern struct xglobal xgb;
 

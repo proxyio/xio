@@ -151,7 +151,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     return 0;
 }
 
-struct xsock_protocol xtcp_listener_protocol = {
+struct pfspec xtcp_listener_spec = {
     .type = XLISTENER,
     .pf = XPF_TCP,
     .bind = xio_listener_bind,
@@ -161,7 +161,7 @@ struct xsock_protocol xtcp_listener_protocol = {
     .setsockopt = 0,
 };
 
-struct xsock_protocol xipc_listener_protocol = {
+struct pfspec xipc_listener_spec = {
     .type = XLISTENER,
     .pf = XPF_IPC,
     .bind = xio_listener_bind,

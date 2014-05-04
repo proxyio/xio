@@ -54,7 +54,7 @@ struct xsock *xget(int fd) {
 static void xshutdown_task_f(struct xtask *ts) {
     struct xsock *self = cont_of(ts, struct xsock, shutdown);
 
-    DEBUG_OFF("xsock %d shutdown protocol %s", self->fd, xprotocol_str[self->pf]);
+    DEBUG_OFF("xsock %d shutdown protocol %s", self->fd, pf_str[self->pf]);
     self->proto->close(self->fd);
 }
 

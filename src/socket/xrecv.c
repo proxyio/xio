@@ -30,7 +30,7 @@
 
 struct xmsg *recvq_pop(struct xsock *self) {
     struct xmsg *msg = 0;
-    struct xsock_protocol *proto = self->proto;
+    struct pfspec *proto = self->proto;
     i64 msgsz;
     u32 events = 0;
 
@@ -64,7 +64,7 @@ struct xmsg *recvq_pop(struct xsock *self) {
 }
 
 void recvq_push(struct xsock *self, struct xmsg *msg) {
-    struct xsock_protocol *proto = self->proto;
+    struct pfspec *proto = self->proto;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
