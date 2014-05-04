@@ -51,7 +51,7 @@
 int xsocket(int pf, int type);
 int xbind(int fd, const char *addr);
 
-/* pfspec notify types */
+/* Sockspec_vfptr notify types */
 #define RECV_Q           1
 #define SEND_Q           2
 #define SOCKS_REQ        3
@@ -64,11 +64,15 @@ int xbind(int fd, const char *addr);
 #define XMQ_FULL         0x10
 #define XMQ_NONFULL      0x20
 
+struct sockbase;
+
 struct xsock {
     mutex_t lock;
     condition_t cond;
     int type;
     int pf;
+    struct sockspec *sockspec_vfptr;
+    struct sockbase *sockbase_vfptr;
 
     char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];
@@ -92,8 +96,7 @@ struct xsock {
     u64 snd_wnd;
     struct list_head rcv_head;
     struct list_head snd_head;
-    struct pfspec *proto;
-    struct list_head xpoll_head;
+    struct list_head poll_entries;
     struct xtask shutdown;
 
     struct {

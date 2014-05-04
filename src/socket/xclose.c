@@ -49,14 +49,14 @@ void xclose(int fd) {
     struct xsock *self = xget(fd);
     struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
-    struct list_head xpoll_head = {};
+    struct list_head poll_entries = {};
 
-    INIT_LIST_HEAD(&xpoll_head);
+    INIT_LIST_HEAD(&poll_entries);
     mutex_lock(&self->lock);
-    list_splice(&self->xpoll_head, &xpoll_head);
+    list_splice(&self->poll_entries, &poll_entries);
     mutex_unlock(&self->lock);
 
-    xsock_walk_ent(ent, nx, &xpoll_head) {
+    xsock_walk_ent(ent, nx, &poll_entries) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
 	xpoll_ctl(po, XPOLL_DEL, &ent->event);
 	__detach_from_xsock(ent);

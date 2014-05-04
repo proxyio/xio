@@ -54,8 +54,8 @@ struct xsock *xget(int fd) {
 static void xshutdown_task_f(struct xtask *ts) {
     struct xsock *self = cont_of(ts, struct xsock, shutdown);
 
-    DEBUG_OFF("xsock %d shutdown protocol %s", self->fd, pf_str[self->pf]);
-    self->proto->close(self->fd);
+    DEBUG_OFF("xsock %d shutdown %s", self->fd, pf_str[self->pf]);
+    self->sockspec_vfptr->close(self->fd);
 }
 
 static void xsock_init(int fd) {
@@ -86,7 +86,7 @@ static void xsock_init(int fd) {
     self->snd_wnd = DEF_SNDBUF;
     INIT_LIST_HEAD(&self->rcv_head);
     INIT_LIST_HEAD(&self->snd_head);
-    INIT_LIST_HEAD(&self->xpoll_head);
+    INIT_LIST_HEAD(&self->poll_entries);
     self->shutdown.f = xshutdown_task_f;
     INIT_LIST_HEAD(&self->shutdown.link);
     condition_init(&self->acceptq.cond);
@@ -134,7 +134,7 @@ static void xsock_exit(int fd) {
      * at the same time. and attach_to_xsock() happen after xclose().
      * this is a user's bug.
      */
-    BUG_ON(!list_empty(&self->xpoll_head));
+    BUG_ON(!list_empty(&self->poll_entries));
     self->acceptq.waiters = -1;
     condition_destroy(&self->acceptq.cond);
 

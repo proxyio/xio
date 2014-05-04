@@ -29,7 +29,7 @@
 #include "xgb.h"
 
 struct xmsg *sendq_pop(struct xsock *self) {
-    struct pfspec *proto = self->proto;
+    struct sockspec *sockspec_vfptr = self->sockspec_vfptr;
     struct xmsg *msg = 0;
     i64 msgsz;
     u32 events = 0;
@@ -54,8 +54,8 @@ struct xmsg *sendq_pop(struct xsock *self) {
 	    condition_broadcast(&self->cond);
     }
 
-    if (events && proto->notify)
-	proto->notify(self->fd, SEND_Q, events);
+    if (events && sockspec_vfptr->notify)
+	sockspec_vfptr->notify(self->fd, SEND_Q, events);
 
     __xpoll_notify(self);
     mutex_unlock(&self->lock);
@@ -64,7 +64,7 @@ struct xmsg *sendq_pop(struct xsock *self) {
 
 int sendq_push(struct xsock *self, struct xmsg *msg) {
     int rc = -1;
-    struct pfspec *proto = self->proto;
+    struct sockspec *sockspec_vfptr = self->sockspec_vfptr;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
@@ -86,8 +86,8 @@ int sendq_push(struct xsock *self, struct xmsg *msg) {
 	DEBUG_OFF("xsock %d", self->fd);
     }
 
-    if (events && proto->notify)
-	proto->notify(self->fd, SEND_Q, events);
+    if (events && sockspec_vfptr->notify)
+	sockspec_vfptr->notify(self->fd, SEND_Q, events);
 
     __xpoll_notify(self);
     mutex_unlock(&self->lock);

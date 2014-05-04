@@ -26,7 +26,7 @@
 #include <base.h>
 #include <ds/list.h>
 
-struct pfspec {
+struct sockspec {
     int type;
     int pf;
     int (*bind) (int fd, const char *sock);

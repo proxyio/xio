@@ -145,13 +145,13 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     DEBUG_OFF("xsock accept new connection %d", s);
     new->type = XCONNECTOR;
     new->pf = self->pf;
-    new->proto = proto_lookup(new->pf, new->type);
+    new->sockspec_vfptr = sockspec_lookup(new->pf, new->type);
     xio_connector_init(new, tp, s);
     acceptq_push(self, new);
     return 0;
 }
 
-struct pfspec xtcp_listener_spec = {
+struct sockspec xtcp_listener_spec = {
     .type = XLISTENER,
     .pf = XPF_TCP,
     .bind = xio_listener_bind,
@@ -161,7 +161,7 @@ struct pfspec xtcp_listener_spec = {
     .setsockopt = 0,
 };
 
-struct pfspec xipc_listener_spec = {
+struct sockspec xipc_listener_spec = {
     .type = XLISTENER,
     .pf = XPF_IPC,
     .bind = xio_listener_bind,

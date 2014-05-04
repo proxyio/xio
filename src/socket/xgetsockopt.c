@@ -88,7 +88,7 @@ static int get_socktype(struct xsock *self, void *val, int *vallen) {
     return 0;
 }
 
-static int get_sockproto(struct xsock *self, void *val, int *vallen) {
+static int get_sockpf(struct xsock *self, void *val, int *vallen) {
     *(int *)val = self->pf;
     return 0;
 }
@@ -109,7 +109,7 @@ const sock_getopt getopt_vfptr[] = {
     get_rcvtimeo,
     get_reconnect,
     get_socktype,
-    get_sockproto,
+    get_sockpf,
     get_tracedebug,
 };
 
@@ -118,7 +118,7 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
     struct xsock *self = xget(fd);
 
-    if ((level != XL_SOCKET && !self->proto->setsockopt) ||
+    if ((level != XL_SOCKET && !self->sockspec_vfptr->setsockopt) ||
 	((level == XL_SOCKET && !getopt_vfptr[opt]) ||
 	 (opt >= NELEM(getopt_vfptr, sock_getopt)))) {
 	errno = EINVAL;
@@ -129,7 +129,7 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
 	getopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	rc = self->proto->getsockopt(fd, level, opt, val, vallen);
+	rc = self->sockspec_vfptr->getsockopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

@@ -229,7 +229,7 @@ void attach_to_xsock(struct xpoll_entry *ent, int xd) {
 
     mutex_lock(&cn->lock);
     BUG_ON(attached(&ent->xlink));
-    list_add_tail(&ent->xlink, &cn->xpoll_head);
+    list_add_tail(&ent->xlink, &cn->poll_entries);
     mutex_unlock(&cn->lock);
 }
 

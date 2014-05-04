@@ -56,7 +56,7 @@ void __xpoll_notify(struct xsock *self) {
     struct xpoll_entry *ent, *nx;
 
     happened |= xsock_check_events(self, XPOLLIN|XPOLLOUT|XPOLLERR);
-    xsock_walk_ent(ent, nx, &self->xpoll_head) {
+    xsock_walk_ent(ent, nx, &self->poll_entries) {
 	ent->notify->event(ent->notify, ent, ent->event.care & happened);
     }
 }

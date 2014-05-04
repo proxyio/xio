@@ -93,30 +93,30 @@ static inline int kcpud(void *args) {
 }
 
 
-struct pfspec *proto_lookup(int pf, int type) {
-    struct pfspec *proto, *nx;
+struct sockspec *sockspec_lookup(int pf, int type) {
+    struct sockspec *sockspec_vfptr, *ss;
 
-    pfspec_walk_safe(proto, nx, &xgb.pfspec_head) {
-	if (pf == proto->pf && proto->type == type)
-	    return proto;
+    sockspec_walk_safe(sockspec_vfptr, ss, &xgb.sockspec_head) {
+	if (pf == sockspec_vfptr->pf && sockspec_vfptr->type == type)
+	    return sockspec_vfptr;
     }
     return 0;
 }
 
-extern struct pfspec xinp_listener_spec;
-extern struct pfspec xinp_connector_spec;
-extern struct pfspec xipc_listener_spec;
-extern struct pfspec xipc_connector_spec;
-extern struct pfspec xtcp_listener_spec;
-extern struct pfspec xtcp_connector_spec;
-extern struct pfspec xmul_listener_spec[3];
+extern struct sockspec xinp_listener_spec;
+extern struct sockspec xinp_connector_spec;
+extern struct sockspec xipc_listener_spec;
+extern struct sockspec xipc_connector_spec;
+extern struct sockspec xtcp_listener_spec;
+extern struct sockspec xtcp_connector_spec;
+extern struct sockspec xmul_listener_spec[3];
 
 void xsocket_module_init() {
     waitgroup_t wg;
     int fd;
     int cpu_no;
     int i;
-    struct list_head *protocol_head = &xgb.pfspec_head;
+    struct list_head *protocol_head = &xgb.sockspec_head;
 
     BUG_ON(TP_TCP != XPF_TCP);
     BUG_ON(TP_IPC != XPF_IPC);
@@ -143,7 +143,7 @@ void xsocket_module_init() {
     waitgroup_wait(&wg);
     waitgroup_destroy(&wg);
     
-    /* The priority of pfspec: inproc > ipc > tcp */
+    /* The priority of sockspec: inproc > ipc > tcp */
     INIT_LIST_HEAD(protocol_head);
     list_add_tail(&xinp_listener_spec.link, protocol_head);
     list_add_tail(&xinp_connector_spec.link, protocol_head);

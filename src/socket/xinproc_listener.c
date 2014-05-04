@@ -97,7 +97,7 @@ static void xinp_listener_close(int fd) {
     xsock_free(self);
 }
 
-struct pfspec xinp_listener_spec = {
+struct sockspec xinp_listener_spec = {
     .type = XLISTENER,
     .pf = XPF_INPROC,
     .bind = xinp_listener_bind,
