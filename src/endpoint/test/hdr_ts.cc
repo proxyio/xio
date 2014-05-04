@@ -7,7 +7,7 @@ extern "C" {
 #include <sync/spin.h>
 #include <runner/thread.h>
 #include <xio/socket.h>
-#include <xio/endpoint.h>
+#include <endpoint/ep.h>
 #include <endpoint/ep_hdr.h>
 }
 

@@ -30,7 +30,7 @@
 #include <runner/thread.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
-#include <xio/endpoint.h>
+#include "ep.h"
 #include "ep_hdr.h"
 
 #define XIO_MAX_ENDPOINTS 10240
