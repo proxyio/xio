@@ -33,8 +33,8 @@
 #include <sync/condition.h>
 #include <runner/taskpool.h>
 #include <transport/transport.h>
-#include <poll/xpoll_struct.h>
 #include <xio/socket.h>
+#include <poll/xpoll.h>
 #include "xmsg.h"
 #include "xcpu.h"
 #include "xpf_spec.h"

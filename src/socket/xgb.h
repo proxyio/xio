@@ -25,7 +25,7 @@
 
 #include <sync/mutex.h>
 #include <ds/list.h>
-#include "xsock_struct.h"
+#include "xsock.h"
 #include "xcpu.h"
 
 

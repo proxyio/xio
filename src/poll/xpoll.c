@@ -22,7 +22,7 @@
 
 #include <os/timesz.h>
 #include <base.h>
-#include "xpoll_struct.h"
+#include "xpoll.h"
 
 const char *xpoll_str[] = {
     "",
