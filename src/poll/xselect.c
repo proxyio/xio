@@ -22,7 +22,7 @@
 
 #include <os/timesz.h>
 #include <base.h>
-#include "xpoll.h"
+#include "xeventpoll.h"
 
 extern int xsock_check_events(struct xsock *self, int events);
 

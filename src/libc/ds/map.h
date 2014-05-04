@@ -30,6 +30,7 @@ typedef struct ssmap_node {
     struct rb_node  rb;
     int             keylen;
     char            *key;
+    void            *data;
 } ssmap_node_t;
 
 typedef struct ssmap {

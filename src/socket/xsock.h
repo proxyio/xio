@@ -34,7 +34,7 @@
 #include <runner/taskpool.h>
 #include <transport/transport.h>
 #include <xio/socket.h>
-#include <poll/xpoll.h>
+#include <poll/xeventpoll.h>
 #include "xmsg.h"
 #include "xcpu.h"
 #include "xsockspec.h"

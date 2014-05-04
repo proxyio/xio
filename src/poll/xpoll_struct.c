@@ -24,7 +24,7 @@
 #include <os/timesz.h>
 #include <base.h>
 #include <socket/xsock.h>
-#include <poll/xpoll.h>
+#include "xeventpoll.h"
 
 struct xpoll_entry *xent_new() {
     struct xpoll_entry *ent = (struct xpoll_entry *)mem_zalloc(sizeof(*ent));
