@@ -76,6 +76,7 @@ static void xsock_init(int fd) {
     INIT_LIST_HEAD(&self->sib_link);
     
     self->fd = fd;
+    self->ref = 0;
     self->cpu_no = xcpu_choosed(fd);
     self->rcv_waiters = 0;
     self->snd_waiters = 0;

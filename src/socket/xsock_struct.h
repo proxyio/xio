@@ -82,6 +82,7 @@ struct xsock {
     struct list_head sib_link;
 
     int fd;
+    int ref;
     int cpu_no;
     int rcv_waiters;
     int snd_waiters;
@@ -103,7 +104,7 @@ struct xsock {
     } acceptq;
 
     union {
-	/* Only for transport xsock */
+	/* Only for tcp/ipc socket */
 	struct {
 	    ev_t et;
 	    struct bio in;
@@ -113,19 +114,12 @@ struct xsock {
 	    struct transport *tp;
 	} io;
 
-	/* Reserved only for intern process xsock */
+	/* Reserved only for intern process socket*/
 	struct {
-	    /* Reference by self and the peer. in normal case
-	     * if ref == 2, connection work in normal state
-	     * if ref == 1, connection closed by peer.
-	     * if ref == 0, is should destroy because no other hold it.
-	     */
-	    int ref;
-
 	    /* For inproc-listener */
 	    struct ssmap_node rb_link;
 
-	    /* For inproc-connector and inproc-accepter (new connection) */
+	    /* For inproc-connector and inproc-accepter */
 	    struct xsock *xsock_peer;
 	} proc;
     };

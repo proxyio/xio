@@ -30,7 +30,7 @@
 static int xinp_put(struct xsock *self) {
     int old;
     mutex_lock(&self->lock);
-    old = self->proc.ref--;
+    old = self->ref--;
     self->fok = false;
     mutex_unlock(&self->lock);
     return old;
@@ -108,7 +108,7 @@ static int xinp_connector_bind(int fd, const char *sock) {
     strncpy(self->peer, sock, TP_SOCKADDRLEN);
     strncpy(new->addr, sock, TP_SOCKADDRLEN);
 
-    new->proc.ref = self->proc.ref = 2;
+    new->ref = self->ref = 2;
     self->proc.xsock_peer = new;
     new->proc.xsock_peer = self;
 
