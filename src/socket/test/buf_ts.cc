@@ -24,8 +24,8 @@ TEST(xmsg, outofband) {
     char oob3[12];
 
 
-    xbuf2 = xdupmsg(xbuf);
-    BUG_ON(xmsgctl(xbuf2, XMSG_OOBCNT, &oob_count));
+    BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
+    BUG_ON(xmsgctl(xbuf2, XMSG_OOBNUM, &oob_count));
     BUG_ON(oob_count != 0);
     xfreemsg(xbuf2);
     
@@ -51,8 +51,8 @@ TEST(xmsg, outofband) {
 
 
 
-    xbuf2 = xdupmsg(xbuf);
-    BUG_ON(xmsgctl(xbuf2, XMSG_OOBCNT, &oob_count));
+    BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
+    BUG_ON(xmsgctl(xbuf2, XMSG_OOBNUM, &oob_count));
     BUG_ON(oob_count != 3);
     
     ent.pos = 2;

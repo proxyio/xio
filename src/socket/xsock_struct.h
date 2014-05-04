@@ -41,10 +41,6 @@
 
 #define null NULL
 
-#define XPF_TCP       TP_TCP
-#define XPF_IPC       TP_IPC
-#define XPF_INPROC    TP_INPROC
-
 /* Multiple protocols */
 #define XPF_MULE      (XPF_TCP|XPF_IPC|XPF_INPROC)
 

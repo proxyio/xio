@@ -31,7 +31,7 @@ static void xclient(string pf) {
 	xbuf = xallocmsg(nbytes);
 	memcpy(xbuf, buf, nbytes);
 
-	oob = xdupmsg(xbuf);
+	xmsgctl(xbuf, XMSG_CLONE, &oob);
 	ent.pos = 0;
 	ent.outofband = oob;
 	BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent));
