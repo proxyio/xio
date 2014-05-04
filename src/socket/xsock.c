@@ -78,14 +78,17 @@ static void xsock_init(int fd) {
     self->fd = fd;
     self->ref = 0;
     self->cpu_no = xcpu_choosed(fd);
-    self->rcv_waiters = 0;
-    self->snd_waiters = 0;
-    self->rcv = 0;
-    self->snd = 0;
-    self->rcv_wnd = DEF_RCVBUF;
-    self->snd_wnd = DEF_SNDBUF;
-    INIT_LIST_HEAD(&self->rcv_head);
-    INIT_LIST_HEAD(&self->snd_head);
+
+    self->rcv.waiters = 0;
+    self->rcv.buf = 0;
+    self->rcv.wnd = DEF_RCVBUF;
+    INIT_LIST_HEAD(&self->rcv.head);
+
+    self->snd.waiters = 0;
+    self->snd.buf = 0;
+    self->snd.wnd = DEF_SNDBUF;
+    INIT_LIST_HEAD(&self->snd.head);
+
     INIT_LIST_HEAD(&self->poll_entries);
     self->shutdown.f = xshutdown_task_f;
     INIT_LIST_HEAD(&self->shutdown.link);
@@ -116,16 +119,19 @@ static void xsock_exit(int fd) {
     
     self->fd = -1;
     self->cpu_no = -1;
-    self->rcv_waiters = -1;
-    self->snd_waiters = -1;
-    self->rcv = -1;
-    self->snd = -1;
-    self->rcv_wnd = -1;
-    self->snd_wnd = -1;
 
     INIT_LIST_HEAD(&head);
-    list_splice(&self->rcv_head, &head);
-    list_splice(&self->snd_head, &head);
+
+    self->rcv.waiters = -1;
+    self->rcv.buf = -1;
+    self->rcv.wnd = -1;
+    list_splice(&self->rcv.head, &head);
+
+    self->snd.waiters = -1;
+    self->snd.buf = -1;
+    self->snd.wnd = -1;
+    list_splice(&self->snd.head, &head);
+
     xmsg_walk_safe(pos, nx, &head) {
 	xfreemsg(pos->vec.chunk);
     }

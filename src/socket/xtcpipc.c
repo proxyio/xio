@@ -88,7 +88,7 @@ static void snd_head_nonempty(int fd) {
 static void rcv_head_pop(int fd) {
     struct xsock *self = xget(fd);
 
-    if (self->snd_waiters)
+    if (self->snd.waiters)
 	condition_signal(&self->cond);
 }
 

@@ -40,28 +40,28 @@ static int get_noblock(struct xsock *self, void *val, int *vallen) {
 
 static int get_sndwin(struct xsock *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
-    *(int *)val = self->snd_wnd;
+    *(int *)val = self->snd.wnd;
     mutex_unlock(&self->lock);
     return 0;
 }
 
 static int get_rcvwin(struct xsock *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
-    *(int *)val = self->rcv_wnd;
+    *(int *)val = self->rcv.wnd;
     mutex_unlock(&self->lock);
     return 0;
 }
 
 static int get_sndbuf(struct xsock *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
-    *(int *)val = self->snd;
+    *(int *)val = self->snd.buf;
     mutex_unlock(&self->lock);
     return 0;
 }
 
 static int get_rcvbuf(struct xsock *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
-    *(int *)val = self->rcv;
+    *(int *)val = self->rcv.buf;
     mutex_unlock(&self->lock);
     return 0;
 }

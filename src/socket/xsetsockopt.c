@@ -39,14 +39,14 @@ static int set_noblock(struct xsock *self, void *val, int vallen) {
 
 static int set_sndwin(struct xsock *self, void *val, int vallen) {
     mutex_lock(&self->lock);
-    self->snd_wnd = (*(int *)val);
+    self->snd.wnd = (*(int *)val);
     mutex_unlock(&self->lock);
     return 0;
 }
 
 static int set_rcvwin(struct xsock *self, void *val, int vallen) {
     mutex_lock(&self->lock);
-    self->rcv_wnd = (*(int *)val);
+    self->rcv.wnd = (*(int *)val);
     mutex_unlock(&self->lock);
     return 0;
 }

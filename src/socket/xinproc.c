@@ -79,7 +79,7 @@ static int rcv_head_pop(int fd) {
     int rc = 0;
     struct xsock *self = xget(fd);
 
-    if (self->snd_waiters)
+    if (self->snd.waiters)
 	condition_signal(&self->cond);
     return rc;
 }

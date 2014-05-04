@@ -35,22 +35,22 @@ struct xmsg *recvq_pop(struct xsock *self) {
     u32 events = 0;
 
     mutex_lock(&self->lock);
-    while (list_empty(&self->rcv_head) && !self->fasync) {
-	self->rcv_waiters++;
+    while (list_empty(&self->rcv.head) && !self->fasync) {
+	self->rcv.waiters++;
 	condition_wait(&self->cond, &self->lock);
-	self->rcv_waiters--;
+	self->rcv.waiters--;
     }
-    if (!list_empty(&self->rcv_head)) {
+    if (!list_empty(&self->rcv.head)) {
 	DEBUG_OFF("%d", self->fd);
-	msg = list_first(&self->rcv_head, struct xmsg, item);
+	msg = list_first(&self->rcv.head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
-	self->rcv -= msgsz;
+	self->rcv.buf -= msgsz;
 	events |= XMQ_POP;
-	if (self->rcv_wnd - self->rcv <= msgsz)
+	if (self->rcv.wnd - self->rcv.buf <= msgsz)
 	    events |= XMQ_NONFULL;
-	if (list_empty(&self->rcv_head)) {
-	    BUG_ON(self->rcv);
+	if (list_empty(&self->rcv.head)) {
+	    BUG_ON(self->rcv.buf);
 	    events |= XMQ_EMPTY;
 	}
     }
@@ -69,17 +69,17 @@ void recvq_push(struct xsock *self, struct xmsg *msg) {
     i64 msgsz = xiov_len(msg->vec.chunk);
 
     mutex_lock(&self->lock);
-    if (list_empty(&self->rcv_head))
+    if (list_empty(&self->rcv.head))
 	events |= XMQ_NONEMPTY;
-    if (self->rcv_wnd - self->rcv <= msgsz)
+    if (self->rcv.wnd - self->rcv.buf <= msgsz)
 	events |= XMQ_FULL;
     events |= XMQ_PUSH;
-    self->rcv += msgsz;
-    list_add_tail(&msg->item, &self->rcv_head);    
+    self->rcv.buf += msgsz;
+    list_add_tail(&msg->item, &self->rcv.head);    
     DEBUG_OFF("%d", self->fd);
 
     /* Wakeup the blocking waiters. */
-    if (self->rcv_waiters > 0)
+    if (self->rcv.waiters > 0)
 	condition_broadcast(&self->cond);
 
     if (events && sockspec_vfptr->notify)

@@ -35,22 +35,22 @@ struct xmsg *sendq_pop(struct xsock *self) {
     u32 events = 0;
     
     mutex_lock(&self->lock);
-    if (!list_empty(&self->snd_head)) {
+    if (!list_empty(&self->snd.head)) {
 	DEBUG_OFF("xsock %d", self->fd);
-	msg = list_first(&self->snd_head, struct xmsg, item);
+	msg = list_first(&self->snd.head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
-	self->snd -= msgsz;
+	self->snd.buf -= msgsz;
 	events |= XMQ_POP;
-	if (self->snd_wnd - self->snd <= msgsz)
+	if (self->snd.wnd - self->snd.buf <= msgsz)
 	    events |= XMQ_NONFULL;
-	if (list_empty(&self->snd_head)) {
-	    BUG_ON(self->snd);
+	if (list_empty(&self->snd.head)) {
+	    BUG_ON(self->snd.buf);
 	    events |= XMQ_EMPTY;
 	}
 
 	/* Wakeup the blocking waiters */
-	if (self->snd_waiters > 0)
+	if (self->snd.waiters > 0)
 	    condition_broadcast(&self->cond);
     }
 
@@ -70,19 +70,19 @@ int sendq_push(struct xsock *self, struct xmsg *msg) {
 
     mutex_lock(&self->lock);
     while (!can_send(self) && !self->fasync) {
-	self->snd_waiters++;
+	self->snd.waiters++;
 	condition_wait(&self->cond, &self->lock);
-	self->snd_waiters--;
+	self->snd.waiters--;
     }
     if (can_send(self)) {
 	rc = 0;
-	if (list_empty(&self->snd_head))
+	if (list_empty(&self->snd.head))
 	    events |= XMQ_NONEMPTY;
-	if (self->snd_wnd - self->snd <= msgsz)
+	if (self->snd.wnd - self->snd.buf <= msgsz)
 	    events |= XMQ_FULL;
 	events |= XMQ_PUSH;
-	self->snd += msgsz;
-	list_add_tail(&msg->item, &self->snd_head);
+	self->snd.buf += msgsz;
+	list_add_tail(&msg->item, &self->snd.head);
 	DEBUG_OFF("xsock %d", self->fd);
     }
 

@@ -88,16 +88,20 @@ struct xsock {
     int fd;
     int ref;
     int cpu_no;
-    int rcv_waiters;
-    int snd_waiters;
-    u64 rcv;
-    u64 snd;
-    u64 rcv_wnd;
-    u64 snd_wnd;
-    struct list_head rcv_head;
-    struct list_head snd_head;
-    struct list_head poll_entries;
-    struct xtask shutdown;
+
+    struct {
+	int waiters;
+	int wnd;
+	int buf;
+	struct list_head head;
+    } rcv;
+
+    struct {
+	int waiters;
+	int wnd;
+	int buf;
+	struct list_head head;
+    } snd;
 
     struct {
 	condition_t cond;
@@ -105,6 +109,9 @@ struct xsock {
 	struct list_head head;
 	struct list_head link;
     } acceptq;
+
+    struct xtask shutdown;
+    struct list_head poll_entries;
 
     union {
 	/* Only for tcp/ipc socket */
@@ -134,11 +141,11 @@ struct xsock {
 
 /* We guarantee that we can push one massage at least. */
 static inline int can_send(struct xsock *cn) {
-    return list_empty(&cn->snd_head) || cn->snd < cn->snd_wnd;
+    return list_empty(&cn->snd.head) || cn->snd.buf < cn->snd.wnd;
 }
 
 static inline int can_recv(struct xsock *cn) {
-    return list_empty(&cn->rcv_head) || cn->rcv < cn->rcv_wnd;
+    return list_empty(&cn->rcv.head) || cn->rcv.buf < cn->rcv.wnd;
 }
 
 struct xsock *xget(int cd);

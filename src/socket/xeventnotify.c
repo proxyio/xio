@@ -33,7 +33,7 @@ int xsock_check_events(struct xsock *self, int events) {
 
     if (events & XPOLLIN) {
 	if (self->type == XCONNECTOR)
-	    happened |= !list_empty(&self->rcv_head) ? XPOLLIN : 0;
+	    happened |= !list_empty(&self->rcv.head) ? XPOLLIN : 0;
 	else if (self->type == XLISTENER)
 	    happened |= !list_empty(&self->acceptq.head) ? XPOLLIN : 0;
     }
