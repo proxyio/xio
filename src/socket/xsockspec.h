@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_PROTOCOL_
-#define _HPIO_PROTOCOL_
+#ifndef _HPIO_SOCKSPEC_
+#define _HPIO_SOCKSPEC_
 
 #include <base.h>
 #include <ds/list.h>
@@ -32,8 +32,8 @@ struct sockspec {
     int (*bind) (int fd, const char *sock);
     void (*close) (int fd);
     void (*notify) (int fd, int type, u32 events);
-    int (*setsockopt) (int fd, int level, int opt, void *val, int vallen);
-    int (*getsockopt) (int fd, int level, int opt, void *val, int *vallen);
+    int (*setopt) (int fd, int level, int opt, void *optval, int optlen);
+    int (*getopt) (int fd, int level, int opt, void *optval, int *optlen);
     struct list_head link;
 };
 

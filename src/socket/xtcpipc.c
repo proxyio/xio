@@ -304,8 +304,8 @@ struct sockspec xtcp_connector_spec = {
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .notify = xio_connector_notify,
-    .setsockopt = 0,
-    .getsockopt = 0,
+    .setopt = 0,
+    .getopt = 0,
 };
 
 struct sockspec xipc_connector_spec = {
@@ -314,6 +314,6 @@ struct sockspec xipc_connector_spec = {
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .notify = xio_connector_notify,
-    .setsockopt = 0,
-    .getsockopt = 0,
+    .setopt = 0,
+    .getopt = 0,
 };

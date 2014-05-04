@@ -157,8 +157,8 @@ struct sockspec xtcp_listener_spec = {
     .bind = xio_listener_bind,
     .close = xio_listener_close,
     .notify = xio_listener_notify,
-    .getsockopt = 0,
-    .setsockopt = 0,
+    .getopt = 0,
+    .setopt = 0,
 };
 
 struct sockspec xipc_listener_spec = {
@@ -167,6 +167,6 @@ struct sockspec xipc_listener_spec = {
     .bind = xio_listener_bind,
     .close = xio_listener_close,
     .notify = xio_listener_notify,
-    .getsockopt = 0,
-    .setsockopt = 0,
+    .getopt = 0,
+    .setopt = 0,
 };

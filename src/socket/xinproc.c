@@ -168,6 +168,6 @@ struct sockspec xinp_connector_spec = {
     .bind = xinp_connector_bind,
     .close = xinp_connector_close,
     .notify = xinp_connector_notify,
-    .getsockopt = 0,
-    .setsockopt = 0,
+    .getopt = 0,
+    .setopt = 0,
 };

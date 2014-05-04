@@ -118,18 +118,20 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
     struct xsock *self = xget(fd);
 
-    if ((level != XL_SOCKET && !self->sockspec_vfptr->setsockopt) ||
-	((level == XL_SOCKET && !getopt_vfptr[opt]) ||
-	 (opt >= NELEM(getopt_vfptr, sock_getopt)))) {
-	errno = EINVAL;
-	return -1;
-    }
     switch (level) {
     case XL_SOCKET:
-	getopt_vfptr[opt](self, val, vallen);
+	if (opt >= NELEM(getopt_vfptr, sock_getopt) || !getopt_vfptr[opt]) {
+	    errno = EINVAL;
+	    return -1;
+	}
+	rc = getopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	rc = self->sockspec_vfptr->getsockopt(fd, level, opt, val, vallen);
+	if (!self->sockspec_vfptr->getopt) {
+	    errno = EINVAL;
+	    return -1;
+	}
+	rc = self->sockspec_vfptr->getopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

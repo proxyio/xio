@@ -77,8 +77,8 @@ struct sockspec xmul_listener_spec[4] = {
 	.pf = XPF_TCP|XPF_IPC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
-	.setsockopt = 0,
-	.getsockopt = 0,
+	.setopt = 0,
+	.getopt = 0,
 	.notify = 0,
     },
     {
@@ -86,8 +86,8 @@ struct sockspec xmul_listener_spec[4] = {
 	.pf = XPF_IPC|XPF_INPROC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
-	.setsockopt = 0,
-	.getsockopt = 0,
+	.setopt = 0,
+	.getopt = 0,
 	.notify = 0,
     },
     {
@@ -95,8 +95,8 @@ struct sockspec xmul_listener_spec[4] = {
 	.pf = XPF_TCP|XPF_INPROC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
-	.setsockopt = 0,
-	.getsockopt = 0,
+	.setopt = 0,
+	.getopt = 0,
 	.notify = 0,
     },
     {
@@ -104,8 +104,8 @@ struct sockspec xmul_listener_spec[4] = {
 	.pf = XPF_TCP|XPF_IPC|XPF_INPROC,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
-	.setsockopt = 0,
-	.getsockopt = 0,
+	.setopt = 0,
+	.getopt = 0,
 	.notify = 0,
     }
 };

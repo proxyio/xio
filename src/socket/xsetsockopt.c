@@ -93,18 +93,20 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
     int rc;
     struct xsock *self = xget(fd);
 
-    if ((level != XL_SOCKET && !self->sockspec_vfptr->setsockopt) ||
-	((level == XL_SOCKET && !setopt_vfptr[opt]) ||
-	 (opt >= NELEM(setopt_vfptr, sock_setopt)))) {
-	errno = EINVAL;
-	return -1;
-    }
     switch (level) {
     case XL_SOCKET:
-	setopt_vfptr[opt](self, val, vallen);
+	if (opt >= NELEM(setopt_vfptr, sock_setopt) || !setopt_vfptr[opt]) {
+	    errno = EINVAL;
+	    return -1;
+	}
+	rc = setopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	rc = self->sockspec_vfptr->setsockopt(fd, level, opt, val, vallen);
+	if (!self->sockspec_vfptr->setopt) {
+	    errno = EINVAL;
+	    return -1;
+	}
+	rc = self->sockspec_vfptr->setopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

@@ -103,6 +103,6 @@ struct sockspec xinp_listener_spec = {
     .bind = xinp_listener_bind,
     .close = xinp_listener_close,
     .notify = 0,
-    .getsockopt = 0,
-    .setsockopt = 0,
+    .getopt = 0,
+    .setopt = 0,
 };
