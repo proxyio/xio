@@ -67,14 +67,6 @@ static int set_reconnect(struct xsock *self, void *val, int vallen) {
     return -1;
 }
 
-static int set_reconn_ivl(struct xsock *self, void *val, int vallen) {
-    return -1;
-}
-
-static int set_reconn_ivlmax(struct xsock *self, void *val, int vallen) {
-    return -1;
-}
-
 static int set_tracedebug(struct xsock *self, void *val, int vallen) {
     mutex_lock(&self->lock);
     self->ftracedebug = *(int *)val ? true : false;
@@ -92,8 +84,6 @@ const sock_setopt setopt_vfptr[] = {
     set_sndtimeo,
     set_rcvtimeo,
     set_reconnect,
-    set_reconn_ivl,
-    set_reconn_ivlmax,
     0,
     0,
     set_tracedebug,

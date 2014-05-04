@@ -83,14 +83,6 @@ static int get_reconnect(struct xsock *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_reconn_ivl(struct xsock *self, void *val, int *vallen) {
-    return -1;
-}
-
-static int get_reconn_ivlmax(struct xsock *self, void *val, int *vallen) {
-    return -1;
-}
-
 static int get_socktype(struct xsock *self, void *val, int *vallen) {
     *(int *)val = self->type;
     return 0;
@@ -116,8 +108,6 @@ const sock_getopt getopt_vfptr[] = {
     get_sndtimeo,
     get_rcvtimeo,
     get_reconnect,
-    get_reconn_ivl,
-    get_reconn_ivlmax,
     get_socktype,
     get_sockproto,
     get_tracedebug,

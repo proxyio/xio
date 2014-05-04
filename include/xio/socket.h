@@ -68,11 +68,9 @@ void xclose(int fd);
 #define XSNDTIMEO          6
 #define XRCVTIMEO          7
 #define XRECONNECT         8
-#define XRECONNECT_IVL     9
-#define XRECONNECT_IVLMAX  10
-#define XSOCKTYPE          11
-#define XSOCKPROTO         12
-#define XTRACEDEBUG        13
+#define XSOCKTYPE          9
+#define XSOCKPROTO         10
+#define XTRACEDEBUG        11
     
 int xsetopt(int fd, int level, int opt, void *optval, int optlen);
 int xgetopt(int fd, int level, int opt, void *optval, int *optlen);
