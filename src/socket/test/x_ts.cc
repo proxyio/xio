@@ -20,6 +20,7 @@ static void xclient(string pf) {
     int sfd, i;
     int64_t nbytes;
     char buf[1024] = {};
+    struct xmsgoob ent = {};
     char *xbuf, *oob;
     string host(pf + "://127.0.0.1:18894");
 
@@ -29,10 +30,18 @@ static void xclient(string pf) {
 	nbytes = rand() % 1024;
 	xbuf = xallocmsg(nbytes);
 	memcpy(xbuf, buf, nbytes);
+
+	oob = xdupmsg(xbuf);
+	ent.pos = 0;
+	ent.outofband = oob;
+	BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent));
+
 	BUG_ON(0 != xsend(sfd, xbuf));
 	BUG_ON(0 != xrecv(sfd, &xbuf));
 	DEBUG_OFF("%d recv response", sfd);
-	assert(memcmp(xbuf, buf, nbytes) == 0);
+	BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
+	BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent));
+	BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
 	xfreemsg(xbuf);
     }
     xclose(sfd);
