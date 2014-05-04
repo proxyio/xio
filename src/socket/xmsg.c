@@ -89,13 +89,13 @@ static int msgctl_getoob(char *xbuf, void *optval) {
 	errno = ENOENT;
 	return -1;
     }
-    if (ent->pos < 0) {
+    if (ent->pos > XMSG_OOBMARK) {
 	errno = EINVAL;
 	return -1;
     }
     ent->pos = ent->pos > msg->vec.oob ? msg->vec.oob : ent->pos;
     xmsg_walk_safe(oob, nx_oob, &msg->oob) {
-	if (-oob->vec.oob == ent->pos) {
+	if (oob->vec.oob == ent->pos) {
 	    ent->outofband = oob->vec.chunk;
 	    return 0;
 	}
@@ -109,12 +109,20 @@ static int msgctl_setoob(char *xbuf, void *optval) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     struct xmsg *new = cont_of(ent->outofband, struct xmsg, vec.chunk);
 
-    if (new->vec.oob > 0 || ent->pos < 0) {
+    if (new->vec.oob_length > 0 || new->vec.oob > 0 ||
+	ent->pos > XMSG_OOBMARK) {
 	errno = EINVAL;
 	return -1;
     }
+    if (msg->vec.oob == XMSG_OOBMARK ||
+	(u32)msg->vec.oob_length + xiov_len(new->vec.chunk) > XMSG_OOBLENMARK) {
+	errno = EFBIG;
+	return -1;
+    }
     msg->vec.oob++;
-    new->vec.oob = -ent->pos;
+    new->vec.oob_length += xiov_len(new->vec.chunk);
+    new->vec.oob = ent->pos;
+    new->vec.oob_length = 0;
     list_add_tail(&new->item, &msg->oob);
     return 0;
 }

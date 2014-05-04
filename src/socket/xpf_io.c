@@ -239,15 +239,24 @@ static int xio_connector_rcv(struct xsock *self) {
     return rc;
 }
 
+static void bufio_add(struct bio *b, struct xmsg *msg) {
+    struct xmsg *oob, *nx_oob;
+    char *chunk = msg->vec.chunk;
+
+    bio_write(b, xiov_base(chunk), xiov_len(chunk));
+    xmsg_walk_safe(oob, nx_oob, &msg->oob) {
+	chunk = oob->vec.chunk;
+	bio_write(b, xiov_base(chunk), xiov_len(chunk));
+    }
+}
+
 static int xio_connector_snd(struct xsock *self) {
     int rc;
-    char *chunk;
     struct xmsg *msg;
 
     while ((msg = sendq_pop(self))) {
-	chunk = msg->vec.chunk;
-	bio_write(&self->io.out, xiov_base(chunk), xiov_len(chunk));
-	xfreemsg(chunk);
+	bufio_add(&self->io.out, msg);
+	xfreemsg(msg->vec.chunk);
     }
     rc = bio_flush(&self->io.out, &self->io.ops);
     return rc;
