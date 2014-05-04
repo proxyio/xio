@@ -44,6 +44,9 @@ char *xallocmsg(int size) {
     if (!chunk)
 	return 0;
     msg = (struct xmsg *)chunk;
+    INIT_LIST_HEAD(&msg->item);
+    INIT_LIST_HEAD(&msg->oob);
+
     msg->vec.size = size;
     msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
     xbuf = msg->vec.chunk;
@@ -53,8 +56,13 @@ char *xallocmsg(int size) {
 
 void xfreemsg(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+    struct xmsg *oob, *nx_oob;
 
     DEBUG_OFF("%p", xbuf);
+    xmsg_walk_safe(oob, nx_oob, &msg->oob) {
+	list_del_init(&oob->item);
+	xfreemsg(oob->vec.chunk);
+    }
     mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 
@@ -63,3 +71,68 @@ int xmsglen(char *xbuf) {
     return msg->vec.size;
 }
 
+
+typedef int (*msgctl) (char *xmsg, void *optval);
+
+static int msgctl_countoob(char *xbuf, void *optval) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+    *(int *)optval = msg->vec.oob;
+    return 0;
+}
+
+static int msgctl_getoob(char *xbuf, void *optval) {
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+    struct xmsgoob *ent = (struct xmsgoob *)optval;
+    struct xmsg *oob, *nx_oob;
+
+    if (!msg->vec.oob) {
+	errno = ENOENT;
+	return -1;
+    }
+    if (ent->pos < 0) {
+	errno = EINVAL;
+	return -1;
+    }
+    ent->pos = ent->pos > msg->vec.oob ? msg->vec.oob : ent->pos;
+    xmsg_walk_safe(oob, nx_oob, &msg->oob) {
+	if (-oob->vec.oob == ent->pos) {
+	    ent->outofband = oob->vec.chunk;
+	    return 0;
+	}
+    }
+    BUG_ON(1);
+    return -1;
+}
+
+static int msgctl_setoob(char *xbuf, void *optval) {
+    struct xmsgoob *ent = (struct xmsgoob *)optval;
+    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+    struct xmsg *new = cont_of(ent->outofband, struct xmsg, vec.chunk);
+
+    if (new->vec.oob > 0 || ent->pos < 0) {
+	errno = EINVAL;
+	return -1;
+    }
+    msg->vec.oob++;
+    new->vec.oob = -ent->pos;
+    list_add_tail(&new->item, &msg->oob);
+    return 0;
+}
+
+static const msgctl msgctl_vfptr[] = {
+    msgctl_countoob,
+    msgctl_getoob,
+    msgctl_setoob,
+};
+
+
+int xmsgctl(char *xbuf, int opt, void *optval) {
+    int rc;
+
+    if (opt < 0 || opt >= NELEM(msgctl_vfptr, msgctl)) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = msgctl_vfptr[opt] (xbuf, optval);
+    return rc;
+}

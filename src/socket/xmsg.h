@@ -25,6 +25,7 @@
 
 #include <base.h>
 #include <ds/list.h>
+#include <xio/socket.h>
 
 /* The transport protocol header is 6 bytes long and looks like this:
  * +--------+------------+------------+
@@ -37,11 +38,13 @@
 struct xiov {
     u16 checksum;
     u32 size;
+    i8 oob;
     char chunk[0];
 };
 
 struct xmsg {
     struct list_head item;
+    struct list_head oob;
     struct xiov vec;
 };
 

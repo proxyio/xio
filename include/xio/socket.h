@@ -11,6 +11,18 @@ char *xallocmsg(int size);
 void xfreemsg(char *xmsg);
 int xmsglen(char *xmsg);
 
+#define XMSG_OOBCNT    0
+#define XMSG_GETOOB    1
+#define XMSG_SETOOB    2
+
+struct xmsgoob {
+    int8_t pos;
+    char *outofband;
+};    
+    
+int xmsgctl(char *xmsg, int opt, void *optval);
+
+    
 #define XSOCKADDRLEN 128
 int xlisten(const char *addr);
 int xaccept(int xd);
