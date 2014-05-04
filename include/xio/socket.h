@@ -8,6 +8,7 @@ extern "C" {
 #endif
 
 char *xallocmsg(int size);
+char *xdupmsg(char *xmsg);
 void xfreemsg(char *xmsg);
 int xmsglen(char *xmsg);
 

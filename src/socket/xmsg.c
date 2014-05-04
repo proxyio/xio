@@ -54,6 +54,30 @@ char *xallocmsg(int size) {
     return xbuf;
 }
 
+char *__xdupmsg(char *xbuf) {
+    char *dst = xallocmsg(xmsglen(xbuf));
+
+    if (dst)
+	memcpy(xiov_base(dst), xiov_base(xbuf), xiov_len(xbuf));
+    return dst;
+}
+
+char *xdupmsg(char *sbuf) {
+    char *dbuf = __xdupmsg(sbuf);
+    char *oob_buf;
+    struct xmsg *src = cont_of(sbuf, struct xmsg, vec.chunk);;
+    struct xmsg *dst = cont_of(dbuf, struct xmsg, vec.chunk);;
+    struct xmsg *oob, *nx_oob, *dst_oob;
+
+    xmsg_walk_safe(oob, nx_oob, &src->oob) {
+	BUG_ON(!(oob_buf = __xdupmsg(oob->vec.chunk)));
+	dst_oob = cont_of(oob_buf, struct xmsg, vec.chunk);
+	list_add_tail(&dst_oob->item, &dst->oob);
+    }
+    return dbuf;
+}
+
+
 void xfreemsg(char *xbuf) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     struct xmsg *oob, *nx_oob;

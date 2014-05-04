@@ -206,35 +206,49 @@ static void xio_connector_notify(int fd, int type, u32 events) {
     }
 }
 
-
-
-static int msg_ready(struct bio *b, i64 *chunk_sz) {
-    struct xmsg msg = {};
+static int bufio_check_msg(struct bio *b) {
+    struct xmsg aim = {};
     
-    if (b->bsize < sizeof(msg.vec))
+    if (b->bsize < sizeof(aim.vec))
 	return false;
-    bio_copy(b, (char *)(&msg.vec), sizeof(msg.vec));
-    if (b->bsize < xiov_len(msg.vec.chunk))
+    bio_copy(b, (char *)(&aim.vec), sizeof(aim.vec));
+    if (b->bsize < xiov_len(aim.vec.chunk) + (u32)aim.vec.oob_length)
 	return false;
-    *chunk_sz = msg.vec.size;
     return true;
+}
+
+
+static void bufio_rm(struct bio *b, struct xmsg **msg) {
+    struct xmsg one = {};
+    char *chunk;
+
+    bio_copy(b, (char *)(&one.vec), sizeof(one.vec));
+    chunk = xallocmsg(one.vec.size);
+    bio_read(b, xiov_base(chunk), xiov_len(chunk));
+    *msg = cont_of(chunk, struct xmsg, vec.chunk);
 }
 
 static int xio_connector_rcv(struct xsock *self) {
     int rc = 0;
-    char *chunk;
-    i64 chunk_sz;
-    struct xmsg *msg;
+    u16 oob_count;
+    struct xmsg *aim = 0, *oob = 0;
 
     rc = bio_prefetch(&self->io.in, &self->io.ops);
     if (rc < 0 && errno != EAGAIN)
 	return rc;
-    while (msg_ready(&self->io.in, &chunk_sz)) {
+    while (bufio_check_msg(&self->io.in)) {
+	aim = 0;
+	bufio_rm(&self->io.in, &aim);
+	BUG_ON(!aim);
+	oob_count = aim->vec.oob;
+	while (oob_count--) {
+	    oob = 0;
+	    bufio_rm(&self->io.in, &oob);
+	    BUG_ON(!oob);
+	    list_add_tail(&oob->item, &aim->oob);
+	}
+	recvq_push(self, aim);
 	DEBUG_OFF("%d xsock recv one message", self->fd);
-	chunk = xallocmsg(chunk_sz);
-	bio_read(&self->io.in, xiov_base(chunk), xiov_len(chunk));
-	msg = cont_of(chunk, struct xmsg, vec.chunk);
-	recvq_push(self, msg);
     }
     return rc;
 }

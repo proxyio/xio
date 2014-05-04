@@ -15,11 +15,19 @@ extern int randstr(char *buf, int len);
 
 
 TEST(xmsg, outofband) {
+    int oob_count = -1;
     struct xmsgoob ent = {};
     char *xbuf = xallocmsg(12);
+    char *xbuf2;
     char oob1[12];
     char oob2[12];
     char oob3[12];
+
+
+    xbuf2 = xdupmsg(xbuf);
+    BUG_ON(xmsgctl(xbuf2, XMSG_OOBCNT, &oob_count));
+    BUG_ON(oob_count != 0);
+    xfreemsg(xbuf2);
     
     randstr(xbuf, 12);
     randstr(oob1, sizeof(oob1));
@@ -41,18 +49,32 @@ TEST(xmsg, outofband) {
     memcpy(ent.outofband, oob2, sizeof(oob2));
     BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent) != 0);
 
+
+
+    xbuf2 = xdupmsg(xbuf);
+    BUG_ON(xmsgctl(xbuf2, XMSG_OOBCNT, &oob_count));
+    BUG_ON(oob_count != 3);
+    
     ent.pos = 2;
     BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob3, sizeof(oob3)) != 0);
+    BUG_ON(xmsgctl(xbuf2, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(memcmp(ent.outofband, oob3, sizeof(oob3)) != 0);
 
+    
     ent.pos = 1;
     BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(memcmp(ent.outofband, oob2, sizeof(oob2)) != 0);
+    BUG_ON(xmsgctl(xbuf2, XMSG_GETOOB, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob2, sizeof(oob2)) != 0);
 
     ent.pos = 0;
     BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob1, sizeof(oob1)) != 0);
+    BUG_ON(xmsgctl(xbuf2, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(memcmp(ent.outofband, oob1, sizeof(oob1)) != 0);
 
     xfreemsg(xbuf);
+    xfreemsg(xbuf2);
 }
 

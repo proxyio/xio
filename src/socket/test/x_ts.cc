@@ -20,20 +20,20 @@ static void xclient(string pf) {
     int sfd, i;
     int64_t nbytes;
     char buf[1024] = {};
-    char *payload;
+    char *xbuf, *oob;
     string host(pf + "://127.0.0.1:18894");
 
     randstr(buf, 1024);
     BUG_ON((sfd = xconnect(host.c_str())) < 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
-	payload = xallocmsg(nbytes);
-	memcpy(payload, buf, nbytes);
-	BUG_ON(0 != xsend(sfd, payload));
-	BUG_ON(0 != xrecv(sfd, &payload));
+	xbuf = xallocmsg(nbytes);
+	memcpy(xbuf, buf, nbytes);
+	BUG_ON(0 != xsend(sfd, xbuf));
+	BUG_ON(0 != xrecv(sfd, &xbuf));
 	DEBUG_OFF("%d recv response", sfd);
-	assert(memcmp(payload, buf, nbytes) == 0);
-	xfreemsg(payload);
+	assert(memcmp(xbuf, buf, nbytes) == 0);
+	xfreemsg(xbuf);
     }
     xclose(sfd);
 }
@@ -48,7 +48,7 @@ static void xserver() {
     int i, j;
     int afd, sfd;
     thread_t cli_thread = {};
-    char *payload;
+    char *xbuf;
     string host("tcp+inproc://127.0.0.1:18894");
     
     BUG_ON((afd = xlisten(host.c_str())) < 0);
@@ -58,9 +58,9 @@ static void xserver() {
 	BUG_ON((sfd = xaccept(afd)) < 0);
 	DEBUG_OFF("xserver accept %d", sfd);
 	for (i = 0; i < cnt; i++) {
-	    BUG_ON(0 != xrecv(sfd, &payload));
+	    BUG_ON(0 != xrecv(sfd, &xbuf));
 	    DEBUG_OFF("%d recv", sfd);
-	    BUG_ON(0 != xsend(sfd, payload));
+	    BUG_ON(0 != xsend(sfd, xbuf));
 	}
     }
     thread_stop(&cli_thread);
