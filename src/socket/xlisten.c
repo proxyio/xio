@@ -40,7 +40,7 @@ int acceptq_push(struct xsock *self, struct xsock *new) {
 	condition_broadcast(&self->acceptq.cond);
     }
     list_add_tail(&new->acceptq.link, &self->acceptq.head);
-    __xpoll_notify(self);
+    __xeventnotify(self);
     mutex_unlock(&self->lock);
     return rc;
 }
@@ -58,7 +58,7 @@ struct xsock *acceptq_pop(struct xsock *self) {
 	new = list_first(&self->acceptq.head, struct xsock, acceptq.link);
 	list_del_init(&new->acceptq.link);
     }
-    __xpoll_notify(self);
+    __xeventnotify(self);
     mutex_unlock(&self->lock);
     return new;
 }

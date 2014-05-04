@@ -37,7 +37,7 @@
 #include <poll/xpoll.h>
 #include "xmsg.h"
 #include "xcpu.h"
-#include "xpf_spec.h"
+#include "xsockspec.h"
 
 #define null NULL
 
@@ -152,8 +152,8 @@ int acceptq_push(struct xsock *self, struct xsock *req_self);
 struct xsock *acceptq_pop(struct xsock *self);
 
 int xpoll_check_events(struct xsock *self, int events);
-void __xpoll_notify(struct xsock *self);
-void xpoll_notify(struct xsock *self);
+void __xeventnotify(struct xsock *self);
+void xeventnotify(struct xsock *self);
 
 
 #endif

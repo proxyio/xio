@@ -21,7 +21,7 @@
 */
 
 #include <stdio.h>
-#include "xpf_spec.h"
+#include "xsockspec.h"
 
 const char *pf_str[] = {
     "",

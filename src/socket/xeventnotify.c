@@ -51,7 +51,7 @@ int xsock_check_events(struct xsock *self, int events) {
  * here we only check the mq events and proto_spec saved the other
  * events gived by xsock_protocol
  */
-void __xpoll_notify(struct xsock *self) {
+void __xeventnotify(struct xsock *self) {
     int happened = 0;
     struct xpoll_entry *ent, *nx;
 
@@ -61,8 +61,8 @@ void __xpoll_notify(struct xsock *self) {
     }
 }
 
-void xpoll_notify(struct xsock *self) {
+void xeventnotify(struct xsock *self) {
     mutex_lock(&self->lock);
-    __xpoll_notify(self);
+    __xeventnotify(self);
     mutex_unlock(&self->lock);
 }

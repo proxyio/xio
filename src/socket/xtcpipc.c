@@ -292,7 +292,7 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
 	DEBUG_OFF("io xsock %d EPIPE", self->fd);
 	self->fok = false;
     }
-    xpoll_notify(self);
+    xeventnotify(self);
     return rc;
 }
 

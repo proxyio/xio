@@ -58,7 +58,7 @@ struct xmsg *recvq_pop(struct xsock *self) {
     if (events && sockspec_vfptr->notify)
 	sockspec_vfptr->notify(self->fd, RECV_Q, events);
 
-    __xpoll_notify(self);
+    __xeventnotify(self);
     mutex_unlock(&self->lock);
     return msg;
 }
@@ -85,7 +85,7 @@ void recvq_push(struct xsock *self, struct xmsg *msg) {
     if (events && sockspec_vfptr->notify)
 	sockspec_vfptr->notify(self->fd, RECV_Q, events);
 
-    __xpoll_notify(self);
+    __xeventnotify(self);
     mutex_unlock(&self->lock);
 }
 
