@@ -46,12 +46,6 @@ Recv one ubuf from endpoint::
 Send one ubuf into endpoint::
     linkxio:xep_send[3]
 
-Start an async endpoint proxy::
-    linkxio:xeppy_open[3]
-
-Stop endpoint proxy::
-    linkxio:xeppy_close[3]
-
 AUTHORS
 -------
 	Dong Fang <yp.fangdong@gmail.com>
