@@ -10,7 +10,7 @@ SYNOPSIS
 --------
 *#include <xio/endpoint.h>*
 
-*char *xep_allocubuf(int 'flags', int 'size', ... /* src ubuf */);*
+*char *xep_allocubuf(int 'size');*
 
 
 DESCRIPTION
@@ -18,14 +18,6 @@ DESCRIPTION
 Allocate a user-space buf of the specified 'size' for endpoint.
 The content of the ubuf is ZERO after allocation and it should be filled
 in by the user.
-
-The argument flags must include one of the following:
-    XEPUBUF_CLONEHDR, 0.
-
-When XEPUBUF_CLONEHDR is specified, the third arguments must be provided.
-
-In addition, zero or more ubuf allocation flags and can be bitwise-or’d in flags:
-    XEPUBUF_APPENDRT
 
 RETURN VALUE
 ------------

@@ -20,7 +20,7 @@ static void xclient(string pf) {
     int sfd, i;
     int64_t nbytes;
     char buf[1024] = {};
-    struct xmsgoob ent = {};
+    struct xcmsg ent = {};
     char *xbuf, *oob;
     string host(pf + "://127.0.0.1:18894");
 
@@ -32,7 +32,7 @@ static void xclient(string pf) {
 	memcpy(xbuf, buf, nbytes);
 
 	xmsgctl(xbuf, XMSG_CLONE, &oob);
-	ent.pos = 0;
+	ent.idx = 0;
 	ent.outofband = oob;
 	BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent));
 

@@ -82,20 +82,20 @@ static int msgctl_oobnum(char *xbuf, void *optval) {
 
 static int msgctl_getoob(char *xbuf, void *optval) {
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    struct xmsgoob *ent = (struct xmsgoob *)optval;
+    struct xcmsg *ent = (struct xcmsg *)optval;
     struct xmsg *oob, *nx_oob;
 
     if (!msg->vec.oob) {
 	errno = ENOENT;
 	return -1;
     }
-    if (ent->pos > XMSG_OOBMARK) {
+    if (ent->idx > XMSG_OOBMARK) {
 	errno = EINVAL;
 	return -1;
     }
-    ent->pos = ent->pos > msg->vec.oob ? msg->vec.oob : ent->pos;
+    ent->idx = ent->idx > msg->vec.oob ? msg->vec.oob : ent->idx;
     xmsg_walk_safe(oob, nx_oob, &msg->oob) {
-	if (oob->vec.oob == ent->pos) {
+	if (oob->vec.oob == ent->idx) {
 	    ent->outofband = oob->vec.chunk;
 	    return 0;
 	}
@@ -105,12 +105,12 @@ static int msgctl_getoob(char *xbuf, void *optval) {
 }
 
 static int msgctl_setoob(char *xbuf, void *optval) {
-    struct xmsgoob *ent = (struct xmsgoob *)optval;
+    struct xcmsg *ent = (struct xcmsg *)optval;
     struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
     struct xmsg *new = cont_of(ent->outofband, struct xmsg, vec.chunk);
 
     if (new->vec.oob_length > 0 || new->vec.oob > 0 ||
-	ent->pos > XMSG_OOBMARK) {
+	ent->idx > XMSG_OOBMARK) {
 	errno = EINVAL;
 	return -1;
     }
@@ -121,7 +121,7 @@ static int msgctl_setoob(char *xbuf, void *optval) {
     }
     msg->vec.oob++;
     msg->vec.oob_length += xiov_len(new->vec.chunk);
-    new->vec.oob = ent->pos;
+    new->vec.oob = ent->idx;
     new->vec.oob_length = 0;
     list_add_tail(&new->item, &msg->oob);
     return 0;

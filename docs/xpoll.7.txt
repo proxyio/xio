@@ -11,15 +11,15 @@ SYNOPSIS
 
 DESCRIPTION
 -----------
-xpoll is a variant of epoll(2) that scales well to large numbers of watched +
-xio socket descriptors.  The following xio calls are provided  to create +
+xpoll is a variant of epoll(2) that scales well to large numbers of watched
+xio socket descriptors.  The following xio calls are provided  to create
 and manage an xpoll instance:
 
-    * An xpoll instance created by xpoll_create[3], which returns a xpoll_t +
+    * An xpoll instance created by xpoll_create[3], which returns a xpoll_t
       pointerreferring to the xpoll instance.
       
-    * Interest in particular xio socket descriptors is then registered +
-      via xpoll_ctl().  The set of xio socket descriptors currently registered +
+    * Interest in particular xio socket descriptors is then registered
+      via xpoll_ctl().  The set of xio socket descriptors currently registered
       on an xpoll instance is sometimes called an xpoll set.
       
     * Finally, the actual wait is started by xpoll_wait().

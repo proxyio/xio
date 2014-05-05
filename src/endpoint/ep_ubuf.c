@@ -54,11 +54,11 @@ void ephdr_free(struct ephdr *eh) {
 
 char *xep_allocubuf(int size) {
     int cmsgnum;
-    struct xmsgoob oob;
+    struct xcmsg oob;
     char *ubuf = xallocmsg(size);
 
     BUG_ON(!ubuf);
-    oob.pos = 0;
+    oob.idx = 0;
     oob.outofband = (char *)ephdr_new();
     BUG_ON(xmsgctl(ubuf, XMSG_SETOOB, &oob) != 0);
     BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);

@@ -12,8 +12,6 @@ cc ['flags'] 'files' *-lxio* ['libraries']
 
 DESCRIPTION
 -----------
-Following transport mechanisms are provided by xendpoint:
-
 
 
 APIs

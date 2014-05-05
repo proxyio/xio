@@ -19,8 +19,8 @@ int xmsglen(char *xmsg);
 #define XMSG_SWITCHOOB   5
 
 
-struct xmsgoob {
-    uint8_t pos;
+struct xcmsg {
+    uint8_t idx;
     char *outofband;
 };    
     
