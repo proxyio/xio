@@ -11,12 +11,12 @@ char *xallocmsg(int size);
 void xfreemsg(char *xmsg);
 int xmsglen(char *xmsg);
 
-#define XMSG_OOBNUM      0
-#define XMSG_GETOOB      1
-#define XMSG_SETOOB      2
-#define XMSG_CLONE       3
-#define XMSG_COPYOOB     4
-#define XMSG_SWITCHOOB   5
+#define XMSG_CMSGNUM      0
+#define XMSG_GETCMSG      1
+#define XMSG_SETCMSG      2
+#define XMSG_CLONE        3
+#define XMSG_COPYCMSG     4
+#define XMSG_SWITCHCMSG   5
 
 
 struct xcmsg {

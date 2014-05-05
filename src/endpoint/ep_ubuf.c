@@ -60,8 +60,8 @@ char *xep_allocubuf(int size) {
     BUG_ON(!ubuf);
     oob.idx = 0;
     oob.outofband = (char *)ephdr_new();
-    BUG_ON(xmsgctl(ubuf, XMSG_SETOOB, &oob) != 0);
-    BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);
+    BUG_ON(xmsgctl(ubuf, XMSG_SETCMSG, &oob) != 0);
+    BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum) != 0);
     BUG_ON(cmsgnum != 1);
     return ubuf;
 }

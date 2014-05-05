@@ -34,13 +34,13 @@ static void xclient(string pf) {
 	xmsgctl(xbuf, XMSG_CLONE, &oob);
 	ent.idx = 0;
 	ent.outofband = oob;
-	BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent));
+	BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent));
 
 	BUG_ON(0 != xsend(sfd, xbuf));
 	BUG_ON(0 != xrecv(sfd, &xbuf));
 	DEBUG_OFF("%d recv response", sfd);
 	BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
-	BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent));
+	BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent));
 	BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
 	xfreemsg(xbuf);
     }

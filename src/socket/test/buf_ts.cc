@@ -25,7 +25,7 @@ TEST(xmsg, outofband) {
 
 
     BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
-    BUG_ON(xmsgctl(xbuf2, XMSG_OOBNUM, &oob_count));
+    BUG_ON(xmsgctl(xbuf2, XMSG_CMSGNUM, &oob_count));
     BUG_ON(oob_count != 0);
     xfreemsg(xbuf2);
     
@@ -37,41 +37,41 @@ TEST(xmsg, outofband) {
     ent.idx = 0;
     ent.outofband = xallocmsg(sizeof(oob1));
     memcpy(ent.outofband, oob1, sizeof(oob1));
-    BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
 
     ent.idx = 2;
     ent.outofband = xallocmsg(sizeof(oob3));
     memcpy(ent.outofband, oob3, sizeof(oob3));
-    BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
 
     ent.idx = 1;
     ent.outofband = xallocmsg(sizeof(oob2));
     memcpy(ent.outofband, oob2, sizeof(oob2));
-    BUG_ON(xmsgctl(xbuf, XMSG_SETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
 
 
 
     BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
-    BUG_ON(xmsgctl(xbuf2, XMSG_OOBNUM, &oob_count));
+    BUG_ON(xmsgctl(xbuf2, XMSG_CMSGNUM, &oob_count));
     BUG_ON(oob_count != 3);
     
     ent.idx = 2;
-    BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob3, sizeof(oob3)) != 0);
-    BUG_ON(xmsgctl(xbuf2, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf2, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob3, sizeof(oob3)) != 0);
 
     
     ent.idx = 1;
-    BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob2, sizeof(oob2)) != 0);
-    BUG_ON(xmsgctl(xbuf2, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf2, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob2, sizeof(oob2)) != 0);
 
     ent.idx = 0;
-    BUG_ON(xmsgctl(xbuf, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob1, sizeof(oob1)) != 0);
-    BUG_ON(xmsgctl(xbuf2, XMSG_GETOOB, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf2, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob1, sizeof(oob1)) != 0);
 
     xfreemsg(xbuf);
