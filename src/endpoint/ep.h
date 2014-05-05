@@ -7,7 +7,7 @@ extern "C" {
 
 #define XEPUBUF_CLONEHDR  0x01
     
-char *xep_allocubuf(int flags, int size, ...);
+char *xep_allocubuf(int size);
 void xep_freeubuf(char *ubuf);
 uint32_t xep_ubuflen(char *ubuf);
 

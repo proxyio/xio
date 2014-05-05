@@ -43,9 +43,8 @@ static struct endsock *get_active_sk(struct endpoint *ep) {
 static int generic_recv(struct endsock *sk, char **ubuf) {
     struct endpoint *ep = sk->owner;
     int rc;
-    struct ephdr *eh;
 
-    if ((rc = xrecv(sk->fd, (char **)&eh)) < 0) {
+    if ((rc = xrecv(sk->fd, ubuf)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
 	    DEBUG_OFF("socket %d epipe", sk->fd);
@@ -53,8 +52,6 @@ static int generic_recv(struct endsock *sk, char **ubuf) {
 	}
 	if (list_empty(&ep->listeners) && list_empty(&ep->connectors))
 	    errno = EBADF;
-    } else {
-	*ubuf = ephdr2ubuf(eh);
     }
     return rc;
 }
@@ -62,11 +59,9 @@ static int generic_recv(struct endsock *sk, char **ubuf) {
 static int producer_recv(struct endsock *sk, char **ubuf) {
     int rc;
     struct ephdr *eh;
-    struct epr *rt;
 
     if ((rc = generic_recv(sk, ubuf)) == 0) {
 	eh = ubuf2ephdr(*ubuf);
-	rt = rt_cur(eh);
 	eh->ttl--;
     }
     return rc;
@@ -79,7 +74,7 @@ static int comsumer_recv(struct endsock *sk, char **ubuf) {
 
     if ((rc = generic_recv(sk, ubuf)) == 0) {
 	eh = ubuf2ephdr(*ubuf);
-	rt = rt_cur(eh);
+	rt = rt_cur(*ubuf);
 	if (memcmp(rt->uuid, sk->uuid, sizeof(sk->uuid)) != 0)
 	    uuid_copy(sk->uuid, rt->uuid);
     }

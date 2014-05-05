@@ -46,6 +46,9 @@ struct epr {
     u16 stay[2];
 };
 
+struct epr *epr_new();
+void epr_free(struct epr *r);
+
 struct ephdr {
     u8 version;
     u16 ttl:4;
@@ -61,47 +64,60 @@ struct ephdr {
     struct epr rt[0];
 };
 
-struct uhdr {
-    u16 ephdr_off;
-};
-
-static inline u32 ephdr_rtlen(struct ephdr *h) {
-    u32 ttl = h->go ? h->ttl : h->end_ttl;
-    return ttl * sizeof(struct epr);
-}
-
-/* The ep_buf length = ephdr_ctlen() + ephdr_dlen() */
-static inline u32 ephdr_ctlen(struct ephdr *h) {
-    return sizeof(*h) + ephdr_rtlen(h) + sizeof(struct uhdr);
-}
-
-static inline u32 ephdr_dlen(struct ephdr *h) {
-    return h->size;
-}
+struct ephdr *ephdr_new();
+void ephdr_free(struct ephdr *eh);
 
 static inline struct ephdr *ubuf2ephdr(char *ubuf) {
-    struct uhdr *uh = (struct uhdr *)((char *)ubuf - sizeof(*uh));
-    return (struct ephdr *)((char *)ubuf - uh->ephdr_off);
-}
+    int cmsgnum = 0;
+    struct xmsgoob ent;
 
-static inline char *ephdr2ubuf(struct ephdr *h) {
-    return ((char *)h) + ephdr_ctlen(h);
-}
-
-static inline struct uhdr *ephdr_uhdr(struct ephdr *h) {
-    return (struct uhdr *)(ephdr2ubuf(h) - sizeof(struct uhdr));
+    BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);
+    BUG_ON(!cmsgnum);
+    ent.pos = 0;
+    BUG_ON(xmsgctl(ubuf, XMSG_GETOOB, &ent) != 0);
+    return (struct ephdr *)ent.outofband;
 }
 
 static inline int ephdr_timeout(struct ephdr *h) {
     return h->timeout && (h->sendstamp + h->timeout < rt_mstime());
 }
 
-static inline struct epr *rt_cur(struct ephdr *h) {
-    return &h->rt[h->ttl - 1];
+static inline struct epr *rt_cur(char *ubuf) {
+    struct ephdr *eh = ubuf2ephdr(ubuf);
+    int cmsgnum = 0;
+    struct xmsgoob ent;
+
+    BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);
+    BUG_ON(!cmsgnum && cmsgnum != eh->ttl + 1);
+    ent.pos = eh->ttl;
+    BUG_ON(xmsgctl(ubuf, XMSG_GETOOB, &ent) != 0);
+    return (struct epr *)ent.outofband;
 }
 
-static inline struct epr *rt_prev(struct ephdr *h) {
-    return &h->rt[h->ttl - 2];
+static inline struct epr *rt_prev(char *ubuf) {
+    struct ephdr *eh = ubuf2ephdr(ubuf);
+    int cmsgnum = 0;
+    struct xmsgoob ent;
+
+    BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);
+    BUG_ON(!cmsgnum && cmsgnum != eh->ttl + 1);
+    ent.pos = eh->ttl - 1;
+    BUG_ON(xmsgctl(ubuf, XMSG_GETOOB, &ent) != 0);
+    return (struct epr *)ent.outofband;
 }
+
+static inline void rt_append(char *ubuf, struct epr *r) {
+    struct ephdr *eh = ubuf2ephdr(ubuf);
+    int cmsgnum = 0;
+    struct xmsgoob ent;
+    
+    BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);
+    BUG_ON(!cmsgnum && cmsgnum != eh->ttl + 1);
+    ent.pos = ++eh->ttl;
+    ent.outofband = (char *)r;
+    BUG_ON(xmsgctl(ubuf, XMSG_SETOOB, &ent) != 0);
+}
+
+
 
 #endif

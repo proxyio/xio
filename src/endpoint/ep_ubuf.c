@@ -24,68 +24,52 @@
 #include <stdarg.h>
 #include "ep_struct.h"
 
-static void ephdr_init(struct ephdr *h) {
-    h->version = 0xff;
-    h->ttl = 0;
-    h->end_ttl = 0;
-    h->go = 0;
-    h->size = 0;
-    h->timeout = 0;
-    h->sendstamp = 0;
+struct epr *epr_new() {
+    struct epr *r = (struct epr *)xallocmsg(sizeof(struct epr));
+    BUG_ON(!r);
+    return r;
 }
 
-char *ubuf_clone(int flags, int size, char *ubuf) {
-    struct uhdr *uh;
-    struct ephdr *h1 = ubuf2ephdr(ubuf), *h2;
-    int ctlen = ephdr_ctlen(h1);
+void epr_free(struct epr *r) {
+    xfreemsg((char *)r);
+}
 
-    ctlen += (flags & XEPUBUF_APPENDRT) ? sizeof(struct epr) : 0;
-    if (!(h2 = (struct ephdr *)xallocmsg(size + ctlen)))
-	return 0;
-    memcpy((char *)h2, (char *)h1, ephdr_ctlen(h1));
-    if (flags & XEPUBUF_APPENDRT) {
-	h2->ttl++;
-	uh = ephdr_uhdr(h2);
-	uh->ephdr_off += ephdr_ctlen(h2);
+struct ephdr *ephdr_new() {
+    struct ephdr *eh = (struct ephdr *)xallocmsg(sizeof(struct ephdr));
+    if (eh) {
+	eh->version = 0xff;
+	eh->ttl = 0;
+	eh->end_ttl = 0;
+	eh->go = 0;
+	eh->size = 0;
+	eh->timeout = 0;
+	eh->sendstamp = 0;
     }
-    return ephdr2ubuf(h2);
+    return eh;
 }
 
-char *ubuf_new(int size) {
-    int ctlen = sizeof(struct ephdr) + sizeof(struct epr) + sizeof(struct uhdr);
-    struct uhdr *uh;
-    struct ephdr *eh;
-
-    if (!(eh = (struct ephdr *)xallocmsg(size + ctlen)))
-	return 0;
-    ephdr_init(eh);
-    eh->ttl = 1;
-    eh->go = 1;
-    eh->size = size;
-    uh = ephdr_uhdr(eh);
-    uh->ephdr_off = ephdr_ctlen(eh);
-    return ephdr2ubuf(eh);
+void ephdr_free(struct ephdr *eh) {
+    xfreemsg((char *)eh);
 }
 
-char *xep_allocubuf(int flags, int size, ...) {
-    va_list ap;
-    char *ubuf;
+char *xep_allocubuf(int size) {
+    int cmsgnum;
+    struct xmsgoob oob;
+    char *ubuf = xallocmsg(size);
 
-    if (flags & XEPUBUF_CLONEHDR) {
-	va_start(ap, size);
-	ubuf = va_arg(ap, char *);
-	va_end(ap);
-	return ubuf_clone((flags & ~XEPUBUF_CLONEHDR), size, ubuf);
-    }
-    return ubuf_new(size);
+    BUG_ON(!ubuf);
+    oob.pos = 0;
+    oob.outofband = (char *)ephdr_new();
+    BUG_ON(xmsgctl(ubuf, XMSG_SETOOB, &oob) != 0);
+    BUG_ON(xmsgctl(ubuf, XMSG_OOBNUM, &cmsgnum) != 0);
+    BUG_ON(cmsgnum != 1);
+    return ubuf;
 }
 
 void xep_freeubuf(char *ubuf) {
-    struct ephdr *h = ubuf2ephdr(ubuf);
-    xfreemsg((char *)h);
+    xfreemsg((char *)ubuf);
 }
 
 u32 xep_ubuflen(char *ubuf) {
-    struct ephdr *h = ubuf2ephdr(ubuf);
-    return h->size;
+    return xmsglen(ubuf);
 }

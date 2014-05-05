@@ -50,26 +50,21 @@ static void comsumer_event_hndl(struct endsock *sk) {
     struct endpoint *ep = sk->owner;
     struct proxy *py = ep->owner;
     int rc;
-    char *ubuf, *ubuf2;
+    char *ubuf;
     struct endsock *dst = 0;
     
     BUG_ON(ep->type != XEP_COMSUMER);
     if ((rc = recv_vfptr[ep->type] (sk, &ubuf)) == 0) {
-	ubuf2 = xep_allocubuf(XEPUBUF_CLONEHDR|XEPUBUF_APPENDRT,
-			      xep_ubuflen(ubuf), ubuf);
-	BUG_ON(!ubuf2);
-	memcpy(ubuf2, ubuf, xep_ubuflen(ubuf));
-	xep_freeubuf(ubuf);
 
 	BUG_ON(ep != py->frontend);
-	rc = __xep_send(py->backend, ubuf2, &dst);
+	rc = __xep_send(py->backend, ubuf, &dst);
 	if (dst)
 	    BUG_ON(dst->owner != py->backend);
 
 	DEBUG_OFF("ep(%d)'s receiver %d send req: %10.10s goto %d", ep2eid(ep),
-		  sk->fd, ubuf2, dst ? dst->fd : -1);
+		  sk->fd, ubuf, dst ? dst->fd : -1);
 	if (rc < 0)
-	    xep_freeubuf(ubuf2);
+	    xep_freeubuf(ubuf);
     } else if (errno != EAGAIN)
 	DEBUG_OFF("ep(%d)'s receiver %d bad status of errno %d", ep2eid(ep),
 		  sk->fd, errno);

@@ -43,8 +43,7 @@ static struct endsock *rrbin_forward(struct endpoint *ep, char *ubuf) {
 
 static struct endsock *route_backward(struct endpoint *ep, char *ubuf) {
     struct endsock *es, *next_es;
-    struct ephdr *eh = ubuf2ephdr(ubuf);
-    struct epr *rt = rt_cur(eh);
+    struct epr *rt = rt_cur(ubuf);
 
     xendpoint_walk_sock(es, next_es, &ep->connectors) {
 	if (memcmp(es->uuid, rt->uuid, sizeof(es->uuid)) != 0)
@@ -65,11 +64,12 @@ static int producer_send(struct endsock *sk, char *ubuf) {
     struct endpoint *ep = sk->owner;
     int rc;
     struct ephdr *eh = ubuf2ephdr(ubuf);
-    struct epr *rt = rt_cur(eh);
+    struct epr *rt = epr_new();
 
     eh->go = 1;
     uuid_copy(rt->uuid, sk->uuid);
-    if ((rc = xsend(sk->fd, (char *)eh)) < 0) {
+    rt_append(ubuf, rt);
+    if ((rc = xsend(sk->fd, ubuf)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
 	    list_move_tail(&sk->link, &ep->bad_socks);
