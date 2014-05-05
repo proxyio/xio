@@ -29,10 +29,12 @@ for building distributed systems. By combining them you can create a vast array 
 distributed applications. The following scalability protocols are provided in the
 near future:
 
-    PAIR - simple one-to-one communication
-    BUS - simple many-to-many communication
-    REQREP - allows to build clusters of stateless services to process user requests
-    PUBSUB - distributes messages to large sets of interested subscribers
+==============================================
+	PAIR:   simple one-to-one communication
+	BUS:    simple many-to-many communication
+	REQREP: build clusters of stateless services to process user requests
+	PUBSUB: distributes messages to large sets of interested subscribers
+==============================================
 
 Scalability protocols are layered on top of the transport layer in the network stack
 and implemented by endpoint.
