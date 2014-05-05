@@ -88,7 +88,7 @@ static int comsumer_send(struct endsock *sk, char *ubuf) {
     eh->go = 0;
     if (!eh->end_ttl)
 	eh->end_ttl = eh->ttl;
-    if ((rc = xsend(sk->fd, (char *)eh)) < 0) {
+    if ((rc = xsend(sk->fd, ubuf)) < 0) {
 	if (errno != EAGAIN) {
 	    errno = EPIPE;
 	    list_move_tail(&sk->link, &ep->bad_socks);
