@@ -418,18 +418,17 @@ os platform in the near future.</p></div>
 <a href="xendpoint.7.html">xendpoint(7)</a></p></div>
 <div class="paragraph"><p>The communication patterns, also called "scalability protocols", are basic blocks
 for building distributed systems. By combining them you can create a vast array of
-distributed applications. The following scalability protocols are currently
-available:</p></div>
+distributed applications. The following scalability protocols are provided in the
+near future:</p></div>
 <div class="literalblock">
 <div class="content">
 <pre><tt>PAIR - simple one-to-one communication
 BUS - simple many-to-many communication
 REQREP - allows to build clusters of stateless services to process user requests
-PUBSUB - distributes messages to large sets of interested subscribers
-PIPELINE - aggregates messages from multiple sources and load balances them among
-          many destinations
-SURVEY - allows to query state of multiple applications in a single go</tt></pre>
+PUBSUB - distributes messages to large sets of interested subscribers</tt></pre>
 </div></div>
+<div class="paragraph"><p>Scalability protocols are layered on top of the transport layer in the network stack
+and implemented by endpoint.</p></div>
 <div class="paragraph"><p>The library exposes a BSD-socket-like C API to the applications.</p></div>
 <div class="paragraph"><p>It is licensed under MIT/X11 license.</p></div>
 </div>
@@ -445,7 +444,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-03 01:45:22 CST
+Last updated 2014-05-05 10:48:59 CST
 </div>
 </div>
 </body>

@@ -3,7 +3,7 @@ xendpoint(7)
 
 NAME
 ----
-xendpoint - A endpoint for building large distributed cluster
+xendpoint - A endpoint for building scalability protocols
 
 SYNOPSIS
 --------
