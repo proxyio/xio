@@ -8,7 +8,7 @@ xsend - send a message
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xsend (int 's', const void '*xmsg');*
 

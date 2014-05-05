@@ -8,7 +8,7 @@ xsetsockopt - set a socket option
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xsetsockopt (int 's', int 'level', int 'option', void '*val',
     size_t '*vallen');*

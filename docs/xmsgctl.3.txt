@@ -1,0 +1,65 @@
+xctlmsg(3)
+==========
+
+NAME
+----
+xmsgctl - control a message
+
+
+SYNOPSIS
+--------
+*#include <xio/socket.h>*
+
+*int xmsgctl(char '*xmsg', int 'opt', void '*optval');*
+
+DESCRIPTION
+-----------
+Manipulate options for the xmsg, such outofband data and so on.
+
+_<xio/socket.h>_ header defines generic CTL options. The options are as follows:
+
+*XMSG_CMSGNUM*::
+	return the cmsg number.
+*XMSG_GETCMSG*::
+	get one control message from xmsg.
+*XMSG_SETCMSG*::
+	set one control message from xmsg.
+*XMSG_CLONE*::
+	clone one xmsg.
+*XMSG_COPYCMSG*::
+	copy control message to another xmsg.
+*XMSG_SWITCHMSG*::
+	remove control message to another xmsg.
+
+RETURN VALUE
+------------
+On success, xmsg pointer is returned.  On error, 0 is returned, and errno is set
+appropriately.
+
+ERRORS
+------
+*EINVAL*::
+Supplied allocation 'size' is invalid.
+*ENOMEM*::
+Not enough memory to allocate the message.
+
+
+EXAMPLE
+-------
+
+----
+----
+
+
+SEE ALSO
+--------
+linkxio:xfreemsg[3]
+linkxio:xsend[3]
+linkxio:xio[7]
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
+
+

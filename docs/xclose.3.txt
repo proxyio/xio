@@ -8,7 +8,7 @@ xclose - close a xio socket
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *void xclose (int 's');*
 

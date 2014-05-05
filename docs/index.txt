@@ -10,7 +10,7 @@ http://nanomsg.org[nanomsg]
 
 DESCRIPTION
 -----------
-WARNING: proxyio is still in beta stage!
+WARNING: proxyio is still in beta stage, very unstable!
 
 proxyio is a socket library that provides several common communication patterns.
 It aims to make the networking layer scalable, and easy to use. proxyio is

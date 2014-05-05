@@ -393,18 +393,13 @@ div#toc a:visited { color: blue; }
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>#include &lt;xio/endpoint.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>char *xep_allocubuf(int <em>flags</em>, int <em>size</em>, &#8230; /</strong> src ubuf <strong>/);</strong></p></div>
+<div class="paragraph"><p><strong>char *xep_allocubuf(int <em>size</em>);</strong></p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>Allocate a user-space buf of the specified <em>size</em> for endpoint.
 The content of the ubuf is ZERO after allocation and it should be filled
 in by the user.</p></div>
-<div class="paragraph"><p>The argument flags must include one of the following:
-    XEPUBUF_CLONEHDR, 0.</p></div>
-<div class="paragraph"><p>When XEPUBUF_CLONEHDR is specified, the third arguments must be provided.</p></div>
-<div class="paragraph"><p>In addition, zero or more ubuf allocation flags and can be bitwise-or’d in flags:
-    XEPUBUF_APPENDRT</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
@@ -458,7 +453,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-04 13:59:21 CST
+Last updated 2014-05-05 11:31:43 CST
 </div>
 </div>
 </body>

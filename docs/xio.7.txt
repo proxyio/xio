@@ -65,6 +65,9 @@ Deallocate a xmsg::
 Get xmsg length::
     linkxio:xmsglen[3]
 
+Control xmsg::
+    linkxio:xmsgctl[3]
+    
     
 Following tools are installed with the library:
 

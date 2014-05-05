@@ -8,7 +8,7 @@ xmsglen - return length of xmsg
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int *xmsglen (void '*xmsg');*
 

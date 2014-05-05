@@ -8,7 +8,7 @@ xrecv - receive a message
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xrecv (int 's', void '**xmsg');*
 

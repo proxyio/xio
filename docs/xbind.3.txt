@@ -8,7 +8,7 @@ xbind - add an endpoint to the socket, local or remote
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xbind (int 's', const char '*addr');*
 
@@ -22,7 +22,7 @@ if the xio socket's type is XCONNECTOR, it is the same as xconnect[3].
 The 'addr' is specific to the underlying transport protocol.
 
 Maximum length of the 'addr' parameter is specified by XSOCKADDRLEN defined in
-'<xio/sock.h>' header file.
+'<xio/socket.h>' header file.
 
 RETURN VALUE
 ------------

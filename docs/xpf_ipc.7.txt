@@ -8,7 +8,7 @@ XPF_IPC - inter-process transport mechanism
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 
 DESCRIPTION

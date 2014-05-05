@@ -392,7 +392,7 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><strong>#include &lt;xio/sock.h&gt;</strong></p></div>
+<div class="paragraph"><p><strong>#include &lt;xio/socket.h&gt;</strong></p></div>
 <div class="paragraph"><p><strong>int xgetsockopt (int <em>s</em>, int <em>level</em>, int <em>option</em>, void <em>*val</em>,
     size_t <em>*vallen</em>);</strong></p></div>
 </div>
@@ -407,7 +407,7 @@ buffer is specified by the <em>vallen</em> argument. If the size of the option i
 greater than size of the buffer, the value will be silently truncated.
 Otherwise, the <em>vallen</em> will be modified to indicate the actual length of
 the option.</p></div>
-<div class="paragraph"><p><em>&lt;xio/sock.h&gt;</em> header defines generic xio socket options (<em>XSOCKET</em> level).
+<div class="paragraph"><p><em>&lt;xio/socket.h&gt;</em> header defines generic xio socket options (<em>XSOCKET</em> level).
 The options are as follows:</p></div>
 <div class="dlist"><dl>
 <dt class="hdlist1">
@@ -488,32 +488,6 @@ The options are as follows:</p></div>
 </p>
 </dd>
 <dt class="hdlist1">
-<strong>XRECONNECT_IVL</strong>
-</dt>
-<dd>
-<p>
-    For connection-based transports such as TCP, this option specifies how
-    long to wait, in milliseconds, when connection is broken before trying
-    to re-establish it. Note that actual reconnect interval may be randomised
-    to some extent to prevent severe reconnection storms. The type of the option
-    is int. Default value is 100 (0.1 second).
-</p>
-</dd>
-<dt class="hdlist1">
-<strong>XRECONNECT_IVL_MAX</strong>
-</dt>
-<dd>
-<p>
-    This option is to be used only in addition to <em>XRECONNECT_IVL</em> option.
-    It specifies maximum reconnection interval. On each reconnect attempt,
-    the previous interval is doubled until <em>XRECONNECT_IVL_MAX</em> is reached.
-    Value of zero means that no exponential backoff is performed and reconnect
-    interval is based only on <em>XRECONNECT_IVL</em>. If <em>XRECONNECT_IVL_MAX</em> is
-    less than <em>XRECONNECT_IVL</em>, it is ignored. The type of the option is int.
-    Default value is 0.
-</p>
-</dd>
-<dt class="hdlist1">
 <strong>XSOCKETKEY</strong>
 </dt>
 <dd>
@@ -577,7 +551,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-04 13:59:21 CST
+Last updated 2014-05-05 11:51:41 CST
 </div>
 </div>
 </body>

@@ -8,7 +8,7 @@ XPF_TCP - TCP transport mechanism
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 
 DESCRIPTION

@@ -8,7 +8,7 @@ xsocket - create an xio socket
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xsocket(int 'pf', int 'socktype');*
 

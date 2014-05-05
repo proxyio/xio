@@ -9,7 +9,7 @@ xlisten - create a listener xio socket
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xlisten (const char '*addr');*
 
@@ -24,7 +24,7 @@ The 'transport' specifies the underlying transport protocol to use. The meaning
 of the 'address' part is specific to the underlying transport protocol.
 
 Maximum length of the 'addr' parameter is specified by _XSOCKADDRLEN_
-defined in '<xio/sock.h>' header file.
+defined in '<xio/socket.h>' header file.
 
 RETURN VALUE
 ------------

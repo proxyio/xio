@@ -8,7 +8,7 @@ xgetsockopt - retrieve a xio socket option
 
 SYNOPSIS
 --------
-*#include <xio/sock.h>*
+*#include <xio/socket.h>*
 
 *int xgetsockopt (int 's', int 'level', int 'option', void '*val',
     size_t '*vallen');*
@@ -26,7 +26,7 @@ greater than size of the buffer, the value will be silently truncated.
 Otherwise, the 'vallen' will be modified to indicate the actual length of
 the option.
 
-_<xio/sock.h>_ header defines generic xio socket options (_XSOCKET_ level).
+_<xio/socket.h>_ header defines generic xio socket options (_XSOCKET_ level).
 The options are as follows:
 
 *XPF*::
@@ -58,20 +58,6 @@ The options are as follows:
     cannot be received within the specified timeout, EAGAIN error is returned.
     Negative value means infinite timeout. The type of the option is int.
     Default value is -1.
-*XRECONNECT_IVL*::
-    For connection-based transports such as TCP, this option specifies how
-    long to wait, in milliseconds, when connection is broken before trying
-    to re-establish it. Note that actual reconnect interval may be randomised
-    to some extent to prevent severe reconnection storms. The type of the option
-    is int. Default value is 100 (0.1 second).
-*XRECONNECT_IVL_MAX*::
-    This option is to be used only in addition to _XRECONNECT_IVL_ option.
-    It specifies maximum reconnection interval. On each reconnect attempt,
-    the previous interval is doubled until _XRECONNECT_IVL_MAX_ is reached.
-    Value of zero means that no exponential backoff is performed and reconnect
-    interval is based only on _XRECONNECT_IVL_. If _XRECONNECT_IVL_MAX_ is
-    less than _XRECONNECT_IVL_, it is ignored. The type of the option is int.
-    Default value is 0.
 *XSOCKETKEY*::
     Socket name for error reporting and statistics. The type of the option
     is string. Default value is "socket.N" where N is socket integer.
