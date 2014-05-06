@@ -24,7 +24,88 @@
 
 struct sp_global sg;
 
+static void connector_event_hndl(struct epsk *sk) {
+    int rc;
+    char *ubuf = 0;
+    int happened = sk->ent.happened;
+    struct epbase *ep = sk->owner;
+
+    if (happened & XPOLLIN) {
+	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
+	    ep->vfptr.add(ep, sk, ubuf);
+	} else if (errno != EAGAIN)
+	    happened |= XPOLLERR;
+    }
+    if (happened & XPOLLOUT) {
+	if ((rc = ep->vfptr.rm(ep, sk, &ubuf)) == 0) {
+	    if ((rc = xsend(sk->fd, ubuf)) < 0) {
+		xfreemsg(ubuf);
+		if (errno != EAGAIN)
+		    happened |= XPOLLERR;
+	    }
+	}
+    }
+    if (happened & XPOLLERR) {
+	DEBUG_OFF("socket %d epipe", sk->fd);
+	list_move_tail(&sk->item, &ep->bad_socks);
+    }
+}
+
+static void listener_event_hndl(struct epsk *sk) {
+    int nfd;
+    int happened = sk->ent.happened;
+    struct epbase *ep = sk->owner;
+
+    if (happened & XPOLLIN) {
+	while ((nfd = xaccept(sk->fd)) >= 0) {
+	    ep->vfptr.join(ep, sk, nfd);
+	}
+	if (errno != EAGAIN)
+	    happened |= XPOLLERR;
+    }
+    if (happened & XPOLLERR) {
+	DEBUG_OFF("socket %d epipe", sk->fd);
+	list_move_tail(&sk->item, &ep->bad_socks);
+    }
+}
+
+static void event_hndl(struct xpoll_event *ent) {
+    int socktype = 0;
+    int optlen;
+    struct epsk *sk = (struct epsk *)ent->self;
+
+    sk->ent.happened = ent->happened;
+    xgetopt(sk->fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
+    switch (socktype) {
+    case XCONNECTOR:
+	connector_event_hndl(sk);
+	break;
+    case XLISTENER:
+	listener_event_hndl(sk);
+	break;
+    default:
+	BUG_ON(1);
+    }
+}
+
+extern const char *xpoll_str[];
+
 static int po_routine_worker(void *args) {
+    int rc, i;
+    const char *estr;
+    struct xpoll_event ent[100];
+
+    while (!sg.exiting) {
+	rc = xpoll_wait(sg.po, ent, NELEM(ent, struct xpoll_event), 1);
+	if (rc < 0)
+	    continue;
+	DEBUG_OFF("%d sockets happened events", rc);
+	for (i = 0; i < rc; i++) {
+	    estr = xpoll_str[ent[i].happened];
+	    DEBUG_OFF("socket %d with events %s", ent[i].xd, estr);
+	    event_hndl(&ent[i]);
+	}
+    }
     return 0;
 }
 

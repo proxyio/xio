@@ -31,7 +31,7 @@ static int producer_thread(void *args) {
 	BUG_ON((s = xconnect(host.c_str())) < 0);
 	BUG_ON(xep_add(eid, s) < 0);
     }
-    for (i = 0; i < 30; i++) {
+    for (i = 0; i < 3; i++) {
 	sbuf = rbuf = 0;
 	sbuf = xep_allocubuf(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
@@ -103,7 +103,7 @@ TEST(endpoint, proxy) {
 	thread_start(&t[i], producer_thread, (void *)pf[i]);
     }
 
-    for (i = 0; i < NELEM(t, thread_t) * 30; i++) {
+    for (i = 0; i < NELEM(t, thread_t) * 3; i++) {
 	while (xep_recv(eid, &ubuf) != 0) {
 	    usleep(1000);
 	}

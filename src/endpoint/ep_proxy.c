@@ -162,7 +162,7 @@ static int py_routine(void *args) {
 	if ((rc = xpoll_wait(py->po, ent, NELEM(ent, struct xpoll_event),
 			     1)) < 0) {
 	    usleep(10000);
-	    return -1;
+	    continue;
 	}
 	DEBUG_OFF("%d sockets happened events", rc);
 	for (i = 0; i < rc; i++) {

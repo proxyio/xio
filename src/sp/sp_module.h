@@ -41,10 +41,11 @@ struct epbase_vfptr {
     int sp_type;
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
-    void (*add) (struct epbase *ep, struct epsk *sk, char *ubuf);
-    int (*rm) (struct epbase *ep, struct epsk *sk, char **ubuf);
-    int (*setopt) (struct epbase *ep, int opt, void *optval, int optlen);
-    int (*getopt) (struct epbase *ep, int opt, void *optval, int *optlen);
+    int  (*rm)      (struct epbase *ep, struct epsk *sk, char **ubuf);
+    void (*add)     (struct epbase *ep, struct epsk *sk, char *ubuf);
+    void (*join)    (struct epbase *ep, struct epsk *sk, int fd);
+    int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
+    int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
 };
 
