@@ -20,24 +20,35 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SCALABILITY_PROTOCOLS_
-#define _HPIO_SCALABILITY_PROTOCOLS_
+#include <xio/sp.h>
+#include "sp_module.h"
 
-#include <xio/cplusplus_define.h>
 
-#define SP_REQREP    1
-#define SP_BUS       2
-#define SP_PAIR      3
-#define SP_MULL      4
+int sp_rm(int eid, int fd) {
+    struct epbase *ep = eid_get(eid);
+    struct epsk *sk, *nsk;
 
-int sp_endpoint(int sp_family, int sp_type);
-void sp_close(int eid);
-int sp_send(int eid, char *xmsg);
-int sp_recv(int eid, char **xmsg);
-int sp_add(int eid, int fd);
-int sp_rm(int eid, int fd);
-int sp_setopt(int eid, int opt, void *optval, int optlen);
-int sp_getopt(int eid, int opt, void *optval, int *optlen);
-
-#include <xio/cplusplus_endif.h>
-#endif
+    if (!ep) {
+	errno = EBADF;
+	return -1;
+    }
+    /* BUG */
+    mutex_lock(&ep->lock);
+    walk_epsk_safe(sk, nsk, &ep->listeners) {
+	if (sk->fd != fd)
+	    continue;
+	list_del_init(&sk->item);
+    }
+    walk_epsk_safe(sk, nsk, &ep->connectors) {
+	if (sk->fd != fd)
+	    continue;
+	list_del_init(&sk->item);
+    }
+    walk_epsk_safe(sk, nsk, &ep->bad_socks) {
+	if (sk->fd != fd)
+	    continue;
+	list_del_init(&sk->item);
+    }
+    mutex_lock(&ep->lock);
+    return 0;
+}

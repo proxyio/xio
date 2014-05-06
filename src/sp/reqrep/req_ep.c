@@ -91,6 +91,9 @@ static void req_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
     nsk->ent.xd = nfd;
     nsk->ent.self = nsk;
     nsk->ent.care = XPOLLIN|XPOLLOUT|XPOLLERR;
+    mutex_lock(&ep->lock);
+    list_add_tail(&nsk->item, &ep->connectors);
+    mutex_unlock(&ep->lock);
     sg_add_sk(nsk);
 }
 

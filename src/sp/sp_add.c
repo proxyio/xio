@@ -20,24 +20,44 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SCALABILITY_PROTOCOLS_
-#define _HPIO_SCALABILITY_PROTOCOLS_
+#include <xio/sp.h>
+#include "sp_module.h"
 
-#include <xio/cplusplus_define.h>
 
-#define SP_REQREP    1
-#define SP_BUS       2
-#define SP_PAIR      3
-#define SP_MULL      4
-
-int sp_endpoint(int sp_family, int sp_type);
-void sp_close(int eid);
-int sp_send(int eid, char *xmsg);
-int sp_recv(int eid, char **xmsg);
-int sp_add(int eid, int fd);
-int sp_rm(int eid, int fd);
-int sp_setopt(int eid, int opt, void *optval, int optlen);
-int sp_getopt(int eid, int opt, void *optval, int *optlen);
-
-#include <xio/cplusplus_endif.h>
-#endif
+int sp_add(int eid, int fd) {
+    struct epbase *ep = eid_get(eid);
+    struct epsk *nsk;
+    int rc;
+    int socktype = 0;
+    int optlen = sizeof(socktype);
+    
+    rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
+    if (!ep || rc < 0) {
+	errno = EBADF;
+	eid_put(eid);
+	return -1;
+    }
+    switch (socktype) {
+    case XCONNECTOR:
+	ep->vfptr.join(ep, 0, fd);
+	break;
+    case XLISTENER:
+	if (!(nsk = epsk_new())) {
+	    eid_put(eid);
+	    return -1;
+	}
+	nsk->owner = ep;
+	nsk->ent.xd = fd;
+	nsk->ent.self = nsk;
+	nsk->ent.care = XPOLLIN|XPOLLERR;
+	mutex_lock(&ep->lock);
+	list_add_tail(&nsk->item, &ep->listeners);
+	mutex_unlock(&ep->lock);
+	sg_add_sk(nsk);
+	break;
+    default:
+	BUG_ON(1);
+    }
+    eid_put(eid);
+    return 0;
+}
