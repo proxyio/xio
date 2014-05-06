@@ -72,14 +72,14 @@ typedef struct atomic {
 	    spin_unlock(&(at)->lock);		\
 	    __old;})
 
-#define atomic_dec_and_lock(at, ops, lock) do {	\
-	int64_t __old;				\
-	spin_lock(&(at)->lock);			\
-	__old = (at)->val--;			\
-	spin_unlock(&(at)->lock);		\
-	if (__old == 1)				\
-	    ops->lock(&lock);			\
-    } while (0)
+#define atomic_dec_and_lock(at, locktype, ext_lock) do {	\
+	int64_t __old;						\
+	spin_lock(&(at)->lock);					\
+	__old = (at)->val--;					\
+	spin_unlock(&(at)->lock);				\
+	if (__old == 1)						\
+	    locktype##_lock(&ext_lock);				\
+    } while (0);
     
 
 

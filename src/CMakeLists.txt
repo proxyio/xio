@@ -21,6 +21,7 @@ add_library( xlibc STATIC ${XLIBC} )
 aux_source_directory( socket XIO )
 aux_source_directory( poll XIO )
 aux_source_directory( endpoint XIO )
+aux_source_directory( sp XIO )
 add_library( xio STATIC ${XIO} )
 target_link_libraries( xio xlibc uuid )
 
