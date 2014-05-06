@@ -23,6 +23,7 @@
 #ifndef _HPIO_SP_MODULE_
 #define _HPIO_SP_MODULE_
 
+#include <uuid/uuid.h>
 #include <ds/list.h>
 #include <sync/mutex.h>
 #include <sync/atomic.h>
@@ -45,6 +46,17 @@ struct epbase_vfptr {
     struct list_head item;
 };
 
+struct epsk {
+    struct epbase *owner;
+    struct xpoll_event ent;
+    int fd;
+    uuid_t uuid;
+    struct list_head item;
+};
+
+struct epsk *epsk_new();
+void epsk_free(struct epsk *sk);
+
 struct epbase {
     struct epbase_vfptr vfptr;
     atomic_t ref;
@@ -58,7 +70,18 @@ struct epbase {
 	int waiters;
 	struct list_head head;
     } rcv, snd;
+    struct list_head listeners;
+    struct list_head connectors;
+    struct list_head bad_socks;
 };
+
+#define walk_msg_safe(msg, nmsg, head)					\
+    list_for_each_entry_safe(msg, nmsg, head, struct xmsg, item)
+
+#define walk_epsk_safe(sk, nsk, head)				\
+    list_for_each_entry_safe(sk, nsk, head, struct epsk, item)
+
+
 
 #define XIO_MAX_ENDPOINTS 1024
 

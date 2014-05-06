@@ -93,3 +93,63 @@ void eid_put(int eid) {
 	ep->vfptr.destroy(ep);
     }
 }
+
+struct epsk *epsk_new() {
+    struct epsk *sk = (struct epsk *)mem_zalloc(sizeof(*sk));
+    return sk;
+}
+
+void epsk_free(struct epsk *sk) {
+    mem_free(sk, sizeof(*sk));
+}
+
+
+void epbase_init(struct epbase *ep) {
+    atomic_init(&ep->ref);
+    mutex_init(&ep->lock);
+    condition_init(&ep->cond);
+
+    ep->rcv.wnd = 0;
+    ep->rcv.buf = 0;
+    ep->rcv.waiters = 0;
+    INIT_LIST_HEAD(&ep->rcv.head);
+
+    ep->snd.wnd = 0;
+    ep->snd.buf = 0;
+    ep->snd.waiters = 0;
+    INIT_LIST_HEAD(&ep->snd.head);
+
+    INIT_LIST_HEAD(&ep->listeners);
+    INIT_LIST_HEAD(&ep->connectors);
+    INIT_LIST_HEAD(&ep->bad_socks);
+}
+
+void epbase_exit(struct epbase *ep) {
+    struct xmsg *msg, *nmsg;
+    struct epsk *sk, *nsk;
+    struct list_head closed_head;
+
+    BUG_ON(atomic_read(&ep->ref));
+    atomic_destroy(&ep->ref);
+    mutex_destroy(&ep->lock);
+    condition_destroy(&ep->cond);
+
+    INIT_LIST_HEAD(&closed_head);
+    list_splice(&ep->snd.head, &closed_head);
+    list_splice(&ep->rcv.head, &closed_head);
+    walk_msg_safe(msg, nmsg, &closed_head) {
+	list_del_init(&msg->item);
+	xfreemsg(msg->vec.chunk);
+    }
+    BUG_ON(!list_empty(&closed_head));
+    INIT_LIST_HEAD(&closed_head);
+    list_splice(&ep->listeners, &closed_head);
+    list_splice(&ep->connectors, &closed_head);
+    list_splice(&ep->bad_socks, &closed_head);
+
+    walk_epsk_safe(sk, nsk, &closed_head) {
+	list_del_init(&sk->item);
+	xclose(sk->fd);
+	epsk_free(sk);
+    }
+}
