@@ -42,7 +42,7 @@ struct epbase_vfptr {
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
     int  (*rm)      (struct epbase *ep, struct epsk *sk, char **ubuf);
-    void (*add)     (struct epbase *ep, struct epsk *sk, char *ubuf);
+    int  (*add)     (struct epbase *ep, struct epsk *sk, char *ubuf);
     void (*join)    (struct epbase *ep, struct epsk *sk, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
@@ -59,6 +59,17 @@ struct epsk {
 
 struct epsk *epsk_new();
 void epsk_free(struct epsk *sk);
+void sg_add_sk(struct epsk *sk);
+void sg_rm_sk(struct epsk *sk);
+void sg_update_sk(struct epsk *sk, u32 ev);
+
+struct skbuf {
+    int wnd;
+    int size;
+    int waiters;
+    struct list_head head;
+};
+
 
 struct epbase {
     struct epbase_vfptr vfptr;
@@ -67,12 +78,8 @@ struct epbase {
     mutex_t lock;
     condition_t cond;
     struct xpoll_event ent;
-    struct {
-	int wnd;
-	int buf;
-	int waiters;
-	struct list_head head;
-    } rcv, snd;
+    struct skbuf rcv;
+    struct skbuf snd;
     struct list_head listeners;
     struct list_head connectors;
     struct list_head bad_socks;

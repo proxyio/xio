@@ -39,7 +39,7 @@ int sp_recv(int eid, char **xmsg) {
     }
     in = list_first(&ep->rcv.head, struct xmsg, item);
     *xmsg = in->vec.chunk;
-    ep->rcv.buf -= xmsglen(in->vec.chunk);
+    ep->rcv.size -= xmsglen(in->vec.chunk);
     mutex_unlock(&ep->lock);
     eid_put(eid);
     return 0;

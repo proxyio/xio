@@ -36,11 +36,12 @@ static void rep_ep_destroy(struct epbase *ep) {
 
 }
 
-static void rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct spr *r = rt_cur(ubuf);
 
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0)
 	uuid_copy(sk->uuid, r->uuid);
+    return 0;
 }
 
 static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
@@ -66,6 +67,20 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     return 0;
 }
 
+static void rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
+    struct epsk *nsk = epsk_new();
+
+    if (!nsk) {
+	xclose(nfd);
+	return;
+    }
+    nsk->owner = ep;
+    nsk->ent.xd = nfd;
+    nsk->ent.self = nsk;
+    nsk->ent.care = XPOLLIN|XPOLLOUT|XPOLLERR;
+    sg_add_sk(nsk);
+}
+
 static int rep_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {
     return 0;
 }
@@ -81,6 +96,7 @@ struct epbase_vfptr rep_epbase = {
     .destroy = rep_ep_destroy,
     .add = rep_ep_add,
     .rm = rep_ep_rm,
+    .join = rep_ep_join,
     .setopt = rep_ep_setopt,
     .getopt = rep_ep_getopt,
 };

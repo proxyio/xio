@@ -24,6 +24,43 @@
 
 struct sp_global sg;
 
+
+static void epsk_bad_status(struct epsk *sk) {
+    struct epbase *ep = sk->owner;
+    mutex_lock(&ep->lock);
+    list_move_tail(&sk->item, &ep->bad_socks);
+    mutex_unlock(&ep->lock);
+}
+
+void sg_add_sk(struct epsk *sk) {
+    int rc;
+    spin_lock(&sg.lock);
+    rc = xpoll_ctl(sg.po, XPOLL_ADD, &sk->ent);
+    spin_unlock(&sg.lock);
+    BUG_ON(rc);
+}
+
+void sg_rm_sk(struct epsk *sk) {
+    int rc;
+    spin_lock(&sg.lock);
+    rc = xpoll_ctl(sg.po, XPOLL_DEL, &sk->ent);
+    spin_unlock(&sg.lock);
+    BUG_ON(rc);
+}
+
+void __sg_update_sk(struct epsk *sk, u32 ev) {
+    int rc;
+    sk->ent.care = ev;
+    rc = xpoll_ctl(sg.po, XPOLL_MOD, &sk->ent);
+    BUG_ON(rc);
+}
+
+void sg_update_sk(struct epsk *sk, u32 ev) {
+    spin_lock(&sg.lock);
+    __sg_update_sk(sk, ev);
+    spin_unlock(&sg.lock);
+}
+
 static void connector_event_hndl(struct epsk *sk) {
     int rc;
     char *ubuf = 0;
@@ -32,7 +69,7 @@ static void connector_event_hndl(struct epsk *sk) {
 
     if (happened & XPOLLIN) {
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
-	    ep->vfptr.add(ep, sk, ubuf);
+	    rc = ep->vfptr.add(ep, sk, ubuf);
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
     }
@@ -47,7 +84,8 @@ static void connector_event_hndl(struct epsk *sk) {
     }
     if (happened & XPOLLERR) {
 	DEBUG_OFF("socket %d epipe", sk->fd);
-	list_move_tail(&sk->item, &ep->bad_socks);
+	sg_rm_sk(sk);
+	epsk_bad_status(sk);
     }
 }
 
@@ -65,7 +103,8 @@ static void listener_event_hndl(struct epsk *sk) {
     }
     if (happened & XPOLLERR) {
 	DEBUG_OFF("socket %d epipe", sk->fd);
-	list_move_tail(&sk->item, &ep->bad_socks);
+	sg_rm_sk(sk);
+	epsk_bad_status(sk);
     }
 }
 
@@ -191,12 +230,12 @@ void epbase_init(struct epbase *ep) {
     condition_init(&ep->cond);
 
     ep->rcv.wnd = 0;
-    ep->rcv.buf = 0;
+    ep->rcv.size = 0;
     ep->rcv.waiters = 0;
     INIT_LIST_HEAD(&ep->rcv.head);
 
     ep->snd.wnd = 0;
-    ep->snd.buf = 0;
+    ep->snd.size = 0;
     ep->snd.waiters = 0;
     INIT_LIST_HEAD(&ep->snd.head);
 
