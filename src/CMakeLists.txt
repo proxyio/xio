@@ -22,6 +22,7 @@ aux_source_directory( socket XIO )
 aux_source_directory( poll XIO )
 aux_source_directory( endpoint XIO )
 aux_source_directory( sp XIO )
+aux_source_directory( sp/reqrep XIO )
 add_library( xio STATIC ${XIO} )
 target_link_libraries( xio xlibc uuid )
 

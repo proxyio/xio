@@ -20,17 +20,18 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_REQ_EP_
-#define _HPIO_REQ_EP_
+#ifndef _HPIO_SP_REQREP_
+#define _HPIO_SP_REQREP_
 
-#include <sp/reqrep.h>
+#include <sp/sp_module.h>
 
-struct rep_ep;
+#define SP_REQREP   1
+#define REQ         1
+#define REP         1
 
-struct req_ep {
-    struct epbase base;
-    struct rep_ep *peer;
-};
+extern struct epbase_vfptr *req_epbase_vfptr;
+extern struct epbase_vfptr *rep_epbase_vfptr;
+
 
 
 

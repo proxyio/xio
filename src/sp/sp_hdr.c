@@ -20,18 +20,34 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_REQ_EP_
-#define _HPIO_REQ_EP_
+#include <stdio.h>
+#include <stdarg.h>
+#include "sp_hdr.h"
 
-#include <sp/reqrep.h>
+struct spr *spr_new() {
+    struct spr *r = (struct spr *)xallocmsg(sizeof(struct spr));
+    BUG_ON(!r);
+    return r;
+}
 
-struct rep_ep;
+void spr_free(struct spr *r) {
+    xfreemsg((char *)r);
+}
 
-struct req_ep {
-    struct epbase base;
-    struct rep_ep *peer;
-};
+struct sphdr *sphdr_new() {
+    struct sphdr *eh = (struct sphdr *)xallocmsg(sizeof(struct sphdr));
+    if (eh) {
+	eh->version = 0xff;
+	eh->ttl = 0;
+	eh->end_ttl = 0;
+	eh->go = 0;
+	eh->size = 0;
+	eh->timeout = 0;
+	eh->sendstamp = 0;
+    }
+    return eh;
+}
 
-
-
-#endif
+void sphdr_free(struct sphdr *eh) {
+    xfreemsg((char *)eh);
+}

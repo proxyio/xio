@@ -32,15 +32,17 @@
 #include <runner/thread.h>
 #include <xio/poll.h>
 #include <socket/xmsg.h>
+#include "sp_hdr.h"
 
 struct epbase;
+struct epsk;
 struct epbase_vfptr {
     int sp_family;
     int sp_type;
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
-    void (*add) (struct epbase *ep, char *xmsg);
-    void (*rm) (struct epbase *ep, char **xmsg);
+    void (*add) (struct epbase *ep, struct epsk *sk, char *ubuf);
+    int (*rm) (struct epbase *ep, struct epsk *sk, char **ubuf);
     int (*setopt) (struct epbase *ep, int opt, void *optval, int optlen);
     int (*getopt) (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
@@ -74,6 +76,9 @@ struct epbase {
     struct list_head connectors;
     struct list_head bad_socks;
 };
+
+void epbase_init(struct epbase *ep);
+void epbase_exit(struct epbase *ep);
 
 #define walk_msg_safe(msg, nmsg, head)					\
     list_for_each_entry_safe(msg, nmsg, head, struct xmsg, item)

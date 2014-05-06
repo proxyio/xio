@@ -69,11 +69,9 @@ static int producer_recv(struct endsock *sk, char **ubuf) {
 
 static int comsumer_recv(struct endsock *sk, char **ubuf) {
     int rc;
-    struct ephdr *eh;
     struct epr *rt;
 
     if ((rc = generic_recv(sk, ubuf)) == 0) {
-	eh = ubuf2ephdr(*ubuf);
 	rt = rt_cur(*ubuf);
 	if (memcmp(rt->uuid, sk->uuid, sizeof(sk->uuid)) != 0)
 	    uuid_copy(sk->uuid, rt->uuid);
