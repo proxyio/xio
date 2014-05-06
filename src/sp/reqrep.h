@@ -20,17 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SP_REQREP_
-#define _HPIO_SP_REQREP_
-
-#include <sp/sp_module.h>
-
-#define SP_REQREP   1
-#define REQ         1
-#define REP         1
-
-extern struct epbase_vfptr *req_epbase_vfptr;
-extern struct epbase_vfptr *rep_epbase_vfptr;
+#ifndef _HPIO_SP_XREQREP_
+#define _HPIO_SP_XREQREP_
 
 
 

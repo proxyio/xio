@@ -94,7 +94,7 @@ static int rep_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen) 
 
 struct epbase_vfptr rep_epbase = {
     .sp_family = SP_REQREP,
-    .sp_type = REQ,
+    .sp_type = REP,
     .alloc = rep_ep_alloc,
     .destroy = rep_ep_destroy,
     .add = rep_ep_add,

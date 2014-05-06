@@ -23,7 +23,7 @@
 #ifndef _HPIO_REP_EP_
 #define _HPIO_REP_EP_
 
-#include <sp/reqrep.h>
+#include <sp/sp_module.h>
 
 struct req_ep;
 

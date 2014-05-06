@@ -26,22 +26,28 @@ extern void xsocket_module_init();
 extern void xsocket_module_exit();
 extern void transport_module_init();
 extern void transport_module_exit();
-extern void xep_module_init();
-extern void xep_module_exit();
+//extern void xep_module_init();
+//extern void xep_module_exit();
+extern void sp_module_init();
+extern void sp_module_exit();
+
 
 volatile static int libc_module_init = 0;
 
 void base_init() {
     transport_module_init();
     xsocket_module_init();
-    xep_module_init();
+    //    xep_module_init();
     libc_module_init = 1;
+    sp_module_init();
 }
 
 
 void base_exit() {
-    xep_module_exit();
+    sp_module_exit();
+    //    xep_module_exit();
     xsocket_module_exit();
     transport_module_exit();
     libc_module_init = 0;
+
 }

@@ -20,11 +20,15 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SCALABILITY_PROTOCOLS_
-#define _HPIO_SCALABILITY_PROTOCOLS_
+#ifndef _HPIO_SP_REQREP_
+#define _HPIO_SP_REQREP_
 
 #include <xio/sp.h>
 #include <xio/cplusplus_define.h>
+
+#define REQ   1
+#define REP   2
+
 
 #include <xio/cplusplus_endif.h>
 #endif
