@@ -24,5 +24,14 @@
 #include "sp_module.h"
 
 int sp_setopt(int eid, int opt, void *optval, int optlen) {
-    return 0;
+    int rc;
+    struct epbase *ep = eid_get(eid);
+
+    if (!ep) {
+	errno = EBADF;
+	return -1;
+    }
+    rc = ep->vfptr.setopt(ep, opt, optval, optlen);
+    eid_put(eid);
+    return rc;
 }

@@ -24,5 +24,23 @@
 #include "sp_module.h"
 
 int sp_recv(int eid, char **xmsg) {
+    struct epbase *ep = eid_get(eid);
+    struct xmsg *in = 0;
+    
+    if (!ep) {
+	errno = EBADF;
+	return -1;
+    }
+    mutex_lock(&ep->lock);
+    while (list_empty(&ep->rcv.head)) {
+	ep->rcv.waiters++;
+	condition_wait(&ep->cond, &ep->lock);
+	ep->rcv.waiters--;
+    }
+    in = list_first(&ep->rcv.head, struct xmsg, item);
+    *xmsg = in->vec.chunk;
+    ep->rcv.buf -= xmsglen(in->vec.chunk);
+    mutex_unlock(&ep->lock);
+    eid_put(eid);
     return 0;
 }

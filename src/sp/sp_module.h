@@ -30,6 +30,7 @@
 #include <sync/condition.h>
 #include <runner/thread.h>
 #include <xio/poll.h>
+#include <socket/xmsg.h>
 
 struct epbase;
 struct epbase_vfptr {
@@ -39,6 +40,8 @@ struct epbase_vfptr {
     void (*destroy) (struct epbase *ep);
     void (*add) (struct epbase *ep, char *xmsg);
     void (*rm) (struct epbase *ep, char **xmsg);
+    int (*setopt) (struct epbase *ep, int opt, void *optval, int optlen);
+    int (*getopt) (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
 };
 
@@ -49,8 +52,12 @@ struct epbase {
     mutex_t lock;
     condition_t cond;
     struct xpoll_event ent;
-    struct list_head recv_Q;
-    struct list_head send_Q;
+    struct {
+	int wnd;
+	int buf;
+	int waiters;
+	struct list_head head;
+    } rcv, snd;
 };
 
 #define XIO_MAX_ENDPOINTS 1024

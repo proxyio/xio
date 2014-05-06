@@ -25,5 +25,22 @@
 
 
 int sp_send(int eid, char *xmsg) {
+    struct epbase *ep = eid_get(eid);
+    struct xmsg *out = cont_of(xmsg, struct xmsg, vec.chunk);
+    
+    if (!ep) {
+	errno = EBADF;
+	return -1;
+    }
+    mutex_lock(&ep->lock);
+    while (!list_empty(&ep->snd.head) && ep->snd.buf >= ep->snd.wnd) {
+	ep->snd.waiters++;
+	condition_wait(&ep->cond, &ep->lock);
+	ep->snd.waiters--;
+    }
+    list_add_tail(&out->item, &ep->snd.head);
+    ep->snd.buf += xmsglen(xmsg);
+    mutex_unlock(&ep->lock);
+    eid_put(eid);
     return 0;
 }
