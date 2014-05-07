@@ -24,6 +24,9 @@
 
 struct sp_global sg;
 
+/* Default snd/rcv buffer size = 1G */
+static int SP_SNDWND = 1048576000;
+static int SP_RCVWND = 1048576000;
 
 static void epsk_bad_status(struct epsk *sk) {
     struct epbase *ep = sk->owner;
@@ -124,8 +127,10 @@ static void event_hndl(struct xpoll_event *ent) {
     int optlen;
     struct epsk *sk = (struct epsk *)ent->self;
 
+    BUG_ON(sk->fd != sk->ent.xd);
     sk->ent.happened = ent->happened;
     xgetopt(sk->fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
+
     switch (socktype) {
     case XCONNECTOR:
 	connector_event_hndl(sk);
@@ -248,12 +253,12 @@ void epbase_init(struct epbase *ep) {
     mutex_init(&ep->lock);
     condition_init(&ep->cond);
 
-    ep->rcv.wnd = 0;
+    ep->rcv.wnd = SP_RCVWND;
     ep->rcv.size = 0;
     ep->rcv.waiters = 0;
     INIT_LIST_HEAD(&ep->rcv.head);
 
-    ep->snd.wnd = 0;
+    ep->snd.wnd = SP_SNDWND;
     ep->snd.size = 0;
     ep->snd.waiters = 0;
     INIT_LIST_HEAD(&ep->snd.head);

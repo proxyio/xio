@@ -57,6 +57,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct sphdr *h = sphdr_new();
     struct spr *r = spr_new();
 
+    DEBUG_OFF("begin");
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head)) {
 	mutex_unlock(&ep->lock);
@@ -76,6 +77,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     h->go = 1;
     uuid_copy(r->uuid, sk->uuid);
     rt_append(*ubuf, r);
+    DEBUG_OFF("ok");
     return 0;
 }
 

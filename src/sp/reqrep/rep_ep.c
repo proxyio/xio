@@ -48,6 +48,7 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
     struct sphdr *h;
 
+    DEBUG_OFF("begin");
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head)) {
 	mutex_unlock(&ep->lock);
@@ -64,11 +65,13 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     h = ubuf2sphdr(*ubuf);
     h->go = 0;
     h->end_ttl = h->ttl;
+    DEBUG_OFF("ok");
     return 0;
 }
 
 static int rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
-    return sp_generic_join(ep, nfd);
+    int rc = sp_generic_join(ep, nfd);
+    return rc;
 }
 
 static int rep_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {

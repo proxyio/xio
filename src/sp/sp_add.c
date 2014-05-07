@@ -31,6 +31,7 @@ int sp_generic_join(struct epbase *ep, int fd) {
     if (!nsk)
 	return -1;
     BUG_ON(xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen));
+    nsk->fd = fd;
     nsk->owner = ep;
     nsk->ent.xd = fd;
     nsk->ent.self = nsk;
