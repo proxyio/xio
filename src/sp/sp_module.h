@@ -45,11 +45,13 @@ struct epbase_vfptr {
     void (*destroy) (struct epbase *ep);
     int  (*rm)      (struct epbase *ep, struct epsk *sk, char **ubuf);
     int  (*add)     (struct epbase *ep, struct epsk *sk, char *ubuf);
-    void (*join)    (struct epbase *ep, struct epsk *sk, int fd);
+    int  (*join)    (struct epbase *ep, struct epsk *sk, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
 };
+
+int sp_generic_join(struct epbase *ep, int fd);
 
 struct epsk {
     struct epbase *owner;

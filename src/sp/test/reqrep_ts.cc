@@ -52,7 +52,7 @@ static int req_thread(void *args) {
 
 
 TEST(sp, reqrep) {
-    string addr("://127.0.0.1:18899"), host;
+    string addr("://127.0.0.1:18898"), host;
     u32 i;
     thread_t t[3];
     const char *pf[] = {

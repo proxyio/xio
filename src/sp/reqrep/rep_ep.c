@@ -67,21 +67,8 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     return 0;
 }
 
-static void rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
-    struct epsk *nsk = epsk_new();
-
-    if (!nsk) {
-	xclose(nfd);
-	return;
-    }
-    nsk->owner = ep;
-    nsk->ent.xd = nfd;
-    nsk->ent.self = nsk;
-    nsk->ent.care = XPOLLIN|XPOLLOUT|XPOLLERR;
-    mutex_lock(&ep->lock);
-    list_add_tail(&nsk->item, &ep->connectors);
-    mutex_unlock(&ep->lock);
-    sg_add_sk(nsk);
+static int rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
+    return sp_generic_join(ep, nfd);
 }
 
 static int rep_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {

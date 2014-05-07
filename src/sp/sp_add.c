@@ -23,41 +23,47 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-
-int sp_add(int eid, int fd) {
-    struct epbase *ep = eid_get(eid);
-    struct epsk *nsk;
-    int rc;
-    int socktype = 0;
+int sp_generic_join(struct epbase *ep, int fd) {
+    int socktype;
     int optlen = sizeof(socktype);
-    
-    rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
-    if (!ep || rc < 0) {
-	errno = EBADF;
-	eid_put(eid);
+    struct epsk *nsk = epsk_new();
+
+    if (!nsk)
 	return -1;
-    }
+    BUG_ON(xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen));
+    nsk->owner = ep;
+    nsk->ent.xd = fd;
+    nsk->ent.self = nsk;
+    nsk->ent.care = (socktype == XLISTENER) ?
+	XPOLLIN|XPOLLERR : XPOLLIN|XPOLLOUT|XPOLLERR;
+    mutex_lock(&ep->lock);
     switch (socktype) {
-    case XCONNECTOR:
-	ep->vfptr->join(ep, 0, fd);
-	break;
     case XLISTENER:
-	if (!(nsk = epsk_new())) {
-	    eid_put(eid);
-	    return -1;
-	}
-	nsk->owner = ep;
-	nsk->ent.xd = fd;
-	nsk->ent.self = nsk;
-	nsk->ent.care = XPOLLIN|XPOLLERR;
-	mutex_lock(&ep->lock);
 	list_add_tail(&nsk->item, &ep->listeners);
-	mutex_unlock(&ep->lock);
-	sg_add_sk(nsk);
+	break;
+    case XCONNECTOR:
+	list_add_tail(&nsk->item, &ep->connectors);
 	break;
     default:
 	BUG_ON(1);
     }
-    eid_put(eid);
+    mutex_unlock(&ep->lock);
+    sg_add_sk(nsk);
     return 0;
+}
+
+int sp_add(int eid, int fd) {
+    struct epbase *ep = eid_get(eid);
+    int rc, on = 1;
+    int optlen = sizeof(on);
+
+    if (!ep) {
+	errno = EBADF;
+	eid_put(eid);
+	return -1;
+    }
+    BUG_ON(xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen));
+    rc = ep->vfptr->join(ep, 0, fd);
+    eid_put(eid);
+    return rc;
 }

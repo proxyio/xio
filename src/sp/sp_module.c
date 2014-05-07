@@ -62,24 +62,28 @@ void sg_update_sk(struct epsk *sk, u32 ev) {
 }
 
 static void connector_event_hndl(struct epsk *sk) {
+    struct epbase *ep = sk->owner;
     int rc;
     char *ubuf = 0;
     int happened = sk->ent.happened;
-    struct epbase *ep = sk->owner;
 
     if (happened & XPOLLIN) {
+	DEBUG_ON("socket %d recv begin", sk->fd);
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
+	    DEBUG_ON("socket %d recv ok", sk->fd);
 	    rc = ep->vfptr->add(ep, sk, ubuf);
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
     }
     if (happened & XPOLLOUT) {
 	if ((rc = ep->vfptr->rm(ep, sk, &ubuf)) == 0) {
+	    DEBUG_ON("socket %d send begin", sk->fd);
 	    if ((rc = xsend(sk->fd, ubuf)) < 0) {
 		xfreemsg(ubuf);
 		if (errno != EAGAIN)
 		    happened |= XPOLLERR;
-	    }
+	    } else
+		DEBUG_ON("socket %d send begin", sk->fd);
 	}
     }
     if (happened & XPOLLERR) {
@@ -90,13 +94,20 @@ static void connector_event_hndl(struct epsk *sk) {
 }
 
 static void listener_event_hndl(struct epsk *sk) {
-    int nfd;
-    int happened = sk->ent.happened;
+    int rc, nfd, happened;
+    int on, optlen = sizeof(on);
     struct epbase *ep = sk->owner;
 
+    happened = sk->ent.happened;
     if (happened & XPOLLIN) {
 	while ((nfd = xaccept(sk->fd)) >= 0) {
-	    ep->vfptr->join(ep, sk, nfd);
+	    rc = xsetopt(nfd, XL_SOCKET, XNOBLOCK, &on, optlen);
+	    BUG_ON(rc);
+	    DEBUG_ON("%d join fd %d begin", ep->eid, nfd);
+	    if ((rc = ep->vfptr->join(ep, sk, nfd)) < 0) {
+		xclose(nfd);
+		DEBUG_OFF("%d join fd %d with errno %d", ep->eid, nfd, errno);
+	    }
 	}
 	if (errno != EAGAIN)
 	    happened |= XPOLLERR;
@@ -191,6 +202,7 @@ int eid_alloc(int sp_family, int sp_type) {
     spin_lock(&sg.lock);
     BUG_ON(sg.nendpoints >= XIO_MAX_ENDPOINTS);
     eid = sg.unused[sg.nendpoints++];
+    ep->eid = eid;
     sg.endpoints[eid] = ep;
     atomic_inc(&ep->ref);
     spin_unlock(&sg.lock);
