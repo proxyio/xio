@@ -74,12 +74,12 @@ static void connector_event_hndl(struct epsk *sk) {
 	DEBUG_OFF("ep %d socket %d recv begin", ep->eid, sk->fd);
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
 	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
-	    rc = ep->vfptr->add(ep, sk, ubuf);
+	    rc = ep->vfptr.add(ep, sk, ubuf);
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
     }
     if (happened & XPOLLOUT) {
-	if ((rc = ep->vfptr->rm(ep, sk, &ubuf)) == 0) {
+	if ((rc = ep->vfptr.rm(ep, sk, &ubuf)) == 0) {
 	    DEBUG_OFF("ep %d socket %d send begin", ep->eid, sk->fd);
 	    if ((rc = xsend(sk->fd, ubuf)) < 0) {
 		xfreemsg(ubuf);
@@ -109,7 +109,7 @@ static void listener_event_hndl(struct epsk *sk) {
 	    rc = xsetopt(nfd, XL_SOCKET, XNOBLOCK, &on, optlen);
 	    BUG_ON(rc);
 	    DEBUG_OFF("%d join fd %d begin", ep->eid, nfd);
-	    if ((rc = ep->vfptr->join(ep, sk, nfd)) < 0) {
+	    if ((rc = ep->vfptr.join(ep, sk, nfd)) < 0) {
 		xclose(nfd);
 		DEBUG_OFF("%d join fd %d with errno %d", ep->eid, nfd, errno);
 	    }
@@ -152,7 +152,7 @@ static void shutdown_epbase() {
     mutex_lock(&sg.lock);
     walk_epbase_safe(ep, nep, &sg.shutdown_head) {
 	list_del_init(&ep->item);
-	ep->vfptr->destroy(ep);
+	ep->vfptr.destroy(ep);
 	sg.unused[--sg.nendpoints] = ep->eid;
     }
     mutex_unlock(&sg.lock);
@@ -220,7 +220,7 @@ int eid_alloc(int sp_family, int sp_type) {
     }
     if (!(ep = vfptr->alloc()))
 	return -1;
-    ep->vfptr = vfptr;
+    ep->vfptr = *vfptr;
     mutex_lock(&sg.lock);
     BUG_ON(sg.nendpoints >= XIO_MAX_ENDPOINTS);
     eid = sg.unused[sg.nendpoints++];

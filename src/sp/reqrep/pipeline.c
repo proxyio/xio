@@ -20,18 +20,4 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SP_REQREP_
-#define _HPIO_SP_REQREP_
-
-#include <xio/sp.h>
-#include <xio/cplusplus_define.h>
-
-/* Following sp_types are provided by REQREP protocol */
-#define REQ         1
-#define REP         2
-
-/* Following options are provided by REQREP protocol */
-#define PIPELINE    1
-
-#include <xio/cplusplus_endif.h>
-#endif
+#include "req_ep.h"

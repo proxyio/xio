@@ -64,7 +64,7 @@ int sp_add(int eid, int fd) {
 	return -1;
     }
     BUG_ON(xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen));
-    rc = ep->vfptr->join(ep, 0, fd);
+    rc = ep->vfptr.join(ep, 0, fd);
     eid_put(eid);
     return rc;
 }

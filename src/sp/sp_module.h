@@ -79,7 +79,7 @@ struct skbuf {
 #define EP_SHUTDOWN 1
 
 struct epbase {
-    struct epbase_vfptr *vfptr;
+    struct epbase_vfptr vfptr;
     u32 status;
     atomic_t ref;
     int eid;
