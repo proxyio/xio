@@ -67,7 +67,7 @@ TEST(sp, reqrep) {
     BUG_ON((eid = sp_endpoint(SP_REQREP, REP)) < 0);
     for (i = 0; i < NELEM(t, thread_t); i++) {
 	host = pf[i] + addr;
-	BUG_ON((s = xconnect(host.c_str())) < 0);
+	BUG_ON((s = xlisten(host.c_str())) < 0);
 	BUG_ON(sp_add(eid, s) < 0);
     }
     for (i = 0; i < NELEM(t, thread_t); i++) {

@@ -31,7 +31,7 @@ int sp_setopt(int eid, int opt, void *optval, int optlen) {
 	errno = EBADF;
 	return -1;
     }
-    rc = ep->vfptr.setopt(ep, opt, optval, optlen);
+    rc = ep->vfptr->setopt(ep, opt, optval, optlen);
     eid_put(eid);
     return rc;
 }

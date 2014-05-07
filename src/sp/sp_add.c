@@ -39,7 +39,7 @@ int sp_add(int eid, int fd) {
     }
     switch (socktype) {
     case XCONNECTOR:
-	ep->vfptr.join(ep, 0, fd);
+	ep->vfptr->join(ep, 0, fd);
 	break;
     case XLISTENER:
 	if (!(nsk = epsk_new())) {

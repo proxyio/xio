@@ -74,7 +74,7 @@ struct skbuf {
 
 
 struct epbase {
-    struct epbase_vfptr vfptr;
+    struct epbase_vfptr *vfptr;
     atomic_t ref;
     int eid;
     mutex_t lock;

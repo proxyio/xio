@@ -69,12 +69,12 @@ static void connector_event_hndl(struct epsk *sk) {
 
     if (happened & XPOLLIN) {
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
-	    rc = ep->vfptr.add(ep, sk, ubuf);
+	    rc = ep->vfptr->add(ep, sk, ubuf);
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
     }
     if (happened & XPOLLOUT) {
-	if ((rc = ep->vfptr.rm(ep, sk, &ubuf)) == 0) {
+	if ((rc = ep->vfptr->rm(ep, sk, &ubuf)) == 0) {
 	    if ((rc = xsend(sk->fd, ubuf)) < 0) {
 		xfreemsg(ubuf);
 		if (errno != EAGAIN)
@@ -96,7 +96,7 @@ static void listener_event_hndl(struct epsk *sk) {
 
     if (happened & XPOLLIN) {
 	while ((nfd = xaccept(sk->fd)) >= 0) {
-	    ep->vfptr.join(ep, sk, nfd);
+	    ep->vfptr->join(ep, sk, nfd);
 	}
 	if (errno != EAGAIN)
 	    happened |= XPOLLERR;
@@ -187,10 +187,12 @@ int eid_alloc(int sp_family, int sp_type) {
     }
     if (!(ep = vfptr->alloc()))
 	return -1;
+    ep->vfptr = vfptr;
     spin_lock(&sg.lock);
     BUG_ON(sg.nendpoints >= XIO_MAX_ENDPOINTS);
     eid = sg.unused[sg.nendpoints++];
     sg.endpoints[eid] = ep;
+    atomic_inc(&ep->ref);
     spin_unlock(&sg.lock);
     return eid;
 }
@@ -215,7 +217,7 @@ void eid_put(int eid) {
     atomic_dec_and_lock(&ep->ref, spin, sg.lock) {
 	sg.unused[--sg.nendpoints] = eid;
 	spin_unlock(&sg.lock);
-	ep->vfptr.destroy(ep);
+	ep->vfptr->destroy(ep);
     }
 }
 
