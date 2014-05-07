@@ -31,7 +31,7 @@
 #define SP_MULL      4
 
 int sp_endpoint(int sp_family, int sp_type);
-void sp_close(int eid);
+int sp_close(int eid);
 int sp_send(int eid, char *xmsg);
 int sp_recv(int eid, char **xmsg);
 int sp_add(int eid, int fd);

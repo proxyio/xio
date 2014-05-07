@@ -33,35 +33,75 @@ static struct epbase *rep_ep_alloc() {
 }
 
 static void rep_ep_destroy(struct epbase *ep) {
-
+    struct rep_ep *rep_ep = cont_of(ep, struct rep_ep, base);
+    BUG_ON(!rep_ep);
+    epbase_exit(ep);
 }
 
 static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     struct spr *r = rt_cur(ubuf);
-
-    if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0)
+    
+    if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
 	uuid_copy(sk->uuid, r->uuid);
+    }
+    mutex_lock(&ep->lock);
+    list_add_tail(&msg->item, &ep->rcv.head);
+    ep->rcv.size += xmsglen(ubuf);
+    BUG_ON(ep->rcv.waiters < 0);
+    if (ep->rcv.waiters)
+	condition_broadcast(&ep->cond);
+    mutex_unlock(&ep->lock);
     return 0;
+}
+
+static void __routeback(struct epbase *ep, struct xmsg *msg) {
+    struct epsk *sk, *nsk;
+    char *ubuf = msg->vec.chunk;
+    struct spr *rt = rt_cur(ubuf);
+
+    walk_epsk_safe(sk, nsk, &ep->connectors) {
+	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
+	    continue;
+	list_add_tail(&msg->item, &sk->snd_cache);
+	return;
+    }
+    xfreemsg(ubuf);
+}
+
+static void routeback(struct epbase *ep) {
+    struct xmsg *msg, *nmsg;
+
+    mutex_lock(&ep->lock);
+    walk_msg_safe(msg, nmsg, &ep->snd.head) {
+	list_del_init(&msg->item);
+	__routeback(ep, msg);
+    }
+    mutex_unlock(&ep->lock);
 }
 
 static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
     struct sphdr *h;
-
+    int cmsgnum = 0;
+    
     DEBUG_OFF("begin");
-    mutex_lock(&ep->lock);
-    if (list_empty(&ep->snd.head)) {
-	mutex_unlock(&ep->lock);
+    routeback(ep);
+    if (list_empty(&sk->snd_cache))
 	return -1;
-    }
-    BUG_ON(!(msg = list_first(&ep->snd.head, struct xmsg, item)));
+    BUG_ON(!(msg = list_first(&sk->snd_cache, struct xmsg, item)));
     list_del_init(&msg->item);
+    *ubuf = msg->vec.chunk;
+    
+    mutex_lock(&ep->lock);
+    ep->snd.size -= xmsglen(*ubuf);
     BUG_ON(ep->snd.waiters < 0);
     if (ep->snd.waiters)
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
 
-    *ubuf = msg->vec.chunk;
+    BUG_ON(xmsgctl(*ubuf, XMSG_CMSGNUM, &cmsgnum));
+    BUG_ON(!cmsgnum);
     h = ubuf2sphdr(*ubuf);
     h->go = 0;
     h->end_ttl = h->ttl;
@@ -70,8 +110,11 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 }
 
 static int rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
-    int rc = sp_generic_join(ep, nfd);
-    return rc;
+    struct epsk *nsk = sp_generic_join(ep, nfd);
+
+    if (!nsk)
+	return -1;
+    return 0;
 }
 
 static int rep_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {

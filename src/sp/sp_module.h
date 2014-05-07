@@ -51,7 +51,7 @@ struct epbase_vfptr {
     struct list_head item;
 };
 
-int sp_generic_join(struct epbase *ep, int fd);
+struct epsk *sp_generic_join(struct epbase *ep, int fd);
 
 struct epsk {
     struct epbase *owner;
@@ -59,6 +59,7 @@ struct epsk {
     int fd;
     uuid_t uuid;
     struct list_head item;
+    struct list_head snd_cache;
 };
 
 struct epsk *epsk_new();
@@ -75,8 +76,11 @@ struct skbuf {
 };
 
 
+#define EP_SHUTDOWN 1
+
 struct epbase {
     struct epbase_vfptr *vfptr;
+    u32 status;
     atomic_t ref;
     int eid;
     mutex_t lock;
@@ -87,6 +91,7 @@ struct epbase {
     struct list_head listeners;
     struct list_head connectors;
     struct list_head bad_socks;
+    struct list_head item;
 };
 
 void epbase_init(struct epbase *ep);
@@ -103,7 +108,7 @@ void epbase_exit(struct epbase *ep);
 
 struct sp_global {
     int exiting;
-    spin_t lock;
+    mutex_t lock;
 
     /* The global table of existing ep. The descriptor representing
      * the ep is the index to this table. This pointer is also used to
@@ -121,9 +126,14 @@ struct sp_global {
     struct xpoll_t *po;
     thread_t po_routine;
     struct list_head epbase_head;
+    struct list_head shutdown_head;
 };
 
 extern struct sp_global sg;
+
+#define walk_epbase_safe(ep, tmp, head)			\
+    list_for_each_entry_safe(ep, tmp, head,		\
+			     struct epbase, item)
 
 #define walk_epbase_vfptr(ep, tmp, head)		\
     list_for_each_entry_safe(ep, tmp, head,		\

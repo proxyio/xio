@@ -37,17 +37,17 @@ static void epsk_bad_status(struct epsk *sk) {
 
 void sg_add_sk(struct epsk *sk) {
     int rc;
-    spin_lock(&sg.lock);
+    mutex_lock(&sg.lock);
     rc = xpoll_ctl(sg.po, XPOLL_ADD, &sk->ent);
-    spin_unlock(&sg.lock);
+    mutex_unlock(&sg.lock);
     BUG_ON(rc);
 }
 
 void sg_rm_sk(struct epsk *sk) {
     int rc;
-    spin_lock(&sg.lock);
+    mutex_lock(&sg.lock);
     rc = xpoll_ctl(sg.po, XPOLL_DEL, &sk->ent);
-    spin_unlock(&sg.lock);
+    mutex_unlock(&sg.lock);
     BUG_ON(rc);
 }
 
@@ -59,9 +59,9 @@ void __sg_update_sk(struct epsk *sk, u32 ev) {
 }
 
 void sg_update_sk(struct epsk *sk, u32 ev) {
-    spin_lock(&sg.lock);
+    mutex_lock(&sg.lock);
     __sg_update_sk(sk, ev);
-    spin_unlock(&sg.lock);
+    mutex_unlock(&sg.lock);
 }
 
 static void connector_event_hndl(struct epsk *sk) {
@@ -71,26 +71,28 @@ static void connector_event_hndl(struct epsk *sk) {
     int happened = sk->ent.happened;
 
     if (happened & XPOLLIN) {
-	DEBUG_ON("socket %d recv begin", sk->fd);
+	DEBUG_OFF("ep %d socket %d recv begin", ep->eid, sk->fd);
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
-	    DEBUG_ON("socket %d recv ok", sk->fd);
+	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
 	    rc = ep->vfptr->add(ep, sk, ubuf);
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
     }
     if (happened & XPOLLOUT) {
 	if ((rc = ep->vfptr->rm(ep, sk, &ubuf)) == 0) {
-	    DEBUG_ON("socket %d send begin", sk->fd);
+	    DEBUG_OFF("ep %d socket %d send begin", ep->eid, sk->fd);
 	    if ((rc = xsend(sk->fd, ubuf)) < 0) {
 		xfreemsg(ubuf);
 		if (errno != EAGAIN)
 		    happened |= XPOLLERR;
+		DEBUG_OFF("ep %d socket %d send with errno %d", ep->eid, sk->fd,
+			  errno);
 	    } else
-		DEBUG_ON("socket %d send begin", sk->fd);
+		DEBUG_OFF("ep %d socket %d send ok", ep->eid, sk->fd);
 	}
     }
     if (happened & XPOLLERR) {
-	DEBUG_OFF("socket %d epipe", sk->fd);
+	DEBUG_OFF("ep %d socket %d epipe", ep->eid, sk->fd);
 	sg_rm_sk(sk);
 	epsk_bad_status(sk);
     }
@@ -106,7 +108,7 @@ static void listener_event_hndl(struct epsk *sk) {
 	while ((nfd = xaccept(sk->fd)) >= 0) {
 	    rc = xsetopt(nfd, XL_SOCKET, XNOBLOCK, &on, optlen);
 	    BUG_ON(rc);
-	    DEBUG_ON("%d join fd %d begin", ep->eid, nfd);
+	    DEBUG_OFF("%d join fd %d begin", ep->eid, nfd);
 	    if ((rc = ep->vfptr->join(ep, sk, nfd)) < 0) {
 		xclose(nfd);
 		DEBUG_OFF("%d join fd %d with errno %d", ep->eid, nfd, errno);
@@ -141,6 +143,19 @@ static void event_hndl(struct xpoll_event *ent) {
     default:
 	BUG_ON(1);
     }
+    DEBUG_OFF(sleep(1));
+}
+
+static void shutdown_epbase() {
+    struct epbase *ep, *nep;
+
+    mutex_lock(&sg.lock);
+    walk_epbase_safe(ep, nep, &sg.shutdown_head) {
+	list_del_init(&ep->item);
+	ep->vfptr->destroy(ep);
+	sg.unused[--sg.nendpoints] = ep->eid;
+    }
+    mutex_unlock(&sg.lock);
 }
 
 extern const char *xpoll_str[];
@@ -160,6 +175,7 @@ static int po_routine_worker(void *args) {
 	    DEBUG_OFF("socket %d with events %s", ent[i].xd, estr);
 	    event_hndl(&ent[i]);
 	}
+	shutdown_epbase();
     }
     return 0;
 }
@@ -171,7 +187,7 @@ void sp_module_init() {
     int eid;
 
     sg.exiting = false;
-    spin_init(&sg.lock);
+    mutex_init(&sg.lock);
     sg.po = xpoll_create();
     BUG_ON(!sg.po);
     for (eid = 0; eid < XIO_MAX_ENDPOINTS; eid++) {
@@ -182,13 +198,14 @@ void sp_module_init() {
     INIT_LIST_HEAD(&sg.epbase_head);
     list_add_tail(&req_epbase_vfptr->item, &sg.epbase_head);
     list_add_tail(&rep_epbase_vfptr->item, &sg.epbase_head);
+    INIT_LIST_HEAD(&sg.shutdown_head);
 }
 
 
 void sp_module_exit() {
     sg.exiting = true;
     thread_stop(&sg.po_routine);
-    spin_destroy(&sg.lock);
+    mutex_destroy(&sg.lock);
     xpoll_close(sg.po);
 }
 
@@ -204,26 +221,26 @@ int eid_alloc(int sp_family, int sp_type) {
     if (!(ep = vfptr->alloc()))
 	return -1;
     ep->vfptr = vfptr;
-    spin_lock(&sg.lock);
+    mutex_lock(&sg.lock);
     BUG_ON(sg.nendpoints >= XIO_MAX_ENDPOINTS);
     eid = sg.unused[sg.nendpoints++];
     ep->eid = eid;
     sg.endpoints[eid] = ep;
     atomic_inc(&ep->ref);
-    spin_unlock(&sg.lock);
+    mutex_unlock(&sg.lock);
     return eid;
 }
 
 struct epbase *eid_get(int eid) {
     struct epbase *ep;
-    spin_lock(&sg.lock);
+    mutex_lock(&sg.lock);
     if (!(ep = sg.endpoints[eid])) {
-	spin_unlock(&sg.lock);
+	mutex_unlock(&sg.lock);
 	return 0;
     }
     BUG_ON(!atomic_read(&ep->ref));
     atomic_inc(&ep->ref);
-    spin_unlock(&sg.lock);
+    mutex_unlock(&sg.lock);
     return ep;
 }
 
@@ -231,15 +248,17 @@ void eid_put(int eid) {
     struct epbase *ep = sg.endpoints[eid];
 
     BUG_ON(!ep);
-    atomic_dec_and_lock(&ep->ref, spin, sg.lock) {
-	sg.unused[--sg.nendpoints] = eid;
-	spin_unlock(&sg.lock);
-	ep->vfptr->destroy(ep);
+    atomic_dec_and_lock(&ep->ref, mutex, sg.lock) {
+	list_add_tail(&ep->item, &sg.shutdown_head);
+	mutex_unlock(&sg.lock);
     }
 }
 
 struct epsk *epsk_new() {
     struct epsk *sk = (struct epsk *)mem_zalloc(sizeof(*sk));
+    if (sk) {
+	INIT_LIST_HEAD(&sk->snd_cache);
+    }
     return sk;
 }
 
@@ -273,11 +292,6 @@ void epbase_exit(struct epbase *ep) {
     struct epsk *sk, *nsk;
     struct list_head closed_head;
 
-    BUG_ON(atomic_read(&ep->ref));
-    atomic_destroy(&ep->ref);
-    mutex_destroy(&ep->lock);
-    condition_destroy(&ep->cond);
-
     INIT_LIST_HEAD(&closed_head);
     list_splice(&ep->snd.head, &closed_head);
     list_splice(&ep->rcv.head, &closed_head);
@@ -296,4 +310,9 @@ void epbase_exit(struct epbase *ep) {
 	xclose(sk->fd);
 	epsk_free(sk);
     }
+
+    BUG_ON(atomic_read(&ep->ref));
+    atomic_destroy(&ep->ref);
+    mutex_destroy(&ep->lock);
+    condition_destroy(&ep->cond);
 }

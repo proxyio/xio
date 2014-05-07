@@ -23,13 +23,13 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int sp_generic_join(struct epbase *ep, int fd) {
+struct epsk *sp_generic_join(struct epbase *ep, int fd) {
     int socktype;
     int optlen = sizeof(socktype);
     struct epsk *nsk = epsk_new();
 
     if (!nsk)
-	return -1;
+	return 0;
     BUG_ON(xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen));
     nsk->fd = fd;
     nsk->owner = ep;
@@ -50,7 +50,7 @@ int sp_generic_join(struct epbase *ep, int fd) {
     }
     mutex_unlock(&ep->lock);
     sg_add_sk(nsk);
-    return 0;
+    return nsk;
 }
 
 int sp_add(int eid, int fd) {

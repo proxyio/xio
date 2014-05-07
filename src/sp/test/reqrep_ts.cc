@@ -11,6 +11,7 @@ extern "C" {
 }
 
 
+
 using namespace std;
 
 extern int randstr(char *buf, int len);
@@ -27,7 +28,7 @@ static int req_thread(void *args) {
     host += "://127.0.0.1:18898";
     randstr(buf, sizeof(buf));
     BUG_ON((eid = sp_endpoint(SP_REQREP, REQ)) < 0);
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 1; i++) {
 	BUG_ON((s = xconnect(host.c_str())) < 0);
 	BUG_ON(sp_add(eid, s) < 0);
     }
@@ -36,12 +37,12 @@ static int req_thread(void *args) {
 	sbuf = xallocmsg(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
 	BUG_ON(sp_send(eid, sbuf) != 0);
-	DEBUG_ON("producer %d send %d request: %10.10s", eid, i, sbuf);
+	DEBUG_OFF("producer %d send %d request: %10.10s", eid, i, sbuf);
 	while (sp_recv(eid, &rbuf) != 0) {
 	    usleep(10000);
 	}
-	DEBUG_ON("producer %d recv %d resp: %10.10s", eid, i, rbuf);
-	DEBUG_ON("----------------------------------------");
+	DEBUG_OFF("producer %d recv %d resp: %10.10s", eid, i, rbuf);
+	DEBUG_OFF("----------------------------------------");
 	BUG_ON(xmsglen(rbuf) != sizeof(buf));
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xfreemsg(rbuf);
@@ -76,12 +77,11 @@ TEST(sp, reqrep) {
 
     for (i = 0; i < NELEM(t, thread_t) * 3; i++) {
 	while (sp_recv(eid, &ubuf) != 0) {
-	    usleep(1000);
+	    usleep(10000);
 	}
-	DEBUG_ON("comsumer %d recv %d requst: %10.10s", eid, i, ubuf);
+	DEBUG_OFF("comsumer %d recv %d requst: %10.10s", eid, i, ubuf);
 	BUG_ON(sp_send(eid, ubuf));
     }
-
     for (i = 0; i < NELEM(t, thread_t); i++) {
 	thread_stop(&t[i]);
     }

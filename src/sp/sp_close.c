@@ -24,6 +24,19 @@
 #include "sp_module.h"
 
 
-void sp_close(int eid) {
+int sp_close(int eid) {
+    struct epbase *ep = eid_get(eid);
+
+    if (!ep) {
+	errno = EBADF;
+	return -1;
+    }
+    mutex_lock(&ep->lock);
+    ep->status = EP_SHUTDOWN;
+    if (ep->snd.waiters || ep->rcv.waiters)
+	condition_broadcast(&ep->cond);
+    mutex_unlock(&ep->lock);
     eid_put(eid);
+    eid_put(eid);
+    return 0;
 }
