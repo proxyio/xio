@@ -27,11 +27,11 @@
 #include <xio/cplusplus_define.h>
 
 /* Following sp_types are provided by REQREP protocol */
-#define REQ         1
-#define REP         2
+#define SP_REQ         1
+#define SP_REP         2
 
 /* Following options are provided by REQREP protocol */
-#define PIPELINE    1
+#define SP_PIPELINE    1
 
 #include <xio/cplusplus_endif.h>
 #endif

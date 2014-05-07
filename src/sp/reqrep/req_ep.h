@@ -32,6 +32,6 @@ struct req_ep {
     struct rep_ep *peer;
 };
 
-
+extern int epbase_pipeline(struct epbase *rep_ep, struct epbase *req_ep);
 
 #endif

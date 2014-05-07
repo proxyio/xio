@@ -155,6 +155,8 @@ struct epbase *eid_get(int eid);
 void eid_put(int eid);
 
 
+typedef int (*ep_setopt) (struct epbase *ep, void *optval, int optlen);
+typedef int (*ep_getopt) (struct epbase *ep, void *optval, int *optlen);
 
 
 #endif

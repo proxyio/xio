@@ -33,6 +33,6 @@ struct rep_ep {
 };
 
 
-
+extern int epbase_pipeline(struct epbase *rep_ep, struct epbase *req_ep);
 
 #endif

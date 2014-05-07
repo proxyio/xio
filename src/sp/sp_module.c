@@ -74,7 +74,11 @@ static void connector_event_hndl(struct epsk *sk) {
 	DEBUG_OFF("ep %d socket %d recv begin", ep->eid, sk->fd);
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
 	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
-	    rc = ep->vfptr.add(ep, sk, ubuf);
+	    if ((rc = ep->vfptr.add(ep, sk, ubuf)) < 0) {
+		xfreemsg(ubuf);
+		DEBUG_OFF("ep %d drop message from socket %d of can't back",
+			  ep->eid, sk->fd);
+	    }
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
     }

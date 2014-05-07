@@ -99,17 +99,54 @@ static int req_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
     return 0;
 }
 
+
+static int set_pipeline(struct epbase *ep, void *optval, int optlen) {
+    int rc, front_eid = *(int *)optval;
+    struct epbase *peer = eid_get(front_eid);
+
+    if (!peer) {
+	errno = EBADF;
+	return -1;
+    }
+    rc = epbase_pipeline(ep, peer);
+    eid_put(front_eid);
+    return rc;
+}
+
+
+static const ep_setopt setopt_vfptr[] = {
+    0,
+    set_pipeline,
+};
+
+static const ep_getopt getopt_vfptr[] = {
+    0,
+    0,
+};
+
 static int req_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {
-    return 0;
+    int rc;
+    if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = setopt_vfptr[opt] (ep, optval, optlen);
+    return rc;
 }
 
 static int req_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen) {
-    return 0;
+    int rc;
+    if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
+	errno = EINVAL;
+	return -1;
+    }
+    rc = getopt_vfptr[opt] (ep, optval, optlen);
+    return rc;
 }
 
 struct epbase_vfptr req_epbase = {
     .sp_family = SP_REQREP,
-    .sp_type = REQ,
+    .sp_type = SP_REQ,
     .alloc = req_ep_alloc,
     .destroy = req_ep_destroy,
     .add = req_ep_add,
