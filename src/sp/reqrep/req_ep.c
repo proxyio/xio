@@ -41,7 +41,9 @@ static void req_ep_destroy(struct epbase *ep) {
 static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     struct sphdr *h = ubuf2sphdr(ubuf);
+
     h->ttl--;
+    DEBUG_ON("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
     ep->rcv.size += xmsglen(ubuf);
@@ -57,10 +59,9 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     int cmsgnum;
     struct xmsg *msg;
     struct xcmsg ent;
-    struct sphdr *h = sphdr_new();
-    struct spr *r = spr_new();
+    struct sphdr *h;
+    struct spr *r;
 
-    DEBUG_OFF("begin");
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head)) {
 	mutex_unlock(&ep->lock);
@@ -75,6 +76,10 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
 
+    h = sphdr_new();
+    BUG_ON(!h);
+    r = spr_new();
+    BUG_ON(!r);
 
     ent.idx = 0;
     ent.outofband = (char *)h;
@@ -86,7 +91,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     rt_append(*ubuf, r);
     BUG_ON(xmsgctl(*ubuf, XMSG_CMSGNUM, &cmsgnum));
     BUG_ON(cmsgnum != 2);
-    DEBUG_OFF("ok");
+    DEBUG_ON("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }
 

@@ -79,7 +79,7 @@ TEST(sp, pipeline) {
     string addr("://127.0.0.1:18899"), host;
     u32 i;
     thread_t pyt;
-    thread_t t[3];
+    thread_t t[1];
     const char *pf[] = {
 	"tcp",
 	"ipc",
@@ -87,6 +87,7 @@ TEST(sp, pipeline) {
     };
     int s;
     int eid;
+    int cmsgnum;
     char *ubuf;
 
     thread_start(&pyt, proxy_thread, 0);
@@ -106,7 +107,9 @@ TEST(sp, pipeline) {
 	while (sp_recv(eid, &ubuf) != 0) {
 	    usleep(1000);
 	}
-	DEBUG_ON("comsumer recv %d requst: %10.10s", i, ubuf);
+	DEBUG_OFF("comsumer recv %d requst: %10.10s", i, ubuf);
+	BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum));
+	BUG_ON(cmsgnum != 3);
 	BUG_ON(sp_send(eid, ubuf));
     }
 

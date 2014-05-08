@@ -76,7 +76,7 @@ static void connector_event_hndl(struct epsk *sk) {
 	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
 	    if ((rc = ep->vfptr.add(ep, sk, ubuf)) < 0) {
 		xfreemsg(ubuf);
-		DEBUG_OFF("ep %d drop message from socket %d of can't back",
+		DEBUG_ON("ep %d drop message from socket %d of can't back",
 			  ep->eid, sk->fd);
 	    }
 	} else if (errno != EAGAIN)
@@ -181,6 +181,7 @@ static int po_routine_worker(void *args) {
 	}
 	shutdown_epbase();
     }
+    shutdown_epbase();
     return 0;
 }
 

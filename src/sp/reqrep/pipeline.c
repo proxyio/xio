@@ -43,7 +43,7 @@ static struct epsk *rrbin_forward(struct epbase *ep, char *ubuf) {
 
 static struct epsk *route_backward(struct epbase *ep, char *ubuf) {
     struct epsk *sk, *nsk;
-    struct spr *rt = rt_cur(ubuf);
+    struct spr *rt = rt_prev(ubuf);
 
     walk_epsk_safe(sk, nsk, &ep->connectors) {
 	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
@@ -57,13 +57,11 @@ static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     struct spr *r = rt_cur(ubuf);
-    struct sphdr *h = ubuf2sphdr(ubuf);
     struct epsk *target = rrbin_forward(peer, ubuf);
 
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
 	uuid_copy(sk->uuid, r->uuid);
     }
-    h->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xmsglen(ubuf);
     DEBUG_ON("ep %d req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
@@ -92,7 +90,7 @@ static int dispatcher_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     struct sphdr *h = ubuf2sphdr(ubuf);
-    struct epsk *target = route_backward(ep, ubuf);
+    struct epsk *target = route_backward(peer, ubuf);
 
     if (!target)
 	return -1;
@@ -133,8 +131,6 @@ int epbase_pipeline(struct epbase *rep_ep, struct epbase *req_ep) {
     }
     frontend->peer = backend;
     backend->peer = frontend;
-    atomic_inc(&rep_ep->ref);
-    atomic_inc(&req_ep->ref);
 
     rep_ep->vfptr.add = receiver_add;
     rep_ep->vfptr.rm = receiver_rm;
