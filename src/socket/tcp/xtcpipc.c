@@ -157,7 +157,6 @@ static int xio_connector_snd(struct sockbase *sb);
 static void xio_connector_close(struct sockbase *sb) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
-
     BUG_ON(!self->tp);
 
     /* Try flush buf massage into network before close */

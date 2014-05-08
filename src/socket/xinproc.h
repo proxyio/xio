@@ -27,6 +27,7 @@
 
 struct inproc_sock {
     struct sockbase base;
+    atomic_t ref;
 
     /* For inproc-listener */
     struct ssmap_node rb_link;

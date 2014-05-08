@@ -72,6 +72,7 @@ static struct sockbase *xinp_alloc() {
 
     if (self) {
 	xsock_init(&self->base);
+	atomic_init(&self->ref);
 	return &self->base;
     }
     return 0;
@@ -105,8 +106,8 @@ static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     strncpy(nsb->addr, sock, TP_SOCKADDRLEN);
 
-    atomic_inc(&sb->ref);
-    atomic_inc(&nsb->ref);
+    atomic_incs(&self->ref, 2);
+    atomic_incs(&peer->ref, 2);
     self->peer = &peer->base;
     peer->peer = &self->base;
 
@@ -122,11 +123,19 @@ static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
 
 static void xinp_connector_close(struct sockbase *sb) {
     struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
-    struct sockbase *peer = self->peer;
+    struct inproc_sock *peer = cont_of(self->peer, struct inproc_sock, base);
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
-    xput(peer->fd);
-    xput(sb->fd);
+    if (atomic_dec(&peer->ref) == 1) {
+	xsock_exit(&peer->base);
+	atomic_destroy(&peer->ref);
+	mem_free(peer, sizeof(*peer));
+    }
+    if (atomic_dec(&self->ref) == 1) {
+	xsock_exit(&self->base);
+	atomic_destroy(&self->ref);
+	mem_free(self, sizeof(*self));
+    }
 }
 
 
