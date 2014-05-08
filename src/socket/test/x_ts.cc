@@ -14,7 +14,7 @@ using namespace std;
 
 extern int randstr(char *buf, int len);
 
-static int cnt = 1;
+static int cnt = 3;
 
 static void xclient(string pf) {
     int sfd, i;
@@ -149,7 +149,7 @@ static void xserver2() {
 static void xsock_test(int count) {
     while (count-- > 0) {
 	xserver();
-	//xserver2();
+	xserver2();
     }
 }
 
