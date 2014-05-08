@@ -93,11 +93,6 @@ static int get_sockpf(struct sockbase *self, void *val, int *vallen) {
     return 0;
 }
 
-static int get_tracedebug(struct sockbase *self, void *val, int *vallen) {
-    *(int *)val = (int)self->ftracedebug;
-    return 0;
-}
-
 const sock_getopt getopt_vfptr[] = {
     get_noblock,
     get_sndwin,
@@ -110,7 +105,6 @@ const sock_getopt getopt_vfptr[] = {
     get_reconnect,
     get_socktype,
     get_sockpf,
-    get_tracedebug,
 };
 
 

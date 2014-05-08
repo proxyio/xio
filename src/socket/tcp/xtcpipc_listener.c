@@ -55,7 +55,7 @@ static void request_socks_nonfull(struct sockbase *sb) {
     }
 }
 
-static int xio_listener_handler(eloop_t *el, ev_t *et);
+static int xio_listener_hndl(eloop_t *el, ev_t *et);
 
 static int xio_listener_bind(struct sockbase *sb, const char *sock) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
@@ -71,7 +71,7 @@ static int xio_listener_bind(struct sockbase *sb, const char *sock) {
     self->sys_fd = sys_fd;
     self->et.events = EPOLLIN|EPOLLERR;
     self->et.fd = sys_fd;
-    self->et.f = xio_listener_handler;
+    self->et.f = xio_listener_hndl;
     self->et.data = self;
     BUG_ON(eloop_add(&cpu->el, &self->et) != 0);
     return 0;
@@ -116,9 +116,9 @@ static void xio_listener_notify(struct sockbase *sb, int type, uint32_t events) 
     }
 }
 
-extern int xio_connector_handler(eloop_t *el, ev_t *et);
+extern int xio_connector_hndl(eloop_t *el, ev_t *et);
 
-static int xio_listener_handler(eloop_t *el, ev_t *et) {
+static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     struct tcpipc_sock *self = cont_of(et, struct tcpipc_sock, et);
     int sys_fd;
     struct sockbase *sb = &self->base;
@@ -129,7 +129,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     struct xcpu *cpu;
 
     if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
-	sb->fok = false;
+	sb->fepipe = true;
 	errno = EPIPE;
 	return -1;
     } 
@@ -152,7 +152,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et) {
     nself->ops = default_xops;
     nself->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     nself->et.fd = sys_fd;
-    nself->et.f = xio_connector_handler;
+    nself->et.f = xio_connector_hndl;
     nself->et.data = nself;
     BUG_ON(eloop_add(&cpu->el, &nself->et) != 0);
     acceptq_push(sb, nsb);

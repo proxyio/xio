@@ -126,6 +126,9 @@ static void xinp_connector_close(struct sockbase *sb) {
     struct inproc_sock *peer = cont_of(self->peer, struct inproc_sock, base);
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
+    mutex_lock(&peer->base.lock);
+    mutex_unlock(&peer->base.lock);
+
     if (atomic_dec(&peer->ref) == 1) {
 	xsock_exit(&peer->base);
 	atomic_destroy(&peer->ref);

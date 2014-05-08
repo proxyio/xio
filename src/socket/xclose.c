@@ -28,6 +28,24 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-void xclose(int fd) {
+int xclose(int fd) {
+    struct sockbase *self = xget(fd);
+    struct xcpu *cpu = xcpuget(self->cpu_no);
+    
+    if (!self) {
+	errno = EBADF;
+	return -1;
+    }
+    mutex_lock(&cpu->lock);
+    mutex_lock(&self->lock);
+
+    while (efd_signal(&cpu->efd) < 0)
+	mutex_relock(&cpu->lock);
+    self->fepipe = true;
+    list_add_tail(&self->shutdown.link, &cpu->shutdown_socks);
+
+    mutex_unlock(&self->lock);
+    mutex_unlock(&cpu->lock);
     xput(fd);
+    return 0;
 }

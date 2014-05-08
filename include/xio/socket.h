@@ -72,7 +72,7 @@ int xconnect(const char *peer);
 
 int xrecv(int fd, char **xmsg);
 int xsend(int fd, char *xmsg);
-void xclose(int fd);
+int xclose(int fd);
 
 /* Following sockopt-level are provided */
 #define XL_SOCKET          1

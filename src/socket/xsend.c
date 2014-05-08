@@ -109,7 +109,7 @@ int xsend(int fd, char *xbuf) {
     }
     msg = cont_of(xbuf, struct xmsg, vec.chunk);
     if ((rc = sendq_push(self, msg)) < 0) {
-	errno = self->fok ? EAGAIN : EPIPE;
+	errno = self->fepipe ? EPIPE : EAGAIN;
     }
     xput(fd);
     return rc;

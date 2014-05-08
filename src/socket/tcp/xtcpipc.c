@@ -114,7 +114,7 @@ static void rcv_head_nonfull(struct sockbase *sb) {
     }
 }
 
-int xio_connector_handler(eloop_t *el, ev_t *et);
+int xio_connector_hndl(eloop_t *el, ev_t *et);
 
 struct sockbase *xio_alloc() {
     struct tcpipc_sock *self =
@@ -146,7 +146,7 @@ static int xio_connector_bind(struct sockbase *sb, const char *sock) {
     self->ops = default_xops;
     self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     self->et.fd = sys_fd;
-    self->et.f = xio_connector_handler;
+    self->et.f = xio_connector_hndl;
     self->et.data = self;
     BUG_ON(eloop_add(&cpu->el, &self->et) != 0);
     return 0;
@@ -280,7 +280,7 @@ static int xio_connector_snd(struct sockbase *sb) {
     return rc;
 }
 
-int xio_connector_handler(eloop_t *el, ev_t *et) {
+int xio_connector_hndl(eloop_t *el, ev_t *et) {
     int rc = 0;
     struct tcpipc_sock *self = cont_of(et, struct tcpipc_sock, et);
     struct sockbase *sb = &self->base;
@@ -295,7 +295,7 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
 	DEBUG_OFF("io xsock %d EPIPE", sb->fd);
-	sb->fok = false;
+	sb->fepipe = true;
     }
     xeventnotify(sb);
     return rc;

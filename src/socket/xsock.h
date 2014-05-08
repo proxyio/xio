@@ -92,9 +92,7 @@ struct sockbase {
     char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];
     u64 fasync:1;
-    u64 fok:1;
-    u64 fclosed:1;
-    u64 ftracedebug:1;
+    u64 fepipe:1;
 
     int owner;
     struct list_head sub_socks;

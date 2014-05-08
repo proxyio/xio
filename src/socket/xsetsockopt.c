@@ -67,13 +67,6 @@ static int set_reconnect(struct sockbase *self, void *val, int vallen) {
     return -1;
 }
 
-static int set_tracedebug(struct sockbase *self, void *val, int vallen) {
-    mutex_lock(&self->lock);
-    self->ftracedebug = *(int *)val ? true : false;
-    mutex_unlock(&self->lock);
-    return 0;
-}
-
 const sock_setopt setopt_vfptr[] = {
     set_noblock,
     set_sndwin,
@@ -86,7 +79,6 @@ const sock_setopt setopt_vfptr[] = {
     set_reconnect,
     0,
     0,
-    set_tracedebug,
 };
 
 int xsetopt(int fd, int level, int opt, void *val, int vallen) {

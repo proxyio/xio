@@ -79,111 +79,99 @@ struct sockbase *xget(int fd) {
 
 void xput(int fd) {
     struct sockbase *sb = xgb.sockbases[fd];
-    struct xcpu *cpu = xcpuget(sb->cpu_no);
 
-    BUG_ON(!sb);
     atomic_dec_and_lock(&sb->ref, mutex, xgb.lock) {
-	while (efd_signal(&cpu->efd) < 0)
-	    mutex_relock(&cpu->lock);
-	sb->fclosed = true;
-	list_add_tail(&sb->shutdown.link, &cpu->shutdown_socks);
+	xgb.unused[--xgb.nsockbases] = sb->fd;
 	mutex_unlock(&xgb.lock);
+	sb->vfptr->close(sb);
     }
 }
 
 static void xshutdown_task_f(struct xtask *ts) {
-    struct sockbase *self = cont_of(ts, struct sockbase, shutdown);
+    struct sockbase *sb = cont_of(ts, struct sockbase, shutdown);
     struct list_head poll_entries = {};
     struct xpoll_t *po = 0;
-    struct xpoll_entry *ent = 0, *nx;
+    struct xpoll_entry *ent = 0, *nent;
     
-    DEBUG_ON("xsock %d shutdown %s", self->fd, pf_str[self->vfptr->pf]);
+    DEBUG_ON("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
     INIT_LIST_HEAD(&poll_entries);
-    mutex_lock(&self->lock);
-    list_splice(&self->poll_entries, &poll_entries);
-    mutex_unlock(&self->lock);
+    mutex_lock(&sb->lock);
+    list_splice(&sb->poll_entries, &poll_entries);
+    mutex_unlock(&sb->lock);
 
-    xsock_walk_ent(ent, nx, &poll_entries) {
+    xsock_walk_ent(ent, nent, &poll_entries) {
 	po = cont_of(ent->notify, struct xpoll_t, notify);
 	xpoll_ctl(po, XPOLL_DEL, &ent->event);
 	__detach_from_xsock(ent);
 	xent_put(ent);
     }
-
-    mutex_lock(&xgb.lock);
-    xgb.unused[--xgb.nsockbases] = self->fd;
-    mutex_unlock(&xgb.lock);
-    self->vfptr->close(self);
+    xput(sb->fd);
 }
 
-void xsock_init(struct sockbase *self) {
-    mutex_init(&self->lock);
-    condition_init(&self->cond);
-    ZERO(self->addr);
-    ZERO(self->peer);
-    self->fasync = false;
-    self->fok = true;
-    self->fclosed = false;
+void xsock_init(struct sockbase *sb) {
+    mutex_init(&sb->lock);
+    condition_init(&sb->cond);
+    ZERO(sb->addr);
+    ZERO(sb->peer);
+    sb->fasync = false;
+    sb->fepipe = false;
+    sb->owner = -1;
+    INIT_LIST_HEAD(&sb->sub_socks);
+    INIT_LIST_HEAD(&sb->sib_link);
 
-    self->owner = -1;
-    INIT_LIST_HEAD(&self->sub_socks);
-    INIT_LIST_HEAD(&self->sib_link);
+    atomic_init(&sb->ref);
+    sb->cpu_no = xcpu_choosed(sb->fd);
 
-    atomic_init(&self->ref);
-    self->cpu_no = xcpu_choosed(self->fd);
+    sb->rcv.waiters = 0;
+    sb->rcv.buf = 0;
+    sb->rcv.wnd = DEF_RCVBUF;
+    INIT_LIST_HEAD(&sb->rcv.head);
 
-    self->rcv.waiters = 0;
-    self->rcv.buf = 0;
-    self->rcv.wnd = DEF_RCVBUF;
-    INIT_LIST_HEAD(&self->rcv.head);
+    sb->snd.waiters = 0;
+    sb->snd.buf = 0;
+    sb->snd.wnd = DEF_SNDBUF;
+    INIT_LIST_HEAD(&sb->snd.head);
 
-    self->snd.waiters = 0;
-    self->snd.buf = 0;
-    self->snd.wnd = DEF_SNDBUF;
-    INIT_LIST_HEAD(&self->snd.head);
-
-    INIT_LIST_HEAD(&self->poll_entries);
-    self->shutdown.f = xshutdown_task_f;
-    INIT_LIST_HEAD(&self->shutdown.link);
-    condition_init(&self->acceptq.cond);
-    self->acceptq.waiters = 0;
-    INIT_LIST_HEAD(&self->acceptq.head);
-    INIT_LIST_HEAD(&self->acceptq.link);
+    INIT_LIST_HEAD(&sb->poll_entries);
+    sb->shutdown.f = xshutdown_task_f;
+    INIT_LIST_HEAD(&sb->shutdown.link);
+    condition_init(&sb->acceptq.cond);
+    sb->acceptq.waiters = 0;
+    INIT_LIST_HEAD(&sb->acceptq.head);
+    INIT_LIST_HEAD(&sb->acceptq.link);
 }
 
-void xsock_exit(struct sockbase *self) {
+void xsock_exit(struct sockbase *sb) {
     struct list_head head = {};
-    struct xmsg *pos, *nx;
+    struct xmsg *pos, *npos;
 
-    mutex_destroy(&self->lock);
-    condition_destroy(&self->cond);
-    ZERO(self->addr);
-    ZERO(self->peer);
-    self->fasync = 0;
-    self->fok = 0;
-    self->fclosed = 0;
-
-    self->owner = -1;
-    BUG_ON(!list_empty(&self->sub_socks));
-    BUG_ON(attached(&self->sib_link));
+    mutex_destroy(&sb->lock);
+    condition_destroy(&sb->cond);
+    ZERO(sb->addr);
+    ZERO(sb->peer);
+    sb->fasync = 0;
+    sb->fepipe = 0;
+    sb->owner = -1;
+    BUG_ON(!list_empty(&sb->sub_socks));
+    BUG_ON(attached(&sb->sib_link));
     
-    self->fd = -1;
-    self->cpu_no = -1;
+    sb->fd = -1;
+    sb->cpu_no = -1;
 
     INIT_LIST_HEAD(&head);
 
-    self->rcv.waiters = -1;
-    self->rcv.buf = -1;
-    self->rcv.wnd = -1;
-    list_splice(&self->rcv.head, &head);
+    sb->rcv.waiters = -1;
+    sb->rcv.buf = -1;
+    sb->rcv.wnd = -1;
+    list_splice(&sb->rcv.head, &head);
 
-    self->snd.waiters = -1;
-    self->snd.buf = -1;
-    self->snd.wnd = -1;
-    list_splice(&self->snd.head, &head);
+    sb->snd.waiters = -1;
+    sb->snd.buf = -1;
+    sb->snd.wnd = -1;
+    list_splice(&sb->snd.head, &head);
 
-    xmsg_walk_safe(pos, nx, &head) {
+    xmsg_walk_safe(pos, npos, &head) {
 	xfreemsg(pos->vec.chunk);
     }
 
@@ -191,10 +179,10 @@ void xsock_exit(struct sockbase *self) {
      * at the same time. and attach_to_xsock() happen after xclose().
      * this is a user's bug.
      */
-    BUG_ON(!list_empty(&self->poll_entries));
-    self->acceptq.waiters = -1;
-    condition_destroy(&self->acceptq.cond);
+    BUG_ON(!list_empty(&sb->poll_entries));
+    sb->acceptq.waiters = -1;
+    condition_destroy(&sb->acceptq.cond);
 
-    atomic_destroy(&self->ref);
+    atomic_destroy(&sb->ref);
     /* TODO: destroy acceptq's connection */
 }

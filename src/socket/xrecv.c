@@ -103,7 +103,7 @@ int xrecv(int fd, char **xbuf) {
 	return -1;
     }
     if (!(msg = recvq_pop(self))) {
-	errno = self->fok ? EAGAIN : EPIPE;
+	errno = self->fepipe ? EPIPE : EAGAIN;
 	rc = -1;
     } else {
 	*xbuf = msg->vec.chunk;
