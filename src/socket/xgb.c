@@ -158,4 +158,5 @@ void xsocket_module_exit() {
     taskpool_stop(&xgb.tpool);
     taskpool_destroy(&xgb.tpool);
     mutex_destroy(&xgb.lock);
+    BUG_ON(xgb.nsockbases);
 }

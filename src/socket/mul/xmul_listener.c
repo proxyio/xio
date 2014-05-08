@@ -52,7 +52,7 @@ static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
 	pf &= ~vfptr->pf;
 	if ((sub_fd = _xlisten(vfptr->pf, sock)) < 0)
 	    goto BAD;
-	sub = xget(sub_fd);
+	sub = xgb.sockbases[sub_fd];
 	sub->owner = sb->fd;
 	list_add_tail(&sub->sib_link, &sb->sub_socks);
     }

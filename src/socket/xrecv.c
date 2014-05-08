@@ -92,13 +92,13 @@ void recvq_push(struct sockbase *self, struct xmsg *msg) {
 int xrecv(int fd, char **xbuf) {
     int rc = 0;
     struct xmsg *msg = 0;
-    struct sockbase *self = xget(fd);
+    struct sockbase *self;
     
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!self) {
+    if (!(self = xget(fd))) {
 	errno = EBADF;
 	return -1;
     }

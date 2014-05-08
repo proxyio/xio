@@ -33,7 +33,7 @@ int acceptq_push(struct sockbase *self, struct sockbase *new) {
     int rc = 0;
 
     while (self->owner >= 0)
-	self = xget(self->owner);
+	self = xgb.sockbases[self->owner];
 
     mutex_lock(&self->lock);
     if (list_empty(&self->acceptq.head) && self->acceptq.waiters > 0) {
@@ -64,8 +64,8 @@ struct sockbase *acceptq_pop(struct sockbase *self) {
 }
 
 int xaccept(int fd) {
-    struct sockbase *self = xget(fd);
     struct sockbase *new = 0;
+    struct sockbase *self = xget(fd);
 
     if (!self) {
 	errno = EBADF;

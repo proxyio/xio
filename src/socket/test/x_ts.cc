@@ -14,7 +14,7 @@ using namespace std;
 
 extern int randstr(char *buf, int len);
 
-static int cnt = 10;
+static int cnt = 1;
 
 static void xclient(string pf) {
     int sfd, i;
@@ -71,6 +71,7 @@ static void xserver() {
 	    DEBUG_OFF("%d recv", sfd);
 	    BUG_ON(0 != xsend(sfd, xbuf));
 	}
+	xclose(sfd);
     }
     thread_stop(&cli_thread);
     DEBUG_OFF("%s", "xclient thread return");
@@ -148,7 +149,7 @@ static void xserver2() {
 static void xsock_test(int count) {
     while (count-- > 0) {
 	xserver();
-	xserver2();
+	//xserver2();
     }
 }
 

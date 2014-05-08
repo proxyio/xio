@@ -30,13 +30,13 @@
 
 const char *pf_str[] = {
     "",
-    "PF_NET",
+    "PF_TCP",
     "PF_IPC",
-    "PF_NET|PF_IPC",
+    "PF_TCP|PF_IPC",
     "PF_INPROC",
-    "PF_NET|PF_INPROC",
+    "PF_TCP|PF_INPROC",
     "PF_IPC|PF_INPROC",
-    "PF_NET|PF_IPC|PF_INPROC",
+    "PF_TCP|PF_IPC|PF_INPROC",
 };
 
 /* Default snd/rcv buffer size */
