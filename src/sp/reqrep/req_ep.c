@@ -113,7 +113,7 @@ static int set_pipeline(struct epbase *ep, void *optval, int optlen) {
 	errno = EBADF;
 	return -1;
     }
-    rc = epbase_pipeline(ep, peer);
+    rc = epbase_pipeline(peer, ep);
     eid_put(front_eid);
     return rc;
 }

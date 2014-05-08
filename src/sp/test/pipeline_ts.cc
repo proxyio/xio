@@ -66,7 +66,7 @@ static int proxy_thread(void *args) {
     BUG_ON((s = xlisten(backhost.c_str())) < 0);
     BUG_ON(sp_add(back_eid, s) < 0);
 
-    BUG_ON(sp_setopt(front_eid, SP_PIPELINE, &back_eid, sizeof(back_eid)));
+    BUG_ON(sp_setopt(back_eid, SP_PIPELINE, &front_eid, sizeof(front_eid)));
     proxy_stopped = 0;
     while (!proxy_stopped)
 	usleep(20000);
