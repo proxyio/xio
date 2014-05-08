@@ -36,6 +36,7 @@ static void req_ep_destroy(struct epbase *ep) {
     struct req_ep *req_ep = cont_of(ep, struct req_ep, base);
     BUG_ON(!req_ep);
     epbase_exit(ep);
+    mem_free(req_ep, sizeof(*req_ep));
 }
 
 static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {

@@ -155,9 +155,10 @@ static void shutdown_epbase() {
 
     mutex_lock(&sg.lock);
     walk_epbase_safe(ep, nep, &sg.shutdown_head) {
+	DEBUG_OFF("eid %d shutdown", ep->eid);
 	list_del_init(&ep->item);
-	ep->vfptr.destroy(ep);
 	sg.unused[--sg.nendpoints] = ep->eid;
+	ep->vfptr.destroy(ep);
     }
     mutex_unlock(&sg.lock);
 }
@@ -212,6 +213,7 @@ void sp_module_exit() {
     thread_stop(&sg.po_routine);
     mutex_destroy(&sg.lock);
     xpoll_close(sg.po);
+    BUG_ON(sg.nendpoints);
 }
 
 int eid_alloc(int sp_family, int sp_type) {
