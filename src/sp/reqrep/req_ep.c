@@ -43,7 +43,7 @@ static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct sphdr *h = ubuf2sphdr(ubuf);
 
     h->ttl--;
-    DEBUG_ON("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
+    DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
     ep->rcv.size += xmsglen(ubuf);
@@ -91,7 +91,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     rt_append(*ubuf, r);
     BUG_ON(xmsgctl(*ubuf, XMSG_CMSGNUM, &cmsgnum));
     BUG_ON(cmsgnum != 2);
-    DEBUG_ON("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
+    DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }
 

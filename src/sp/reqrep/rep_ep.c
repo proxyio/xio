@@ -45,7 +45,7 @@ static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
 	uuid_copy(sk->uuid, r->uuid);
     }
-    DEBUG_ON("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
+    DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
     ep->rcv.size += xmsglen(ubuf);
@@ -105,7 +105,7 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     h->go = 0;
     h->end_ttl = h->ttl;
     BUG_ON(!cmsgnum || cmsgnum != h->end_ttl + 1);
-    DEBUG_ON("ep %d send resp %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
+    DEBUG_OFF("ep %d send resp %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }
 
