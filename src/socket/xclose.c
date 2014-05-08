@@ -28,7 +28,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-static void xshutdown(struct xsock *self) {
+static void xshutdown(struct sockbase *self) {
     struct xcpu *cpu = xcpuget(self->cpu_no);
     struct xtask *ts = &self->shutdown;    
 
@@ -46,7 +46,7 @@ static void xshutdown(struct xsock *self) {
 }
 
 void xclose(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct xpoll_t *po;
     struct xpoll_entry *ent, *nx;
     struct list_head poll_entries = {};

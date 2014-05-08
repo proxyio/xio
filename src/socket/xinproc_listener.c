@@ -31,16 +31,16 @@
  *  xsock's proc field operation.
  ******************************************************************************/
 
-struct xsock *find_listener(const char *addr) {
+struct sockbase *find_listener(const char *addr) {
     struct ssmap_node *node;
-    struct xsock *self = 0;
+    struct sockbase *self = 0;
     u32 size = strlen(addr);
 
     if (size > TP_SOCKADDRLEN)
 	size = TP_SOCKADDRLEN;
     xglobal_lock();
     if ((node = ssmap_find(&xgb.inproc_listeners, addr, size)))
-	self = cont_of(node, struct xsock, proc.rb_link);
+	self = cont_of(node, struct sockbase, proc.rb_link);
     xglobal_unlock();
     return self;
 }
@@ -72,7 +72,7 @@ static void remove_listener(struct ssmap_node *node) {
 static int xinp_listener_bind(int fd, const char *sock) {
     int rc;
     struct ssmap_node *node = 0;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     ZERO(self->proc);
     strncpy(self->addr, sock, TP_SOCKADDRLEN);
@@ -88,7 +88,7 @@ static int xinp_listener_bind(int fd, const char *sock) {
 }
 
 static void xinp_listener_close(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     /* Avoiding the new connectors */
     remove_listener(&self->proc.rb_link);

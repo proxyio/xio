@@ -28,7 +28,7 @@
 #include "xgb.h"
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
-    struct xsock *self = cont_of(ops, struct xsock, io.ops);
+    struct sockbase *self = cont_of(ops, struct sockbase, io.ops);
     struct transport *tp = self->io.tp;
 
     BUG_ON(!tp);
@@ -37,7 +37,7 @@ static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
 }
 
 static i64 xio_connector_write(struct io *ops, char *buff, i64 sz) {
-    struct xsock *self = cont_of(ops, struct xsock, io.ops);
+    struct sockbase *self = cont_of(ops, struct sockbase, io.ops);
     struct transport *tp = self->io.tp;
 
     BUG_ON(!tp);
@@ -57,7 +57,7 @@ struct io default_xops = {
  ******************************************************************************/
 
 static void snd_head_empty(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Disable POLLOUT event when snd_head is empty
@@ -69,7 +69,7 @@ static void snd_head_empty(int fd) {
 }
 
 static void snd_head_nonempty(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
@@ -86,14 +86,14 @@ static void snd_head_nonempty(int fd) {
  ******************************************************************************/
 
 static void rcv_head_pop(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     if (self->snd.waiters)
 	condition_signal(&self->cond);
 }
 
 static void rcv_head_full(int fd) {
-    struct xsock *self = xget(fd);    
+    struct sockbase *self = xget(fd);    
     struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
@@ -104,7 +104,7 @@ static void rcv_head_full(int fd) {
 }
 
 static void rcv_head_nonfull(int fd) {
-    struct xsock *self = xget(fd);    
+    struct sockbase *self = xget(fd);    
     struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
@@ -116,7 +116,7 @@ static void rcv_head_nonfull(int fd) {
 
 int xio_connector_handler(eloop_t *el, ev_t *et);
 
-void xio_connector_init(struct xsock *self,
+void xio_connector_init(struct sockbase *self,
 			struct transport *tp, int s) {
     int on = 1;
     struct xcpu *cpu = xcpuget(self->cpu_no);
@@ -138,7 +138,7 @@ void xio_connector_init(struct xsock *self,
 
 static int xio_connector_bind(int fd, const char *sock) {
     int s;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct transport *tp = transport_lookup(self->pf);
 
     BUG_ON(!tp);
@@ -149,10 +149,10 @@ static int xio_connector_bind(int fd, const char *sock) {
     return 0;
 }
 
-static int xio_connector_snd(struct xsock *self);
+static int xio_connector_snd(struct sockbase *self);
 
 static void xio_connector_close(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct xcpu *cpu = xcpuget(self->cpu_no);
     struct transport *tp = self->io.tp;
 
@@ -228,7 +228,7 @@ static void bufio_rm(struct bio *b, struct xmsg **msg) {
     *msg = cont_of(chunk, struct xmsg, vec.chunk);
 }
 
-static int xio_connector_rcv(struct xsock *self) {
+static int xio_connector_rcv(struct sockbase *self) {
     int rc = 0;
     u16 oob_count;
     struct xmsg *aim = 0, *oob = 0;
@@ -264,7 +264,7 @@ static void bufio_add(struct bio *b, struct xmsg *msg) {
     }
 }
 
-static int xio_connector_snd(struct xsock *self) {
+static int xio_connector_snd(struct sockbase *self) {
     int rc;
     struct xmsg *msg;
 
@@ -278,7 +278,7 @@ static int xio_connector_snd(struct xsock *self) {
 
 int xio_connector_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
-    struct xsock *self = cont_of(et, struct xsock, io.et);
+    struct sockbase *self = cont_of(et, struct sockbase, io.et);
 
     if (et->happened & EPOLLIN) {
 	DEBUG_OFF("io xsock %d EPOLLIN", self->fd);

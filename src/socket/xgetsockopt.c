@@ -29,37 +29,37 @@
 #include "xgb.h"
 
 
-typedef int (*sock_getopt) (struct xsock *self, void *val, int *vallen);
+typedef int (*sock_getopt) (struct sockbase *self, void *val, int *vallen);
 
-static int get_noblock(struct xsock *self, void *val, int *vallen) {
+static int get_noblock(struct sockbase *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
     *(int *)val = self->fasync ? true : false;
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_sndwin(struct xsock *self, void *val, int *vallen) {
+static int get_sndwin(struct sockbase *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
     *(int *)val = self->snd.wnd;
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_rcvwin(struct xsock *self, void *val, int *vallen) {
+static int get_rcvwin(struct sockbase *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
     *(int *)val = self->rcv.wnd;
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_sndbuf(struct xsock *self, void *val, int *vallen) {
+static int get_sndbuf(struct sockbase *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
     *(int *)val = self->snd.buf;
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int get_rcvbuf(struct xsock *self, void *val, int *vallen) {
+static int get_rcvbuf(struct sockbase *self, void *val, int *vallen) {
     mutex_lock(&self->lock);
     *(int *)val = self->rcv.buf;
     mutex_unlock(&self->lock);
@@ -67,33 +67,33 @@ static int get_rcvbuf(struct xsock *self, void *val, int *vallen) {
 }
 
 
-static int get_linger(struct xsock *self, void *val, int *vallen) {
+static int get_linger(struct sockbase *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_sndtimeo(struct xsock *self, void *val, int *vallen) {
+static int get_sndtimeo(struct sockbase *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_rcvtimeo(struct xsock *self, void *val, int *vallen) {
+static int get_rcvtimeo(struct sockbase *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_reconnect(struct xsock *self, void *val, int *vallen) {
+static int get_reconnect(struct sockbase *self, void *val, int *vallen) {
     return -1;
 }
 
-static int get_socktype(struct xsock *self, void *val, int *vallen) {
+static int get_socktype(struct sockbase *self, void *val, int *vallen) {
     *(int *)val = self->type;
     return 0;
 }
 
-static int get_sockpf(struct xsock *self, void *val, int *vallen) {
+static int get_sockpf(struct sockbase *self, void *val, int *vallen) {
     *(int *)val = self->pf;
     return 0;
 }
 
-static int get_tracedebug(struct xsock *self, void *val, int *vallen) {
+static int get_tracedebug(struct sockbase *self, void *val, int *vallen) {
     *(int *)val = (int)self->ftracedebug;
     return 0;
 }
@@ -116,7 +116,7 @@ const sock_getopt getopt_vfptr[] = {
 
 int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     switch (level) {
     case XL_SOCKET:

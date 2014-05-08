@@ -29,7 +29,7 @@
 #include "xgb.h"
 
 int xsocket(int pf, int type) {
-    struct xsock *self = xsock_alloc();
+    struct sockbase *self = xsock_alloc();
 
     if (!self) {
 	errno = EMFILE;
@@ -46,7 +46,7 @@ int xsocket(int pf, int type) {
 
 int xbind(int fd, const char *addr) {
     int rc;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     if (self->vfptr)
 	rc = self->vfptr->bind(fd, addr);

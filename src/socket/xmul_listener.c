@@ -31,8 +31,8 @@ extern int _xlisten(int pf, const char *addr);
 
 
 static void xmultiple_close(int fd) {
-    struct xsock *sub, *nx;
-    struct xsock *self = xget(fd);
+    struct sockbase *sub, *nx;
+    struct sockbase *self = xget(fd);
 
     xsock_walk_sub_socks(sub, nx, &self->sub_socks) {
 	sub->owner = -1;
@@ -43,7 +43,7 @@ static void xmultiple_close(int fd) {
 
 static int xmul_listener_bind(int fd, const char *sock) {
     struct sockbase_vfptr *vfptr, *ss;
-    struct xsock *self = xget(fd), *sub;
+    struct sockbase *self = xget(fd), *sub;
     int sub_fd;
     int pf = self->pf;
 
@@ -65,7 +65,7 @@ static int xmul_listener_bind(int fd, const char *sock) {
 }
 
 static void xmul_listener_close(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     xmultiple_close(fd);
     xsock_free(self);
     DEBUG_OFF("xsock %d multiple_close", fd);

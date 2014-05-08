@@ -225,7 +225,7 @@ struct xpoll_entry *xpoll_popent(struct xpoll_t *self) {
 
 
 void attach_to_xsock(struct xpoll_entry *ent, int xd) {
-    struct xsock *cn = xget(xd);
+    struct sockbase *cn = xget(xd);
 
     mutex_lock(&cn->lock);
     BUG_ON(attached(&ent->xlink));

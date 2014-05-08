@@ -29,7 +29,7 @@
 #include <transport/sockaddr.h>
 #include "xgb.h"
 
-int acceptq_push(struct xsock *self, struct xsock *new) {
+int acceptq_push(struct sockbase *self, struct sockbase *new) {
     int rc = 0;
 
     while (self->owner >= 0)
@@ -45,8 +45,8 @@ int acceptq_push(struct xsock *self, struct xsock *new) {
     return rc;
 }
 
-struct xsock *acceptq_pop(struct xsock *self) {
-    struct xsock *new = 0;
+struct sockbase *acceptq_pop(struct sockbase *self) {
+    struct sockbase *new = 0;
 
     mutex_lock(&self->lock);
     while (list_empty(&self->acceptq.head) && !self->fasync) {
@@ -55,7 +55,7 @@ struct xsock *acceptq_pop(struct xsock *self) {
 	self->acceptq.waiters--;
     }
     if (!list_empty(&self->acceptq.head)) {
-	new = list_first(&self->acceptq.head, struct xsock, acceptq.link);
+	new = list_first(&self->acceptq.head, struct sockbase, acceptq.link);
 	list_del_init(&new->acceptq.link);
     }
     __xeventnotify(self);
@@ -64,8 +64,8 @@ struct xsock *acceptq_pop(struct xsock *self) {
 }
 
 int xaccept(int fd) {
-    struct xsock *self = xget(fd);
-    struct xsock *new_self = 0;
+    struct sockbase *self = xget(fd);
+    struct sockbase *new_self = 0;
 
     if (!self->fok) {
 	errno = EPIPE;

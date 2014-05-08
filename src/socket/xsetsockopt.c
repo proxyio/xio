@@ -28,46 +28,46 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-typedef int (*sock_setopt) (struct xsock *self, void *val, int vallen);
+typedef int (*sock_setopt) (struct sockbase *self, void *val, int vallen);
 
-static int set_noblock(struct xsock *self, void *val, int vallen) {
+static int set_noblock(struct sockbase *self, void *val, int vallen) {
     mutex_lock(&self->lock);
     self->fasync = *(int *)val ? true : false;
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int set_sndwin(struct xsock *self, void *val, int vallen) {
+static int set_sndwin(struct sockbase *self, void *val, int vallen) {
     mutex_lock(&self->lock);
     self->snd.wnd = (*(int *)val);
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int set_rcvwin(struct xsock *self, void *val, int vallen) {
+static int set_rcvwin(struct sockbase *self, void *val, int vallen) {
     mutex_lock(&self->lock);
     self->rcv.wnd = (*(int *)val);
     mutex_unlock(&self->lock);
     return 0;
 }
 
-static int set_linger(struct xsock *self, void *val, int vallen) {
+static int set_linger(struct sockbase *self, void *val, int vallen) {
     return -1;
 }
 
-static int set_sndtimeo(struct xsock *self, void *val, int vallen) {
+static int set_sndtimeo(struct sockbase *self, void *val, int vallen) {
     return -1;
 }
 
-static int set_rcvtimeo(struct xsock *self, void *val, int vallen) {
+static int set_rcvtimeo(struct sockbase *self, void *val, int vallen) {
     return -1;
 }
 
-static int set_reconnect(struct xsock *self, void *val, int vallen) {
+static int set_reconnect(struct sockbase *self, void *val, int vallen) {
     return -1;
 }
 
-static int set_tracedebug(struct xsock *self, void *val, int vallen) {
+static int set_tracedebug(struct sockbase *self, void *val, int vallen) {
     mutex_lock(&self->lock);
     self->ftracedebug = *(int *)val ? true : false;
     mutex_unlock(&self->lock);
@@ -91,7 +91,7 @@ const sock_setopt setopt_vfptr[] = {
 
 int xsetopt(int fd, int level, int opt, void *val, int vallen) {
     int rc;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     switch (level) {
     case XL_SOCKET:

@@ -28,7 +28,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-int xsock_check_events(struct xsock *self, int events) {
+int xsock_check_events(struct sockbase *self, int events) {
     int happened = 0;
 
     if (events & XPOLLIN) {
@@ -51,7 +51,7 @@ int xsock_check_events(struct xsock *self, int events) {
  * here we only check the mq events and proto_spec saved the other
  * events gived by xsock_protocol
  */
-void __xeventnotify(struct xsock *self) {
+void __xeventnotify(struct sockbase *self) {
     int happened = 0;
     struct xpoll_entry *ent, *nx;
 
@@ -61,7 +61,7 @@ void __xeventnotify(struct xsock *self) {
     }
 }
 
-void xeventnotify(struct xsock *self) {
+void xeventnotify(struct sockbase *self) {
     mutex_lock(&self->lock);
     __xeventnotify(self);
     mutex_unlock(&self->lock);

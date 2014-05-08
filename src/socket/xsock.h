@@ -76,7 +76,7 @@ struct sockbase_vfptr {
     struct list_head link;
 };
 
-struct xsock {
+struct sockbase {
     struct sockbase_vfptr *vfptr;
     mutex_t lock;
     condition_t cond;
@@ -139,37 +139,37 @@ struct xsock {
 	    struct ssmap_node rb_link;
 
 	    /* For inproc-connector and inproc-accepter */
-	    struct xsock *xsock_peer;
+	    struct sockbase *xsock_peer;
 	} proc;
     };
 };
 
 #define xsock_walk_sub_socks(sub, nx, head)		\
     list_for_each_entry_safe(sub, nx, head,		\
-			     struct xsock, sib_link)
+			     struct sockbase, sib_link)
 
 /* We guarantee that we can push one massage at least. */
-static inline int can_send(struct xsock *cn) {
+static inline int can_send(struct sockbase *cn) {
     return list_empty(&cn->snd.head) || cn->snd.buf < cn->snd.wnd;
 }
 
-static inline int can_recv(struct xsock *cn) {
+static inline int can_recv(struct sockbase *cn) {
     return list_empty(&cn->rcv.head) || cn->rcv.buf < cn->rcv.wnd;
 }
 
-struct xsock *xget(int cd);
-void xsock_free(struct xsock *cn);
-struct xsock *xsock_alloc();
+struct sockbase *xget(int cd);
+void xsock_free(struct sockbase *cn);
+struct sockbase *xsock_alloc();
 
-void recvq_push(struct xsock *cn, struct xmsg *msg);
-struct xmsg *sendq_pop(struct xsock *cn);
+void recvq_push(struct sockbase *cn, struct xmsg *msg);
+struct xmsg *sendq_pop(struct sockbase *cn);
 
-int acceptq_push(struct xsock *self, struct xsock *req_self);
-struct xsock *acceptq_pop(struct xsock *self);
+int acceptq_push(struct sockbase *self, struct sockbase *req_self);
+struct sockbase *acceptq_pop(struct sockbase *self);
 
-int xpoll_check_events(struct xsock *self, int events);
-void __xeventnotify(struct xsock *self);
-void xeventnotify(struct xsock *self);
+int xpoll_check_events(struct sockbase *self, int events);
+void __xeventnotify(struct sockbase *self);
+void xeventnotify(struct sockbase *self);
 
 
 #endif

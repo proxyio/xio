@@ -77,11 +77,11 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
     mutex_unlock(&self->lock);
 }
 
-extern void xeventnotify(struct xsock *sk);
+extern void xeventnotify(struct sockbase *sk);
 
 static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
     struct xpoll_entry *ent = xpoll_getent(self, event->xd);
-    struct xsock *sk = xget(event->xd);
+    struct sockbase *sk = xget(event->xd);
 
     if (!ent)
 	return -1;
@@ -116,7 +116,7 @@ static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
 
 
 static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xsock *sk = xget(event->xd);
+    struct sockbase *sk = xget(event->xd);
     struct xpoll_entry *ent = xpoll_find(self, event->xd);
 
     if (!ent)

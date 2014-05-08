@@ -58,19 +58,19 @@ void fd_free(int fd) {
     mutex_unlock(&xgb.lock);
 }
 
-struct xsock *xget(int fd) {
+struct sockbase *xget(int fd) {
     return &xgb.socks[fd];
 }
 
 static void xshutdown_task_f(struct xtask *ts) {
-    struct xsock *self = cont_of(ts, struct xsock, shutdown);
+    struct sockbase *self = cont_of(ts, struct sockbase, shutdown);
 
     DEBUG_OFF("xsock %d shutdown %s", self->fd, pf_str[self->pf]);
     self->vfptr->close(self->fd);
 }
 
 static void xsock_init(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     mutex_init(&self->lock);
     condition_init(&self->cond);
@@ -110,7 +110,7 @@ static void xsock_init(int fd) {
 }
 
 static void xsock_exit(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct list_head head = {};
     struct xmsg *pos, *nx;
 
@@ -159,14 +159,14 @@ static void xsock_exit(int fd) {
 }
 
 
-struct xsock *xsock_alloc() {
+struct sockbase *xsock_alloc() {
     int fd = fd_alloc();
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     xsock_init(fd);
     return self;
 }
 
-void xsock_free(struct xsock *self) {
+void xsock_free(struct sockbase *self) {
     int fd = self->fd;
     xsock_exit(fd);
     fd_free(fd);

@@ -34,7 +34,7 @@ extern struct io default_xops;
  ***************************************************************************/
 
 static void request_socks_full(int fd) {
-    struct xsock *self = xget(fd);    
+    struct sockbase *self = xget(fd);    
     struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
@@ -45,7 +45,7 @@ static void request_socks_full(int fd) {
 }
 
 static void request_socks_nonfull(int fd) {
-    struct xsock *self = xget(fd);    
+    struct sockbase *self = xget(fd);    
     struct xcpu *cpu = xcpuget(self->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
@@ -59,7 +59,7 @@ static int xio_listener_handler(eloop_t *el, ev_t *et);
 
 static int xio_listener_bind(int fd, const char *sock) {
     int s, on = 1;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct xcpu *cpu = xcpuget(self->cpu_no);
     struct transport *tp = transport_lookup(self->pf);
 
@@ -83,7 +83,7 @@ static int xio_listener_bind(int fd, const char *sock) {
 }
 
 static void xio_listener_close(int fd) {
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
     struct xcpu *cpu = xcpuget(self->cpu_no);
     struct transport *tp = self->io.tp;
 
@@ -122,14 +122,14 @@ static void xio_listener_notify(int fd, int type, uint32_t events) {
 }
 
 extern int xio_connector_handler(eloop_t *el, ev_t *et);
-extern void xio_connector_init(struct xsock *self,
+extern void xio_connector_init(struct sockbase *self,
 			       struct transport *tp, int s);
 
 static int xio_listener_handler(eloop_t *el, ev_t *et) {
     int s;
-    struct xsock *self = cont_of(et, struct xsock, io.et);
+    struct sockbase *self = cont_of(et, struct sockbase, io.et);
     struct transport *tp = self->io.tp;
-    struct xsock *new;
+    struct sockbase *new;
 
     if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
 	self->fok = false;

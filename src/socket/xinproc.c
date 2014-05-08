@@ -32,7 +32,7 @@
 
 
 
-static int xinp_put(struct xsock *self) {
+static int xinp_put(struct sockbase *self) {
     int old;
     mutex_lock(&self->lock);
     old = self->ref--;
@@ -41,7 +41,7 @@ static int xinp_put(struct xsock *self) {
     return old;
 }
 
-extern struct xsock *find_listener(const char *addr);
+extern struct sockbase *find_listener(const char *addr);
 
 
 /******************************************************************************
@@ -51,8 +51,8 @@ extern struct xsock *find_listener(const char *addr);
 static int snd_head_push(int fd) {
     int rc = 0, can = false;
     struct xmsg *msg;
-    struct xsock *self = xget(fd);
-    struct xsock *peer = self->proc.xsock_peer;
+    struct sockbase *self = xget(fd);
+    struct sockbase *peer = self->proc.xsock_peer;
 
     // Unlock myself first because i hold the lock
     mutex_unlock(&self->lock);
@@ -77,7 +77,7 @@ static int snd_head_push(int fd) {
 
 static int rcv_head_pop(int fd) {
     int rc = 0;
-    struct xsock *self = xget(fd);
+    struct sockbase *self = xget(fd);
 
     if (self->snd.waiters)
 	condition_signal(&self->cond);
@@ -91,9 +91,9 @@ static int rcv_head_pop(int fd) {
  ******************************************************************************/
 
 static int xinp_connector_bind(int fd, const char *sock) {
-    struct xsock *self = xget(fd);
-    struct xsock *new = xsock_alloc();
-    struct xsock *listener = find_listener(sock);
+    struct sockbase *self = xget(fd);
+    struct sockbase *new = xsock_alloc();
+    struct sockbase *listener = find_listener(sock);
 
     if (!listener) {
 	errno = ENOENT;	
@@ -126,8 +126,8 @@ static int xinp_connector_bind(int fd, const char *sock) {
 }
 
 static void xinp_connector_close(int fd) {
-    struct xsock *self = xget(fd);    
-    struct xsock *peer = self->proc.xsock_peer;
+    struct sockbase *self = xget(fd);    
+    struct sockbase *peer = self->proc.xsock_peer;
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
     if (xinp_put(peer) == 1) {

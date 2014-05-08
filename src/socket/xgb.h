@@ -41,7 +41,7 @@ struct xglobal {
      * find out whether context is initialised. If it is null, context is
      * uninitialised.
      */
-    struct xsock socks[XIO_MAX_SOCKS];
+    struct sockbase socks[XIO_MAX_SOCKS];
 
     /* Stack of unused xsock descriptors.  */
     int unused[XIO_MAX_SOCKS];
