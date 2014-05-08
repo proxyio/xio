@@ -93,30 +93,30 @@ static inline int kcpud(void *args) {
 }
 
 
-struct sockspec *sockspec_lookup(int pf, int type) {
-    struct sockspec *sockspec_vfptr, *ss;
+struct sockbase_vfptr *sockbase_vfptr_lookup(int pf, int type) {
+    struct sockbase_vfptr *vfptr, *ss;
 
-    sockspec_walk_safe(sockspec_vfptr, ss, &xgb.sockspec_head) {
-	if (pf == sockspec_vfptr->pf && sockspec_vfptr->type == type)
-	    return sockspec_vfptr;
+    walk_sockbase_vfptr_safe(vfptr, ss, &xgb.sockbase_vfptr_head) {
+	if (pf == vfptr->pf && vfptr->type == type)
+	    return vfptr;
     }
     return 0;
 }
 
-extern struct sockspec xinp_listener_spec;
-extern struct sockspec xinp_connector_spec;
-extern struct sockspec xipc_listener_spec;
-extern struct sockspec xipc_connector_spec;
-extern struct sockspec xtcp_listener_spec;
-extern struct sockspec xtcp_connector_spec;
-extern struct sockspec xmul_listener_spec[3];
+extern struct sockbase_vfptr xinp_listener_spec;
+extern struct sockbase_vfptr xinp_connector_spec;
+extern struct sockbase_vfptr xipc_listener_spec;
+extern struct sockbase_vfptr xipc_connector_spec;
+extern struct sockbase_vfptr xtcp_listener_spec;
+extern struct sockbase_vfptr xtcp_connector_spec;
+extern struct sockbase_vfptr xmul_listener_spec[3];
 
 void xsocket_module_init() {
     waitgroup_t wg;
     int fd;
     int cpu_no;
     int i;
-    struct list_head *protocol_head = &xgb.sockspec_head;
+    struct list_head *protocol_head = &xgb.sockbase_vfptr_head;
 
     BUG_ON(TP_TCP != XPF_TCP);
     BUG_ON(TP_IPC != XPF_IPC);
@@ -143,7 +143,7 @@ void xsocket_module_init() {
     waitgroup_wait(&wg);
     waitgroup_destroy(&wg);
     
-    /* The priority of sockspec: inproc > ipc > tcp */
+    /* The priority of sockbase_vfptr: inproc > ipc > tcp */
     INIT_LIST_HEAD(protocol_head);
     list_add_tail(&xinp_listener_spec.link, protocol_head);
     list_add_tail(&xinp_connector_spec.link, protocol_head);

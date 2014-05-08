@@ -30,7 +30,7 @@
 
 struct xmsg *recvq_pop(struct xsock *self) {
     struct xmsg *msg = 0;
-    struct sockspec *sockspec_vfptr = self->sockspec_vfptr;
+    struct sockbase_vfptr *vfptr = self->vfptr;
     i64 msgsz;
     u32 events = 0;
 
@@ -55,8 +55,8 @@ struct xmsg *recvq_pop(struct xsock *self) {
 	}
     }
 
-    if (events && sockspec_vfptr->notify)
-	sockspec_vfptr->notify(self->fd, RECV_Q, events);
+    if (events && vfptr->notify)
+	vfptr->notify(self->fd, RECV_Q, events);
 
     __xeventnotify(self);
     mutex_unlock(&self->lock);
@@ -64,7 +64,7 @@ struct xmsg *recvq_pop(struct xsock *self) {
 }
 
 void recvq_push(struct xsock *self, struct xmsg *msg) {
-    struct sockspec *sockspec_vfptr = self->sockspec_vfptr;
+    struct sockbase_vfptr *vfptr = self->vfptr;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
@@ -82,8 +82,8 @@ void recvq_push(struct xsock *self, struct xmsg *msg) {
     if (self->rcv.waiters > 0)
 	condition_broadcast(&self->cond);
 
-    if (events && sockspec_vfptr->notify)
-	sockspec_vfptr->notify(self->fd, RECV_Q, events);
+    if (events && vfptr->notify)
+	vfptr->notify(self->fd, RECV_Q, events);
 
     __xeventnotify(self);
     mutex_unlock(&self->lock);

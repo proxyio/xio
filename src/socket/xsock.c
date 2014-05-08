@@ -28,7 +28,18 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-/* Default input/output buffer size */
+const char *pf_str[] = {
+    "",
+    "PF_NET",
+    "PF_IPC",
+    "PF_NET|PF_IPC",
+    "PF_INPROC",
+    "PF_NET|PF_INPROC",
+    "PF_IPC|PF_INPROC",
+    "PF_NET|PF_IPC|PF_INPROC",
+};
+
+/* Default snd/rcv buffer size */
 static int DEF_SNDBUF = 10485760;
 static int DEF_RCVBUF = 10485760;
 
@@ -55,7 +66,7 @@ static void xshutdown_task_f(struct xtask *ts) {
     struct xsock *self = cont_of(ts, struct xsock, shutdown);
 
     DEBUG_OFF("xsock %d shutdown %s", self->fd, pf_str[self->pf]);
-    self->sockspec_vfptr->close(self->fd);
+    self->vfptr->close(self->fd);
 }
 
 static void xsock_init(int fd) {

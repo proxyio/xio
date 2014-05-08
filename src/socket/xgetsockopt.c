@@ -127,11 +127,11 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
 	rc = getopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	if (!self->sockspec_vfptr->getopt) {
+	if (!self->vfptr->getopt) {
 	    errno = EINVAL;
 	    return -1;
 	}
-	rc = self->sockspec_vfptr->getopt(fd, level, opt, val, vallen);
+	rc = self->vfptr->getopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

@@ -35,7 +35,7 @@ int xsocket(int pf, int type) {
 	errno = EMFILE;
 	return -1;
     }
-    if (!(self->sockspec_vfptr = sockspec_lookup(pf, type))) {
+    if (!(self->vfptr = sockbase_vfptr_lookup(pf, type))) {
 	errno = EPROTO;
 	return -1;
     }
@@ -48,7 +48,7 @@ int xbind(int fd, const char *addr) {
     int rc;
     struct xsock *self = xget(fd);
 
-    if (self->sockspec_vfptr)
-	rc = self->sockspec_vfptr->bind(fd, addr);
+    if (self->vfptr)
+	rc = self->vfptr->bind(fd, addr);
     return rc;
 }

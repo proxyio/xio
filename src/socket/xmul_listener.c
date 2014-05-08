@@ -42,16 +42,16 @@ static void xmultiple_close(int fd) {
 }
 
 static int xmul_listener_bind(int fd, const char *sock) {
-    struct sockspec *sockspec_vfptr, *ss;
+    struct sockbase_vfptr *vfptr, *ss;
     struct xsock *self = xget(fd), *sub;
     int sub_fd;
     int pf = self->pf;
 
-    sockspec_walk_safe(sockspec_vfptr, ss, &xgb.sockspec_head) {
-	if (!(pf & sockspec_vfptr->pf) || sockspec_vfptr->type != XLISTENER)
+    walk_sockbase_vfptr_safe(vfptr, ss, &xgb.sockbase_vfptr_head) {
+	if (!(pf & vfptr->pf) || vfptr->type != XLISTENER)
 	    continue;
-	pf &= ~sockspec_vfptr->pf;
-	if ((sub_fd = _xlisten(sockspec_vfptr->pf, sock)) < 0)
+	pf &= ~vfptr->pf;
+	if ((sub_fd = _xlisten(vfptr->pf, sock)) < 0)
 	    goto BAD;
 	sub = xget(sub_fd);
 	sub->owner = fd;
@@ -71,7 +71,7 @@ static void xmul_listener_close(int fd) {
     DEBUG_OFF("xsock %d multiple_close", fd);
 }
 
-struct sockspec xmul_listener_spec[4] = {
+struct sockbase_vfptr xmul_listener_spec[4] = {
     {
 	.type = XLISTENER,
 	.pf = XPF_TCP|XPF_IPC,

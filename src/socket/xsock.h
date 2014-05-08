@@ -37,7 +37,6 @@
 #include <poll/xeventpoll.h>
 #include "xmsg.h"
 #include "xcpu.h"
-#include "xsockspec.h"
 
 #define null NULL
 
@@ -64,15 +63,25 @@ int xbind(int fd, const char *addr);
 #define XMQ_FULL         0x10
 #define XMQ_NONFULL      0x20
 
-struct sockbase;
+extern const char *pf_str[];
+
+struct sockbase_vfptr {
+    int type;
+    int pf;
+    int (*bind) (int fd, const char *sock);
+    void (*close) (int fd);
+    void (*notify) (int fd, int type, u32 events);
+    int (*setopt) (int fd, int level, int opt, void *optval, int optlen);
+    int (*getopt) (int fd, int level, int opt, void *optval, int *optlen);
+    struct list_head link;
+};
 
 struct xsock {
+    struct sockbase_vfptr *vfptr;
     mutex_t lock;
     condition_t cond;
     int type;
     int pf;
-    struct sockspec *sockspec_vfptr;
-    struct sockbase *sockbase_vfptr;
 
     char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];

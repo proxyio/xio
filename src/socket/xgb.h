@@ -67,15 +67,15 @@ struct xglobal {
     /* INPROC global listening address mapping */
     struct ssmap inproc_listeners;
 
-    /* Sockspec head */
-    struct list_head sockspec_head;
+    /* Sockbase_vfptr head */
+    struct list_head sockbase_vfptr_head;
 };
 
-#define sockspec_walk_safe(pos, nx, head)		\
+#define walk_sockbase_vfptr_safe(pos, nx, head)		\
     list_for_each_entry_safe(pos, nx, head,		\
-			     struct sockspec, link)
+			     struct sockbase_vfptr, link)
 
-struct sockspec *sockspec_lookup(int pf, int type);
+struct sockbase_vfptr *sockbase_vfptr_lookup(int pf, int type);
 
 extern struct xglobal xgb;
 

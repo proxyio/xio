@@ -109,7 +109,7 @@ static int xinp_connector_bind(int fd, const char *sock) {
 
     new->pf = self->pf;
     new->type = self->type;
-    new->sockspec_vfptr = self->sockspec_vfptr;
+    new->vfptr = self->vfptr;
     strncpy(self->peer, sock, TP_SOCKADDRLEN);
     strncpy(new->addr, sock, TP_SOCKADDRLEN);
 
@@ -162,7 +162,7 @@ static void xinp_connector_notify(int fd, int type, u32 events) {
     }
 }
 
-struct sockspec xinp_connector_spec = {
+struct sockbase_vfptr xinp_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_INPROC,
     .bind = xinp_connector_bind,

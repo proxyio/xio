@@ -102,11 +102,11 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
 	rc = setopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	if (!self->sockspec_vfptr->setopt) {
+	if (!self->vfptr->setopt) {
 	    errno = EINVAL;
 	    return -1;
 	}
-	rc = self->sockspec_vfptr->setopt(fd, level, opt, val, vallen);
+	rc = self->vfptr->setopt(fd, level, opt, val, vallen);
     }
     return rc;
 }

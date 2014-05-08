@@ -298,7 +298,7 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
 
 
 
-struct sockspec xtcp_connector_spec = {
+struct sockbase_vfptr xtcp_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_TCP,
     .bind = xio_connector_bind,
@@ -308,7 +308,7 @@ struct sockspec xtcp_connector_spec = {
     .getopt = 0,
 };
 
-struct sockspec xipc_connector_spec = {
+struct sockbase_vfptr xipc_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_IPC,
     .bind = xio_connector_bind,
