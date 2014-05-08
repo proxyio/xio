@@ -93,9 +93,14 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
     int rc;
     struct sockbase *self = xget(fd);
 
+    if (!self) {
+	errno = EBADF;
+	return -1;
+    }
     switch (level) {
     case XL_SOCKET:
 	if (opt >= NELEM(setopt_vfptr, sock_setopt) || !setopt_vfptr[opt]) {
+	    xput(fd);
 	    errno = EINVAL;
 	    return -1;
 	}
@@ -103,11 +108,13 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
 	break;
     default:
 	if (!self->vfptr->setopt) {
+	    xput(fd);
 	    errno = EINVAL;
 	    return -1;
 	}
-	rc = self->vfptr->setopt(fd, level, opt, val, vallen);
+	rc = self->vfptr->setopt(self, level, opt, val, vallen);
     }
+    xput(fd);
     return rc;
 }
 

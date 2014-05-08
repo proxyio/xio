@@ -28,6 +28,7 @@
 #include <os/eventloop.h>
 #include <bufio/bio.h>
 #include <os/alloc.h>
+#include <sync/atomic.h>
 #include <sync/mutex.h>
 #include <sync/spin.h>
 #include <sync/condition.h>
@@ -65,14 +66,19 @@ int xbind(int fd, const char *addr);
 
 extern const char *pf_str[];
 
+struct sockbase;
 struct sockbase_vfptr {
     int type;
     int pf;
-    int (*bind) (int fd, const char *sock);
-    void (*close) (int fd);
-    void (*notify) (int fd, int type, u32 events);
-    int (*setopt) (int fd, int level, int opt, void *optval, int optlen);
-    int (*getopt) (int fd, int level, int opt, void *optval, int *optlen);
+    struct sockbase *(*alloc) ();
+    void  (*close)  (struct sockbase *sb);
+    int   (*bind)   (struct sockbase *sb, const char *sock);
+    void  (*notify) (struct sockbase *sb, int type,
+		     u32 events);
+    int   (*setopt) (struct sockbase *sb, int level, int opt,
+		     void *optval, int optlen);
+    int   (*getopt) (struct sockbase *sb, int level, int opt,
+		     void *optval, int *optlen);
     struct list_head link;
 };
 
@@ -80,9 +86,9 @@ struct sockbase {
     struct sockbase_vfptr *vfptr;
     mutex_t lock;
     condition_t cond;
-    int type;
-    int pf;
-
+    int fd;
+    atomic_t ref;
+    int cpu_no;
     char addr[TP_SOCKADDRLEN];
     char peer[TP_SOCKADDRLEN];
     u64 fasync:1;
@@ -93,10 +99,6 @@ struct sockbase {
     int owner;
     struct list_head sub_socks;
     struct list_head sib_link;
-
-    int fd;
-    int ref;
-    int cpu_no;
 
     struct {
 	int waiters;
@@ -121,27 +123,6 @@ struct sockbase {
 
     struct xtask shutdown;
     struct list_head poll_entries;
-
-    union {
-	/* Only for tcp/ipc socket */
-	struct {
-	    ev_t et;
-	    struct bio in;
-	    struct bio out;
-	    struct io ops;
-	    int sys_fd;
-	    struct transport *tp;
-	} io;
-
-	/* Reserved only for intern process socket*/
-	struct {
-	    /* For inproc-listener */
-	    struct ssmap_node rb_link;
-
-	    /* For inproc-connector and inproc-accepter */
-	    struct sockbase *xsock_peer;
-	} proc;
-    };
 };
 
 #define xsock_walk_sub_socks(sub, nx, head)		\
@@ -157,9 +138,11 @@ static inline int can_recv(struct sockbase *cn) {
     return list_empty(&cn->rcv.head) || cn->rcv.buf < cn->rcv.wnd;
 }
 
-struct sockbase *xget(int cd);
-void xsock_free(struct sockbase *cn);
-struct sockbase *xsock_alloc();
+int xalloc(int family, int socktype);
+struct sockbase *xget(int fd);
+void xput(int fd);
+void xsock_init(struct sockbase *self);
+void xsock_exit(struct sockbase *self);
 
 void recvq_push(struct sockbase *cn, struct xmsg *msg);
 struct xmsg *sendq_pop(struct sockbase *cn);

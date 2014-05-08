@@ -25,27 +25,26 @@
 #include <string.h>
 #include <errno.h>
 #include <runner/taskpool.h>
-#include "xgb.h"
+#include "../xgb.h"
 
 extern int _xlisten(int pf, const char *addr);
 
 
-static void xmultiple_close(int fd) {
+static void xmultiple_close(struct sockbase *sb) {
     struct sockbase *sub, *nx;
-    struct sockbase *self = xget(fd);
 
-    xsock_walk_sub_socks(sub, nx, &self->sub_socks) {
+    xsock_walk_sub_socks(sub, nx, &sb->sub_socks) {
 	sub->owner = -1;
 	list_del_init(&sub->sib_link);
 	xclose(sub->fd);
     }
 }
 
-static int xmul_listener_bind(int fd, const char *sock) {
+static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
     struct sockbase_vfptr *vfptr, *ss;
-    struct sockbase *self = xget(fd), *sub;
+    struct sockbase *sub;
     int sub_fd;
-    int pf = self->pf;
+    int pf = sb->vfptr->pf;
 
     walk_sockbase_vfptr_safe(vfptr, ss, &xgb.sockbase_vfptr_head) {
 	if (!(pf & vfptr->pf) || vfptr->type != XLISTENER)
@@ -54,27 +53,36 @@ static int xmul_listener_bind(int fd, const char *sock) {
 	if ((sub_fd = _xlisten(vfptr->pf, sock)) < 0)
 	    goto BAD;
 	sub = xget(sub_fd);
-	sub->owner = fd;
-	list_add_tail(&sub->sib_link, &self->sub_socks);
+	sub->owner = sb->fd;
+	list_add_tail(&sub->sib_link, &sb->sub_socks);
     }
-    if (!list_empty(&self->sub_socks))
+    if (!list_empty(&sb->sub_socks))
 	return 0;
  BAD:
-    xmultiple_close(fd);
+    xmultiple_close(sb);
     return -1;
 }
 
-static void xmul_listener_close(int fd) {
-    struct sockbase *self = xget(fd);
-    xmultiple_close(fd);
-    xsock_free(self);
-    DEBUG_OFF("xsock %d multiple_close", fd);
+static void xmul_listener_close(struct sockbase *sb) {
+    DEBUG_OFF("xsock %d multiple_close", sb->fd);
+    xmultiple_close(sb);
+    xsock_exit(sb);
+    mem_free(sb, sizeof(*sb));
+}
+
+static struct sockbase *xmul_alloc() {
+    struct sockbase *sb = (struct sockbase *)mem_zalloc(sizeof(*sb));
+
+    if (sb)
+	xsock_init(sb);
+    return sb;
 }
 
 struct sockbase_vfptr xmul_listener_spec[4] = {
     {
 	.type = XLISTENER,
 	.pf = XPF_TCP|XPF_IPC,
+	.alloc = xmul_alloc,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
 	.setopt = 0,
@@ -84,6 +92,7 @@ struct sockbase_vfptr xmul_listener_spec[4] = {
     {
 	.type = XLISTENER,
 	.pf = XPF_IPC|XPF_INPROC,
+	.alloc = xmul_alloc,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
 	.setopt = 0,
@@ -93,6 +102,7 @@ struct sockbase_vfptr xmul_listener_spec[4] = {
     {
 	.type = XLISTENER,
 	.pf = XPF_TCP|XPF_INPROC,
+	.alloc = xmul_alloc,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
 	.setopt = 0,
@@ -102,6 +112,7 @@ struct sockbase_vfptr xmul_listener_spec[4] = {
     {
 	.type = XLISTENER,
 	.pf = XPF_TCP|XPF_IPC|XPF_INPROC,
+	.alloc = xmul_alloc,
 	.bind = xmul_listener_bind,
 	.close = xmul_listener_close,
 	.setopt = 0,

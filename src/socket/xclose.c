@@ -28,40 +28,6 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-static void xshutdown(struct sockbase *self) {
-    struct xcpu *cpu = xcpuget(self->cpu_no);
-    struct xtask *ts = &self->shutdown;    
-
-    mutex_lock(&cpu->lock);
-    while (efd_signal(&cpu->efd) < 0) {
-	/* Pipe is full and another thread is unsignaling. */
-	mutex_unlock(&cpu->lock);
-	mutex_lock(&cpu->lock);
-    }
-    if (!self->fclosed && !attached(&ts->link)) {
-	self->fclosed = true;
-	list_add_tail(&ts->link, &cpu->shutdown_socks);
-    }
-    mutex_unlock(&cpu->lock);
-}
-
 void xclose(int fd) {
-    struct sockbase *self = xget(fd);
-    struct xpoll_t *po;
-    struct xpoll_entry *ent, *nx;
-    struct list_head poll_entries = {};
-
-    INIT_LIST_HEAD(&poll_entries);
-    mutex_lock(&self->lock);
-    list_splice(&self->poll_entries, &poll_entries);
-    mutex_unlock(&self->lock);
-
-    xsock_walk_ent(ent, nx, &poll_entries) {
-	po = cont_of(ent->notify, struct xpoll_t, notify);
-	xpoll_ctl(po, XPOLL_DEL, &ent->event);
-	__detach_from_xsock(ent);
-	xent_put(ent);
-    }
-
-    xshutdown(self);
+    xput(fd);
 }

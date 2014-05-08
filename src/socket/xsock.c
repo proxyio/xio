@@ -43,39 +43,83 @@ const char *pf_str[] = {
 static int DEF_SNDBUF = 10485760;
 static int DEF_RCVBUF = 10485760;
 
-int fd_alloc() {
-    int fd;
-    mutex_lock(&xgb.lock);
-    BUG_ON(xgb.nsocks >= XIO_MAX_SOCKS);
-    fd = xgb.unused[xgb.nsocks++];
-    mutex_unlock(&xgb.lock);
-    return fd;
-}
+int xalloc(int family, int socktype) {
+    struct sockbase_vfptr *vfptr = sockbase_vfptr_lookup(family, socktype);
+    struct sockbase *sb;
 
-void fd_free(int fd) {
+    if (!vfptr) {
+	errno = EPROTO;
+	return -1;
+    }
+    BUG_ON(!vfptr->alloc);
+    if (!(sb = vfptr->alloc()))
+	return -1;
+    sb->vfptr = vfptr;
     mutex_lock(&xgb.lock);
-    xgb.unused[--xgb.nsocks] = fd;
+    BUG_ON(xgb.nsockbases >= XIO_MAX_SOCKS);
+    sb->fd = xgb.unused[xgb.nsockbases++];
+    xgb.sockbases[sb->fd] = sb;
+    atomic_inc(&sb->ref);
     mutex_unlock(&xgb.lock);
+    return sb->fd;
 }
 
 struct sockbase *xget(int fd) {
-    return &xgb.socks[fd];
+    struct sockbase *sb;
+    mutex_lock(&xgb.lock);
+    if (!(sb = xgb.sockbases[fd])) {
+	mutex_unlock(&xgb.lock);
+	return 0;
+    }
+    BUG_ON(!atomic_read(&sb->ref));
+    atomic_inc(&sb->ref);
+    mutex_unlock(&xgb.lock);
+    return sb;
+}
+
+void xput(int fd) {
+    struct sockbase *sb = xgb.sockbases[fd];
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
+
+    BUG_ON(!sb);
+    atomic_dec_and_lock(&sb->ref, mutex, xgb.lock) {
+	while (efd_signal(&cpu->efd) < 0)
+	    mutex_relock(&cpu->lock);
+	sb->fclosed = true;
+	list_add_tail(&sb->shutdown.link, &cpu->shutdown_socks);
+	mutex_unlock(&xgb.lock);
+    }
 }
 
 static void xshutdown_task_f(struct xtask *ts) {
     struct sockbase *self = cont_of(ts, struct sockbase, shutdown);
+    struct list_head poll_entries = {};
+    struct xpoll_t *po = 0;
+    struct xpoll_entry *ent = 0, *nx;
+    
+    DEBUG_ON("xsock %d shutdown %s", self->fd, pf_str[self->vfptr->pf]);
 
-    DEBUG_OFF("xsock %d shutdown %s", self->fd, pf_str[self->pf]);
-    self->vfptr->close(self->fd);
+    INIT_LIST_HEAD(&poll_entries);
+    mutex_lock(&self->lock);
+    list_splice(&self->poll_entries, &poll_entries);
+    mutex_unlock(&self->lock);
+
+    xsock_walk_ent(ent, nx, &poll_entries) {
+	po = cont_of(ent->notify, struct xpoll_t, notify);
+	xpoll_ctl(po, XPOLL_DEL, &ent->event);
+	__detach_from_xsock(ent);
+	xent_put(ent);
+    }
+
+    mutex_lock(&xgb.lock);
+    xgb.unused[--xgb.nsockbases] = self->fd;
+    mutex_unlock(&xgb.lock);
+    self->vfptr->close(self);
 }
 
-static void xsock_init(int fd) {
-    struct sockbase *self = xget(fd);
-
+void xsock_init(struct sockbase *self) {
     mutex_init(&self->lock);
     condition_init(&self->cond);
-    self->type = 0;
-    self->pf = 0;
     ZERO(self->addr);
     ZERO(self->peer);
     self->fasync = false;
@@ -85,10 +129,9 @@ static void xsock_init(int fd) {
     self->owner = -1;
     INIT_LIST_HEAD(&self->sub_socks);
     INIT_LIST_HEAD(&self->sib_link);
-    
-    self->fd = fd;
-    self->ref = 0;
-    self->cpu_no = xcpu_choosed(fd);
+
+    atomic_init(&self->ref);
+    self->cpu_no = xcpu_choosed(self->fd);
 
     self->rcv.waiters = 0;
     self->rcv.buf = 0;
@@ -109,15 +152,12 @@ static void xsock_init(int fd) {
     INIT_LIST_HEAD(&self->acceptq.link);
 }
 
-static void xsock_exit(int fd) {
-    struct sockbase *self = xget(fd);
+void xsock_exit(struct sockbase *self) {
     struct list_head head = {};
     struct xmsg *pos, *nx;
 
     mutex_destroy(&self->lock);
     condition_destroy(&self->cond);
-    self->type = -1;
-    self->pf = -1;
     ZERO(self->addr);
     ZERO(self->peer);
     self->fasync = 0;
@@ -155,19 +195,6 @@ static void xsock_exit(int fd) {
     self->acceptq.waiters = -1;
     condition_destroy(&self->acceptq.cond);
 
+    atomic_destroy(&self->ref);
     /* TODO: destroy acceptq's connection */
-}
-
-
-struct sockbase *xsock_alloc() {
-    int fd = fd_alloc();
-    struct sockbase *self = xget(fd);
-    xsock_init(fd);
-    return self;
-}
-
-void xsock_free(struct sockbase *self) {
-    int fd = self->fd;
-    xsock_exit(fd);
-    fd_free(fd);
 }

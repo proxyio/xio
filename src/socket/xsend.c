@@ -55,7 +55,7 @@ struct xmsg *sendq_pop(struct sockbase *self) {
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(self->fd, SEND_Q, events);
+	vfptr->notify(self, SEND_Q, events);
 
     __xeventnotify(self);
     mutex_unlock(&self->lock);
@@ -87,7 +87,7 @@ int sendq_push(struct sockbase *self, struct xmsg *msg) {
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(self->fd, SEND_Q, events);
+	vfptr->notify(self, SEND_Q, events);
 
     __xeventnotify(self);
     mutex_unlock(&self->lock);
@@ -103,14 +103,15 @@ int xsend(int fd, char *xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (self->type != XCONNECTOR) {
-	errno = EPROTO;
+    if (!self) {
+	errno = EBADF;
 	return -1;
     }
     msg = cont_of(xbuf, struct xmsg, vec.chunk);
     if ((rc = sendq_push(self, msg)) < 0) {
 	errno = self->fok ? EAGAIN : EPIPE;
     }
+    xput(fd);
     return rc;
 }
 

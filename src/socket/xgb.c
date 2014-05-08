@@ -83,6 +83,7 @@ static inline int kcpud(void *args) {
 	__shutdown_socks_task_hndl(cpu);
 	BUG_ON(xgb.exiting != 0 && xgb.exiting != 1);
     }
+    __shutdown_socks_task_hndl(cpu);
     kcpud_exits++;
 
     /* Release the poll descriptor when kcpud exit. */
@@ -103,12 +104,6 @@ struct sockbase_vfptr *sockbase_vfptr_lookup(int pf, int type) {
     return 0;
 }
 
-extern struct sockbase_vfptr xinp_listener_spec;
-extern struct sockbase_vfptr xinp_connector_spec;
-extern struct sockbase_vfptr xipc_listener_spec;
-extern struct sockbase_vfptr xipc_connector_spec;
-extern struct sockbase_vfptr xtcp_listener_spec;
-extern struct sockbase_vfptr xtcp_connector_spec;
 extern struct sockbase_vfptr xmul_listener_spec[3];
 
 void xsocket_module_init() {

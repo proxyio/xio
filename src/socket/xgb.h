@@ -25,7 +25,8 @@
 
 #include <sync/mutex.h>
 #include <ds/list.h>
-#include "xsock.h"
+#include "xinproc.h"
+#include "xtcpipc.h"
 #include "xcpu.h"
 
 
@@ -41,13 +42,13 @@ struct xglobal {
      * find out whether context is initialised. If it is null, context is
      * uninitialised.
      */
-    struct sockbase socks[XIO_MAX_SOCKS];
+    struct sockbase *sockbases[XIO_MAX_SOCKS];
 
     /* Stack of unused xsock descriptors.  */
     int unused[XIO_MAX_SOCKS];
 
     /* Number of actual socks. */
-    size_t nsocks;
+    size_t nsockbases;
     
 
     struct xcpu cpus[XIO_MAX_CPUS];

@@ -20,29 +20,23 @@
   IN THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <sync/waitgroup.h>
-#include <runner/taskpool.h>
-#include "xgb.h"
+#ifndef _HPIO_INPROC_SOCK_
+#define _HPIO_INPROC_SOCK_
 
-int xsocket(int pf, int socktype) {
-    int rc = xalloc(pf, socktype);
-    return rc;
-}
+#include "xsock.h"
 
-int xbind(int fd, const char *addr) {
-    int rc;
-    struct sockbase *self = xget(fd);
+struct inproc_sock {
+    struct sockbase base;
 
-    if (!self) {
-	errno = EBADF;
-	return -1;
-    }
-    BUG_ON(!self->vfptr);
-    rc = self->vfptr->bind(self, addr);
-    xput(fd);
-    return rc;
-}
+    /* For inproc-listener */
+    struct ssmap_node rb_link;
+
+    /* For inproc-connector and inproc-accepter */
+    struct sockbase *peer;
+};
+
+extern struct sockbase_vfptr xinp_listener_spec;
+extern struct sockbase_vfptr xinp_connector_spec;
+
+
+#endif

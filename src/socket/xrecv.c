@@ -56,7 +56,7 @@ struct xmsg *recvq_pop(struct sockbase *self) {
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(self->fd, RECV_Q, events);
+	vfptr->notify(self, RECV_Q, events);
 
     __xeventnotify(self);
     mutex_unlock(&self->lock);
@@ -83,7 +83,7 @@ void recvq_push(struct sockbase *self, struct xmsg *msg) {
 	condition_broadcast(&self->cond);
 
     if (events && vfptr->notify)
-	vfptr->notify(self->fd, RECV_Q, events);
+	vfptr->notify(self, RECV_Q, events);
 
     __xeventnotify(self);
     mutex_unlock(&self->lock);
@@ -98,8 +98,8 @@ int xrecv(int fd, char **xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (self->type != XCONNECTOR) {
-	errno = EPROTO;
+    if (!self) {
+	errno = EBADF;
 	return -1;
     }
     if (!(msg = recvq_pop(self))) {
@@ -108,6 +108,7 @@ int xrecv(int fd, char **xbuf) {
     } else {
 	*xbuf = msg->vec.chunk;
     }
+    xput(fd);
     return rc;
 }
 

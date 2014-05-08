@@ -19,6 +19,9 @@ add_library( xlibc STATIC ${XLIBC} )
 
 ## compile socket
 aux_source_directory( socket XIO )
+aux_source_directory( socket/inproc XIO )
+aux_source_directory( socket/tcp XIO )
+aux_source_directory( socket/mul XIO )
 aux_source_directory( poll XIO )
 aux_source_directory( sp XIO )
 aux_source_directory( sp/reqrep XIO )

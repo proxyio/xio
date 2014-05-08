@@ -65,20 +65,19 @@ struct sockbase *acceptq_pop(struct sockbase *self) {
 
 int xaccept(int fd) {
     struct sockbase *self = xget(fd);
-    struct sockbase *new_self = 0;
+    struct sockbase *new = 0;
 
-    if (!self->fok) {
-	errno = EPIPE;
+    if (!self) {
+	errno = EBADF;
 	return -1;
     }
-    if (self->type != XLISTENER) {
-	errno = EPROTO;
+    if (!(new = acceptq_pop(self))) {
+	xput(fd);
+	errno = EAGAIN;
 	return -1;
     }
-    if ((new_self = acceptq_pop(self)))
-	return new_self->fd;
-    errno = EAGAIN;
-    return -1;
+    xput(fd);
+    return new->fd;
 }
 
 int _xlisten(int pf, const char *addr) {

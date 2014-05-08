@@ -84,12 +84,12 @@ static int get_reconnect(struct sockbase *self, void *val, int *vallen) {
 }
 
 static int get_socktype(struct sockbase *self, void *val, int *vallen) {
-    *(int *)val = self->type;
+    *(int *)val = self->vfptr->type;
     return 0;
 }
 
 static int get_sockpf(struct sockbase *self, void *val, int *vallen) {
-    *(int *)val = self->pf;
+    *(int *)val = self->vfptr->pf;
     return 0;
 }
 
@@ -118,10 +118,15 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     int rc = 0;
     struct sockbase *self = xget(fd);
 
+    if (!self) {
+	errno = EBADF;
+	return -1;
+    }
     switch (level) {
     case XL_SOCKET:
 	if (opt >= NELEM(getopt_vfptr, sock_getopt) || !getopt_vfptr[opt]) {
 	    errno = EINVAL;
+	    xput(fd);
 	    return -1;
 	}
 	rc = getopt_vfptr[opt](self, val, vallen);
@@ -129,9 +134,11 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
     default:
 	if (!self->vfptr->getopt) {
 	    errno = EINVAL;
+	    xput(fd);
 	    return -1;
 	}
-	rc = self->vfptr->getopt(fd, level, opt, val, vallen);
+	rc = self->vfptr->getopt(self, level, opt, val, vallen);
     }
+    xput(fd);
     return rc;
 }

@@ -25,23 +25,23 @@
 #include <string.h>
 #include <errno.h>
 #include <runner/taskpool.h>
-#include "xgb.h"
+#include "../xgb.h"
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
-    struct sockbase *self = cont_of(ops, struct sockbase, io.ops);
-    struct transport *tp = self->io.tp;
+    struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
+    struct transport *tp = self->tp;
 
     BUG_ON(!tp);
-    int rc = tp->read(self->io.sys_fd, buff, sz);
+    int rc = tp->read(self->sys_fd, buff, sz);
     return rc;
 }
 
 static i64 xio_connector_write(struct io *ops, char *buff, i64 sz) {
-    struct sockbase *self = cont_of(ops, struct sockbase, io.ops);
-    struct transport *tp = self->io.tp;
+    struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
+    struct transport *tp = self->tp;
 
     BUG_ON(!tp);
-    int rc = tp->write(self->io.sys_fd, buff, sz);
+    int rc = tp->write(self->sys_fd, buff, sz);
     return rc;
 }
 
@@ -56,27 +56,27 @@ struct io default_xops = {
  *  snd_head events trigger.
  ******************************************************************************/
 
-static void snd_head_empty(int fd) {
-    struct sockbase *self = xget(fd);
-    struct xcpu *cpu = xcpuget(self->cpu_no);
+static void snd_head_empty(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     // Disable POLLOUT event when snd_head is empty
-    if (self->io.et.events & EPOLLOUT) {
-	DEBUG_OFF("%d disable EPOLLOUT", fd);
-	self->io.et.events &= ~EPOLLOUT;
-	BUG_ON(eloop_mod(&cpu->el, &self->io.et) != 0);
+    if (self->et.events & EPOLLOUT) {
+	DEBUG_OFF("%d disable EPOLLOUT", sb->fd);
+	self->et.events &= ~EPOLLOUT;
+	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
     }
 }
 
-static void snd_head_nonempty(int fd) {
-    struct sockbase *self = xget(fd);
-    struct xcpu *cpu = xcpuget(self->cpu_no);
+static void snd_head_nonempty(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
-    if (!(self->io.et.events & EPOLLOUT)) {
-	DEBUG_OFF("%d enable EPOLLOUT", fd);
-	self->io.et.events |= EPOLLOUT;
-	BUG_ON(eloop_mod(&cpu->el, &self->io.et) != 0);
+    if (!(self->et.events & EPOLLOUT)) {
+	DEBUG_OFF("%d enable EPOLLOUT", sb->fd);
+	self->et.events |= EPOLLOUT;
+	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
     }
 }
 
@@ -85,121 +85,124 @@ static void snd_head_nonempty(int fd) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static void rcv_head_pop(int fd) {
-    struct sockbase *self = xget(fd);
-
-    if (self->snd.waiters)
-	condition_signal(&self->cond);
+static void rcv_head_pop(struct sockbase *sb) {
+    if (sb->snd.waiters)
+	condition_signal(&sb->cond);
 }
 
-static void rcv_head_full(int fd) {
-    struct sockbase *self = xget(fd);    
-    struct xcpu *cpu = xcpuget(self->cpu_no);
+static void rcv_head_full(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
-    if ((self->io.et.events & EPOLLIN)) {
-	self->io.et.events &= ~EPOLLIN;
-	BUG_ON(eloop_mod(&cpu->el, &self->io.et) != 0);
+    if ((self->et.events & EPOLLIN)) {
+	DEBUG_OFF("%d disable EPOLLIN", sb->fd);
+	self->et.events &= ~EPOLLIN;
+	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
     }
 }
 
-static void rcv_head_nonfull(int fd) {
-    struct sockbase *self = xget(fd);    
-    struct xcpu *cpu = xcpuget(self->cpu_no);
+static void rcv_head_nonfull(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
-    if (!(self->io.et.events & EPOLLIN)) {
-	self->io.et.events |= EPOLLIN;
-	BUG_ON(eloop_mod(&cpu->el, &self->io.et) != 0);
+    if (!(self->et.events & EPOLLIN)) {
+	DEBUG_OFF("%d enable EPOLLIN", sb->fd);
+	self->et.events |= EPOLLIN;
+	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
     }
 }
 
 int xio_connector_handler(eloop_t *el, ev_t *et);
 
-void xio_connector_init(struct sockbase *self,
-			struct transport *tp, int s) {
-    int on = 1;
-    struct xcpu *cpu = xcpuget(self->cpu_no);
+struct sockbase *xio_alloc() {
+    struct tcpipc_sock *self =
+	(struct tcpipc_sock *)mem_zalloc(sizeof(*self));
 
-    ZERO(self->io);
-    bio_init(&self->io.in);
-    bio_init(&self->io.out);
-
-    tp->setopt(s, TP_NOBLOCK, &on, sizeof(on));
-    self->io.sys_fd = s;
-    self->io.tp = tp;
-    self->io.ops = default_xops;
-    self->io.et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
-    self->io.et.fd = s;
-    self->io.et.f = xio_connector_handler;
-    self->io.et.data = self;
-    BUG_ON(eloop_add(&cpu->el, &self->io.et) != 0);
-}
-
-static int xio_connector_bind(int fd, const char *sock) {
-    int s;
-    struct sockbase *self = xget(fd);
-    struct transport *tp = transport_lookup(self->pf);
-
-    BUG_ON(!tp);
-    if ((s = tp->connect(sock)) < 0)
-	return -1;
-    strncpy(self->peer, sock, TP_SOCKADDRLEN);
-    xio_connector_init(self, tp, s);
+    if (self) {
+	xsock_init(&self->base);
+	bio_init(&self->in);
+	bio_init(&self->out);
+	return &self->base;
+    }
     return 0;
 }
 
-static int xio_connector_snd(struct sockbase *self);
+static int xio_connector_bind(struct sockbase *sb, const char *sock) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    int sys_fd;
+    int on = 1;
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
 
-static void xio_connector_close(int fd) {
-    struct sockbase *self = xget(fd);
-    struct xcpu *cpu = xcpuget(self->cpu_no);
-    struct transport *tp = self->io.tp;
+    BUG_ON(!cpu);
+    BUG_ON(!(self->tp = transport_lookup(sb->vfptr->pf)));
+    if ((sys_fd = self->tp->connect(sock)) < 0)
+	return -1;
 
-    BUG_ON(!tp);
+    BUG_ON(self->tp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
+    strncpy(sb->peer, sock, TP_SOCKADDRLEN);
+    self->sys_fd = sys_fd;
+    self->ops = default_xops;
+    self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
+    self->et.fd = sys_fd;
+    self->et.f = xio_connector_handler;
+    self->et.data = self;
+    BUG_ON(eloop_add(&cpu->el, &self->et) != 0);
+    return 0;
+}
+
+static int xio_connector_snd(struct sockbase *sb);
+
+static void xio_connector_close(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
+
+    BUG_ON(!self->tp);
 
     /* Try flush buf massage into network before close */
-    xio_connector_snd(self);
+    xio_connector_snd(sb);
 
     /* Detach xsock low-level file descriptor from poller */
-    BUG_ON(eloop_del(&cpu->el, &self->io.et) != 0);
-    tp->close(self->io.sys_fd);
+    BUG_ON(eloop_del(&cpu->el, &self->et) != 0);
+    self->tp->close(self->sys_fd);
 
-    self->io.sys_fd = -1;
-    self->io.et.events = -1;
-    self->io.et.fd = -1;
-    self->io.et.f = 0;
-    self->io.et.data = 0;
-    self->io.tp = 0;
+    self->sys_fd = -1;
+    self->et.events = -1;
+    self->et.fd = -1;
+    self->et.f = 0;
+    self->et.data = 0;
+    self->tp = 0;
 
     /* Destroy the xsock base and free xsockid. */
-    xsock_free(self);
+    xsock_exit(sb);
+    mem_free(self, sizeof(*self));
 }
 
 
-static void rcv_head_notify(int fd, u32 events) {
+static void rcv_head_notify(struct sockbase *sb, u32 events) {
     if (events & XMQ_POP)
-	rcv_head_pop(fd);
+	rcv_head_pop(sb);
     if (events & XMQ_FULL)
-	rcv_head_full(fd);
+	rcv_head_full(sb);
     else if (events & XMQ_NONFULL)
-	rcv_head_nonfull(fd);
+	rcv_head_nonfull(sb);
 }
 
-static void snd_head_notify(int fd, u32 events) {
+static void snd_head_notify(struct sockbase *sb, u32 events) {
     if (events & XMQ_EMPTY)
-	snd_head_empty(fd);
+	snd_head_empty(sb);
     else if (events & XMQ_NONEMPTY)
-	snd_head_nonempty(fd);
+	snd_head_nonempty(sb);
 }
 
-static void xio_connector_notify(int fd, int type, u32 events) {
+static void xio_connector_notify(struct sockbase *sb, int type, u32 events) {
     switch (type) {
     case RECV_Q:
-	rcv_head_notify(fd, events);
+	rcv_head_notify(sb, events);
 	break;
     case SEND_Q:
-	snd_head_notify(fd, events);
+	snd_head_notify(sb, events);
 	break;
     default:
 	BUG_ON(1);
@@ -228,27 +231,28 @@ static void bufio_rm(struct bio *b, struct xmsg **msg) {
     *msg = cont_of(chunk, struct xmsg, vec.chunk);
 }
 
-static int xio_connector_rcv(struct sockbase *self) {
+static int xio_connector_rcv(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc = 0;
     u16 oob_count;
     struct xmsg *aim = 0, *oob = 0;
 
-    rc = bio_prefetch(&self->io.in, &self->io.ops);
+    rc = bio_prefetch(&self->in, &self->ops);
     if (rc < 0 && errno != EAGAIN)
 	return rc;
-    while (bufio_check_msg(&self->io.in)) {
+    while (bufio_check_msg(&self->in)) {
 	aim = 0;
-	bufio_rm(&self->io.in, &aim);
+	bufio_rm(&self->in, &aim);
 	BUG_ON(!aim);
 	oob_count = aim->vec.oob;
 	while (oob_count--) {
 	    oob = 0;
-	    bufio_rm(&self->io.in, &oob);
+	    bufio_rm(&self->in, &oob);
 	    BUG_ON(!oob);
 	    list_add_tail(&oob->item, &aim->oob);
 	}
-	recvq_push(self, aim);
-	DEBUG_OFF("%d xsock recv one message", self->fd);
+	recvq_push(sb, aim);
+	DEBUG_OFF("%d xsock recv one message", sb->fd);
     }
     return rc;
 }
@@ -264,35 +268,37 @@ static void bufio_add(struct bio *b, struct xmsg *msg) {
     }
 }
 
-static int xio_connector_snd(struct sockbase *self) {
+static int xio_connector_snd(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc;
     struct xmsg *msg;
 
-    while ((msg = sendq_pop(self))) {
-	bufio_add(&self->io.out, msg);
+    while ((msg = sendq_pop(sb))) {
+	bufio_add(&self->out, msg);
 	xfreemsg(msg->vec.chunk);
     }
-    rc = bio_flush(&self->io.out, &self->io.ops);
+    rc = bio_flush(&self->out, &self->ops);
     return rc;
 }
 
 int xio_connector_handler(eloop_t *el, ev_t *et) {
     int rc = 0;
-    struct sockbase *self = cont_of(et, struct sockbase, io.et);
+    struct tcpipc_sock *self = cont_of(et, struct tcpipc_sock, et);
+    struct sockbase *sb = &self->base;
 
     if (et->happened & EPOLLIN) {
-	DEBUG_OFF("io xsock %d EPOLLIN", self->fd);
-	rc = xio_connector_rcv(self);
+	DEBUG_OFF("io xsock %d EPOLLIN", sb->fd);
+	rc = xio_connector_rcv(sb);
     }
     if (et->happened & EPOLLOUT) {
-	DEBUG_OFF("io xsock %d EPOLLOUT", self->fd);
-	rc = xio_connector_snd(self);
+	DEBUG_OFF("io xsock %d EPOLLOUT", sb->fd);
+	rc = xio_connector_snd(sb);
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
-	DEBUG_OFF("io xsock %d EPIPE", self->fd);
-	self->fok = false;
+	DEBUG_OFF("io xsock %d EPIPE", sb->fd);
+	sb->fok = false;
     }
-    xeventnotify(self);
+    xeventnotify(sb);
     return rc;
 }
 
@@ -301,6 +307,7 @@ int xio_connector_handler(eloop_t *el, ev_t *et) {
 struct sockbase_vfptr xtcp_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_TCP,
+    .alloc = xio_alloc,
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .notify = xio_connector_notify,
@@ -311,6 +318,7 @@ struct sockbase_vfptr xtcp_connector_spec = {
 struct sockbase_vfptr xipc_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_IPC,
+    .alloc = xio_alloc,
     .bind = xio_connector_bind,
     .close = xio_connector_close,
     .notify = xio_connector_notify,

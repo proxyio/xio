@@ -32,9 +32,9 @@ int xsock_check_events(struct sockbase *self, int events) {
     int happened = 0;
 
     if (events & XPOLLIN) {
-	if (self->type == XCONNECTOR)
+	if (self->vfptr->type == XCONNECTOR)
 	    happened |= !list_empty(&self->rcv.head) ? XPOLLIN : 0;
-	else if (self->type == XLISTENER)
+	else if (self->vfptr->type == XLISTENER)
 	    happened |= !list_empty(&self->acceptq.head) ? XPOLLIN : 0;
     }
     if (events & XPOLLOUT)

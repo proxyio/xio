@@ -25,37 +25,19 @@
 #include <string.h>
 #include <errno.h>
 #include <runner/taskpool.h>
-#include "xgb.h"
-
-
-
-
-
-
-static int xinp_put(struct sockbase *self) {
-    int old;
-    mutex_lock(&self->lock);
-    old = self->ref--;
-    self->fok = false;
-    mutex_unlock(&self->lock);
-    return old;
-}
+#include "../xgb.h"
 
 extern struct sockbase *find_listener(const char *addr);
-
 
 /******************************************************************************
  *  snd_head events trigger.
  ******************************************************************************/
 
-static int snd_head_push(int fd) {
-    int rc = 0, can = false;
+static int snd_head_push(struct sockbase *sb) {
+    int rc = 0;
+    int can = false;
     struct xmsg *msg;
-    struct sockbase *self = xget(fd);
-    struct sockbase *peer = self->proc.xsock_peer;
-
-    // Unlock myself first because i hold the lock
-    mutex_unlock(&self->lock);
+    struct sockbase *peer = (cont_of(sb, struct inproc_sock, base))->peer;
 
     // TODO: maybe the peer xsock can't recv anymore after the check.
     mutex_lock(&peer->lock);
@@ -64,10 +46,11 @@ static int snd_head_push(int fd) {
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-    if ((msg = sendq_pop(self)))
-	recvq_push(peer, msg);
 
-    mutex_lock(&self->lock);
+    mutex_unlock(&sb->lock);
+    if ((msg = sendq_pop(sb)))
+	recvq_push(peer, msg);
+    mutex_lock(&sb->lock);
     return rc;
 }
 
@@ -75,13 +58,23 @@ static int snd_head_push(int fd) {
  *  rcv_head events trigger.
  ******************************************************************************/
 
-static int rcv_head_pop(int fd) {
+static int rcv_head_pop(struct sockbase *sb) {
     int rc = 0;
-    struct sockbase *self = xget(fd);
 
-    if (self->snd.waiters)
-	condition_signal(&self->cond);
+    if (sb->snd.waiters)
+	condition_signal(&sb->cond);
     return rc;
+}
+
+
+static struct sockbase *xinp_alloc() {
+    struct inproc_sock *self = (struct inproc_sock *)mem_zalloc(sizeof(*self));
+
+    if (self) {
+	xsock_init(&self->base);
+	return &self->base;
+    }
+    return 0;
 }
 
 
@@ -90,72 +83,70 @@ static int rcv_head_pop(int fd) {
  *  xsock_inproc_spec
  ******************************************************************************/
 
-static int xinp_connector_bind(int fd, const char *sock) {
-    struct sockbase *self = xget(fd);
-    struct sockbase *new = xsock_alloc();
+static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
+    int nfd = 0;
+    struct sockbase *nsb = 0;
     struct sockbase *listener = find_listener(sock);
-
+    struct inproc_sock *self = 0;
+    struct inproc_sock *peer = 0;
+    
     if (!listener) {
 	errno = ENOENT;	
 	return -1;
     }
-    if (!new) {
+    if ((nfd = xalloc(sb->vfptr->pf, sb->vfptr->type)) < 0) {
 	errno = EMFILE;
 	return -1;
     }
+    nsb = xgb.sockbases[nfd];
+    self = cont_of(sb, struct inproc_sock, base);
+    peer = cont_of(nsb, struct inproc_sock, base);
+    nsb->vfptr = sb->vfptr;
+    strncpy(sb->peer, sock, TP_SOCKADDRLEN);
+    strncpy(nsb->addr, sock, TP_SOCKADDRLEN);
 
-    ZERO(self->proc);
-    ZERO(new->proc);
+    atomic_inc(&sb->ref);
+    atomic_inc(&nsb->ref);
+    self->peer = &peer->base;
+    peer->peer = &self->base;
 
-    new->pf = self->pf;
-    new->type = self->type;
-    new->vfptr = self->vfptr;
-    strncpy(self->peer, sock, TP_SOCKADDRLEN);
-    strncpy(new->addr, sock, TP_SOCKADDRLEN);
-
-    new->ref = self->ref = 2;
-    self->proc.xsock_peer = new;
-    new->proc.xsock_peer = self;
-
-    if (acceptq_push(listener, new) < 0) {
+    if (acceptq_push(listener, nsb) < 0) {
 	errno = ECONNREFUSED;
-	xsock_free(new);
+	atomic_dec(&sb->ref);
+	atomic_dec(&nsb->ref);
+	xput(nfd);
 	return -1;
     }
     return 0;
 }
 
-static void xinp_connector_close(int fd) {
-    struct sockbase *self = xget(fd);    
-    struct sockbase *peer = self->proc.xsock_peer;
+static void xinp_connector_close(struct sockbase *sb) {
+    struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
+    struct sockbase *peer = self->peer;
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
-    if (xinp_put(peer) == 1) {
-	xsock_free(peer);
-    }
-    if (xinp_put(self) == 1) {
-	xsock_free(self);
-    }
+    xput(peer->fd);
+    xput(sb->fd);
 }
 
 
-static void snd_head_notify(int fd, u32 events) {
+static void snd_head_notify(struct sockbase *sb, u32 events) {
     if (events & XMQ_PUSH)
-	snd_head_push(fd);
+	snd_head_push(sb);
 }
 
-static void rcv_head_notify(int fd, u32 events) {
+static void rcv_head_notify(struct sockbase *sb, u32 events) {
     if (events & XMQ_POP)
-	rcv_head_pop(fd);
+	rcv_head_pop(sb);
 }
 
-static void xinp_connector_notify(int fd, int type, u32 events) {
+static void xinp_connector_notify(struct sockbase *sb, int type, u32 events) {
     switch (type) {
     case RECV_Q:
-	rcv_head_notify(fd, events);
+	rcv_head_notify(sb, events);
 	break;
     case SEND_Q:
-	snd_head_notify(fd, events);
+	snd_head_notify(sb, events);
 	break;
     default:
 	BUG_ON(1);
@@ -165,6 +156,7 @@ static void xinp_connector_notify(int fd, int type, u32 events) {
 struct sockbase_vfptr xinp_connector_spec = {
     .type = XCONNECTOR,
     .pf = XPF_INPROC,
+    .alloc = xinp_alloc,
     .bind = xinp_connector_bind,
     .close = xinp_connector_close,
     .notify = xinp_connector_notify,

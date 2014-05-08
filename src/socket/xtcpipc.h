@@ -20,29 +20,24 @@
   IN THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <sync/waitgroup.h>
-#include <runner/taskpool.h>
-#include "xgb.h"
+#ifndef _HPIO_TCPIPC_SOCK_
+#define _HPIO_TCPIPC_SOCK_
 
-int xsocket(int pf, int socktype) {
-    int rc = xalloc(pf, socktype);
-    return rc;
-}
+#include "xsock.h"
 
-int xbind(int fd, const char *addr) {
-    int rc;
-    struct sockbase *self = xget(fd);
+struct tcpipc_sock {
+    struct sockbase base;
+    ev_t et;
+    struct bio in;
+    struct bio out;
+    struct io ops;
+    int sys_fd;
+    struct transport *tp;
+};
 
-    if (!self) {
-	errno = EBADF;
-	return -1;
-    }
-    BUG_ON(!self->vfptr);
-    rc = self->vfptr->bind(self, addr);
-    xput(fd);
-    return rc;
-}
+extern struct sockbase_vfptr xtcp_listener_spec;
+extern struct sockbase_vfptr xtcp_connector_spec;
+extern struct sockbase_vfptr xipc_listener_spec;
+extern struct sockbase_vfptr xipc_connector_spec;
+
+#endif
