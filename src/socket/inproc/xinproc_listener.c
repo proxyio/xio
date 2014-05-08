@@ -95,10 +95,16 @@ static int xinp_listener_bind(struct sockbase *sb, const char *sock) {
 }
 
 static void xinp_listener_close(struct sockbase *sb) {
+    struct sockbase *nsb;
     struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
 
     /* Avoiding the new connectors */
     remove_listener(&self->rb_link);
+
+    /* Destroy acceptq's connection */
+    while ((nsb = acceptq_pop(sb))) {
+	xclose(nsb->fd);
+    }
 
     /* Close the xsock and free xsock id. */
     xsock_exit(sb);

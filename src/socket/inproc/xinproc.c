@@ -127,7 +127,6 @@ static void xinp_connector_close(struct sockbase *sb) {
 
     /* Destroy the xsock and free xsock id if i hold the last ref. */
     mutex_lock(&peer->base.lock);
-    peer->base.fepipe = true;
     if (peer->base.rcv.waiters || peer->base.snd.waiters)
 	condition_broadcast(&peer->base.cond);
     mutex_unlock(&peer->base.lock);

@@ -61,6 +61,8 @@ int xalloc(int family, int socktype) {
     xgb.sockbases[sb->fd] = sb;
     atomic_inc(&sb->ref);
     mutex_unlock(&xgb.lock);
+    BUG_ON(atomic_read(&sb->ref) != 1);
+    DEBUG_ON("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
     return sb->fd;
 }
 
@@ -182,7 +184,5 @@ void xsock_exit(struct sockbase *sb) {
     BUG_ON(!list_empty(&sb->poll_entries));
     sb->acceptq.waiters = -1;
     condition_destroy(&sb->acceptq.cond);
-
     atomic_destroy(&sb->ref);
-    /* TODO: destroy acceptq's connection */
 }

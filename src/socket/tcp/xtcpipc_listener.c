@@ -80,7 +80,8 @@ static int xio_listener_bind(struct sockbase *sb, const char *sock) {
 static void xio_listener_close(struct sockbase *sb) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
-
+    struct sockbase *nsb;
+    
     BUG_ON(!self->tp);
 
     /* Detach xsock low-level file descriptor from poller */
@@ -93,6 +94,11 @@ static void xio_listener_close(struct sockbase *sb) {
     self->et.f = 0;
     self->et.data = 0;
     self->tp = 0;
+
+    /* Destroy acceptq's connection */
+    while ((nsb = acceptq_pop(sb))) {
+	xclose(nsb->fd);
+    }
 
     /* Destroy the xsock base and free xsockid. */
     xsock_exit(sb);
@@ -129,8 +135,11 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     struct xcpu *cpu;
 
     if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
+	mutex_lock(&sb->lock);
 	sb->fepipe = true;
-	errno = EPIPE;
+	if (sb->acceptq.waiters)
+	    condition_broadcast(&sb->acceptq.cond);
+	mutex_unlock(&sb->lock);
 	return -1;
     } 
     BUG_ON(!self->tp);
@@ -138,7 +147,6 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
 	return -1;
     if (!(nfd = xalloc(sb->vfptr->pf, XCONNECTOR))) {
 	self->tp->close(sys_fd);
-	errno = EMFILE;
 	return -1;
     }
     nsb = xgb.sockbases[nfd];

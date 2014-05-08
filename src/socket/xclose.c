@@ -46,7 +46,8 @@ int xclose(int fd) {
 
     if (self->rcv.waiters || self->snd.waiters)
 	condition_broadcast(&self->cond);
-
+    if (self->acceptq.waiters)
+	condition_broadcast(&self->acceptq.cond);
     mutex_unlock(&self->lock);
     mutex_unlock(&cpu->lock);
     xput(fd);

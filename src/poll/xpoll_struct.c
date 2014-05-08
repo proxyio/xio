@@ -23,7 +23,7 @@
 
 #include <os/timesz.h>
 #include <base.h>
-#include <socket/xsock.h>
+#include <socket/xgb.h>
 #include "xeventpoll.h"
 
 struct xpoll_entry *xent_new() {
@@ -118,20 +118,20 @@ int xpoll_put(struct xpoll_t *self) {
     return ref;
 }
 
-struct xpoll_entry *__xpoll_find(struct xpoll_t *self, int xd) {
+struct xpoll_entry *__xpoll_find(struct xpoll_t *self, int fd) {
     struct xpoll_entry *ent, *nx;
     xpoll_walk_ent(ent, nx, &self->lru_head) {
-	if (ent->event.xd == xd)
+	if (ent->event.xd == fd)
 	    return ent;
     }
     return 0;
 }
 
 /* Find xpoll_entry by xsock id and return with ref incr if exist. */
-struct xpoll_entry *xpoll_find(struct xpoll_t *self, int xd) {
+struct xpoll_entry *xpoll_find(struct xpoll_t *self, int fd) {
     struct xpoll_entry *ent = 0;
     mutex_lock(&self->lock);
-    if ((ent = __xpoll_find(self, xd)))
+    if ((ent = __xpoll_find(self, fd)))
 	xent_get(ent);
     mutex_unlock(&self->lock);
     return ent;
@@ -151,14 +151,14 @@ void __detach_from_po(struct xpoll_entry *ent, struct xpoll_t *self) {
 }
 
 
-/* Create a new xpoll_entry if the xd doesn't exist and get one ref for
+/* Create a new xpoll_entry if the fd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int xd) {
+struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int fd) {
     struct xpoll_entry *ent;
 
     mutex_lock(&self->lock);
-    if ((ent = __xpoll_find(self, xd))) {
+    if ((ent = __xpoll_find(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = EEXIST;
 	return 0;
@@ -176,22 +176,22 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int xd) {
     ent->ref++;
     self->ref++;
 
-    ent->event.xd = xd;
+    ent->event.xd = fd;
     __attach_to_po(ent, self);
     mutex_unlock(&self->lock);
 
     return ent;
 }
 
-/* Remove the xpoll_entry if the xd's ent exist. notice that don't release the
+/* Remove the xpoll_entry if the fd's ent exist. notice that don't release the
  * ref hold by xpoll_t. let caller do this.
  * xpoll_rm() call this.
  */
-struct xpoll_entry *xpoll_putent(struct xpoll_t *self, int xd) {
+struct xpoll_entry *xpoll_putent(struct xpoll_t *self, int fd) {
     struct xpoll_entry *ent;
 
     mutex_lock(&self->lock);
-    if (!(ent = __xpoll_find(self, xd))) {
+    if (!(ent = __xpoll_find(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = ENOENT;
 	return 0;
@@ -224,8 +224,8 @@ struct xpoll_entry *xpoll_popent(struct xpoll_t *self) {
 }
 
 
-void attach_to_xsock(struct xpoll_entry *ent, int xd) {
-    struct sockbase *cn = xget(xd);
+void attach_to_xsock(struct xpoll_entry *ent, int fd) {
+    struct sockbase *cn = xgb.sockbases[fd];
 
     mutex_lock(&cn->lock);
     BUG_ON(attached(&ent->xlink));

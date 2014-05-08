@@ -24,17 +24,19 @@
 #include <base.h>
 #include "xeventpoll.h"
 
-extern int xsock_check_events(struct sockbase *self, int events);
+extern int xsock_check_events(struct sockbase *sb, int events);
 
 
 int xselect(int events, int nin, int *in_set, int nout, int *out_set) {
     int i, n;
-    struct sockbase *self;
+    struct sockbase *sb;
     
     for (n = 0, i = 0; i < nin && n < nout; i++) {
-	self = xget(in_set[i]);
-	if (xsock_check_events(self, events) > 0)
+	if (!(sb = xget(in_set[i])))
+	    continue;
+	if (xsock_check_events(sb, events) > 0)
 	    out_set[n++] = in_set[i];
+	xput(sb->fd);
     }
     return n;
 }

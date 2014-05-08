@@ -83,9 +83,11 @@ static inline int kcpud(void *args) {
 	__shutdown_socks_task_hndl(cpu);
 	BUG_ON(xgb.exiting != 0 && xgb.exiting != 1);
     }
-    __shutdown_socks_task_hndl(cpu);
+    while (!list_empty(&cpu->shutdown_socks))
+	__shutdown_socks_task_hndl(cpu);
     kcpud_exits++;
 
+    BUG_ON(!list_empty(&cpu->shutdown_socks));
     /* Release the poll descriptor when kcpud exit. */
     xcpu_free(cpu_no);
     eloop_destroy(&cpu->el);
@@ -156,7 +158,7 @@ void xsocket_module_exit() {
     DEBUG_OFF();
     xgb.exiting = true;
     taskpool_stop(&xgb.tpool);
+    BUG_ON(xgb.nsockbases);
     taskpool_destroy(&xgb.tpool);
     mutex_destroy(&xgb.lock);
-    BUG_ON(xgb.nsockbases);
 }

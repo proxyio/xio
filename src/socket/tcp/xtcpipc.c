@@ -295,7 +295,11 @@ int xio_connector_hndl(eloop_t *el, ev_t *et) {
     }
     if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
 	DEBUG_OFF("io xsock %d EPIPE", sb->fd);
+	mutex_lock(&sb->lock);
 	sb->fepipe = true;
+	if (sb->rcv.waiters || sb->snd.waiters)
+	    condition_broadcast(&sb->cond);
+	mutex_unlock(&sb->lock);
     }
     xeventnotify(sb);
     return rc;
