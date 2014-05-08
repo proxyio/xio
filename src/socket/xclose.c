@@ -44,6 +44,9 @@ int xclose(int fd) {
     self->fepipe = true;
     list_add_tail(&self->shutdown.link, &cpu->shutdown_socks);
 
+    if (self->rcv.waiters || self->snd.waiters)
+	condition_broadcast(&self->cond);
+
     mutex_unlock(&self->lock);
     mutex_unlock(&cpu->lock);
     xput(fd);

@@ -28,88 +28,88 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *sendq_pop(struct sockbase *self) {
-    struct sockbase_vfptr *vfptr = self->vfptr;
+struct xmsg *sendq_pop(struct sockbase *sb) {
+    struct sockbase_vfptr *vfptr = sb->vfptr;
     struct xmsg *msg = 0;
     i64 msgsz;
     u32 events = 0;
     
-    mutex_lock(&self->lock);
-    if (!list_empty(&self->snd.head)) {
-	DEBUG_OFF("xsock %d", self->fd);
-	msg = list_first(&self->snd.head, struct xmsg, item);
+    mutex_lock(&sb->lock);
+    if (!list_empty(&sb->snd.head)) {
+	DEBUG_OFF("xsock %d", sb->fd);
+	msg = list_first(&sb->snd.head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
-	self->snd.buf -= msgsz;
+	sb->snd.buf -= msgsz;
 	events |= XMQ_POP;
-	if (self->snd.wnd - self->snd.buf <= msgsz)
+	if (sb->snd.wnd - sb->snd.buf <= msgsz)
 	    events |= XMQ_NONFULL;
-	if (list_empty(&self->snd.head)) {
-	    BUG_ON(self->snd.buf);
+	if (list_empty(&sb->snd.head)) {
+	    BUG_ON(sb->snd.buf);
 	    events |= XMQ_EMPTY;
 	}
 
 	/* Wakeup the blocking waiters */
-	if (self->snd.waiters > 0)
-	    condition_broadcast(&self->cond);
+	if (sb->snd.waiters > 0)
+	    condition_broadcast(&sb->cond);
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(self, SEND_Q, events);
+	vfptr->notify(sb, SEND_Q, events);
 
-    __xeventnotify(self);
-    mutex_unlock(&self->lock);
+    __xeventnotify(sb);
+    mutex_unlock(&sb->lock);
     return msg;
 }
 
-int sendq_push(struct sockbase *self, struct xmsg *msg) {
+int sendq_push(struct sockbase *sb, struct xmsg *msg) {
     int rc = -1;
-    struct sockbase_vfptr *vfptr = self->vfptr;
+    struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
-    mutex_lock(&self->lock);
-    while (!can_send(self) && !self->fasync) {
-	self->snd.waiters++;
-	condition_wait(&self->cond, &self->lock);
-	self->snd.waiters--;
+    mutex_lock(&sb->lock);
+    while (!sb->fepipe && !can_send(sb) && !sb->fasync) {
+	sb->snd.waiters++;
+	condition_wait(&sb->cond, &sb->lock);
+	sb->snd.waiters--;
     }
-    if (can_send(self)) {
+    if (can_send(sb)) {
 	rc = 0;
-	if (list_empty(&self->snd.head))
+	if (list_empty(&sb->snd.head))
 	    events |= XMQ_NONEMPTY;
-	if (self->snd.wnd - self->snd.buf <= msgsz)
+	if (sb->snd.wnd - sb->snd.buf <= msgsz)
 	    events |= XMQ_FULL;
 	events |= XMQ_PUSH;
-	self->snd.buf += msgsz;
-	list_add_tail(&msg->item, &self->snd.head);
-	DEBUG_OFF("xsock %d", self->fd);
+	sb->snd.buf += msgsz;
+	list_add_tail(&msg->item, &sb->snd.head);
+	DEBUG_OFF("xsock %d", sb->fd);
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(self, SEND_Q, events);
+	vfptr->notify(sb, SEND_Q, events);
 
-    __xeventnotify(self);
-    mutex_unlock(&self->lock);
+    __xeventnotify(sb);
+    mutex_unlock(&sb->lock);
     return rc;
 }
 
 int xsend(int fd, char *xbuf) {
     int rc = 0;
     struct xmsg *msg = 0;
-    struct sockbase *self;
+    struct sockbase *sb;
 
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!(self = xget(fd))) {
+    if (!(sb = xget(fd))) {
 	errno = EBADF;
 	return -1;
     }
     msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    if ((rc = sendq_push(self, msg)) < 0) {
-	errno = self->fepipe ? EPIPE : EAGAIN;
+    if ((rc = sendq_push(sb, msg)) < 0) {
+	errno = sb->fepipe ? EPIPE : EAGAIN;
     }
     xput(fd);
     return rc;

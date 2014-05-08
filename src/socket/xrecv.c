@@ -28,82 +28,82 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *recvq_pop(struct sockbase *self) {
+struct xmsg *recvq_pop(struct sockbase *sb) {
     struct xmsg *msg = 0;
-    struct sockbase_vfptr *vfptr = self->vfptr;
+    struct sockbase_vfptr *vfptr = sb->vfptr;
     i64 msgsz;
     u32 events = 0;
 
-    mutex_lock(&self->lock);
-    while (list_empty(&self->rcv.head) && !self->fasync) {
-	self->rcv.waiters++;
-	condition_wait(&self->cond, &self->lock);
-	self->rcv.waiters--;
+    mutex_lock(&sb->lock);
+    while (!sb->fepipe && list_empty(&sb->rcv.head) && !sb->fasync) {
+	sb->rcv.waiters++;
+	condition_wait(&sb->cond, &sb->lock);
+	sb->rcv.waiters--;
     }
-    if (!list_empty(&self->rcv.head)) {
-	DEBUG_OFF("%d", self->fd);
-	msg = list_first(&self->rcv.head, struct xmsg, item);
+    if (!list_empty(&sb->rcv.head)) {
+	DEBUG_OFF("%d", sb->fd);
+	msg = list_first(&sb->rcv.head, struct xmsg, item);
 	list_del_init(&msg->item);
 	msgsz = xiov_len(msg->vec.chunk);
-	self->rcv.buf -= msgsz;
+	sb->rcv.buf -= msgsz;
 	events |= XMQ_POP;
-	if (self->rcv.wnd - self->rcv.buf <= msgsz)
+	if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
 	    events |= XMQ_NONFULL;
-	if (list_empty(&self->rcv.head)) {
-	    BUG_ON(self->rcv.buf);
+	if (list_empty(&sb->rcv.head)) {
+	    BUG_ON(sb->rcv.buf);
 	    events |= XMQ_EMPTY;
 	}
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(self, RECV_Q, events);
+	vfptr->notify(sb, RECV_Q, events);
 
-    __xeventnotify(self);
-    mutex_unlock(&self->lock);
+    __xeventnotify(sb);
+    mutex_unlock(&sb->lock);
     return msg;
 }
 
-void recvq_push(struct sockbase *self, struct xmsg *msg) {
-    struct sockbase_vfptr *vfptr = self->vfptr;
+void recvq_push(struct sockbase *sb, struct xmsg *msg) {
+    struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
     i64 msgsz = xiov_len(msg->vec.chunk);
 
-    mutex_lock(&self->lock);
-    if (list_empty(&self->rcv.head))
+    mutex_lock(&sb->lock);
+    if (list_empty(&sb->rcv.head))
 	events |= XMQ_NONEMPTY;
-    if (self->rcv.wnd - self->rcv.buf <= msgsz)
+    if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
 	events |= XMQ_FULL;
     events |= XMQ_PUSH;
-    self->rcv.buf += msgsz;
-    list_add_tail(&msg->item, &self->rcv.head);    
-    DEBUG_OFF("%d", self->fd);
+    sb->rcv.buf += msgsz;
+    list_add_tail(&msg->item, &sb->rcv.head);    
+    DEBUG_OFF("%d", sb->fd);
 
     /* Wakeup the blocking waiters. */
-    if (self->rcv.waiters > 0)
-	condition_broadcast(&self->cond);
+    if (sb->rcv.waiters > 0)
+	condition_broadcast(&sb->cond);
 
     if (events && vfptr->notify)
-	vfptr->notify(self, RECV_Q, events);
+	vfptr->notify(sb, RECV_Q, events);
 
-    __xeventnotify(self);
-    mutex_unlock(&self->lock);
+    __xeventnotify(sb);
+    mutex_unlock(&sb->lock);
 }
 
 int xrecv(int fd, char **xbuf) {
     int rc = 0;
     struct xmsg *msg = 0;
-    struct sockbase *self;
+    struct sockbase *sb;
     
     if (!xbuf) {
 	errno = EINVAL;
 	return -1;
     }
-    if (!(self = xget(fd))) {
+    if (!(sb = xget(fd))) {
 	errno = EBADF;
 	return -1;
     }
-    if (!(msg = recvq_pop(self))) {
-	errno = self->fepipe ? EPIPE : EAGAIN;
+    if (!(msg = recvq_pop(sb))) {
+	errno = sb->fepipe ? EPIPE : EAGAIN;
 	rc = -1;
     } else {
 	*xbuf = msg->vec.chunk;
