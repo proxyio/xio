@@ -30,18 +30,31 @@
 
 int xclose(int fd) {
     struct sockbase *sb = xget(fd);
+    struct list_head poll_entries = {};
+    struct xpoll_t *po = 0;
+    struct xpoll_entry *ent = 0, *nent;
     
     if (!sb) {
 	errno = EBADF;
 	return -1;
     }
+    INIT_LIST_HEAD(&poll_entries);
     mutex_lock(&sb->lock);
     sb->fepipe = true;
     if (sb->rcv.waiters || sb->snd.waiters)
 	condition_broadcast(&sb->cond);
     if (sb->acceptq.waiters)
 	condition_broadcast(&sb->acceptq.cond);
+    list_splice(&sb->poll_entries, &poll_entries);
     mutex_unlock(&sb->lock);
+
+    xsock_walk_ent(ent, nent, &poll_entries) {
+        po = cont_of(ent->notify, struct xpoll_t, notify);
+        xpoll_ctl(po, XPOLL_DEL, &ent->event);
+        __detach_from_xsock(ent);
+        xent_put(ent);
+    }
+    BUG_ON(!list_empty(&poll_entries));
     xput(fd);
     xput(fd);
     return 0;

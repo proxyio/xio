@@ -59,9 +59,9 @@ static int modstat_item_parse_test() {
     EXPECT_EQ(tr, MSL_M);
     EXPECT_EQ(v, 1);
 
-    EXPECT_TRUE(gtip(";;RECONNECT:m:1000000000000;SEND_BYTES:m:1;", "RECONNECT", &tr, &v) == 0);
+    EXPECT_TRUE(gtip(";;RECONNECT:m:1000;SEND_BYTES:m:1;", "RECONNECT", &tr, &v) == 0);
     EXPECT_EQ(tr, MSL_M);
-    EXPECT_EQ(v, 1);
+    EXPECT_EQ(v, 1000);
 
     EXPECT_TRUE(gtip("RECONNECT:d:120;SEND_BYTES:m:1;", "RECONNECT", &tr, &v) == 0);
     EXPECT_EQ(tr, MSL_D);

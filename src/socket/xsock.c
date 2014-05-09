@@ -94,25 +94,8 @@ void xput(int fd) {
 
 static void xshutdown_task_f(struct xtask *ts) {
     struct sockbase *sb = cont_of(ts, struct sockbase, shutdown);
-    struct list_head poll_entries = {};
-    struct xpoll_t *po = 0;
-    struct xpoll_entry *ent = 0, *nent;
     
     DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
-
-    INIT_LIST_HEAD(&poll_entries);
-    mutex_lock(&sb->lock);
-    list_splice(&sb->poll_entries, &poll_entries);
-    mutex_unlock(&sb->lock);
-
-    xsock_walk_ent(ent, nent, &poll_entries) {
-	po = cont_of(ent->notify, struct xpoll_t, notify);
-	xpoll_ctl(po, XPOLL_DEL, &ent->event);
-	__detach_from_xsock(ent);
-	xent_put(ent);
-    }
-    BUG_ON(!list_empty(&poll_entries));
-   
     mutex_lock(&xgb.lock);
     xgb.unused[--xgb.nsockbases] = sb->fd;
     mutex_unlock(&xgb.lock);
