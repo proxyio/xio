@@ -134,7 +134,7 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     struct sockbase *nsb = 0;
     struct tcpipc_sock *nself = 0;
 
-    if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
+    if ((et->happened & EPOLLERR) && !(et->happened & EPOLLIN)) {
 	mutex_lock(&sb->lock);
 	sb->fepipe = true;
 	if (sb->acceptq.waiters)
@@ -143,9 +143,10 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
 	return -1;
     }
     BUG_ON(!self->tp);
-    if ((sys_fd = self->tp->accept(self->sys_fd)) < 0)
+    if ((sys_fd = self->tp->accept(self->sys_fd)) < 0) {
 	return -1;
-    if (!(nfd = xalloc(sb->vfptr->pf, XCONNECTOR))) {
+    }
+    if ((nfd = xalloc(sb->vfptr->pf, XCONNECTOR)) < 0) {
 	self->tp->close(sys_fd);
 	return -1;
     }
@@ -153,7 +154,7 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     cpu = xcpuget(nsb->cpu_no);
     nself = cont_of(nsb, struct tcpipc_sock, base);
 
-    DEBUG_OFF("xsock accept new connection %d", sys_fd);
+    DEBUG_ON("accept new connection %d", nfd);
     nself->sys_fd = sys_fd;
     nself->tp = self->tp;
     BUG_ON(nself->tp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));

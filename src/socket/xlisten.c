@@ -35,7 +35,6 @@ int acceptq_add(struct sockbase *sb, struct sockbase *new) {
     while (sb->owner >= 0)
 	sb = xgb.sockbases[sb->owner];
 
-    DEBUG_ON();
     mutex_lock(&sb->lock);
     if (list_empty(&sb->acceptq.head) && sb->acceptq.waiters > 0) {
 	condition_broadcast(&sb->acceptq.cond);

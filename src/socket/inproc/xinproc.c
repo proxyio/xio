@@ -118,6 +118,7 @@ static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
 	xput(nfd);
 	return -1;
     }
+    DEBUG_ON("accept new connection %d", nfd);
     return 0;
 }
 

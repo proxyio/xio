@@ -52,8 +52,9 @@ int xalloc(int family, int socktype) {
 	return -1;
     }
     BUG_ON(!vfptr->alloc);
-    if (!(sb = vfptr->alloc()))
+    if (!(sb = vfptr->alloc())) {
 	return -1;
+    }
     sb->vfptr = vfptr;
     mutex_lock(&xgb.lock);
     BUG_ON(xgb.nsockbases >= XIO_MAX_SOCKS);
@@ -62,7 +63,7 @@ int xalloc(int family, int socktype) {
     atomic_inc(&sb->ref);
     mutex_unlock(&xgb.lock);
     BUG_ON(atomic_read(&sb->ref) != 1);
-    DEBUG_ON("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
+    DEBUG_OFF("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
     return sb->fd;
 }
 
@@ -95,7 +96,7 @@ static void xshutdown_task_f(struct xtask *ts) {
     struct xpoll_t *po = 0;
     struct xpoll_entry *ent = 0, *nent;
     
-    DEBUG_ON("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+    DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
     INIT_LIST_HEAD(&poll_entries);
     mutex_lock(&sb->lock);
