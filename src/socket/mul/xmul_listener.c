@@ -30,22 +30,16 @@
 extern int _xlisten(int pf, const char *addr);
 
 
-static void xmultiple_close(struct sockbase *sb) {
-    struct sockbase *sub, *nx;
-
-    xsock_walk_sub_socks(sub, nx, &sb->sub_socks) {
-	sub->owner = -1;
-	list_del_init(&sub->sib_link);
-	xclose(sub->fd);
-    }
-}
-
 static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
     struct sockbase_vfptr *vfptr, *ss;
-    struct sockbase *sub;
+    struct sockbase *sub, *nsub, *new;
     int sub_fd;
     int pf = sb->vfptr->pf;
+    struct list_head sub_socks;
+    struct list_head new_socks;
 
+    INIT_LIST_HEAD(&sub_socks);
+    INIT_LIST_HEAD(&new_socks);
     walk_sockbase_vfptr_safe(vfptr, ss, &xgb.sockbase_vfptr_head) {
 	if (!(pf & vfptr->pf) || vfptr->type != XLISTENER)
 	    continue;
@@ -53,20 +47,38 @@ static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
 	if ((sub_fd = _xlisten(vfptr->pf, sock)) < 0)
 	    goto BAD;
 	sub = xgb.sockbases[sub_fd];
-	sub->owner = sb->fd;
-	list_add_tail(&sub->sib_link, &sb->sub_socks);
+	list_add_tail(&sub->sib_link, &sub_socks);
     }
-    if (!list_empty(&sb->sub_socks))
-	return 0;
+    if (list_empty(&sub_socks))
+	return -1;
+    xsock_walk_sub_socks(sub, nsub, &sub_socks) {
+        sub->owner = sb->fd;
+        while (acceptq_rm_nohup(sub, &new) == 0) {
+            list_add_tail(&new->acceptq.link, &new_socks);
+        }
+    }
+    mutex_lock(&sb->lock);
+    list_splice(&new_socks, &sb->acceptq.head); 
+    list_splice(&sub_socks, &sb->sub_socks); 
+    mutex_unlock(&sb->lock);
+    return 0; 
  BAD:
-    xmultiple_close(sb);
+    xsock_walk_sub_socks(sub, nsub, &sub_socks) {
+        list_del_init(&sub->sib_link);
+        xclose(sub->fd);
+    }
     return -1;
 }
 
 static void xmul_listener_close(struct sockbase *sb) {
     struct sockbase *nsb;
+    struct sockbase *sub, *nx;
 
-    xmultiple_close(sb);
+    xsock_walk_sub_socks(sub, nx, &sb->sub_socks) {
+	sub->owner = -1;
+	list_del_init(&sub->sib_link);
+	xclose(sub->fd);
+    }
 
     /* Destroy acceptq's connection */
     while (acceptq_rm_nohup(sb, &nsb) == 0) {
