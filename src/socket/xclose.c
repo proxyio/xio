@@ -29,27 +29,20 @@
 #include "xgb.h"
 
 int xclose(int fd) {
-    struct sockbase *self = xget(fd);
-    struct xcpu *cpu = xcpuget(self->cpu_no);
+    struct sockbase *sb = xget(fd);
     
-    if (!self) {
+    if (!sb) {
 	errno = EBADF;
 	return -1;
     }
-    mutex_lock(&cpu->lock);
-    mutex_lock(&self->lock);
-
-    while (efd_signal(&cpu->efd) < 0)
-	mutex_relock(&cpu->lock);
-    self->fepipe = true;
-    list_add_tail(&self->shutdown.link, &cpu->shutdown_socks);
-
-    if (self->rcv.waiters || self->snd.waiters)
-	condition_broadcast(&self->cond);
-    if (self->acceptq.waiters)
-	condition_broadcast(&self->acceptq.cond);
-    mutex_unlock(&self->lock);
-    mutex_unlock(&cpu->lock);
+    mutex_lock(&sb->lock);
+    sb->fepipe = true;
+    if (sb->rcv.waiters || sb->snd.waiters)
+	condition_broadcast(&sb->cond);
+    if (sb->acceptq.waiters)
+	condition_broadcast(&sb->acceptq.cond);
+    mutex_unlock(&sb->lock);
+    xput(fd);
     xput(fd);
     return 0;
 }
