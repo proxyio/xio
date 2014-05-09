@@ -64,8 +64,15 @@ static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
 }
 
 static void xmul_listener_close(struct sockbase *sb) {
-    DEBUG_OFF("xsock %d multiple_close", sb->fd);
+    struct sockbase *nsb;
+
     xmultiple_close(sb);
+
+    /* Destroy acceptq's connection */
+    while (acceptq_rm_nohup(sb, &nsb) == 0) {
+	xclose(nsb->fd);
+    }
+
     xsock_exit(sb);
     mem_free(sb, sizeof(*sb));
 }
