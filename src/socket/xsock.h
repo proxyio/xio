@@ -139,18 +139,19 @@ static inline int can_recv(struct sockbase *cn) {
 int xalloc(int family, int socktype);
 struct sockbase *xget(int fd);
 void xput(int fd);
-void xsock_init(struct sockbase *self);
-void xsock_exit(struct sockbase *self);
+void xsock_init(struct sockbase *sb);
+void xsock_exit(struct sockbase *sb);
 
 void recvq_push(struct sockbase *cn, struct xmsg *msg);
 struct xmsg *sendq_pop(struct sockbase *cn);
 
-int acceptq_push(struct sockbase *self, struct sockbase *req_self);
-struct sockbase *acceptq_pop(struct sockbase *self);
+int acceptq_add(struct sockbase *sb, struct sockbase *new);
+int acceptq_rm(struct sockbase *sb, struct sockbase **new);
+int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new);
 
-int xpoll_check_events(struct sockbase *self, int events);
-void __xeventnotify(struct sockbase *self);
-void xeventnotify(struct sockbase *self);
+int xpoll_check_events(struct sockbase *sb, int events);
+void __xeventnotify(struct sockbase *sb);
+void xeventnotify(struct sockbase *sb);
 
 
 #endif

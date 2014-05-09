@@ -96,7 +96,7 @@ static void xio_listener_close(struct sockbase *sb) {
     self->tp = 0;
 
     /* Destroy acceptq's connection */
-    while ((nsb = acceptq_pop(sb))) {
+    while (acceptq_rm_nohup(sb, &nsb) == 0) {
 	xclose(nsb->fd);
     }
 
@@ -130,9 +130,9 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     struct sockbase *sb = &self->base;
     int on = 1;
     int nfd;
+    struct xcpu *cpu;
     struct sockbase *nsb = 0;
     struct tcpipc_sock *nself = 0;
-    struct xcpu *cpu;
 
     if ((et->happened & EPOLLERR) || !(et->happened & EPOLLIN)) {
 	mutex_lock(&sb->lock);
@@ -141,7 +141,7 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
 	    condition_broadcast(&sb->acceptq.cond);
 	mutex_unlock(&sb->lock);
 	return -1;
-    } 
+    }
     BUG_ON(!self->tp);
     if ((sys_fd = self->tp->accept(self->sys_fd)) < 0)
 	return -1;
@@ -163,8 +163,7 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     nself->et.f = xio_connector_hndl;
     nself->et.data = nself;
     BUG_ON(eloop_add(&cpu->el, &nself->et) != 0);
-    acceptq_push(sb, nsb);
-    return 0;
+    return acceptq_add(sb, nsb);
 }
 
 extern struct sockbase *xio_alloc();

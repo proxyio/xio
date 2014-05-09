@@ -102,7 +102,7 @@ static void xinp_listener_close(struct sockbase *sb) {
     remove_listener(&self->rb_link);
 
     /* Destroy acceptq's connection */
-    while ((nsb = acceptq_pop(sb))) {
+    while (acceptq_rm_nohup(sb, &nsb) == 0) {
 	xclose(nsb->fd);
     }
 

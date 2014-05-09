@@ -29,49 +29,66 @@
 #include <transport/sockaddr.h>
 #include "xgb.h"
 
-int acceptq_push(struct sockbase *self, struct sockbase *new) {
+int acceptq_add(struct sockbase *sb, struct sockbase *new) {
     int rc = 0;
 
-    while (self->owner >= 0)
-	self = xgb.sockbases[self->owner];
+    while (sb->owner >= 0)
+	sb = xgb.sockbases[sb->owner];
 
-    mutex_lock(&self->lock);
-    if (list_empty(&self->acceptq.head) && self->acceptq.waiters > 0) {
-	condition_broadcast(&self->acceptq.cond);
+    DEBUG_ON();
+    mutex_lock(&sb->lock);
+    if (list_empty(&sb->acceptq.head) && sb->acceptq.waiters > 0) {
+	condition_broadcast(&sb->acceptq.cond);
     }
-    list_add_tail(&new->acceptq.link, &self->acceptq.head);
-    __xeventnotify(self);
-    mutex_unlock(&self->lock);
+    list_add_tail(&new->acceptq.link, &sb->acceptq.head);
+    __xeventnotify(sb);
+    mutex_unlock(&sb->lock);
     return rc;
 }
 
-struct sockbase *acceptq_pop(struct sockbase *self) {
-    struct sockbase *new = 0;
 
-    mutex_lock(&self->lock);
-    while (list_empty(&self->acceptq.head) && !self->fasync) {
-	self->acceptq.waiters++;
-	condition_wait(&self->acceptq.cond, &self->lock);
-	self->acceptq.waiters--;
+int __acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new) {
+    if (!list_empty(&sb->acceptq.head)) {
+	*new = list_first(&sb->acceptq.head, struct sockbase, acceptq.link);
+	list_del_init(&(*new)->acceptq.link);
+	return 0;
     }
-    if (!list_empty(&self->acceptq.head)) {
-	new = list_first(&self->acceptq.head, struct sockbase, acceptq.link);
-	list_del_init(&new->acceptq.link);
+    return -1;
+}
+
+int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new) {
+    int rc;
+    mutex_lock(&sb->lock);
+    rc = __acceptq_rm_nohup(sb, new);
+    mutex_unlock(&sb->lock);
+    return rc;
+}
+
+
+int acceptq_rm(struct sockbase *sb, struct sockbase **new) {
+    int rc = -1;
+
+    mutex_lock(&sb->lock);
+    while (list_empty(&sb->acceptq.head) && !sb->fasync) {
+	sb->acceptq.waiters++;
+	condition_wait(&sb->acceptq.cond, &sb->lock);
+	sb->acceptq.waiters--;
     }
-    __xeventnotify(self);
-    mutex_unlock(&self->lock);
-    return new;
+    rc = __acceptq_rm_nohup(sb, new);
+    __xeventnotify(sb);
+    mutex_unlock(&sb->lock);
+    return rc;
 }
 
 int xaccept(int fd) {
     struct sockbase *new = 0;
-    struct sockbase *self = xget(fd);
+    struct sockbase *sb = xget(fd);
 
-    if (!self) {
+    if (!sb) {
 	errno = EBADF;
 	return -1;
     }
-    if (!(new = acceptq_pop(self))) {
+    if (acceptq_rm(sb, &new) < 0) {
 	xput(fd);
 	errno = EAGAIN;
 	return -1;

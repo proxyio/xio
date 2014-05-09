@@ -111,7 +111,7 @@ static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
     self->peer = &peer->base;
     peer->peer = &self->base;
 
-    if (acceptq_push(listener, nsb) < 0) {
+    if (acceptq_add(listener, nsb) < 0) {
 	errno = ECONNREFUSED;
 	atomic_dec(&sb->ref);
 	atomic_dec(&nsb->ref);
