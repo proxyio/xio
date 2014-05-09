@@ -69,6 +69,7 @@ static inline int kcpud(void *args) {
     BUG_ON(eloop_init(&cpu->el, XIO_MAX_SOCKS/XIO_MAX_CPUS,
 		      DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
     BUG_ON(efd_init(&cpu->efd));
+    ZERO(cpu->efd_et);
     cpu->efd_et.events = EPOLLIN|EPOLLERR;
     cpu->efd_et.fd = cpu->efd.r;
     cpu->efd_et.f = cpu_task_hndl;

@@ -34,7 +34,7 @@
 int eloop_add(eloop_t *el, ev_t *ev) {
     int rc = 0;
     int64_t _cur_nsec = rt_nstime();
-    struct epoll_event ee;
+    struct epoll_event ee = {};
 
     if (ev->to_nsec > 0) {
 	ev->tr_node.key = _cur_nsec + ev->to_nsec;
@@ -53,7 +53,7 @@ int eloop_add(eloop_t *el, ev_t *ev) {
 int eloop_mod(eloop_t *el, ev_t *ev) {
     int rc = 0;
     int64_t _cur_nsec = rt_nstime();
-    struct epoll_event ee;
+    struct epoll_event ee = {};
 
     if (ev->to_nsec > 0) {
 	if (ev->tr_node.key)
@@ -72,7 +72,7 @@ int eloop_mod(eloop_t *el, ev_t *ev) {
 
 int eloop_del(eloop_t *el, ev_t *ev) {
     int rc = 0;
-    struct epoll_event ee;
+    struct epoll_event ee = {};
 
     if (ev->to_nsec > 0 && ev->tr_node.key) {
 	skrb_mutex_delete(&el->tr_tree, &ev->tr_node, &el->mutex);
