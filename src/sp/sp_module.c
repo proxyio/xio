@@ -33,6 +33,7 @@ static void epsk_bad_status(struct epsk *sk) {
     mutex_lock(&ep->lock);
     list_move_tail(&sk->item, &ep->bad_socks);
     mutex_unlock(&ep->lock);
+    DEBUG_ON("%d", sk->fd);
 }
 
 void sg_add_sk(struct epsk *sk) {

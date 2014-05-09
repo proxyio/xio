@@ -37,12 +37,12 @@ static int req_thread(void *args) {
 	sbuf = xallocmsg(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
 	BUG_ON(sp_send(eid, sbuf) != 0);
-	DEBUG_OFF("producer %d send %d request: %10.10s", eid, i, sbuf);
+	DEBUG_ON("producer %d send %d request: %10.10s", eid, i, sbuf);
 	while (sp_recv(eid, &rbuf) != 0) {
 	    usleep(10000);
 	}
-	DEBUG_OFF("producer %d recv %d resp: %10.10s", eid, i, rbuf);
-	DEBUG_OFF("----------------------------------------");
+	DEBUG_ON("producer %d recv %d resp: %10.10s", eid, i, rbuf);
+	DEBUG_ON("----------------------------------------");
 	BUG_ON(xmsglen(rbuf) != sizeof(buf));
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xfreemsg(rbuf);
@@ -79,7 +79,7 @@ TEST(sp, reqrep) {
 	while (sp_recv(eid, &ubuf) != 0) {
 	    usleep(10000);
 	}
-	DEBUG_OFF("comsumer %d recv %d requst: %10.10s", eid, i, ubuf);
+	DEBUG_ON("comsumer %d recv %d requst: %10.10s", eid, i, ubuf);
 	BUG_ON(sp_send(eid, ubuf));
     }
     for (i = 0; i < NELEM(t, thread_t); i++) {

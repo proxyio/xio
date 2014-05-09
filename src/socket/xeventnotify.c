@@ -40,7 +40,7 @@ int xsock_check_events(struct sockbase *self, int events) {
     if (events & XPOLLOUT)
 	happened |= can_send(self) ? XPOLLOUT : 0;
     if (events & XPOLLERR)
-	happened |= !self->fepipe ? XPOLLERR : 0;
+	happened |= self->fepipe ? XPOLLERR : 0;
     DEBUG_OFF("%d happen %s", self->fd, xpoll_str[happened]);
     return happened;
 }

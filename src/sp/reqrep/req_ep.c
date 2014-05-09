@@ -63,6 +63,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct sphdr *h;
     struct spr *r;
 
+    DEBUG_OFF("ep %d XPOLLOUT", ep->eid);
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head)) {
 	mutex_unlock(&ep->lock);

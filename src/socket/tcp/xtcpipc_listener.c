@@ -154,7 +154,7 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     cpu = xcpuget(nsb->cpu_no);
     nself = cont_of(nsb, struct tcpipc_sock, base);
 
-    DEBUG_ON("accept new connection %d", nfd);
+    DEBUG_OFF("%d accept new connection %d", sb->fd, nfd);
     nself->sys_fd = sys_fd;
     nself->tp = self->tp;
     BUG_ON(nself->tp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
