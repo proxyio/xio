@@ -71,7 +71,11 @@ int ipc_bind(const char *sock) {
     socklen_t addr_len = sizeof(addr);
     
     ZERO(addr);
+#ifdef SOCK_CLOEXEC
     if ((afd = socket(AF_LOCAL, SOCK_STREAM | SOCK_CLOEXEC, 0)) < 0)
+#else
+    if ((afd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0)
+#endif
 	return -1;
     addr.sun_family = AF_LOCAL;
     snprintf(addr.sun_path,
