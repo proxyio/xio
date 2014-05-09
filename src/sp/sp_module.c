@@ -20,6 +20,7 @@
   IN THE SOFTWARE.
 */
 
+#include <sync/waitgroup.h>
 #include "sp_module.h"
 
 struct sp_global sg;
@@ -167,10 +168,12 @@ static void shutdown_epbase() {
 extern const char *xpoll_str[];
 
 static int po_routine_worker(void *args) {
+    waitgroup_t *wg = (waitgroup_t *)args;
     int rc, i;
     const char *estr;
     struct xpoll_event ent[100];
 
+    waitgroup_done(wg);
     while (!sg.exiting) {
 	rc = xpoll_wait(sg.po, ent, NELEM(ent, struct xpoll_event), 1);
 	if (rc < 0)
@@ -192,7 +195,10 @@ extern struct epbase_vfptr *rep_epbase_vfptr;
 
 void sp_module_init() {
     int eid;
+    waitgroup_t wg;
 
+
+    waitgroup_init(&wg);
     sg.exiting = false;
     mutex_init(&sg.lock);
     sg.po = xpoll_create();
@@ -201,11 +207,14 @@ void sp_module_init() {
 	sg.unused[eid] = eid;
     }
     sg.nendpoints = 0;
-    thread_start(&sg.po_routine, po_routine_worker, 0);
     INIT_LIST_HEAD(&sg.epbase_head);
     list_add_tail(&req_epbase_vfptr->item, &sg.epbase_head);
     list_add_tail(&rep_epbase_vfptr->item, &sg.epbase_head);
     INIT_LIST_HEAD(&sg.shutdown_head);
+
+    waitgroup_add(&wg);
+    thread_start(&sg.po_routine, po_routine_worker, &wg);
+    waitgroup_wait(&wg);
 }
 
 

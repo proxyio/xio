@@ -109,6 +109,7 @@ static void xshutdown_task_f(struct xtask *ts) {
 	__detach_from_xsock(ent);
 	xent_put(ent);
     }
+    BUG_ON(!list_empty(&poll_entries));
     xput(sb->fd);
 }
 
