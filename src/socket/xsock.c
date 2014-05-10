@@ -63,7 +63,7 @@ int xalloc(int family, int socktype) {
     atomic_inc(&sb->ref);
     mutex_unlock(&xgb.lock);
     BUG_ON(atomic_read(&sb->ref) != 1);
-    DEBUG_OFF("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
+    DEBUG_ON("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
     return sb->fd;
 }
 
@@ -95,7 +95,7 @@ void xput(int fd) {
 static void xshutdown_task_f(struct xtask *ts) {
     struct sockbase *sb = cont_of(ts, struct sockbase, shutdown);
     
-    DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+    DEBUG_ON("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
     mutex_lock(&xgb.lock);
     xgb.unused[--xgb.nsockbases] = sb->fd;
     mutex_unlock(&xgb.lock);

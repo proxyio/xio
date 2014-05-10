@@ -149,7 +149,7 @@ static void xserver2() {
 static void xsock_test(int count) {
     while (count-- > 0) {
 	xserver();
-	DEBUG_ON("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+	DEBUG_OFF("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 	xserver2();
     }
 }

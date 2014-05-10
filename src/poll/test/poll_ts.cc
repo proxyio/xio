@@ -39,11 +39,13 @@ static void xclient(string pf) {
 
 static int xclient_thread(void *arg) {
     xclient("tcp");
+    xclient("ipc");
+    xclient("inproc");
     return 0;
 }
 
 TEST(xpoll, select) {
-    int i;
+    int i, j;
     char *payload = 0;
     int afd, sfd, tmp;
     thread_t cli_thread = {};
@@ -52,13 +54,16 @@ TEST(xpoll, select) {
     thread_start(&cli_thread, xclient_thread, 0);
     usleep(100000);
     BUG_ON(xselect(XPOLLIN, 1, &afd, 1, &tmp) <= 0);
-    BUG_ON((sfd = xaccept(afd)) < 0);
-    for (i = 0; i < cnt; i++) {
-	while (xselect(XPOLLIN, 1, &sfd, 1, &tmp) <= 0)
-	    usleep(10000);
-	BUG_ON(tmp != sfd);
-	BUG_ON(0 != xrecv(sfd, &payload));
-	BUG_ON(0 != xsend(sfd, payload));
+    for (j = 0; j < 3; j++) {
+        BUG_ON((sfd = xaccept(afd)) < 0);
+        for (i = 0; i < cnt; i++) {
+	    while (xselect(XPOLLIN, 1, &sfd, 1, &tmp) <= 0)
+	        usleep(10000);
+	    BUG_ON(tmp != sfd);
+	    BUG_ON(0 != xrecv(sfd, &payload));
+	    BUG_ON(0 != xsend(sfd, payload));
+        }
+        xclose(sfd);
     }
     thread_stop(&cli_thread);
     xclose(afd);
