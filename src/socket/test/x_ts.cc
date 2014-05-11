@@ -169,8 +169,10 @@ static void inproc_client2() {
     int sfd, i;
 
     for (i = 0; i < cnt2/2; i++) {
-	if ((sfd = xconnect("inproc://b_inproc")) < 0)
-	    break;
+	if ((sfd = xconnect("inproc://b_inproc")) < 0) {
+	    BUG_ON(errno != ECONNREFUSED);
+	    continue;
+	}
 	xclose(sfd);
     }
 }
@@ -184,8 +186,10 @@ static void inproc_client3() {
     int sfd, i;
 
     for (i = 0; i < cnt2/2; i++) {
-	if ((sfd = xconnect("inproc://b_inproc")) < 0)
-	    break;
+	if ((sfd = xconnect("inproc://b_inproc")) < 0) {
+	    BUG_ON(errno != ECONNREFUSED);
+	    continue;
+	}
 	xclose(sfd);
     }
 }
@@ -213,6 +217,12 @@ static void inproc_server_thread2() {
 }
 
 TEST(xsock, inproc) {
+    int fd1 = xsocket(XPF_INPROC, XCONNECTOR);
+    int fd2 = xsocket(XPF_INPROC, XCONNECTOR);
+    BUG_ON(xbind(fd1, "inproc://a_inproc") == 0);
+    xclose(fd1);
+    BUG_ON(xbind(fd2, "inproc://a_inproc") == 0);
+    xclose(fd2);
     inproc_server_thread2();
 }
 

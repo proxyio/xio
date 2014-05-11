@@ -27,7 +27,7 @@
 #include <runner/taskpool.h>
 #include "../xgb.h"
 
-extern struct sockbase *find_listener(const char *addr);
+extern struct sockbase *getlistener(const char *addr);
 
 /******************************************************************************
  *  snd_head events trigger.
@@ -73,6 +73,7 @@ static struct sockbase *xinp_alloc() {
     if (self) {
 	xsock_init(&self->base);
 	atomic_init(&self->ref);
+	atomic_inc(&self->ref);
 	return &self->base;
     }
     return 0;
@@ -87,16 +88,17 @@ static struct sockbase *xinp_alloc() {
 static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
     int nfd = 0;
     struct sockbase *nsb = 0;
-    struct sockbase *listener = find_listener(sock);
+    struct sockbase *listener = getlistener(sock);
     struct inproc_sock *self = 0;
     struct inproc_sock *peer = 0;
     
     if (!listener) {
-	errno = ENOENT;	
+	errno = ECONNREFUSED;
 	return -1;
     }
     if ((nfd = xalloc(sb->vfptr->pf, sb->vfptr->type)) < 0) {
 	errno = EMFILE;
+	xput(listener->fd);
 	return -1;
     }
     nsb = xgb.sockbases[nfd];
@@ -106,26 +108,24 @@ static int xinp_connector_bind(struct sockbase *sb, const char *sock) {
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     strncpy(nsb->addr, sock, TP_SOCKADDRLEN);
 
-    atomic_incs(&self->ref, 2);
-    atomic_incs(&peer->ref, 2);
+    atomic_inc(&self->ref);
+    atomic_inc(&peer->ref);
     self->peer = &peer->base;
     peer->peer = &self->base;
 
     if (acceptq_add(listener, nsb) < 0) {
+	atomic_dec(&peer->ref);
+	sb->vfptr->close(nsb);
+	xput(listener->fd);
 	errno = ECONNREFUSED;
-	atomic_dec(&sb->ref);
-	atomic_dec(&nsb->ref);
-	xput(nfd);
 	return -1;
     }
+    xput(listener->fd);
     DEBUG_OFF("%d accept new connection %d", sb->fd, nfd);
     return 0;
 }
 
-static void xinp_connector_close(struct sockbase *sb) {
-    struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
-    struct inproc_sock *peer = cont_of(self->peer, struct inproc_sock, base);
-
+static void xinp_peer_close(struct inproc_sock *peer) {
     /* Destroy the xsock and free xsock id if i hold the last ref. */
     mutex_lock(&peer->base.lock);
     if (peer->base.rcv.waiters || peer->base.snd.waiters)
@@ -136,6 +136,17 @@ static void xinp_connector_close(struct sockbase *sb) {
 	xsock_exit(&peer->base);
 	atomic_destroy(&peer->ref);
 	mem_free(peer, sizeof(*peer));
+    }
+}
+
+static void xinp_connector_close(struct sockbase *sb) {
+    struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
+    struct inproc_sock *peer = 0;
+
+    /* TODO: bug on here */
+    if (self->peer) {
+	peer = cont_of(self->peer, struct inproc_sock, base);
+	xinp_peer_close(peer);
     }
     if (atomic_dec(&self->ref) == 1) {
 	xsock_exit(&self->base);

@@ -31,27 +31,37 @@
  *  xsock's proc field operation.
  ******************************************************************************/
 
-struct sockbase *find_listener(const char *addr) {
+struct sockbase *getlistener(const char *addr) {
+    int refed = false;
     u32 size = strlen(addr);
     struct ssmap_node *node;
-    struct inproc_sock *self = 0;
+    struct sockbase *sb = 0;
 
     if (size > TP_SOCKADDRLEN)
 	size = TP_SOCKADDRLEN;
     xglobal_lock();
-    if ((node = ssmap_find(&xgb.inproc_listeners, addr, size)))
-	self = cont_of(node, struct inproc_sock, rb_link);
+    if ((node = ssmap_find(&xgb.inproc_listeners, addr, size))) {
+	sb = &(cont_of(node, struct inproc_sock, rb_link))->base;
+	mutex_lock(&sb->lock);
+	if (!sb->fepipe) {
+	    refed = true;
+	    atomic_inc(&sb->ref);
+	}
+	mutex_unlock(&sb->lock);
+	if (!refed)
+	    sb = 0;
+    }
     xglobal_unlock();
-    return &self->base;
+    return sb;
 }
 
-static int insert_listener(struct ssmap_node *node) {
+static int addlistener(struct ssmap_node *node) {
     int rc = -1;
 
     xglobal_lock();
     if (!ssmap_find(&xgb.inproc_listeners, node->key, node->keylen)) {
 	rc = 0;
-	DEBUG_OFF("insert listener %s", node->key);
+	DEBUG_OFF("add listener %s", node->key);
 	ssmap_insert(&xgb.inproc_listeners, node);
     }
     xglobal_unlock();
@@ -59,7 +69,7 @@ static int insert_listener(struct ssmap_node *node) {
 }
 
 
-static void remove_listener(struct ssmap_node *node) {
+static void rmlistener(struct ssmap_node *node) {
     xglobal_lock();
     ssmap_delete(&xgb.inproc_listeners, node);
     xglobal_unlock();
@@ -87,7 +97,7 @@ static int xinp_listener_bind(struct sockbase *sb, const char *sock) {
     node = &self->rb_link;
     node->key = sb->addr;
     node->keylen = strlen(sb->addr);
-    if (insert_listener(node)) {
+    if (addlistener(node)) {
 	errno = EADDRINUSE;
 	return -1;
     }
@@ -99,10 +109,11 @@ static void xinp_listener_close(struct sockbase *sb) {
     struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
 
     /* Avoiding the new connectors */
-    remove_listener(&self->rb_link);
+    rmlistener(&self->rb_link);
 
     /* Destroy acceptq's connection */
     while (acceptq_rm_nohup(sb, &nsb) == 0) {
+	DEBUG_ON("listener %d close unaccept socket %d", sb->fd, nsb->fd);
 	xclose(nsb->fd);
     }
 
