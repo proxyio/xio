@@ -31,7 +31,7 @@
 #include <xio/poll.h>
 #include <socket/xsock.h>
 
-struct xpoll_entry {
+struct xpitem {
     struct pollbase base;
     spin_t lock;
     struct list_head lru_link;
@@ -43,11 +43,11 @@ extern struct pollbase_vfptr xpollbase_vfptr;
 
 #define xpoll_walk_ent(pos, nx, head)				\
     list_for_each_entry_safe(pos, nx, head,			\
-			     struct xpoll_entry, lru_link)
+			     struct xpitem, lru_link)
 
-struct xpoll_entry *xent_new();
-int xent_get(struct xpoll_entry *ent);
-int xent_put(struct xpoll_entry *ent);
+struct xpitem *xent_new();
+int xent_get(struct xpitem *ent);
+int xent_put(struct xpitem *ent);
 
 struct xpoll_t {
     int id;
@@ -63,14 +63,10 @@ struct xpoll_t *poll_alloc();
 struct xpoll_t *pget(int pollid);
 void pput(int pollid);
 
-struct xpoll_entry *xpoll_find(struct xpoll_t *po, int xd);
-struct xpoll_entry *xpoll_popent(struct xpoll_t *po);
-struct xpoll_entry *xpoll_getent(struct xpoll_t *po, int xd);
-struct xpoll_entry *xpoll_putent(struct xpoll_t *po, int xd);
-
-void attach_to_xsock(struct xpoll_entry *ent, int xd);
-void __detach_from_xsock(struct xpoll_entry *ent);
-
+struct xpitem *xpoll_find(struct xpoll_t *po, int xd);
+struct xpitem *xpoll_popent(struct xpoll_t *po);
+struct xpitem *xpoll_getent(struct xpoll_t *po, int xd);
+struct xpitem *xpoll_putent(struct xpoll_t *po, int xd);
 
 /* Max number of concurrent socks. */
 #define XIO_MAX_POLLS 10240

@@ -168,6 +168,22 @@ int acceptq_add(struct sockbase *sb, struct sockbase *new);
 int acceptq_rm(struct sockbase *sb, struct sockbase **new);
 int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new);
 
+
+static inline int add_pollbase(int fd, struct pollbase *pb) {
+    struct sockbase *sb = xget(fd);
+
+    if (!sb) {
+	errno = EBADF;
+	return -1;
+    }
+    mutex_lock(&sb->lock);
+    BUG_ON(attached(&pb->link));
+    list_add_tail(&pb->link, &sb->poll_entries);
+    mutex_unlock(&sb->lock);
+    xput(fd);
+    return 0;
+}
+
 int check_pollevents(struct sockbase *sb, int events);
 void __emit_pollevents(struct sockbase *sb);
 void emit_pollevents(struct sockbase *sb);

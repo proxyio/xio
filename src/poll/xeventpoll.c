@@ -36,7 +36,7 @@ const char *xpoll_str[] = {
 };
 
 void xpollbase_emit(struct pollbase *pb, u32 events) {
-    struct xpoll_entry *ent = cont_of(pb, struct xpoll_entry, base);
+    struct xpitem *ent = cont_of(pb, struct xpitem, base);
     struct xpoll_t *self = ent->poll;
 
     mutex_lock(&self->lock);
@@ -64,7 +64,7 @@ void xpollbase_emit(struct pollbase *pb, u32 events) {
 }
 
 void xpollbase_close(struct pollbase *pb) {
-    struct xpoll_entry *ent = cont_of(pb, struct xpoll_entry, base);
+    struct xpitem *ent = cont_of(pb, struct xpitem, base);
     struct xpoll_t *self = ent->poll;
 
     xpoll_ctl(self->id, XPOLL_DEL, &pb->event);
@@ -89,7 +89,7 @@ int xpoll_create() {
 extern void emit_pollevents(struct sockbase *sb);
 
 static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpoll_entry *ent = xpoll_getent(self, event->fd);
+    struct xpitem *ent = xpoll_getent(self, event->fd);
     struct sockbase *sb = xget(event->fd);
 
     if (!ent)
@@ -110,7 +110,7 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 
     /* We hold a ref here. it is used for xsock */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
-    attach_to_xsock(ent, sb->fd);
+    add_pollbase(sb->fd, &ent->base);
 
     emit_pollevents(sb);
     xput(sb->fd);
@@ -118,7 +118,7 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 }
 
 static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpoll_entry *ent = xpoll_putent(self, event->fd);
+    struct xpitem *ent = xpoll_putent(self, event->fd);
 
     if (!ent) {
 	return -1;
@@ -132,7 +132,7 @@ static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
 
 static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
     struct sockbase *sb = xget(event->fd);
-    struct xpoll_entry *ent = xpoll_find(self, event->fd);
+    struct xpitem *ent = xpoll_find(self, event->fd);
 
     if (!ent)
 	return -1;
@@ -184,7 +184,7 @@ int xpoll_ctl(int pollid, int op, struct xpoll_event *event) {
 int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
     struct xpoll_t *self = pget(pollid);
     int n = 0;
-    struct xpoll_entry *ent, *nx;
+    struct xpitem *ent, *nx;
 
     if (!self) {
 	errno = EBADF;
@@ -192,7 +192,7 @@ int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
     }
     mutex_lock(&self->lock);
     /* If havn't any events here. we wait */
-    ent = list_first(&self->lru_head, struct xpoll_entry, lru_link);
+    ent = list_first(&self->lru_head, struct xpitem, lru_link);
     if (!ent->base.event.happened && timeout > 0) {
 	self->uwaiters++;
 	condition_timedwait(&self->cond, &self->lock, timeout);
@@ -211,7 +211,7 @@ int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
 
 int xpoll_close(int pollid) {
     struct xpoll_t *self = pget(pollid);
-    struct xpoll_entry *ent;
+    struct xpitem *ent;
 
     if (!self) {
 	errno = EBADF;
