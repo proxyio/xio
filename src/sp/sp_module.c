@@ -135,7 +135,7 @@ static void event_hndl(struct xpoll_event *ent) {
     int optlen;
     struct epsk *sk = (struct epsk *)ent->self;
 
-    BUG_ON(sk->fd != sk->ent.xd);
+    BUG_ON(sk->fd != sk->ent.fd);
     sk->ent.happened = ent->happened;
     xgetopt(sk->fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
 
@@ -181,7 +181,7 @@ static int po_routine_worker(void *args) {
 	DEBUG_OFF("%d sockets happened events", rc);
 	for (i = 0; i < rc; i++) {
 	    estr = xpoll_str[ent[i].happened];
-	    DEBUG_OFF("socket %d with events %s", ent[i].xd, estr);
+	    DEBUG_OFF("socket %d with events %s", ent[i].fd, estr);
 	    event_hndl(&ent[i]);
 	}
 	shutdown_epbase();

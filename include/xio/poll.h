@@ -32,7 +32,7 @@
 int xselect(int events, int nin, int *in_set, int nout, int *out_set);
 
 struct xpoll_event {
-    int xd;
+    int fd;
     void *self;
     /* What events i care about ... */
     int care;

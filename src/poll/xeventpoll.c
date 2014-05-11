@@ -63,13 +63,13 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
     }
     spin_lock(&ent->lock);
     if (ev) {
-	DEBUG_OFF("xsock %d update events %s", ent->event.xd, xpoll_str[ev]);
+	DEBUG_OFF("xsock %d update events %s", ent->event.fd, xpoll_str[ev]);
 	ent->event.happened = ev;
 	list_move(&ent->lru_link, &self->lru_head);
 	if (self->uwaiters)
 	    condition_broadcast(&self->cond);
     } else if (ent->event.happened && !ev) {
-	DEBUG_OFF("xsock %d disable events notify", ent->event.xd);
+	DEBUG_OFF("xsock %d disable events notify", ent->event.fd);
 	ent->event.happened = 0;
 	list_move_tail(&ent->lru_link, &self->lru_head);
     }
@@ -80,8 +80,8 @@ event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
 extern void xeventnotify(struct sockbase *sb);
 
 static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpoll_entry *ent = xpoll_getent(self, event->xd);
-    struct sockbase *sb = xget(event->xd);
+    struct xpoll_entry *ent = xpoll_getent(self, event->fd);
+    struct sockbase *sb = xget(event->fd);
 
     if (!ent)
 	return -1;
@@ -93,7 +93,7 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 
     /* Set up events callback */
     spin_lock(&ent->lock);
-    ent->event.xd = event->xd;
+    ent->event.fd = event->fd;
     ent->event.care = event->care;
     ent->event.self = event->self;
     ent->notify = &self->notify;
@@ -109,7 +109,7 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 }
 
 static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpoll_entry *ent = xpoll_putent(self, event->xd);
+    struct xpoll_entry *ent = xpoll_putent(self, event->fd);
 
     if (!ent) {
 	return -1;
@@ -122,8 +122,8 @@ static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
 
 
 static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
-    struct sockbase *sb = xget(event->xd);
-    struct xpoll_entry *ent = xpoll_find(self, event->xd);
+    struct sockbase *sb = xget(event->fd);
+    struct xpoll_entry *ent = xpoll_find(self, event->fd);
 
     if (!ent)
 	return -1;

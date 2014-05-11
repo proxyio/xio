@@ -149,7 +149,7 @@ void pput(int pollid) {
 struct xpoll_entry *__xpoll_find(struct xpoll_t *self, int fd) {
     struct xpoll_entry *ent, *nx;
     xpoll_walk_ent(ent, nx, &self->lru_head) {
-	if (ent->event.xd == fd)
+	if (ent->event.fd == fd)
 	    return ent;
     }
     return 0;
@@ -204,7 +204,7 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int fd) {
     ent->ref++;
     atomic_inc(&self->ref);
 
-    ent->event.xd = fd;
+    ent->event.fd = fd;
     __attach_to_po(ent, self);
     mutex_unlock(&self->lock);
 
