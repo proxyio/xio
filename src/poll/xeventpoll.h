@@ -31,53 +31,28 @@
 #include <xio/poll.h>
 #include <socket/xsock.h>
 
-
-struct xpoll_entry;
-struct xpoll_notify {
-    void (*event) (struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev);
-};
-
 struct xpoll_entry {
-    /* List item for linked other xpoll_entry of the same sock */
-    struct list_head xlink;
-
-    /* List item for linked other xpoll_entry of the same poll_table */
-    struct list_head lru_link;
-
+    struct pollbase base;
     spin_t lock;
-
-    /* Reference hold by x/xpoll_t */
+    struct list_head lru_link;
     int ref;
-
-    /* Reference backtrace for debuging */
-    int i_idx;
-    int incr_tid[10];
-    int d_idx;
-    int desc_tid[10];
-    
-    /* struct xpoll_event contain the care events and what happened */
-    struct xpoll_event event;
-    struct xpoll_notify *notify;
+    struct xpoll_t *poll;
 };
 
-#define xpoll_walk_ent(pos, nx, head)					\
-    list_for_each_entry_safe(pos, nx, head, struct xpoll_entry, lru_link)
+extern struct pollbase_vfptr xpollbase_vfptr;
 
-#define xsock_walk_ent(pos, nx, head)					\
-    list_for_each_entry_safe(pos, nx, head, struct xpoll_entry, xlink)
-
+#define xpoll_walk_ent(pos, nx, head)				\
+    list_for_each_entry_safe(pos, nx, head,			\
+			     struct xpoll_entry, lru_link)
 
 struct xpoll_entry *xent_new();
 int xent_get(struct xpoll_entry *ent);
 int xent_put(struct xpoll_entry *ent);
 
 struct xpoll_t {
-    struct xpoll_notify notify;
     int id;
     mutex_t lock;
     condition_t cond;
-
-    /* Reference hold by xpoll_entry */
     atomic_t ref;
     int uwaiters;
     int size;

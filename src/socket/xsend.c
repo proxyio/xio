@@ -57,7 +57,7 @@ struct xmsg *sendq_pop(struct sockbase *sb) {
     if (events && vfptr->notify)
 	vfptr->notify(sb, SEND_Q, events);
 
-    __xeventnotify(sb);
+    __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
     return msg;
 }
@@ -89,7 +89,7 @@ int sendq_push(struct sockbase *sb, struct xmsg *msg) {
     if (events && vfptr->notify)
 	vfptr->notify(sb, SEND_Q, events);
 
-    __xeventnotify(sb);
+    __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
     return rc;
 }

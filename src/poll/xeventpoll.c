@@ -35,49 +35,58 @@ const char *xpoll_str[] = {
     "XPOLLIN|XPOLLOUT|XPOLLERR",
 };
 
-
-static void
-event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev);
-
-int xpoll_create() {
-    struct xpoll_t *self = poll_alloc();
-
-    if (self) {
-	self->notify.event = event_notify;
-	pget(self->id);
-    }
-    return self->id;
-}
-
-static void
-event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev) {
-    struct xpoll_t *self = cont_of(un, struct xpoll_t, notify);
+void xpollbase_emit(struct pollbase *pb, u32 events) {
+    struct xpoll_entry *ent = cont_of(pb, struct xpoll_entry, base);
+    struct xpoll_t *self = ent->poll;
 
     mutex_lock(&self->lock);
-    BUG_ON(!ent->event.care);
+    BUG_ON(!pb->event.care);
     if (!attached(&ent->lru_link)) {
-	__detach_from_xsock(ent);
+	list_del_init(&ent->base.link);
 	mutex_unlock(&self->lock);
 	xent_put(ent);
 	return;
     }
     spin_lock(&ent->lock);
-    if (ev) {
-	DEBUG_OFF("xsock %d update events %s", ent->event.fd, xpoll_str[ev]);
-	ent->event.happened = ev;
+    if (events) {
+	DEBUG_OFF("xsock %d update events %s", pb->event.fd, xpoll_str[events]);
+	pb->event.happened = events;
 	list_move(&ent->lru_link, &self->lru_head);
 	if (self->uwaiters)
 	    condition_broadcast(&self->cond);
-    } else if (ent->event.happened && !ev) {
-	DEBUG_OFF("xsock %d disable events notify", ent->event.fd);
-	ent->event.happened = 0;
+    } else if (pb->event.happened && !events) {
+	DEBUG_OFF("xsock %d disable events notify", pb->event.fd);
+	pb->event.happened = 0;
 	list_move_tail(&ent->lru_link, &self->lru_head);
     }
     spin_unlock(&ent->lock);
     mutex_unlock(&self->lock);
 }
 
-extern void xeventnotify(struct sockbase *sb);
+void xpollbase_close(struct pollbase *pb) {
+    struct xpoll_entry *ent = cont_of(pb, struct xpoll_entry, base);
+    struct xpoll_t *self = ent->poll;
+
+    xpoll_ctl(self->id, XPOLL_DEL, &pb->event);
+    xent_put(ent);
+}
+
+struct pollbase_vfptr xpollbase_vfptr = {
+    .emit = xpollbase_emit,
+    .close = xpollbase_close,
+};
+
+
+int xpoll_create() {
+    struct xpoll_t *self = poll_alloc();
+
+    if (self) {
+	pget(self->id);
+    }
+    return self->id;
+}
+
+extern void emit_pollevents(struct sockbase *sb);
 
 static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
     struct xpoll_entry *ent = xpoll_getent(self, event->fd);
@@ -93,17 +102,17 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 
     /* Set up events callback */
     spin_lock(&ent->lock);
-    ent->event.fd = event->fd;
-    ent->event.care = event->care;
-    ent->event.self = event->self;
-    ent->notify = &self->notify;
+    ent->base.event.fd = event->fd;
+    ent->base.event.care = event->care;
+    ent->base.event.self = event->self;
+    ent->poll = self;
     spin_unlock(&ent->lock);
 
     /* We hold a ref here. it is used for xsock */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
     attach_to_xsock(ent, sb->fd);
 
-    xeventnotify(sb);
+    emit_pollevents(sb);
     xput(sb->fd);
     return 0;
 }
@@ -135,11 +144,11 @@ static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
 
     mutex_lock(&self->lock);
     spin_lock(&ent->lock);
-    ent->event.care = event->care;
+    ent->base.event.care = event->care;
     spin_unlock(&ent->lock);
     mutex_unlock(&self->lock);
 
-    xeventnotify(sb);
+    emit_pollevents(sb);
 
     /* Release the ref hold by caller */
     xent_put(ent);
@@ -184,15 +193,15 @@ int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
     mutex_lock(&self->lock);
     /* If havn't any events here. we wait */
     ent = list_first(&self->lru_head, struct xpoll_entry, lru_link);
-    if (!ent->event.happened && timeout > 0) {
+    if (!ent->base.event.happened && timeout > 0) {
 	self->uwaiters++;
 	condition_timedwait(&self->cond, &self->lock, timeout);
 	self->uwaiters--;
     }
     xpoll_walk_ent(ent, nx, &self->lru_head) {
-	if (!ent->event.happened || n >= size)
+	if (!ent->base.event.happened || n >= size)
 	    break;
-	ev_buf[n++] = ent->event;
+	ev_buf[n++] = ent->base.event;
     }
     mutex_unlock(&self->lock);
     pput(pollid);

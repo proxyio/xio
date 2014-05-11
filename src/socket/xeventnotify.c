@@ -28,7 +28,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-int xsock_check_events(struct sockbase *self, int events) {
+int check_pollevents(struct sockbase *self, int events) {
     int happened = 0;
 
     if (events & XPOLLIN) {
@@ -45,24 +45,25 @@ int xsock_check_events(struct sockbase *self, int events) {
     return happened;
 }
 
-/* Generic xpoll_t notify function. always called by xsock_protocol
+/* Generic xpoll_t notify function. always called by sockbase_vfptr
  * when has any message come or can send any massage into network
  * or has a new connection wait for established.
  * here we only check the mq events and proto_spec saved the other
- * events gived by xsock_protocol
+ * events gived by sockbase_vfptr
  */
-void __xeventnotify(struct sockbase *self) {
+void __emit_pollevents(struct sockbase *self) {
     int happened = 0;
-    struct xpoll_entry *ent, *nx;
+    struct pollbase *pb, *npb;
 
-    happened |= xsock_check_events(self, XPOLLIN|XPOLLOUT|XPOLLERR);
-    xsock_walk_ent(ent, nx, &self->poll_entries) {
-	ent->notify->event(ent->notify, ent, ent->event.care & happened);
+    happened |= check_pollevents(self, XPOLLIN|XPOLLOUT|XPOLLERR);
+    walk_pollbase_safe(pb, npb, &self->poll_entries) {
+	BUG_ON(!pb->vfptr);
+	pb->vfptr->emit(pb, happened & pb->event.care);
     }
 }
 
-void xeventnotify(struct sockbase *self) {
+void emit_pollevents(struct sockbase *self) {
     mutex_lock(&self->lock);
-    __xeventnotify(self);
+    __emit_pollevents(self);
     mutex_unlock(&self->lock);
 }

@@ -30,9 +30,8 @@
 
 int xclose(int fd) {
     struct sockbase *sb = xget(fd);
+    struct pollbase *pb, *npb;
     struct list_head poll_entries = {};
-    struct xpoll_t *po = 0;
-    struct xpoll_entry *ent = 0, *nent;
     
     if (!sb) {
 	errno = EBADF;
@@ -48,11 +47,10 @@ int xclose(int fd) {
     list_splice(&sb->poll_entries, &poll_entries);
     mutex_unlock(&sb->lock);
 
-    xsock_walk_ent(ent, nent, &poll_entries) {
-        po = cont_of(ent->notify, struct xpoll_t, notify);
-        xpoll_ctl(po->id, XPOLL_DEL, &ent->event);
-        __detach_from_xsock(ent);
-        xent_put(ent);
+    walk_pollbase_safe(pb, npb, &poll_entries) {
+	list_del_init(&pb->link);
+	BUG_ON(!pb->vfptr);
+	pb->vfptr->close(pb);
     }
     BUG_ON(!list_empty(&poll_entries));
     xput(fd);

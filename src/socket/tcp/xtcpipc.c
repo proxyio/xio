@@ -301,7 +301,7 @@ int xio_connector_hndl(eloop_t *el, ev_t *et) {
 	    condition_broadcast(&sb->cond);
 	mutex_unlock(&sb->lock);
     }
-    xeventnotify(sb);
+    emit_pollevents(sb);
     return rc;
 }
 

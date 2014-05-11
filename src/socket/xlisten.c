@@ -40,7 +40,7 @@ int acceptq_add(struct sockbase *sb, struct sockbase *new) {
 	condition_broadcast(&sb->acceptq.cond);
     }
     list_add_tail(&new->acceptq.link, &sb->acceptq.head);
-    __xeventnotify(sb);
+    __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
     return rc;
 }
@@ -74,7 +74,7 @@ int acceptq_rm(struct sockbase *sb, struct sockbase **new) {
 	sb->acceptq.waiters--;
     }
     rc = __acceptq_rm_nohup(sb, new);
-    __xeventnotify(sb);
+    __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
     return rc;
 }

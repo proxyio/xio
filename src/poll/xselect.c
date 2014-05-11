@@ -24,7 +24,7 @@
 #include <base.h>
 #include "xeventpoll.h"
 
-extern int xsock_check_events(struct sockbase *sb, int events);
+extern int check_pollevents(struct sockbase *sb, int events);
 
 
 int xselect(int events, int nin, int *in_set, int nout, int *out_set) {
@@ -34,7 +34,7 @@ int xselect(int events, int nin, int *in_set, int nout, int *out_set) {
     for (n = 0, i = 0; i < nin && n < nout; i++) {
 	if (!(sb = xget(in_set[i])))
 	    continue;
-	if (xsock_check_events(sb, events) > 0)
+	if (check_pollevents(sb, events) > 0)
 	    out_set[n++] = in_set[i];
 	xput(sb->fd);
     }

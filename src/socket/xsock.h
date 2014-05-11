@@ -35,7 +35,7 @@
 #include <runner/taskpool.h>
 #include <transport/transport.h>
 #include <xio/socket.h>
-#include <poll/xeventpoll.h>
+#include <xio/poll.h>
 #include "xmsg.h"
 #include "xcpu.h"
 
@@ -59,6 +59,33 @@ int xbind(int fd, const char *addr);
 
 extern const char *pf_str[];
 
+
+struct pollbase;
+struct pollbase_vfptr {
+    void (*emit) (struct pollbase *pb, u32 events);
+    void (*close) (struct pollbase *pb);
+};
+
+struct pollbase {
+    struct pollbase_vfptr *vfptr;
+
+    /* struct xpoll_event contain the care events and what happened */
+    struct xpoll_event event;
+
+    struct list_head link;
+};
+
+#define walk_pollbase_safe(pb, npb, head)				\
+    list_for_each_entry_safe(pb, npb, head, struct pollbase, link)
+
+static inline
+void pollbase_init(struct pollbase *pb, struct pollbase_vfptr *vfptr) {
+    pb->vfptr = vfptr;
+    INIT_LIST_HEAD(&pb->link);
+}
+
+
+
 struct sockbase;
 struct sockbase_vfptr {
     int type;
@@ -66,12 +93,11 @@ struct sockbase_vfptr {
     struct sockbase *(*alloc) ();
     void  (*close)  (struct sockbase *sb);
     int   (*bind)   (struct sockbase *sb, const char *sock);
-    void  (*notify) (struct sockbase *sb, int type,
-		     u32 events);
-    int   (*setopt) (struct sockbase *sb, int level, int opt,
-		     void *optval, int optlen);
-    int   (*getopt) (struct sockbase *sb, int level, int opt,
-		     void *optval, int *optlen);
+    void  (*notify) (struct sockbase *sb, int type, u32 events);
+    int   (*setopt) (struct sockbase *sb, int level, int opt, void *optval,
+		     int optlen);
+    int   (*getopt) (struct sockbase *sb, int level, int opt, void *optval,
+		     int *optlen);
     struct list_head link;
 };
 
@@ -142,9 +168,9 @@ int acceptq_add(struct sockbase *sb, struct sockbase *new);
 int acceptq_rm(struct sockbase *sb, struct sockbase **new);
 int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new);
 
-int xpoll_check_events(struct sockbase *sb, int events);
-void __xeventnotify(struct sockbase *sb);
-void xeventnotify(struct sockbase *sb);
+int check_pollevents(struct sockbase *sb, int events);
+void __emit_pollevents(struct sockbase *sb);
+void emit_pollevents(struct sockbase *sb);
 
 
 #endif

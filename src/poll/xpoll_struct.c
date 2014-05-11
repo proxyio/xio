@@ -45,7 +45,6 @@ void xpoll_module_exit() {
 struct xpoll_entry *xent_new() {
     struct xpoll_entry *ent = (struct xpoll_entry *)mem_zalloc(sizeof(*ent));
     if (ent) {
-	INIT_LIST_HEAD(&ent->xlink);
 	INIT_LIST_HEAD(&ent->lru_link);
 	spin_init(&ent->lock);
 	ent->ref = 0;
@@ -54,7 +53,7 @@ struct xpoll_entry *xent_new() {
 }
 
 static void xent_destroy(struct xpoll_entry *ent) {
-    struct xpoll_t *self = cont_of(ent->notify, struct xpoll_t, notify);
+    struct xpoll_t *self = ent->poll;
 
     BUG_ON(ent->ref != 0);
     spin_destroy(&ent->lock);
@@ -88,7 +87,6 @@ int xent_put(struct xpoll_entry *ent) {
     spin_unlock(&ent->lock);
     if (ref == 1) {
 	BUG_ON(attached(&ent->lru_link));
-	BUG_ON(attached(&ent->xlink));
 	xent_destroy(ent);
     }
     return ref;
@@ -149,7 +147,7 @@ void pput(int pollid) {
 struct xpoll_entry *__xpoll_find(struct xpoll_t *self, int fd) {
     struct xpoll_entry *ent, *nx;
     xpoll_walk_ent(ent, nx, &self->lru_head) {
-	if (ent->event.fd == fd)
+	if (ent->base.event.fd == fd)
 	    return ent;
     }
     return 0;
@@ -196,6 +194,7 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int fd) {
 	errno = ENOMEM;
 	return 0;
     }
+    pollbase_init(&ent->base, &xpollbase_vfptr);
 
     /* One reference for back for caller */
     ent->ref++;
@@ -204,7 +203,7 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int fd) {
     ent->ref++;
     atomic_inc(&self->ref);
 
-    ent->event.fd = fd;
+    ent->base.event.fd = fd;
     __attach_to_po(ent, self);
     mutex_unlock(&self->lock);
 
@@ -253,16 +252,11 @@ struct xpoll_entry *xpoll_popent(struct xpoll_t *self) {
 
 
 void attach_to_xsock(struct xpoll_entry *ent, int fd) {
-    struct sockbase *cn = xgb.sockbases[fd];
-
-    mutex_lock(&cn->lock);
-    BUG_ON(attached(&ent->xlink));
-    list_add_tail(&ent->xlink, &cn->poll_entries);
-    mutex_unlock(&cn->lock);
-}
-
-
-void __detach_from_xsock(struct xpoll_entry *ent) {
-    BUG_ON(!attached(&ent->xlink));
-    list_del_init(&ent->xlink);
+    struct sockbase *sb = xgb.sockbases[fd];
+    struct pollbase *pb = &ent->base;
+    
+    mutex_lock(&sb->lock);
+    BUG_ON(attached(&pb->link));
+    list_add_tail(&pb->link, &sb->poll_entries);
+    mutex_unlock(&sb->lock);
 }
