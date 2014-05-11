@@ -33,6 +33,10 @@
 /* Max number of cpu core */
 #define XIO_MAX_CPUS 32
 
+
+/* Max number of concurrent socks. */
+#define XIO_MAX_SOCKS 10240
+
 struct xglobal {
     int exiting;
     mutex_t lock;

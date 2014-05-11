@@ -39,14 +39,14 @@ const char *xpoll_str[] = {
 static void
 event_notify(struct xpoll_notify *un, struct xpoll_entry *ent, u32 ev);
 
-struct xpoll_t *xpoll_create() {
-    struct xpoll_t *self = xpoll_new();
+int xpoll_create() {
+    struct xpoll_t *self = poll_alloc();
 
     if (self) {
 	self->notify.event = event_notify;
-	xpoll_get(self);
+	pget(self->id);
     }
-    return self;
+    return self->id;
 }
 
 static void
@@ -146,32 +146,42 @@ static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
     return 0;
 }
 
-int xpoll_ctl(struct xpoll_t *self, int op, struct xpoll_event *event) {
-    int rc = -1;
+int xpoll_ctl(int pollid, int op, struct xpoll_event *event) {
+    struct xpoll_t *self = pget(pollid);
+    int rc = 0;
 
+    if (!self) {
+	errno = EBADF;
+	return -1;
+    }
     switch (op) {
     case XPOLL_ADD:
 	rc = xpoll_add(self, event);
-	return rc;
+	break;
     case XPOLL_DEL:
 	rc = xpoll_rm(self, event);
-	return rc;
+	break;
     case XPOLL_MOD:
 	rc = xpoll_mod(self, event);
-	return rc;
+	break;
     default:
 	errno = EINVAL;
+	rc = -1;
     }
-    return -1;
+    pput(pollid);
+    return rc;
 }
 
-int xpoll_wait(struct xpoll_t *self, struct xpoll_event *ev_buf,
-	       int size, int timeout) {
+int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
+    struct xpoll_t *self = pget(pollid);
     int n = 0;
     struct xpoll_entry *ent, *nx;
 
+    if (!self) {
+	errno = EBADF;
+	return -1;
+    }
     mutex_lock(&self->lock);
-
     /* If havn't any events here. we wait */
     ent = list_first(&self->lru_head, struct xpoll_entry, lru_link);
     if (!ent->event.happened && timeout > 0) {
@@ -185,17 +195,25 @@ int xpoll_wait(struct xpoll_t *self, struct xpoll_event *ev_buf,
 	ev_buf[n++] = ent->event;
     }
     mutex_unlock(&self->lock);
+    pput(pollid);
     return n;
 }
 
 
-void xpoll_close(struct xpoll_t *self) {
+int xpoll_close(int pollid) {
+    struct xpoll_t *self = pget(pollid);
     struct xpoll_entry *ent;
 
+    if (!self) {
+	errno = EBADF;
+	return -1;
+    }
     while ((ent = xpoll_popent(self))) {
 	/* Release the ref hold by xpoll_t */
 	xent_put(ent);
     }
     /* Release the ref hold by user-caller */
-    xpoll_put(self);
+    pput(pollid);
+    pput(pollid);
+    return 0;
 }

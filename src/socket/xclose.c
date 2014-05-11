@@ -50,7 +50,7 @@ int xclose(int fd) {
 
     xsock_walk_ent(ent, nent, &poll_entries) {
         po = cont_of(ent->notify, struct xpoll_t, notify);
-        xpoll_ctl(po, XPOLL_DEL, &ent->event);
+        xpoll_ctl(po->id, XPOLL_DEL, &ent->event);
         __detach_from_xsock(ent);
         xent_put(ent);
     }

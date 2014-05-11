@@ -23,6 +23,7 @@
 #ifndef _HPIO_XPOLL_
 #define _HPIO_XPOLL_
 
+#include <sync/atomic.h>
 #include <sync/mutex.h>
 #include <sync/spin.h>
 #include <sync/condition.h>
@@ -72,19 +73,20 @@ int xent_put(struct xpoll_entry *ent);
 
 struct xpoll_t {
     struct xpoll_notify notify;
+    int id;
     mutex_t lock;
     condition_t cond;
 
     /* Reference hold by xpoll_entry */
-    int ref;
+    atomic_t ref;
     int uwaiters;
     int size;
     struct list_head lru_head;
 };
 
-struct xpoll_t *xpoll_new();
-int xpoll_get(struct xpoll_t *ut);
-int xpoll_put(struct xpoll_t *ut);
+struct xpoll_t *poll_alloc();
+struct xpoll_t *pget(int pollid);
+void pput(int pollid);
 
 struct xpoll_entry *xpoll_find(struct xpoll_t *po, int xd);
 struct xpoll_entry *xpoll_popent(struct xpoll_t *po);
@@ -93,6 +95,30 @@ struct xpoll_entry *xpoll_putent(struct xpoll_t *po, int xd);
 
 void attach_to_xsock(struct xpoll_entry *ent, int xd);
 void __detach_from_xsock(struct xpoll_entry *ent);
+
+
+/* Max number of concurrent socks. */
+#define XIO_MAX_POLLS 10240
+
+struct xp_global {
+    spin_t lock;
+
+    /* The global table of existing xsock. The descriptor representing
+     * the xsock is the index to this table. This pointer is also used to
+     * find out whether context is initialised. If it is null, context is
+     * uninitialised.
+     */
+    struct xpoll_t *polls[XIO_MAX_POLLS];
+
+    /* Stack of unused xsock descriptors.  */
+    int unused[XIO_MAX_POLLS];
+
+    /* Number of actual socks. */
+    size_t npolls;
+};
+
+extern struct xp_global pg;
+
 
 
 #endif

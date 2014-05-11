@@ -78,7 +78,7 @@ static void xserver() {
     xclose(afd);
 }
 
-static struct xpoll_t *po = 0;
+static int pollid;
 
 static void xclient2(string pf) {
     int i;
@@ -89,9 +89,9 @@ static void xclient2(string pf) {
     for (i = 0; i < cnt; i++) {
 	BUG_ON((sfd[i] = xconnect(host.c_str())) < 0);
 	event[i].xd = sfd[i];
-	event[i].self = po;
+	event[i].self = 0;
 	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	assert(xpoll_ctl(po, XPOLL_ADD, &event[i]) == 0);
+	assert(xpoll_ctl(pollid, XPOLL_ADD, &event[i]) == 0);
     }
     for (i = 0; i < cnt; i++)
 	xclose(sfd[i]);
@@ -110,38 +110,38 @@ static void xserver2() {
     thread_t cli_thread = {};
     struct xpoll_event event[cnt];
 
-    po = xpoll_create();
-    DEBUG_OFF("%p", po);
+    pollid = xpoll_create();
+    DEBUG_OFF("%d", pollid);
     BUG_ON((afd = xlisten("tcp+ipc+inproc://127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, 0);
     event[0].xd = afd;
-    event[0].self = po;
+    event[0].self = 0;
     event[0].care = XPOLLERR;
-    BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[0]) != 0);
+    BUG_ON(xpoll_ctl(pollid, XPOLL_ADD, &event[0]) != 0);
 
     for (j = 0; j < 3; j++) {
 	for (i = 0; i < cnt; i++) {
 	    BUG_ON((sfd[i] = xaccept(afd)) < 0);
 	    DEBUG_OFF("%d", sfd[i]);
 	    event[i].xd = sfd[i];
-	    event[i].self = po;
+	    event[i].self = 0;
 	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	    BUG_ON(xpoll_ctl(po, XPOLL_ADD, &event[i]) != 0);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_ADD, &event[i]) != 0);
 	}
 	mycnt = rand() % (cnt);
 	for (i = 0; i < mycnt; i++) {
 	    DEBUG_OFF("%d", sfd[i]);
 	    event[i].xd = sfd[i];
-	    event[i].self = po;
+	    event[i].self = 0;
 	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	    BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != 0);
-	    BUG_ON(xpoll_ctl(po, XPOLL_DEL, &event[i]) != -1);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &event[i]) != 0);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &event[i]) != -1);
 	}
 	for (i = 0; i < cnt; i++)
 	    xclose(sfd[i]);
     }
 
-    xpoll_close(po);
+    xpoll_close(pollid);
     thread_stop(&cli_thread);
     xclose(afd);
 }

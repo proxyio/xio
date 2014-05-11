@@ -40,7 +40,7 @@ static void epsk_bad_status(struct epsk *sk) {
 void sg_add_sk(struct epsk *sk) {
     int rc;
     mutex_lock(&sg.lock);
-    rc = xpoll_ctl(sg.po, XPOLL_ADD, &sk->ent);
+    rc = xpoll_ctl(sg.pollid, XPOLL_ADD, &sk->ent);
     mutex_unlock(&sg.lock);
     BUG_ON(rc);
 }
@@ -48,7 +48,7 @@ void sg_add_sk(struct epsk *sk) {
 void sg_rm_sk(struct epsk *sk) {
     int rc;
     mutex_lock(&sg.lock);
-    rc = xpoll_ctl(sg.po, XPOLL_DEL, &sk->ent);
+    rc = xpoll_ctl(sg.pollid, XPOLL_DEL, &sk->ent);
     mutex_unlock(&sg.lock);
     BUG_ON(rc);
 }
@@ -56,7 +56,7 @@ void sg_rm_sk(struct epsk *sk) {
 void __sg_update_sk(struct epsk *sk, u32 ev) {
     int rc;
     sk->ent.care = ev;
-    rc = xpoll_ctl(sg.po, XPOLL_MOD, &sk->ent);
+    rc = xpoll_ctl(sg.pollid, XPOLL_MOD, &sk->ent);
     BUG_ON(rc);
 }
 
@@ -175,7 +175,7 @@ static int po_routine_worker(void *args) {
 
     waitgroup_done(wg);
     while (!sg.exiting) {
-	rc = xpoll_wait(sg.po, ent, NELEM(ent, struct xpoll_event), 1);
+	rc = xpoll_wait(sg.pollid, ent, NELEM(ent, struct xpoll_event), 1);
 	if (rc < 0)
 	    continue;
 	DEBUG_OFF("%d sockets happened events", rc);
@@ -201,8 +201,8 @@ void sp_module_init() {
     waitgroup_init(&wg);
     sg.exiting = false;
     mutex_init(&sg.lock);
-    sg.po = xpoll_create();
-    BUG_ON(!sg.po);
+    sg.pollid = xpoll_create();
+    BUG_ON(sg.pollid < 0);
     for (eid = 0; eid < XIO_MAX_ENDPOINTS; eid++) {
 	sg.unused[eid] = eid;
     }
@@ -222,7 +222,7 @@ void sp_module_exit() {
     sg.exiting = true;
     thread_stop(&sg.po_routine);
     mutex_destroy(&sg.lock);
-    xpoll_close(sg.po);
+    xpoll_close(sg.pollid);
     BUG_ON(sg.nendpoints);
 }
 

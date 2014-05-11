@@ -113,7 +113,7 @@ static void xinp_listener_close(struct sockbase *sb) {
 
     /* Destroy acceptq's connection */
     while (acceptq_rm_nohup(sb, &nsb) == 0) {
-	DEBUG_ON("listener %d close unaccept socket %d", sb->fd, nsb->fd);
+	DEBUG_OFF("listener %d close unaccept socket %d", sb->fd, nsb->fd);
 	xclose(nsb->fd);
     }
 

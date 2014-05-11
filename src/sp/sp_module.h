@@ -123,7 +123,7 @@ struct sp_global {
     /* Number of actual ep. */
     size_t nendpoints;
 
-    struct xpoll_t *po;
+    int pollid;
     thread_t po_routine;
     struct list_head epbase_head;
     struct list_head shutdown_head;

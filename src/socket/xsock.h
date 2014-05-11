@@ -41,13 +41,6 @@
 
 #define null NULL
 
-/* Multiple protocols */
-#define XPF_MULE      (XPF_TCP|XPF_IPC|XPF_INPROC)
-
-/* Max number of concurrent socks. */
-#define XIO_MAX_SOCKS 10240
-
-
 int xsocket(int pf, int type);
 int xbind(int fd, const char *addr);
 

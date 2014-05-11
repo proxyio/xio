@@ -5,7 +5,7 @@
   of this software and associated documentation files (the "Software"),
   to deal in the Software without restriction, including without limitation
   the rights to use, copy, modify, merge, publish, distribute, sublicense,
-  and/or sell copies of the Software, and to permit persons to whom
+  and/or sell copies of the Software, and to permit persons to who m
   the Software is furnished to do so, subject to the following conditions:
 
   The above copyright notice and this permission notice shall be included
@@ -26,6 +26,22 @@
 #include <socket/xgb.h>
 #include "xeventpoll.h"
 
+struct xp_global pg;
+
+
+void xpoll_module_init() {
+    int pollid;
+    
+    spin_init(&pg.lock);
+    for (pollid = 0; pollid < XIO_MAX_POLLS; pollid++)
+	pg.unused[pollid] = pollid;
+}
+
+void xpoll_module_exit() {
+    spin_destroy(&pg.lock);
+    BUG_ON(pg.npolls > 0);
+}
+
 struct xpoll_entry *xent_new() {
     struct xpoll_entry *ent = (struct xpoll_entry *)mem_zalloc(sizeof(*ent));
     if (ent) {
@@ -37,15 +53,13 @@ struct xpoll_entry *xent_new() {
     return ent;
 }
 
-int xpoll_put(struct xpoll_t *self);
-
 static void xent_destroy(struct xpoll_entry *ent) {
     struct xpoll_t *self = cont_of(ent->notify, struct xpoll_t, notify);
 
     BUG_ON(ent->ref != 0);
     spin_destroy(&ent->lock);
     mem_free(ent, sizeof(*ent));
-    xpoll_put(self);
+    pput(self->id);
 }
 
 
@@ -84,7 +98,7 @@ struct xpoll_t *xpoll_new() {
     struct xpoll_t *self = (struct xpoll_t *)mem_zalloc(sizeof(*self));
     if (self) {
 	self->uwaiters = 0;
-	self->ref = 0;
+	atomic_init(&self->ref);
 	self->size = 0;
 	mutex_init(&self->lock);
 	condition_init(&self->cond);
@@ -93,29 +107,43 @@ struct xpoll_t *xpoll_new() {
     return self;
 }
 
+struct xpoll_t *poll_alloc() {
+    struct xpoll_t *self = xpoll_new();
+
+    BUG_ON(pg.npolls >= XIO_MAX_POLLS);
+    spin_lock(&pg.lock);
+    self->id = pg.unused[pg.npolls++];
+    pg.polls[self->id] = self;
+    spin_unlock(&pg.lock);
+    return self;
+}
+
 static void xpoll_destroy(struct xpoll_t *self) {
-    DEBUG_OFF();
     mutex_destroy(&self->lock);
     mem_free(self, sizeof(struct xpoll_t));
 }
 
-int xpoll_get(struct xpoll_t *self) {
-    int ref;
-    mutex_lock(&self->lock);
-    ref = self->ref++;
-    mutex_unlock(&self->lock);
-    return ref;
+struct xpoll_t *pget(int pollid) {
+    struct xpoll_t *self;
+
+    spin_lock(&pg.lock);
+    if (!(self = pg.polls[pollid])) {
+	spin_unlock(&pg.lock);
+	return 0;
+    }
+    atomic_inc(&self->ref);
+    spin_unlock(&pg.lock);
+    return self;
 }
 
-int xpoll_put(struct xpoll_t *self) {
-    int ref;
-    mutex_lock(&self->lock);
-    ref = self->ref--;
-    BUG_ON(self->ref < 0);
-    mutex_unlock(&self->lock);
-    if (ref == 1)
+void pput(int pollid) {
+    struct xpoll_t *self = pg.polls[pollid];
+
+    atomic_dec_and_lock(&self->ref, spin, pg.lock) {
+	pg.unused[--pg.npolls] = pollid;
 	xpoll_destroy(self);
-    return ref;
+	spin_unlock(&pg.lock);
+    }
 }
 
 struct xpoll_entry *__xpoll_find(struct xpoll_t *self, int fd) {
@@ -174,7 +202,7 @@ struct xpoll_entry *xpoll_getent(struct xpoll_t *self, int fd) {
 
     /* Cycle reference of xpoll_t and xpoll_entry */
     ent->ref++;
-    self->ref++;
+    atomic_inc(&self->ref);
 
     ent->event.xd = fd;
     __attach_to_po(ent, self);
