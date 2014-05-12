@@ -46,6 +46,10 @@ static inline void bio_init(struct bio *b) {
     INIT_LIST_HEAD(&b->page_head);
 }
 
+static inline int64_t bio_size(struct bio *b) {
+    return b->bsize;
+}
+
 void bio_destroy(struct bio *b);
 void bio_reset(struct bio *b);
 int bio_empty(struct bio *b);

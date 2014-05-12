@@ -56,7 +56,7 @@ void base_exit();
 #define DEBUG_OFF(fmt, ...)
 
 #define PATH_MAX 4096
-#define PAGE_SIZE 4096
+#define PAGE_SIZE 20480
 #define ZERO(x) memset(&(x), 0, sizeof(x))
 #define ERROR (-1 & __LINE__)
 #define STREQ(a, b) (strlen(a) == strlen(b) && memcmp(a, b , strlen(a)) == 0)

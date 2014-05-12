@@ -60,9 +60,11 @@ struct io default_xops = {
 static void snd_head_empty(struct sockbase *sb) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
+    int64_t sndbuf = bio_size(&self->out);
 
     // Disable POLLOUT event when snd_head is empty
-    if (self->et.events & EPOLLOUT) {
+    BUG_ON(sndbuf < 0);
+    if (bio_size(&self->out) == 0 && (self->et.events & EPOLLOUT)) {
 	DEBUG_OFF("%d disable EPOLLOUT", sb->fd);
 	self->et.events &= ~EPOLLOUT;
 	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
