@@ -89,14 +89,16 @@ int xpoll_create() {
 extern void emit_pollevents(struct sockbase *sb);
 
 static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpitem *itm = addfd(self, event->fd);
+    int rc;
     struct sockbase *sb = xget(event->fd);
+    struct xpitem *itm;
 
-    if (!itm)
-	return -1;
     if (!sb) {
-	xpitem_put(itm);
 	errno = EBADF;
+	return -1;
+    }
+    if (!(itm = addfd(self, event->fd))) {
+	xput(sb->fd);
 	return -1;
     }
 
@@ -104,14 +106,14 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
     itm->base.event = *event;
     itm->poll = self;
     spin_unlock(&itm->lock);
-    
-    /* We hold a ref here. it is used for xsock */
-    /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
-    add_pollbase(sb->fd, &itm->base);
 
-    emit_pollevents(sb);
+    /* BUG: condition race with xpoll_rm() */
+    if ((rc = add_pollbase(sb->fd, &itm->base)) == 0) {
+	emit_pollevents(sb);
+    } else
+	rmfd(self, event->fd);
     xput(sb->fd);
-    return 0;
+    return rc;
 }
 
 static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
