@@ -39,13 +39,25 @@ static int get_linger(int fd, void *optval, int *optlen) {
 }
 
 static int get_sndbuf(int fd, void *optval, int *optlen) {
-    errno = EOPNOTSUPP;
-    return -1;
+    int rc;
+    int buf = 0;
+    socklen_t koptlen = sizeof(buf);
+
+    rc = getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf, &koptlen);
+    if (rc == 0)
+	*(int *)optval = buf;
+    return rc;
 }
 
 static int get_rcvbuf(int fd, void *optval, int *optlen) {
-    errno = EOPNOTSUPP;
-    return -1;
+    int rc;
+    int buf = 0;
+    socklen_t koptlen = sizeof(buf);
+
+    rc = getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, &koptlen);
+    if (rc == 0)
+	*(int *)optval = buf;
+    return rc;
 }
 
 static int get_noblock(int fd, void *optval, int *optlen) {

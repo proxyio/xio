@@ -39,13 +39,23 @@ static int set_linger(int fd, void *optval, int optlen) {
 }
 
 static int set_sndbuf(int fd, void *optval, int optlen) {
-    errno = EOPNOTSUPP;
-    return -1;
+    int rc;
+    int buf = *(int *)optval;
+
+    if (buf <= 0)
+	buf = TP_RCVBUFLEN;
+    rc = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof(buf));
+    return rc;
 }
 
 static int set_rcvbuf(int fd, void *optval, int optlen) {
-    errno = EOPNOTSUPP;
-    return -1;
+    int rc;
+    int buf = *(int *)optval;
+
+    if (buf <= 0)
+	buf = TP_SNDBUFLEN;
+    rc = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof(buf));
+    return rc;
 }
 
 static int set_noblock(int fd, void *optval, int optlen) {

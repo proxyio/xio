@@ -132,19 +132,19 @@ struct sockbase *xio_alloc() {
 
 static int xio_connector_bind(struct sockbase *sb, const char *sock) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    struct xcpu *cpu = xcpuget(sb->cpu_no);
     int sys_fd;
     int on = 1;
-    int kbuf = max(default_sndbuf, default_rcvbuf);
-    struct xcpu *cpu = xcpuget(sb->cpu_no);
+    int blen = max(default_sndbuf, default_rcvbuf);
 
     BUG_ON(!cpu);
     BUG_ON(!(self->tp = transport_lookup(sb->vfptr->pf)));
     if ((sys_fd = self->tp->connect(sock)) < 0)
 	return -1;
-
     BUG_ON(self->tp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
-    self->tp->setopt(sys_fd, TP_SNDBUF, &kbuf, sizeof(kbuf));
-    self->tp->setopt(sys_fd, TP_RCVBUF, &kbuf, sizeof(kbuf));
+    self->tp->setopt(sys_fd, TP_SNDBUF, &blen, sizeof(blen));
+    self->tp->setopt(sys_fd, TP_RCVBUF, &blen, sizeof(blen));
+
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     self->sys_fd = sys_fd;
     self->ops = default_xops;
