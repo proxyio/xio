@@ -42,52 +42,44 @@ void xpoll_module_exit() {
     BUG_ON(pg.npolls > 0);
 }
 
-struct xpitem *xent_new() {
-    struct xpitem *ent = (struct xpitem *)mem_zalloc(sizeof(*ent));
-    if (ent) {
-	INIT_LIST_HEAD(&ent->lru_link);
-	spin_init(&ent->lock);
-	ent->ref = 0;
+struct xpitem *xpitem_alloc() {
+    struct xpitem *itm = (struct xpitem *)mem_zalloc(sizeof(*itm));
+    if (itm) {
+	INIT_LIST_HEAD(&itm->lru_link);
+	spin_init(&itm->lock);
+	itm->ref = 0;
     }
-    return ent;
+    return itm;
 }
 
-static void xent_destroy(struct xpitem *ent) {
-    struct xpoll_t *self = ent->poll;
+static void xpitem_destroy(struct xpitem *itm) {
+    struct xpoll_t *self = itm->poll;
 
-    BUG_ON(ent->ref != 0);
-    spin_destroy(&ent->lock);
-    mem_free(ent, sizeof(*ent));
+    BUG_ON(itm->ref != 0);
+    spin_destroy(&itm->lock);
+    mem_free(itm, sizeof(*itm));
     pput(self->id);
 }
 
 
-int xent_get(struct xpitem *ent) {
+int xpitem_get(struct xpitem *itm) {
     int ref;
-    spin_lock(&ent->lock);
-    ref = ent->ref++;
-    /* open for debuging
-     * if (ent->i_idx < sizeof(ent->incr_tid))
-     * ent->incr_tid[ent->i_idx++] = gettid();
-     */
-    spin_unlock(&ent->lock);
+    spin_lock(&itm->lock);
+    ref = itm->ref++;
+    spin_unlock(&itm->lock);
     return ref;
 }
 
-int xent_put(struct xpitem *ent) {
+int xpitem_put(struct xpitem *itm) {
     int ref;
 
-    spin_lock(&ent->lock);
-    ref = ent->ref--;
-    BUG_ON(ent->ref < 0);
-    /* open for debuging
-     * if (ent->d_idx < sizeof(ent->desc_tid))
-     * ent->desc_tid[ent->d_idx++] = gettid();
-     */
-    spin_unlock(&ent->lock);
+    spin_lock(&itm->lock);
+    ref = itm->ref--;
+    BUG_ON(itm->ref < 0);
+    spin_unlock(&itm->lock);
     if (ref == 1) {
-	BUG_ON(attached(&ent->lru_link));
-	xent_destroy(ent);
+	BUG_ON(attached(&itm->lru_link));
+	xpitem_destroy(itm);
     }
     return ref;
 }
@@ -145,88 +137,88 @@ void pput(int pollid) {
 }
 
 struct xpitem *__xpoll_find(struct xpoll_t *self, int fd) {
-    struct xpitem *ent, *nx;
-    xpoll_walk_ent(ent, nx, &self->lru_head) {
-	if (ent->base.event.fd == fd)
-	    return ent;
+    struct xpitem *itm, *nitm;
+    walk_xpitem_safe(itm, nitm, &self->lru_head) {
+	if (itm->base.event.fd == fd)
+	    return itm;
     }
     return 0;
 }
 
 /* Find xpitem by xsock id and return with ref incr if exist. */
 struct xpitem *xpoll_find(struct xpoll_t *self, int fd) {
-    struct xpitem *ent = 0;
+    struct xpitem *itm = 0;
     mutex_lock(&self->lock);
-    if ((ent = __xpoll_find(self, fd)))
-	xent_get(ent);
+    if ((itm = __xpoll_find(self, fd)))
+	xpitem_get(itm);
     mutex_unlock(&self->lock);
-    return ent;
+    return itm;
 }
 
 
-void __attach_to_po(struct xpitem *ent, struct xpoll_t *self) {
-    BUG_ON(attached(&ent->lru_link));
+void __attach_to_po(struct xpitem *itm, struct xpoll_t *self) {
+    BUG_ON(attached(&itm->lru_link));
     self->size++;
-    list_add_tail(&ent->lru_link, &self->lru_head);
+    list_add_tail(&itm->lru_link, &self->lru_head);
 }
 
-void __detach_from_po(struct xpitem *ent, struct xpoll_t *self) {
-    BUG_ON(!attached(&ent->lru_link));
+void __detach_from_po(struct xpitem *itm, struct xpoll_t *self) {
+    BUG_ON(!attached(&itm->lru_link));
     self->size--;
-    list_del_init(&ent->lru_link);
+    list_del_init(&itm->lru_link);
 }
 
 
 /* Create a new xpitem if the fd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct xpitem *xpoll_getent(struct xpoll_t *self, int fd) {
-    struct xpitem *ent;
+struct xpitem *xpoll_getitm(struct xpoll_t *self, int fd) {
+    struct xpitem *itm;
 
     mutex_lock(&self->lock);
-    if ((ent = __xpoll_find(self, fd))) {
+    if ((itm = __xpoll_find(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = EEXIST;
 	return 0;
     }
-    if (!(ent = xent_new())) {
+    if (!(itm = xpitem_alloc())) {
 	mutex_unlock(&self->lock);
 	errno = ENOMEM;
 	return 0;
     }
-    pollbase_init(&ent->base, &xpollbase_vfptr);
+    pollbase_init(&itm->base, &xpollbase_vfptr);
 
     /* One reference for back for caller */
-    ent->ref++;
+    itm->ref++;
 
     /* Cycle reference of xpoll_t and xpitem */
-    ent->ref++;
+    itm->ref++;
     atomic_inc(&self->ref);
 
-    ent->base.event.fd = fd;
-    __attach_to_po(ent, self);
+    itm->base.event.fd = fd;
+    __attach_to_po(itm, self);
     mutex_unlock(&self->lock);
 
-    return ent;
+    return itm;
 }
 
-/* Remove the xpitem if the fd's ent exist. notice that don't release the
+/* Remove the xpitem if the fd's xpitem exist. notice that don't release the
  * ref hold by xpoll_t. let caller do this.
  * xpoll_rm() call this.
  */
-struct xpitem *xpoll_putent(struct xpoll_t *self, int fd) {
-    struct xpitem *ent;
+struct xpitem *xpoll_putitm(struct xpoll_t *self, int fd) {
+    struct xpitem *itm;
 
     mutex_lock(&self->lock);
-    if (!(ent = __xpoll_find(self, fd))) {
+    if (!(itm = __xpoll_find(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = ENOENT;
 	return 0;
     }
-    __detach_from_po(ent, self);
+    __detach_from_po(itm, self);
     mutex_unlock(&self->lock);
 
-    return ent;
+    return itm;
 }
 
 
@@ -234,8 +226,8 @@ struct xpitem *xpoll_putent(struct xpoll_t *self, int fd) {
  * by xpoll_t. let caller do this.
  * xpoll_close() call this.
  */
-struct xpitem *xpoll_popent(struct xpoll_t *self) {
-    struct xpitem *ent;
+struct xpitem *xpoll_popitm(struct xpoll_t *self) {
+    struct xpitem *itm;
 
     mutex_lock(&self->lock);
     if (list_empty(&self->lru_head)) {
@@ -243,9 +235,9 @@ struct xpitem *xpoll_popent(struct xpoll_t *self) {
 	errno = ENOENT;
 	return 0;
     }
-    ent = list_first(&self->lru_head, struct xpitem, lru_link);
-    __detach_from_po(ent, self);
+    itm = list_first(&self->lru_head, struct xpitem, lru_link);
+    __detach_from_po(itm, self);
     mutex_unlock(&self->lock);
 
-    return ent;
+    return itm;
 }

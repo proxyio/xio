@@ -41,13 +41,13 @@ struct xpitem {
 
 extern struct pollbase_vfptr xpollbase_vfptr;
 
-#define xpoll_walk_ent(pos, nx, head)				\
-    list_for_each_entry_safe(pos, nx, head,			\
+#define walk_xpitem_safe(itm, nitm, head)		\
+    list_for_each_entry_safe(itm, nitm, head,		\
 			     struct xpitem, lru_link)
 
-struct xpitem *xent_new();
-int xent_get(struct xpitem *ent);
-int xent_put(struct xpitem *ent);
+struct xpitem *xpitem_alloc();
+int xpitem_get(struct xpitem *itm);
+int xpitem_put(struct xpitem *itm);
 
 struct xpoll_t {
     int id;
@@ -63,10 +63,10 @@ struct xpoll_t *poll_alloc();
 struct xpoll_t *pget(int pollid);
 void pput(int pollid);
 
-struct xpitem *xpoll_find(struct xpoll_t *po, int xd);
-struct xpitem *xpoll_popent(struct xpoll_t *po);
-struct xpitem *xpoll_getent(struct xpoll_t *po, int xd);
-struct xpitem *xpoll_putent(struct xpoll_t *po, int xd);
+struct xpitem *xpoll_find(struct xpoll_t *poll, int fd);
+struct xpitem *xpoll_popitm(struct xpoll_t *poll);
+struct xpitem *xpoll_getitm(struct xpoll_t *poll, int fd);
+struct xpitem *xpoll_putitm(struct xpoll_t *poll, int fd);
 
 /* Max number of concurrent socks. */
 #define XIO_MAX_POLLS 10240
