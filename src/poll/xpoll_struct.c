@@ -48,6 +48,7 @@ struct xpitem *xpitem_alloc() {
 	INIT_LIST_HEAD(&itm->lru_link);
 	spin_init(&itm->lock);
 	itm->ref = 0;
+	pollbase_init(&itm->base, &xpollbase_vfptr);
     }
     return itm;
 }
@@ -137,7 +138,7 @@ void pput(int pollid) {
 }
 
 /* Find xpoll_item by socket fd. if fd == XPOLL_HEADFD, return head item */
-struct xpitem *__getfd(struct xpoll_t *self, int fd) {
+struct xpitem *ffd(struct xpoll_t *self, int fd) {
     struct xpitem *itm, *nitm;
 
     walk_xpitem_safe(itm, nitm, &self->lru_head) {
@@ -151,7 +152,7 @@ struct xpitem *__getfd(struct xpoll_t *self, int fd) {
 struct xpitem *getfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm = 0;
     mutex_lock(&self->lock);
-    if ((itm = __getfd(self, fd)))
+    if ((itm = ffd(self, fd)))
 	xpitem_get(itm);
     mutex_unlock(&self->lock);
     return itm;
@@ -164,7 +165,7 @@ struct xpitem *addfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm;
 
     mutex_lock(&self->lock);
-    if ((itm = __getfd(self, fd))) {
+    if ((itm = ffd(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = EEXIST;
 	return 0;
@@ -174,7 +175,6 @@ struct xpitem *addfd(struct xpoll_t *self, int fd) {
 	errno = ENOMEM;
 	return 0;
     }
-    pollbase_init(&itm->base, &xpollbase_vfptr);
 
     /* One reference for back for caller */
     itm->ref++;
@@ -197,7 +197,7 @@ int rmfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm;
 
     mutex_lock(&self->lock);
-    if (!(itm = __getfd(self, fd))) {
+    if (!(itm = ffd(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = ENOENT;
 	return -1;
