@@ -165,7 +165,7 @@ static void shutdown_epbase() {
     mutex_unlock(&sg.lock);
 }
 
-extern const char *xpoll_str[];
+extern const char *event_str[];
 
 static int po_routine_worker(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
@@ -180,7 +180,7 @@ static int po_routine_worker(void *args) {
 	    continue;
 	DEBUG_OFF("%d sockets happened events", rc);
 	for (i = 0; i < rc; i++) {
-	    estr = xpoll_str[ent[i].happened];
+	    estr = event_str[ent[i].happened];
 	    DEBUG_OFF("socket %d with events %s", ent[i].fd, estr);
 	    event_hndl(&ent[i]);
 	}

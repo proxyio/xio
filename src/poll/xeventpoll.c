@@ -24,7 +24,7 @@
 #include <base.h>
 #include "xeventpoll.h"
 
-const char *xpoll_str[] = {
+const char *event_str[] = {
     "",
     "XPOLLIN",
     "XPOLLOUT",
@@ -49,7 +49,7 @@ void xpollbase_emit(struct pollbase *pb, u32 events) {
     }
     spin_lock(&itm->lock);
     if (events) {
-	DEBUG_OFF("xsock %d update events %s", pb->event.fd, xpoll_str[events]);
+	DEBUG_OFF("xsock %d update events %s", pb->event.fd, event_str[events]);
 	pb->event.happened = events;
 	list_move(&itm->lru_link, &self->lru_head);
 	if (self->uwaiters)
