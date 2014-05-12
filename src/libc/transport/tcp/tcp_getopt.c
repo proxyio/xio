@@ -39,13 +39,25 @@ static int get_linger(int fd, void *optval, int *optlen) {
 }
 
 static int get_sndbuf(int fd, void *optval, int *optlen) {
-    errno = EOPNOTSUPP;
-    return -1;
+    int rc;
+    int buf = 0;
+    socklen_t koptlen = sizeof(buf);
+
+    rc = getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf, &koptlen);
+    if (rc == 0)
+	*(int *)optval = buf;
+    return rc;
 }
 
 static int get_rcvbuf(int fd, void *optval, int *optlen) {
-    errno = EOPNOTSUPP;
-    return -1;
+    int rc;
+    int buf = 0;
+    socklen_t koptlen = sizeof(buf);
+
+    rc = getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, &koptlen);
+    if (rc == 0)
+	*(int *)optval = buf;
+    return rc;
 }
 
 static int get_noblock(int fd, void *optval, int *optlen) {
@@ -65,11 +77,12 @@ static int get_nodelay(int fd, void *optval, int *optlen) {
 static int get_sndtimeo(int fd, void *optval, int *optlen) {
     int rc;
     int to = *(int *)optval;
-    socklen_t koptlen = 0;
     struct timeval tv = {
 	.tv_sec = to / 1000,
 	.tv_usec = (to % 1000) * 1000,
     };
+    socklen_t koptlen = sizeof(tv);
+
     rc = getsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, &koptlen);
     if (rc == 0)
 	*(int *)optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -79,11 +92,12 @@ static int get_sndtimeo(int fd, void *optval, int *optlen) {
 static int get_rcvtimeo(int fd, void *optval, int *optlen) {
     int rc;
     int to = *(int *)optval;
-    socklen_t koptlen = 0;
     struct timeval tv = {
 	.tv_sec = to / 1000,
 	.tv_usec = (to % 1000) * 1000,
     };
+    socklen_t koptlen = sizeof(tv);
+
     rc = getsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &koptlen);
     if (rc == 0)
 	*(int *)optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
