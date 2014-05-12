@@ -49,10 +49,12 @@ struct xpitem *xpitem_alloc();
 int xpitem_get(struct xpitem *itm);
 int xpitem_put(struct xpitem *itm);
 
+
 struct xpoll_t {
-    int id;
     mutex_t lock;
     condition_t cond;
+    u64 shutdown_state:1;
+    int id;
     atomic_t ref;
     int uwaiters;
     int size;
@@ -63,10 +65,10 @@ struct xpoll_t *poll_alloc();
 struct xpoll_t *pget(int pollid);
 void pput(int pollid);
 
-struct xpitem *xpoll_find(struct xpoll_t *poll, int fd);
-struct xpitem *xpoll_popitm(struct xpoll_t *poll);
-struct xpitem *xpoll_getitm(struct xpoll_t *poll, int fd);
-struct xpitem *xpoll_putitm(struct xpoll_t *poll, int fd);
+#define XPOLL_HEADFD -0x3654
+struct xpitem *getfd(struct xpoll_t *poll, int fd);
+struct xpitem *addfd(struct xpoll_t *poll, int fd);
+int rmfd(struct xpoll_t *poll, int fd);
 
 /* Max number of concurrent socks. */
 #define XIO_MAX_POLLS 10240

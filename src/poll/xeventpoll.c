@@ -89,7 +89,7 @@ int xpoll_create() {
 extern void emit_pollevents(struct sockbase *sb);
 
 static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpitem *itm = xpoll_getitm(self, event->fd);
+    struct xpitem *itm = addfd(self, event->fd);
     struct sockbase *sb = xget(event->fd);
 
     if (!itm)
@@ -100,14 +100,11 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 	return -1;
     }
 
-    /* Set up events callback */
     spin_lock(&itm->lock);
-    itm->base.event.fd = event->fd;
-    itm->base.event.care = event->care;
-    itm->base.event.self = event->self;
+    itm->base.event = *event;
     itm->poll = self;
     spin_unlock(&itm->lock);
-
+    
     /* We hold a ref here. it is used for xsock */
     /* BUG case 1: it's possible that this entry was deleted by xpoll_rm() */
     add_pollbase(sb->fd, &itm->base);
@@ -118,38 +115,36 @@ static int xpoll_add(struct xpoll_t *self, struct xpoll_event *event) {
 }
 
 static int xpoll_rm(struct xpoll_t *self, struct xpoll_event *event) {
-    struct xpitem *itm = xpoll_putitm(self, event->fd);
-
-    if (!itm)
-	return -1;
-
-    /* Release the ref hold by xpoll_t */
-    xpitem_put(itm);
-    return 0;
+    int rc = rmfd(self, event->fd);
+    return rc;
 }
 
 
 static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
     struct sockbase *sb = xget(event->fd);
-    struct xpitem *itm = xpoll_find(self, event->fd);
+    struct xpitem *itm;
 
-    if (!itm)
-	return -1;
     if (!sb) {
-	xpitem_put(itm);
 	errno = EBADF;
+	return -1;
+    }
+    if (!(itm = getfd(self, event->fd))) {
+	xput(sb->fd);
+	errno = ENOENT;
 	return -1;
     }
 
     mutex_lock(&self->lock);
     spin_lock(&itm->lock);
-    itm->base.event.care = event->care;
+    event->happened = 0;
+    itm->base.event = *event;
     spin_unlock(&itm->lock);
     mutex_unlock(&self->lock);
 
     emit_pollevents(sb);
 
     /* Release the ref hold by caller */
+    xput(sb->fd);
     xpitem_put(itm);
     return 0;
 }
@@ -209,17 +204,20 @@ int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
 
 
 int xpoll_close(int pollid) {
+    int rc;
     struct xpoll_t *self = pget(pollid);
-    struct xpitem *itm;
 
     if (!self) {
 	errno = EBADF;
 	return -1;
     }
-    while ((itm = xpoll_popitm(self))) {
-	/* Release the ref hold by xpoll_t */
-	xpitem_put(itm);
+    mutex_lock(&self->lock);
+    self->shutdown_state = true;
+    mutex_unlock(&self->lock);
+
+    while ((rc = rmfd(self, XPOLL_HEADFD)) == 0) {
     }
+
     /* Release the ref hold by user-caller */
     pput(pollid);
     pput(pollid);

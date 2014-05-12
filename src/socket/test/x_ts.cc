@@ -134,6 +134,8 @@ static void xserver2() {
 	    event[i].fd = sfd[i];
 	    event[i].self = 0;
 	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_MOD, &event[i]) != 0);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_MOD, &event[i]) != 0);
 	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &event[i]) != 0);
 	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &event[i]) != -1);
 	}

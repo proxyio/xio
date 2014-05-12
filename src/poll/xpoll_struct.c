@@ -136,47 +136,35 @@ void pput(int pollid) {
     }
 }
 
-struct xpitem *__xpoll_find(struct xpoll_t *self, int fd) {
+/* Find xpoll_item by socket fd. if fd == XPOLL_HEADFD, return head item */
+struct xpitem *__getfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm, *nitm;
+
     walk_xpitem_safe(itm, nitm, &self->lru_head) {
-	if (itm->base.event.fd == fd)
+	if (itm->base.event.fd == fd || fd == XPOLL_HEADFD)
 	    return itm;
     }
     return 0;
 }
 
 /* Find xpitem by xsock id and return with ref incr if exist. */
-struct xpitem *xpoll_find(struct xpoll_t *self, int fd) {
+struct xpitem *getfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm = 0;
     mutex_lock(&self->lock);
-    if ((itm = __xpoll_find(self, fd)))
+    if ((itm = __getfd(self, fd)))
 	xpitem_get(itm);
     mutex_unlock(&self->lock);
     return itm;
 }
 
-
-void __attach_to_po(struct xpitem *itm, struct xpoll_t *self) {
-    BUG_ON(attached(&itm->lru_link));
-    self->size++;
-    list_add_tail(&itm->lru_link, &self->lru_head);
-}
-
-void __detach_from_po(struct xpitem *itm, struct xpoll_t *self) {
-    BUG_ON(!attached(&itm->lru_link));
-    self->size--;
-    list_del_init(&itm->lru_link);
-}
-
-
 /* Create a new xpitem if the fd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct xpitem *xpoll_getitm(struct xpoll_t *self, int fd) {
+struct xpitem *addfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm;
 
     mutex_lock(&self->lock);
-    if ((itm = __xpoll_find(self, fd))) {
+    if ((itm = __getfd(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = EEXIST;
 	return 0;
@@ -196,48 +184,28 @@ struct xpitem *xpoll_getitm(struct xpoll_t *self, int fd) {
     atomic_inc(&self->ref);
 
     itm->base.event.fd = fd;
-    __attach_to_po(itm, self);
+    BUG_ON(attached(&itm->lru_link));
+    self->size++;
+    list_add_tail(&itm->lru_link, &self->lru_head);
     mutex_unlock(&self->lock);
 
     return itm;
 }
 
-/* Remove the xpitem if the fd's xpitem exist. notice that don't release the
- * ref hold by xpoll_t. let caller do this.
- * xpoll_rm() call this.
- */
-struct xpitem *xpoll_putitm(struct xpoll_t *self, int fd) {
+/* Remove the xpitem if the fd's xpitem exist. */
+int rmfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm;
 
     mutex_lock(&self->lock);
-    if (!(itm = __xpoll_find(self, fd))) {
+    if (!(itm = __getfd(self, fd))) {
 	mutex_unlock(&self->lock);
 	errno = ENOENT;
-	return 0;
+	return -1;
     }
-    __detach_from_po(itm, self);
+    BUG_ON(!attached(&itm->lru_link));
+    self->size--;
+    list_del_init(&itm->lru_link);
     mutex_unlock(&self->lock);
-
-    return itm;
-}
-
-
-/* Pop the first xpitem. notice that don't release the ref hold
- * by xpoll_t. let caller do this.
- * xpoll_close() call this.
- */
-struct xpitem *xpoll_popitm(struct xpoll_t *self) {
-    struct xpitem *itm;
-
-    mutex_lock(&self->lock);
-    if (list_empty(&self->lru_head)) {
-	mutex_unlock(&self->lock);
-	errno = ENOENT;
-	return 0;
-    }
-    itm = list_first(&self->lru_head, struct xpitem, lru_link);
-    __detach_from_po(itm, self);
-    mutex_unlock(&self->lock);
-
-    return itm;
+    xpitem_put(itm);
+    return 0;
 }
