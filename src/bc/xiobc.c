@@ -40,6 +40,7 @@ DEFINE_MODSTAT(bc, BC_KEYRANGE);
 
 static char role = 0;
 static char *host = 0;
+static int64_t timeout = 10000;
 static int thread_num = 1;
 static int connection_num = 1;
 
@@ -79,6 +80,7 @@ static int get_option(int argc, char* argv[]) {
 	    return -1;
         }
     }
+    timeout += rt_mstime();
     return 0;
 }
 
@@ -97,6 +99,7 @@ static void d_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val) {
 
 static void req_worker(int eid) {
     int i, fd;
+    int64_t now;
     char *ubuf;
     bc_modstat_t bcst = {};
     modstat_t *st = &bcst.self;
@@ -111,7 +114,7 @@ static void req_worker(int eid) {
 	BUG_ON((fd = xconnect(host)) < 0);
 	BUG_ON(sp_add(eid, fd));
     }
-    for (;;) {
+    while ((now = rt_mstime()) < timeout) {
 	ubuf = xallocmsg(rand() % sizeof(buff));
 	memcpy(ubuf, buff, xmsglen(ubuf));
 	BUG_ON(sp_send(eid, ubuf));
@@ -119,12 +122,13 @@ static void req_worker(int eid) {
 	BUG_ON(sp_recv(eid, &ubuf));
 	modstat_incrkey(st, RECV);
 	xfreemsg(ubuf);
-	modstat_update_timestamp(st, rt_mstime());
+	modstat_update_timestamp(st, now);
     }
 }
 
 static void rep_worker(int eid) {
     int fd;
+    int64_t now;
     char *ubuf;
     bc_modstat_t bcst = {};
     modstat_t *st = &bcst.self;
@@ -137,11 +141,11 @@ static void rep_worker(int eid) {
 
     BUG_ON((fd = xlisten(host)) < 0);
     BUG_ON(sp_add(eid, fd));
-    for (;;) {
+    while ((now = rt_mstime()) < timeout) {
 	BUG_ON(sp_recv(eid, &ubuf));
 	BUG_ON(sp_send(eid, ubuf));
 	modstat_incrkey(st, RECV);
-	modstat_update_timestamp(st, rt_mstime());
+	modstat_update_timestamp(st, now);
     }
 }
 
@@ -160,11 +164,13 @@ int main(int argc, char  **argv) {
 	eid = sp_endpoint(SP_REQREP, SP_REQ);
 	BUG_ON(eid < 0);
 	req_worker(eid);
+	sp_close(eid);
 	break;
     case 's':
 	eid = sp_endpoint(SP_REQREP, SP_REP);
 	BUG_ON(eid < 0);
 	rep_worker(eid);
+	sp_close(eid);
 	break;
     default:
 	BUG_ON(1);

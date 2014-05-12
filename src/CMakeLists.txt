@@ -42,4 +42,4 @@ endif()
 ## compile xiobc
 aux_source_directory( bc/ XIOBC )
 add_executable( xiobc ${XIOBC} )
-target_link_libraries( xiobc xio pthread )
+target_link_libraries( xiobc xio pthread profiler )
