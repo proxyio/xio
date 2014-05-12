@@ -37,6 +37,11 @@
 #define TP_RCVTIMEO       6
 #define TP_SNDTIMEO       7
 #define TP_REUSEADDR      8
+
+typedef int (*tp_setopt) (int fd, void *optval, int optlen);
+typedef int (*tp_getopt) (int fd, void *optval, int *optlen);
+
+
 #define TP_SOCKADDRLEN    128
 
 struct transport {

@@ -181,20 +181,3 @@ int ipc_peername(int fd, char *peer, int size) {
     strncpy(peer, addr.sun_path, size);
     return 0;
 }
-
-
-int ipc_setopt(int fd, int opt, void *val, int valsz) {
-    switch (opt) {
-    case TP_NOBLOCK:
-	{
-	    int ff;
-	    int block = *((int *)val);
-	    if ((ff = fcntl(fd, F_GETFL, 0)) < 0)
-		ff = 0;
-	    ff = block ? (ff | O_NONBLOCK) : (ff & ~O_NONBLOCK);
-	    return fcntl(fd, F_SETFL, ff);
-	}
-    }
-    errno = EINVAL;
-    return -1;
-}

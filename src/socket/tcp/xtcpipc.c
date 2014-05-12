@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <runner/taskpool.h>
 #include "../xgb.h"
+#include "../xsock.h"
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
@@ -133,6 +134,7 @@ static int xio_connector_bind(struct sockbase *sb, const char *sock) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int sys_fd;
     int on = 1;
+    int kbuf = max(default_sndbuf, default_rcvbuf);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     BUG_ON(!cpu);
@@ -141,6 +143,8 @@ static int xio_connector_bind(struct sockbase *sb, const char *sock) {
 	return -1;
 
     BUG_ON(self->tp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
+    self->tp->setopt(sys_fd, TP_SNDBUF, &kbuf, sizeof(kbuf));
+    self->tp->setopt(sys_fd, TP_RCVBUF, &kbuf, sizeof(kbuf));
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     self->sys_fd = sys_fd;
     self->ops = default_xops;

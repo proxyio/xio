@@ -34,8 +34,8 @@ int tcp_bind(const char *sock);
 int tcp_accept(int fd);
 int tcp_connect(const char *peer);
 
-int tcp_setopt(int fd, int opt, void *val, int vallen);
-int tcp_getopt(int fd, int opt, void *val, int vallen);
+int tcp_setopt(int fd, int opt, void *optval, int optlen);
+int tcp_getopt(int fd, int opt, void *optval, int *optlen);
 
 int64_t tcp_read(int fd, char *buff, int64_t size);
 int64_t tcp_write(int fd, const char *buff, int64_t size);

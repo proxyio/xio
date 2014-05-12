@@ -29,7 +29,6 @@
 #include "xtcpipc.h"
 #include "xcpu.h"
 
-
 /* Max number of cpu core */
 #define XIO_MAX_CPUS 32
 

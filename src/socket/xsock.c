@@ -40,8 +40,8 @@ const char *pf_str[] = {
 };
 
 /* Default snd/rcv buffer size */
-static int DEF_SNDBUF = 10485760;
-static int DEF_RCVBUF = 10485760;
+int default_sndbuf = 10485760;
+int default_rcvbuf = 10485760;
 
 int xalloc(int family, int socktype) {
     struct sockbase_vfptr *vfptr = sockbase_vfptr_lookup(family, socktype);
@@ -118,12 +118,12 @@ void xsock_init(struct sockbase *sb) {
 
     sb->rcv.waiters = 0;
     sb->rcv.buf = 0;
-    sb->rcv.wnd = DEF_RCVBUF;
+    sb->rcv.wnd = default_rcvbuf;
     INIT_LIST_HEAD(&sb->rcv.head);
 
     sb->snd.waiters = 0;
     sb->snd.buf = 0;
-    sb->snd.wnd = DEF_SNDBUF;
+    sb->snd.wnd = default_sndbuf;
     INIT_LIST_HEAD(&sb->snd.head);
 
     INIT_LIST_HEAD(&sb->poll_entries);

@@ -44,7 +44,7 @@ static int64_t timeout = 10000;
 static int thread_num = 1;
 static int connection_num = 1;
 
-static char buff[1024] = {};
+static char buff[10240] = {};
 
 static int randstr(char *buf, int len) {
     int i, idx;

@@ -92,5 +92,6 @@ typedef uint64_t u64;
 
 #define NELEM(x, type) (sizeof(x) / sizeof(type))
 
+#define max(a, b) (a > b ? a : b)
 
 #endif

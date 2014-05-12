@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XSOCK_STRUCT_
-#define _HPIO_XSOCK_STRUCT_
+#ifndef _HPIO_XSOCK_
+#define _HPIO_XSOCK_
 
 #include <base.h>
 #include <ds/map.h>
@@ -40,6 +40,10 @@
 #include "xcpu.h"
 
 #define null NULL
+
+/* Default snd/rcv buffer size */
+extern int default_sndbuf;
+extern int default_rcvbuf;
 
 int xsocket(int pf, int type);
 int xbind(int fd, const char *addr);
