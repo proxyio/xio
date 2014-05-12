@@ -30,7 +30,7 @@
 #include <sync/spin.h>
 #include <sync/condition.h>
 #include <runner/thread.h>
-#include <socket/xmsg.h>
+#include <socket/xgb.h>
 #include <xio/poll.h>
 #include <xio/sp_reqrep.h>
 #include "sp_hdr.h"

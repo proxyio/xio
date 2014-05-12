@@ -123,8 +123,9 @@ static int __eloop_wait(eloop_t *el) {
     else if ((n = epoll_wait(el->efd, ev_buf, size, max_to/1000000)) < 0)
 	n = 0;
     while (ev_buf < el->ev_buf + n) {
-	DEBUG_OFF("fd %d happen with events", ev_buf->events);
-	eloop_update_timer(el, (ev_t *)ev_buf->data.ptr, _cur_nsec);
+	ev = (ev_t *)ev_buf->data.ptr;
+	DEBUG_OFF("fd %d happen with events %u", ev->fd, ev->events);
+	eloop_update_timer(el, ev, _cur_nsec);
 	ev_buf++;
     }
     
