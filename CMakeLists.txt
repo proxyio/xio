@@ -25,6 +25,7 @@ set( CMAKE_CXX_FLAGS "-O0 -g -ggdb -Wall -DTRACE_TIME" )
 
 enable_testing()
 add_subdirectory(src)
+add_subdirectory(tools)
 
 ## include( src/CMakeTest.cmake )
 

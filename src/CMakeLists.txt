@@ -38,3 +38,8 @@ target_link_libraries( unit_test xio xlibc gtest pthread )
 if (DEBUG_mode)
    target_link_libraries( unit_test gcov )
 endif()
+
+## compile xiobc
+aux_source_directory( bc/ XIOBC )
+add_executable( xiobc ${XIOBC} )
+target_link_libraries( xiobc xio pthread )
