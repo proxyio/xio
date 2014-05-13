@@ -26,36 +26,42 @@
 #include "transport/transport.h"
 
 
-static struct list_head _transport_head = {};
-struct list_head *transport_head = &_transport_head;
+static struct list_head transport_vfs = {};
+struct list_head *transport_vfptr_head = &transport_vfs;
 
 /* List all available transport here */
-extern struct transport *tcp_transport;
-extern struct transport *ipc_transport;
+extern struct transport_vf *tcp_vfptr;
+extern struct transport_vf *ipc_vfptr;
 
-#define list_for_each_transport(tp)					\
-    list_for_each_entry(tp, transport_head, struct transport, item)
-
-static inline void add_transport(struct transport *tp) {
-    tp->global_init();
-    list_add(&tp->item, transport_head);
-}
+#define walk_transpotr_vfptr_safe(tp_vfptr)		\
+    list_for_each_entry(tp_vfptr, &transport_vfs,	\
+			struct transport_vf, item)
 
 void transport_module_init() {
-    INIT_LIST_HEAD(transport_head);
-    add_transport(tcp_transport);
-    add_transport(ipc_transport);
+    INIT_LIST_HEAD(&transport_vfs);
+    list_add(&tcp_vfptr->item, transport_vfptr_head);
+    if (tcp_vfptr->init)
+	tcp_vfptr->init();
+    list_add(&ipc_vfptr->item, transport_vfptr_head);
+    if (ipc_vfptr->init)
+	ipc_vfptr->init();
 }
 
 void transport_module_exit() {
+    struct transport_vf *tp_vfptr;
+
+    walk_transpotr_vfptr_safe(tp_vfptr) {
+	if (tp_vfptr->exit)
+	    tp_vfptr->exit();
+    }
 }
 
+struct transport_vf *transport_lookup(int pf) {
+    struct transport_vf *tp;
 
-struct transport *transport_lookup(int pf) {
-    struct transport *tp = NULL;
-
-    list_for_each_transport(tp)
+    walk_transpotr_vfptr_safe(tp) {
 	if (tp->proto == pf)
 	    return tp;
-    return NULL;
+    }
+    return 0;
 }

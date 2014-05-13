@@ -35,27 +35,6 @@
 
 #define TP_TCP_BACKLOG 100
 
-
-static struct transport tcp_transport_vfptr = {
-    .name = "tcp",
-    .proto = TP_TCP,
-
-    .global_init = tcp_global_init,
-    .close = tcp_close,
-    .bind = tcp_bind,
-    .accept = tcp_accept,
-    .connect = tcp_connect,
-    .read = tcp_read,
-    .write = tcp_write,
-    .setopt = tcp_setopt,
-    .getopt = NULL,
-    .item = LIST_ITEM_INITIALIZE,
-};
-
-struct transport *tcp_transport = &tcp_transport_vfptr;
-
-
-
 void tcp_close(int fd) {
     close(fd);
 }
@@ -237,3 +216,23 @@ int tcp_peername(int fd, char *peer, int size) {
     memcpy(peer, tcp_addr, size);
     return 0;
 }
+
+
+
+static struct transport_vf tcp_vf = {
+    .name = "tcp",
+    .proto = TP_TCP,
+    .init = 0,
+    .exit = 0,
+    .close = tcp_close,
+    .bind = tcp_bind,
+    .accept = tcp_accept,
+    .connect = tcp_connect,
+    .read = tcp_read,
+    .write = tcp_write,
+    .setopt = tcp_setopt,
+    .getopt = tcp_getopt,
+    .item = LIST_ITEM_INITIALIZE,
+};
+
+struct transport_vf *tcp_vfptr = &tcp_vf;

@@ -46,22 +46,23 @@ typedef int (*tp_getopt) (int fd, void *optval, int *optlen);
 #define TP_RCVBUFLEN      104857600
 #define TP_SOCKADDRLEN    128
 
-struct transport {
+struct transport_vf {
     const char *name;
     int proto;
-    void (*global_init) (void);
-    void (*close) (int fd);
-    int (*bind) (const char *sock);
-    int (*accept) (int fd);
-    int (*connect) (const char *peer);
-    int64_t (*read) (int fd, char *buff, int64_t size);
-    int64_t (*write) (int fd, const char *buff, int64_t size);
-    int (*setopt) (int fd, int opt, void *val, int vallen);
-    int (*getopt) (int fd, int opt, void *val, int vallen);
+    void (*init)     (void);
+    void (*exit)     (void);
+    void (*close)    (int fd);
+    int  (*bind)     (const char *sock);
+    int  (*accept)   (int fd);
+    int  (*connect)  (const char *peer);
+    i64  (*read)     (int fd, char *buff, i64 size);
+    i64  (*write)    (int fd, const char *buff, i64 size);
+    int  (*setopt)   (int fd, int opt, void *optval, int optlen);
+    int  (*getopt)   (int fd, int opt, void *optval, int *optlen);
     struct list_head item;
 };
 
-struct transport *transport_lookup(int proto);
+struct transport_vf *transport_lookup(int proto);
 
 
 #endif

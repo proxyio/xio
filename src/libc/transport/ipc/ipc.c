@@ -36,25 +36,6 @@
 #define TP_IPC_SOCKDIR "/tmp/proxyio"
 #define TP_IPC_BACKLOG 100
 
-static struct transport ipc_transport_vfptr = {
-    .name = "ipc",
-    .proto = TP_IPC,
-
-    .global_init = ipc_global_init,
-    .close = ipc_close,
-    .bind = ipc_bind,
-    .accept = ipc_accept,
-    .connect = ipc_connect,
-    .read = ipc_read,
-    .write = ipc_write,
-    .setopt = ipc_setopt,
-    .getopt = NULL,
-    .item = LIST_ITEM_INITIALIZE,
-};
-
-struct transport *ipc_transport = &ipc_transport_vfptr;
-
-
 void ipc_close(int fd) {
     struct sockaddr_un addr = {};
 
@@ -181,3 +162,24 @@ int ipc_peername(int fd, char *peer, int size) {
     strncpy(peer, addr.sun_path, size);
     return 0;
 }
+
+
+static struct transport_vf ipc_vf = {
+    .name = "ipc",
+    .proto = TP_IPC,
+    .init = 0,
+    .exit = 0,
+    .close = ipc_close,
+    .bind = ipc_bind,
+    .accept = ipc_accept,
+    .connect = ipc_connect,
+    .read = ipc_read,
+    .write = ipc_write,
+    .setopt = ipc_setopt,
+    .getopt = NULL,
+    .item = LIST_ITEM_INITIALIZE,
+};
+
+struct transport_vf *ipc_vfptr = &ipc_vf;
+
+

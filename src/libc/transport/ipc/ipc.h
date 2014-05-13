@@ -27,9 +27,6 @@
 #include "transport/transport.h"
 
 
-static inline void ipc_global_init(void) {
-}
-
 int ipc_bind(const char *sock);
 int ipc_connect(const char *peer);
 int ipc_accept(int fd);

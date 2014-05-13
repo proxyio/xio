@@ -32,7 +32,7 @@ struct tcpipc_sock {
     struct bio out;
     struct io ops;
     int sys_fd;
-    struct transport *tp;
+    struct transport_vf *tp_vfptr;
 };
 
 extern struct sockbase_vfptr xtcp_listener_spec;

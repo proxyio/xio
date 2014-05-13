@@ -26,9 +26,6 @@
 #include <inttypes.h>
 #include "transport/transport.h"
 
-static inline void tcp_global_init() {
-}
-
 void tcp_close(int fd);
 int tcp_bind(const char *sock);
 int tcp_accept(int fd);

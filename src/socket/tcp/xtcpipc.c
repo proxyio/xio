@@ -30,19 +30,19 @@
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
-    struct transport *tp = self->tp;
+    struct transport_vf *tp_vfptr = self->tp_vfptr;
 
-    BUG_ON(!tp);
-    int rc = tp->read(self->sys_fd, buff, sz);
+    BUG_ON(!tp_vfptr);
+    int rc = tp_vfptr->read(self->sys_fd, buff, sz);
     return rc;
 }
 
 static i64 xio_connector_write(struct io *ops, char *buff, i64 sz) {
     struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
-    struct transport *tp = self->tp;
+    struct transport_vf *tp_vfptr = self->tp_vfptr;
 
-    BUG_ON(!tp);
-    int rc = tp->write(self->sys_fd, buff, sz);
+    BUG_ON(!tp_vfptr);
+    int rc = tp_vfptr->write(self->sys_fd, buff, sz);
     return rc;
 }
 
@@ -140,12 +140,12 @@ static int xio_connector_bind(struct sockbase *sb, const char *sock) {
     int blen = max(default_sndbuf, default_rcvbuf);
 
     BUG_ON(!cpu);
-    BUG_ON(!(self->tp = transport_lookup(sb->vfptr->pf)));
-    if ((sys_fd = self->tp->connect(sock)) < 0)
+    BUG_ON(!(self->tp_vfptr = transport_lookup(sb->vfptr->pf)));
+    if ((sys_fd = self->tp_vfptr->connect(sock)) < 0)
 	return -1;
-    BUG_ON(self->tp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
-    self->tp->setopt(sys_fd, TP_SNDBUF, &blen, sizeof(blen));
-    self->tp->setopt(sys_fd, TP_RCVBUF, &blen, sizeof(blen));
+    BUG_ON(self->tp_vfptr->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
+    self->tp_vfptr->setopt(sys_fd, TP_SNDBUF, &blen, sizeof(blen));
+    self->tp_vfptr->setopt(sys_fd, TP_RCVBUF, &blen, sizeof(blen));
 
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     self->sys_fd = sys_fd;
@@ -163,21 +163,22 @@ static int xio_connector_snd(struct sockbase *sb);
 static void xio_connector_close(struct sockbase *sb) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
-    BUG_ON(!self->tp);
+
+    BUG_ON(!self->tp_vfptr);
 
     /* Try flush buf massage into network before close */
     xio_connector_snd(sb);
 
     /* Detach xsock low-level file descriptor from poller */
     BUG_ON(eloop_del(&cpu->el, &self->et) != 0);
-    self->tp->close(self->sys_fd);
+    self->tp_vfptr->close(self->sys_fd);
 
     self->sys_fd = -1;
     self->et.events = -1;
     self->et.fd = -1;
     self->et.f = 0;
     self->et.data = 0;
-    self->tp = 0;
+    self->tp_vfptr = 0;
 
     /* Destroy the xsock base and free xsockid. */
     xsock_exit(sb);
