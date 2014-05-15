@@ -116,22 +116,20 @@ int xgetopt(int fd, int level, int opt, void *val, int *vallen) {
 	errno = EBADF;
 	return -1;
     }
+    if ((level != XL_SOCKET && !self->vfptr->getopt)
+	|| (level == XL_SOCKET && (opt >= NELEM(getopt_vfptr, sock_getopt)
+				   || !getopt_vfptr[opt]))) {
+	xput(fd);
+	errno = EINVAL;
+	return -1;
+    }
     switch (level) {
     case XL_SOCKET:
-	if (opt >= NELEM(getopt_vfptr, sock_getopt) || !getopt_vfptr[opt]) {
-	    errno = EINVAL;
-	    xput(fd);
-	    return -1;
-	}
 	rc = getopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	if (!self->vfptr->getopt) {
-	    errno = EINVAL;
-	    xput(fd);
-	    return -1;
-	}
 	rc = self->vfptr->getopt(self, level, opt, val, vallen);
+	break;
     }
     xput(fd);
     return rc;

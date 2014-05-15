@@ -89,22 +89,20 @@ int xsetopt(int fd, int level, int opt, void *val, int vallen) {
 	errno = EBADF;
 	return -1;
     }
+    if ((level != XL_SOCKET && !self->vfptr->setopt)
+	|| (level == XL_SOCKET && (opt >= NELEM(setopt_vfptr, sock_setopt)
+				   || !setopt_vfptr[opt]))) {
+	xput(fd);
+	errno = EINVAL;
+	return -1;
+    }
     switch (level) {
     case XL_SOCKET:
-	if (opt >= NELEM(setopt_vfptr, sock_setopt) || !setopt_vfptr[opt]) {
-	    xput(fd);
-	    errno = EINVAL;
-	    return -1;
-	}
 	rc = setopt_vfptr[opt](self, val, vallen);
 	break;
     default:
-	if (!self->vfptr->setopt) {
-	    xput(fd);
-	    errno = EINVAL;
-	    return -1;
-	}
 	rc = self->vfptr->setopt(self, level, opt, val, vallen);
+	break;
     }
     xput(fd);
     return rc;

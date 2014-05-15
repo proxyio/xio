@@ -23,12 +23,12 @@
 #include "req_ep.h"
 #include "rep_ep.h"
 
-static void double_lock(struct epbase *ep1, struct epbase *ep2) {
+static void dlock(struct epbase *ep1, struct epbase *ep2) {
     mutex_lock(&ep1->lock);
     mutex_lock(&ep2->lock);
 }
 
-static void double_unlock(struct epbase *ep1, struct epbase *ep2) {
+static void dunlock(struct epbase *ep1, struct epbase *ep2) {
     mutex_unlock(&ep2->lock);
     mutex_unlock(&ep1->lock);
 }
@@ -118,15 +118,15 @@ int epbase_pipeline(struct epbase *rep_ep, struct epbase *req_ep) {
     struct rep_ep *frontend = cont_of(rep_ep, struct rep_ep, base);
     struct req_ep *backend = cont_of(req_ep, struct req_ep, base);
 
-    double_lock(rep_ep, req_ep);
+    dlock(rep_ep, req_ep);
     if (!list_empty(&rep_ep->connectors) || !list_empty(&rep_ep->bad_socks)) {
 	errno = EINVAL;
-	double_unlock(rep_ep, req_ep);
+	dunlock(rep_ep, req_ep);
 	return -1;
     }
     if (!list_empty(&req_ep->connectors) || !list_empty(&req_ep->bad_socks)) {
 	errno = EINVAL;
-	double_unlock(rep_ep, req_ep);
+	dunlock(rep_ep, req_ep);
 	return -1;
     }
     frontend->peer = backend;
@@ -137,6 +137,6 @@ int epbase_pipeline(struct epbase *rep_ep, struct epbase *req_ep) {
     req_ep->vfptr.add = dispatcher_add;
     req_ep->vfptr.rm = dispatcher_rm;
 
-    double_unlock(rep_ep, req_ep);
+    dunlock(rep_ep, req_ep);
     return 0;
 }
