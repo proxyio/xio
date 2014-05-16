@@ -52,6 +52,7 @@ struct spr *spr_new();
 void spr_free(struct spr *r);
 
 struct sphdr {
+    u8 protocol;
     u8 version;
     u16 ttl:4;
     u16 end_ttl:4;
@@ -65,7 +66,7 @@ struct sphdr {
     } u;
 };
 
-struct sphdr *sphdr_new();
+struct sphdr *sphdr_new(u8 protocol, u8 version);
 void sphdr_free(struct sphdr *eh);
 
 static inline struct sphdr *ubuf2sphdr(char *ubuf) {

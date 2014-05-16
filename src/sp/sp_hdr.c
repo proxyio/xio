@@ -34,18 +34,19 @@ void spr_free(struct spr *r) {
     xfreemsg((char *)r);
 }
 
-struct sphdr *sphdr_new() {
-    struct sphdr *eh = (struct sphdr *)xallocmsg(sizeof(struct sphdr));
-    if (eh) {
-	eh->version = 0xff;
-	eh->ttl = 0;
-	eh->end_ttl = 0;
-	eh->go = 0;
-	eh->size = 0;
-	eh->timeout = 0;
-	eh->sendstamp = 0;
+struct sphdr *sphdr_new(u8 protocol, u8 version) {
+    struct sphdr *h = (struct sphdr *)xallocmsg(sizeof(*h));
+    if (h) {
+	h->protocol = protocol;
+	h->version = version;
+	h->ttl = 0;
+	h->end_ttl = 0;
+	h->go = 0;
+	h->size = 0;
+	h->timeout = 0;
+	h->sendstamp = 0;
     }
-    return eh;
+    return h;
 }
 
 void sphdr_free(struct sphdr *eh) {

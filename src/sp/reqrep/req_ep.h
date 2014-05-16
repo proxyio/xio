@@ -24,6 +24,7 @@
 #define _HPIO_REQ_EP_
 
 #include <sp/sp_module.h>
+#include <sp/reqrep.h>
 
 struct rep_ep;
 

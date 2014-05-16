@@ -78,7 +78,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
 
-    h = sphdr_new();
+    h = sphdr_new(SP_REQREP, REQREP_VERSION);
     BUG_ON(!h);
     r = spr_new();
     BUG_ON(!r);

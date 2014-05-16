@@ -23,7 +23,7 @@
 #ifndef _HPIO_SP_XREQREP_
 #define _HPIO_SP_XREQREP_
 
-
+#define REQREP_VERSION 0x0001
 
 
 #endif
