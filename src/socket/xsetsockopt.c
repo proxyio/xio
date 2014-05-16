@@ -28,42 +28,42 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-typedef int (*sock_setopt) (struct sockbase *self, void *val, int vallen);
+typedef int (*sock_setopt) (struct sockbase *sb, void *optval, int optlen);
 
-static int set_noblock(struct sockbase *self, void *val, int vallen) {
-    mutex_lock(&self->lock);
-    self->fasync = *(int *)val ? true : false;
-    mutex_unlock(&self->lock);
+static int set_noblock(struct sockbase *sb, void *optval, int optlen) {
+    mutex_lock(&sb->lock);
+    sb->fasync = *(int *)optval ? true : false;
+    mutex_unlock(&sb->lock);
     return 0;
 }
 
-static int set_sndwin(struct sockbase *self, void *val, int vallen) {
-    mutex_lock(&self->lock);
-    self->snd.wnd = (*(int *)val);
-    mutex_unlock(&self->lock);
+static int set_sndwin(struct sockbase *sb, void *optval, int optlen) {
+    mutex_lock(&sb->lock);
+    sb->snd.wnd = (*(int *)optval);
+    mutex_unlock(&sb->lock);
     return 0;
 }
 
-static int set_rcvwin(struct sockbase *self, void *val, int vallen) {
-    mutex_lock(&self->lock);
-    self->rcv.wnd = (*(int *)val);
-    mutex_unlock(&self->lock);
+static int set_rcvwin(struct sockbase *sb, void *optval, int optlen) {
+    mutex_lock(&sb->lock);
+    sb->rcv.wnd = (*(int *)optval);
+    mutex_unlock(&sb->lock);
     return 0;
 }
 
-static int set_linger(struct sockbase *self, void *val, int vallen) {
+static int set_linger(struct sockbase *sb, void *optval, int optlen) {
     return -1;
 }
 
-static int set_sndtimeo(struct sockbase *self, void *val, int vallen) {
+static int set_sndtimeo(struct sockbase *sb, void *optval, int optlen) {
     return -1;
 }
 
-static int set_rcvtimeo(struct sockbase *self, void *val, int vallen) {
+static int set_rcvtimeo(struct sockbase *sb, void *optval, int optlen) {
     return -1;
 }
 
-static int set_reconnect(struct sockbase *self, void *val, int vallen) {
+static int set_reconnect(struct sockbase *sb, void *optval, int optlen) {
     return -1;
 }
 
@@ -81,27 +81,41 @@ const sock_setopt setopt_vfptr[] = {
     0,
 };
 
-int xsetopt(int fd, int level, int opt, void *val, int vallen) {
+static int _setopt(struct sockbase *sb, int opt, void *optval, int optlen) {
     int rc;
-    struct sockbase *self = xget(fd);
-
-    if (!self) {
-	errno = EBADF;
+    if (opt >= NELEM(setopt_vfptr, sock_setopt) || !setopt_vfptr[opt]) {
+	errno = EINVAL;
 	return -1;
     }
-    if ((level != XL_SOCKET && !self->vfptr->setopt)
-	|| (level == XL_SOCKET && (opt >= NELEM(setopt_vfptr, sock_setopt)
-				   || !setopt_vfptr[opt]))) {
-	xput(fd);
+    rc = setopt_vfptr[opt] (sb, optval, optlen);
+    return rc;
+}
+
+static int _tp_setopt(struct sockbase *sb, int level, int opt, void *optval,
+		     int optlen) {
+    int rc;
+    if (!sb->vfptr->setopt) {
 	errno = EINVAL;
+	return -1;
+    }
+    rc = sb->vfptr->setopt(sb, level, opt, optval, optlen);
+    return rc;
+}
+
+int xsetopt(int fd, int level, int opt, void *optval, int optlen) {
+    int rc;
+    struct sockbase *sb = xget(fd);
+
+    if (!sb) {
+	errno = EBADF;
 	return -1;
     }
     switch (level) {
     case XL_SOCKET:
-	rc = setopt_vfptr[opt](self, val, vallen);
+	rc = _setopt(sb, opt, optval, optlen);
 	break;
     default:
-	rc = self->vfptr->setopt(self, level, opt, val, vallen);
+	rc = _tp_setopt(sb, level, opt, optval, optlen);
 	break;
     }
     xput(fd);

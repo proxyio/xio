@@ -104,7 +104,7 @@ void epbase_exit(struct epbase *ep);
     list_for_each_entry_safe(sk, nsk, head, struct epsk, item)
 
 
-#define XIO_MAX_ENDPOINTS 1024
+#define XIO_MAX_ENDPOINTS 10240
 
 struct sp_global {
     int exiting;
