@@ -36,30 +36,29 @@
  */
 
 
-#define XMSG_OOBMARK 0xf           // 16
-#define XMSG_OOBLENMARK 0xfff      // 4k
+#define XMSG_CMSGNUMMARK 0xf           // 16
+#define XMSG_CMSGLENMARK 0xfff         // 4k
 
+/* TODO: little endian and big endian */
 struct xiov {
     u16 checksum;
-    /* TODO: little endian and big endian */
-    u16 oob:4;
-    u16 oob_length:12;
     u32 size;
+    u16 cmsg_num:4;
+    u16 cmsg_length:12;
     char chunk[0];
 };
 
 struct xmsg {
     struct list_head item;
-    struct list_head oob;
+    struct list_head cmsg_head;
     struct xiov vec;
 };
 
-u32 xiov_len(char *xbuf);
-char *xiov_base(char *xbuf);
+u32 xiov_len(char *ubuf);
+char *xiov_base(char *ubuf);
 
-#define xmsg_walk_safe(pos, next, head)		\
-    list_for_each_entry_safe(pos, next, head,	\
-			     struct xmsg, item)
+#define xmsg_walk_safe(pos, next, head)					\
+    list_for_each_entry_safe(pos, next, head, struct xmsg, item)
 
 
 

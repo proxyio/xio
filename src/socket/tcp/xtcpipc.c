@@ -221,7 +221,7 @@ static int bufio_check_msg(struct bio *b) {
     if (b->bsize < sizeof(aim.vec))
 	return false;
     bio_copy(b, (char *)(&aim.vec), sizeof(aim.vec));
-    if (b->bsize < xiov_len(aim.vec.chunk) + (u32)aim.vec.oob_length)
+    if (b->bsize < xiov_len(aim.vec.chunk) + (u32)aim.vec.cmsg_length)
 	return false;
     return true;
 }
@@ -240,8 +240,8 @@ static void bufio_rm(struct bio *b, struct xmsg **msg) {
 static int xio_connector_rcv(struct sockbase *sb) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc = 0;
-    u16 oob_count;
-    struct xmsg *aim = 0, *oob = 0;
+    u16 cmsg_num;
+    struct xmsg *aim = 0, *cmsg = 0;
 
     rc = bio_prefetch(&self->in, &self->ops);
     if (rc < 0 && errno != EAGAIN)
@@ -250,12 +250,12 @@ static int xio_connector_rcv(struct sockbase *sb) {
 	aim = 0;
 	bufio_rm(&self->in, &aim);
 	BUG_ON(!aim);
-	oob_count = aim->vec.oob;
-	while (oob_count--) {
-	    oob = 0;
-	    bufio_rm(&self->in, &oob);
-	    BUG_ON(!oob);
-	    list_add_tail(&oob->item, &aim->oob);
+	cmsg_num = aim->vec.cmsg_num;
+	while (cmsg_num--) {
+	    cmsg = 0;
+	    bufio_rm(&self->in, &cmsg);
+	    BUG_ON(!cmsg);
+	    list_add_tail(&cmsg->item, &aim->cmsg_head);
 	}
 	recvq_push(sb, aim);
 	DEBUG_OFF("%d xsock recv one message", sb->fd);
@@ -264,12 +264,12 @@ static int xio_connector_rcv(struct sockbase *sb) {
 }
 
 static void bufio_add(struct bio *b, struct xmsg *msg) {
-    struct xmsg *oob, *nx_oob;
+    struct xmsg *cmsg, *ncmsg;
     char *chunk = msg->vec.chunk;
 
     bio_write(b, xiov_base(chunk), xiov_len(chunk));
-    xmsg_walk_safe(oob, nx_oob, &msg->oob) {
-	chunk = oob->vec.chunk;
+    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+	chunk = cmsg->vec.chunk;
 	bio_write(b, xiov_base(chunk), xiov_len(chunk));
     }
 }

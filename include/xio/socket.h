@@ -37,7 +37,6 @@ int xmsglen(char *xmsg);
 #define XMSG_COPYCMSG     4
 #define XMSG_SWITCHCMSG   5
 
-
 struct xcmsg {
     uint8_t idx;
     char *outofband;

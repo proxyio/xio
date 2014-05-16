@@ -94,12 +94,12 @@ int sendq_push(struct sockbase *sb, struct xmsg *msg) {
     return rc;
 }
 
-int xsend(int fd, char *xbuf) {
+int xsend(int fd, char *ubuf) {
     int rc = 0;
     struct xmsg *msg = 0;
     struct sockbase *sb;
 
-    if (!xbuf) {
+    if (!ubuf) {
 	errno = EINVAL;
 	return -1;
     }
@@ -107,7 +107,7 @@ int xsend(int fd, char *xbuf) {
 	errno = EBADF;
 	return -1;
     }
-    msg = cont_of(xbuf, struct xmsg, vec.chunk);
+    msg = cont_of(ubuf, struct xmsg, vec.chunk);
     if ((rc = sendq_push(sb, msg)) < 0) {
 	errno = sb->fepipe ? EPIPE : EAGAIN;
     }

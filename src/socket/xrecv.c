@@ -89,12 +89,12 @@ void recvq_push(struct sockbase *sb, struct xmsg *msg) {
     mutex_unlock(&sb->lock);
 }
 
-int xrecv(int fd, char **xbuf) {
+int xrecv(int fd, char **ubuf) {
     int rc = 0;
     struct xmsg *msg = 0;
     struct sockbase *sb;
     
-    if (!xbuf) {
+    if (!ubuf) {
 	errno = EINVAL;
 	return -1;
     }
@@ -106,7 +106,7 @@ int xrecv(int fd, char **xbuf) {
 	errno = sb->fepipe ? EPIPE : EAGAIN;
 	rc = -1;
     } else {
-	*xbuf = msg->vec.chunk;
+	*ubuf = msg->vec.chunk;
     }
     xput(fd);
     return rc;

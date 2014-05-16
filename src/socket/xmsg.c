@@ -26,18 +26,18 @@
 #include "xmsg.h"
 
 
-u32 xiov_len(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+u32 xiov_len(char *ubuf) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     return sizeof(msg->vec) + msg->vec.size;
 }
 
-char *xiov_base(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+char *xiov_base(char *ubuf) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     return (char *)&msg->vec;
 }
 
 char *xallocmsg(int size) {
-    char *xbuf;
+    char *ubuf;
     struct xmsg *msg;
 
     char *chunk = (char *)mem_zalloc(sizeof(*msg) + size);
@@ -45,58 +45,56 @@ char *xallocmsg(int size) {
 	return 0;
     msg = (struct xmsg *)chunk;
     INIT_LIST_HEAD(&msg->item);
-    INIT_LIST_HEAD(&msg->oob);
+    INIT_LIST_HEAD(&msg->cmsg_head);
 
     msg->vec.size = size;
-    msg->vec.checksum = crc16((char *)&msg->vec.size, 4);
-    xbuf = msg->vec.chunk;
-    DEBUG_OFF("%p", xbuf);
-    return xbuf;
+    msg->vec.checksum = crc16((char *)&msg->vec.size, sizeof(*msg));
+    ubuf = msg->vec.chunk;
+    return ubuf;
 }
 
-void xfreemsg(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    struct xmsg *oob, *nx_oob;
+void xfreemsg(char *ubuf) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
+    struct xmsg *cmsg, *ncmsg;
 
-    DEBUG_OFF("%p", xbuf);
-    xmsg_walk_safe(oob, nx_oob, &msg->oob) {
-	list_del_init(&oob->item);
-	xfreemsg(oob->vec.chunk);
+    DEBUG_OFF("%p", ubuf);
+    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+	list_del_init(&cmsg->item);
+	xfreemsg(cmsg->vec.chunk);
     }
     mem_free(msg, sizeof(*msg) + msg->vec.size);
 }
 
-int xmsglen(char *xbuf) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+int xmsglen(char *ubuf) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     return msg->vec.size;
 }
 
-
 typedef int (*msgctl) (char *xmsg, void *optval);
 
-static int msgctl_oobnum(char *xbuf, void *optval) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
-    *(int *)optval = msg->vec.oob;
+static int msgctl_cmsgnum(char *ubuf, void *optval) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
+    *(int *)optval = msg->vec.cmsg_num;
     return 0;
 }
 
-static int msgctl_getoob(char *xbuf, void *optval) {
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+static int msgctl_getcmsg(char *ubuf, void *optval) {
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     struct xcmsg *ent = (struct xcmsg *)optval;
-    struct xmsg *oob, *nx_oob;
+    struct xmsg *cmsg, *ncmsg;
 
-    if (!msg->vec.oob) {
+    if (!msg->vec.cmsg_num) {
 	errno = ENOENT;
 	return -1;
     }
-    if (ent->idx > XMSG_OOBMARK) {
+    if (ent->idx > XMSG_CMSGNUMMARK) {
 	errno = EINVAL;
 	return -1;
     }
-    ent->idx = ent->idx > msg->vec.oob ? msg->vec.oob : ent->idx;
-    xmsg_walk_safe(oob, nx_oob, &msg->oob) {
-	if (oob->vec.oob == ent->idx) {
-	    ent->outofband = oob->vec.chunk;
+    ent->idx = ent->idx > msg->vec.cmsg_num ? msg->vec.cmsg_num : ent->idx;
+    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+	if (cmsg->vec.cmsg_num == ent->idx) {
+	    ent->outofband = cmsg->vec.chunk;
 	    return 0;
 	}
     }
@@ -104,101 +102,101 @@ static int msgctl_getoob(char *xbuf, void *optval) {
     return -1;
 }
 
-static int msgctl_setoob(char *xbuf, void *optval) {
+static int msgctl_setcmsg(char *ubuf, void *optval) {
     struct xcmsg *ent = (struct xcmsg *)optval;
-    struct xmsg *msg = cont_of(xbuf, struct xmsg, vec.chunk);
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
     struct xmsg *new = cont_of(ent->outofband, struct xmsg, vec.chunk);
 
-    if (new->vec.oob_length > 0 || new->vec.oob > 0 ||
-	ent->idx > XMSG_OOBMARK) {
+    if (new->vec.cmsg_length > 0 || new->vec.cmsg_num > 0 ||
+	ent->idx > XMSG_CMSGNUMMARK) {
 	errno = EINVAL;
 	return -1;
     }
-    if (msg->vec.oob == XMSG_OOBMARK ||
-	(u32)msg->vec.oob_length + xiov_len(new->vec.chunk) > XMSG_OOBLENMARK) {
+    if (msg->vec.cmsg_num == XMSG_CMSGNUMMARK ||
+	msg->vec.cmsg_length + xiov_len(new->vec.chunk) > XMSG_CMSGLENMARK) {
 	errno = EFBIG;
 	return -1;
     }
-    msg->vec.oob++;
-    msg->vec.oob_length += xiov_len(new->vec.chunk);
-    new->vec.oob = ent->idx;
-    new->vec.oob_length = 0;
-    list_add_tail(&new->item, &msg->oob);
+    msg->vec.cmsg_num++;
+    msg->vec.cmsg_length += xiov_len(new->vec.chunk);
+    new->vec.cmsg_num = ent->idx;
+    new->vec.cmsg_length = 0;
+    list_add_tail(&new->item, &msg->cmsg_head);
     return 0;
 }
 
-char *__xdupmsg(char *xbuf) {
-    char *dst = xallocmsg(xmsglen(xbuf));
+char *__xdupmsg(char *ubuf) {
+    char *dst = xallocmsg(xmsglen(ubuf));
 
     if (dst)
-	memcpy(xiov_base(dst), xiov_base(xbuf), xiov_len(xbuf));
+	memcpy(xiov_base(dst), xiov_base(ubuf), xiov_len(ubuf));
     return dst;
 }
 
-static int msgctl_clone(char *xbuf, void *optval) {
-    char *dbuf = __xdupmsg(xbuf);
-    char *oob_buf;
-    struct xmsg *src = cont_of(xbuf, struct xmsg, vec.chunk);;
+static int msgctl_clone(char *ubuf, void *optval) {
+    char *dbuf = __xdupmsg(ubuf);
+    char *cmsg_buf;
+    struct xmsg *src = cont_of(ubuf, struct xmsg, vec.chunk);;
     struct xmsg *dst = cont_of(dbuf, struct xmsg, vec.chunk);;
-    struct xmsg *oob, *nx_oob, *dst_oob;
+    struct xmsg *cmsg, *ncmsg, *dst_cmsg;
 
-    xmsg_walk_safe(oob, nx_oob, &src->oob) {
-	BUG_ON(!(oob_buf = __xdupmsg(oob->vec.chunk)));
-	dst_oob = cont_of(oob_buf, struct xmsg, vec.chunk);
-	list_add_tail(&dst_oob->item, &dst->oob);
+    xmsg_walk_safe(cmsg, ncmsg, &src->cmsg_head) {
+	BUG_ON(!(cmsg_buf = __xdupmsg(cmsg->vec.chunk)));
+	dst_cmsg = cont_of(cmsg_buf, struct xmsg, vec.chunk);
+	list_add_tail(&dst_cmsg->item, &dst->cmsg_head);
     }
     *(char **)optval = dbuf;
     return 0;
 }
 
-static int msgctl_copyoob(char *xbuf, void *optval) {
+static int msgctl_copycmsg(char *ubuf, void *optval) {
     char *dbuf = (char *)optval;
-    char *oob_buf;
-    struct xmsg *src = cont_of(xbuf, struct xmsg, vec.chunk);;
+    char *cmsg_buf;
+    struct xmsg *src = cont_of(ubuf, struct xmsg, vec.chunk);;
     struct xmsg *dst = cont_of(dbuf, struct xmsg, vec.chunk);;
-    struct xmsg *oob, *nx_oob, *dst_oob;
+    struct xmsg *cmsg, *ncmsg, *dst_cmsg;
 
-    dst->vec.oob += src->vec.oob;
-    dst->vec.oob_length += src->vec.oob_length;
-    xmsg_walk_safe(oob, nx_oob, &src->oob) {
-	BUG_ON(!(oob_buf = __xdupmsg(oob->vec.chunk)));
-	dst_oob = cont_of(oob_buf, struct xmsg, vec.chunk);
-	list_add_tail(&dst_oob->item, &dst->oob);
+    dst->vec.cmsg_num += src->vec.cmsg_num;
+    dst->vec.cmsg_length += src->vec.cmsg_length;
+    xmsg_walk_safe(cmsg, ncmsg, &src->cmsg_head) {
+	BUG_ON(!(cmsg_buf = __xdupmsg(cmsg->vec.chunk)));
+	dst_cmsg = cont_of(cmsg_buf, struct xmsg, vec.chunk);
+	list_add_tail(&dst_cmsg->item, &dst->cmsg_head);
     }
     return 0;
 }
 
-static int msgctl_switchoob(char *xbuf, void *optval) {
+static int msgctl_switchcmsg(char *ubuf, void *optval) {
     char *dbuf = (char *)optval;
-    struct xmsg *src = cont_of(xbuf, struct xmsg, vec.chunk);;
+    struct xmsg *src = cont_of(ubuf, struct xmsg, vec.chunk);;
     struct xmsg *dst = cont_of(dbuf, struct xmsg, vec.chunk);;
 
-    dst->vec.oob += src->vec.oob;
-    dst->vec.oob_length += src->vec.oob_length;
-    src->vec.oob = 0;
-    src->vec.oob_length = 0;
-    list_move_tail(&src->oob, &dst->oob);
+    dst->vec.cmsg_num += src->vec.cmsg_num;
+    dst->vec.cmsg_length += src->vec.cmsg_length;
+    src->vec.cmsg_num = 0;
+    src->vec.cmsg_length = 0;
+    list_move_tail(&src->cmsg_head, &dst->cmsg_head);
     return 0;
 }
 
 
 static const msgctl msgctl_vfptr[] = {
-    msgctl_oobnum,
-    msgctl_getoob,
-    msgctl_setoob,
+    msgctl_cmsgnum,
+    msgctl_getcmsg,
+    msgctl_setcmsg,
     msgctl_clone,
-    msgctl_copyoob,
-    msgctl_switchoob,
+    msgctl_copycmsg,
+    msgctl_switchcmsg,
 };
 
 
-int xmsgctl(char *xbuf, int opt, void *optval) {
+int xmsgctl(char *ubuf, int opt, void *optval) {
     int rc;
 
     if (opt < 0 || opt >= NELEM(msgctl_vfptr, msgctl)) {
 	errno = EINVAL;
 	return -1;
     }
-    rc = msgctl_vfptr[opt] (xbuf, optval);
+    rc = msgctl_vfptr[opt] (ubuf, optval);
     return rc;
 }
