@@ -44,7 +44,8 @@ static int64_t timeout = 10000;
 static int thread_num = 1;
 static int connection_num = 1;
 
-static char buff[10240] = {};
+static char buff[102400] = {};
+static int buf_len = 1024;
 
 static int randstr(char *buf, int len) {
     int i, idx;
@@ -59,10 +60,13 @@ static int randstr(char *buf, int len) {
 
 static int get_option(int argc, char* argv[]) {
     int rc;
-    while ( (rc = getopt(argc, argv, "r:w:c:h:z")) != -1 ) {
+    while ( (rc = getopt(argc, argv, "r:s:w:c:h:z")) != -1 ) {
         switch(rc) {
 	case 'r':
 	    role = optarg[0];
+	    break;
+	case 's':
+	    buf_len = atoi(optarg);
 	    break;
         case 'w':
 	    if ((thread_num = atoi(optarg)) <= 0)
@@ -115,7 +119,7 @@ static void req_worker1(int eid) {
 	BUG_ON(sp_add(eid, fd));
     }
     while ((now = rt_mstime()) < timeout) {
-	ubuf = xallocmsg(rand() % sizeof(buff));
+	ubuf = xallocmsg(rand() % buf_len);
 	memcpy(ubuf, buff, xmsglen(ubuf));
 	BUG_ON(sp_send(eid, ubuf));
 	modstat_incrkey(st, SEND);
@@ -142,7 +146,7 @@ static void req_worker2(int eid) {
     BUG_ON((fd = xconnect(host)) < 0);
     DEBUG_ON("rep start send");
     while ((now = rt_mstime()) < timeout) {
-	ubuf = xallocmsg(rand() % sizeof(buff));
+	ubuf = xallocmsg(rand() % buf_len);
 	memcpy(ubuf, buff, xmsglen(ubuf));
 	BUG_ON(xsend(fd, ubuf));
 	modstat_incrkey(st, SEND);

@@ -37,6 +37,7 @@ struct tcpipc_sock {
     int iov_start;
     int iov_end;
     int iov_length;
+    struct list_head sg_head;
     struct transport_vf *tp_vfptr;
 };
 
