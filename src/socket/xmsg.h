@@ -26,6 +26,7 @@
 #include <base.h>
 #include <ds/list.h>
 #include <xio/socket.h>
+#include <xio/cmsghdr.h>
 
 /* The transport protocol header is 6 bytes long and looks like this:
  * +--------+------------+------------+

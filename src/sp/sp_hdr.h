@@ -29,6 +29,7 @@
 #include <os/timesz.h>
 #include <hash/crc.h>
 #include <xio/socket.h>
+#include <xio/cmsghdr.h>
 
 
 /* The sphdr looks like this:

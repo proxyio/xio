@@ -7,6 +7,7 @@ extern "C" {
 #include <sync/spin.h>
 #include <runner/thread.h>
 #include <xio/socket.h>
+#include <xio/cmsghdr.h>
 #include <xio/sp_reqrep.h>
 }
 

@@ -8,6 +8,7 @@ extern "C" {
 #include <runner/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
+#include <xio/cmsghdr.h>
 }
 
 using namespace std;

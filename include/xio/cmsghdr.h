@@ -20,56 +20,26 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XSOCKET_
-#define _HPIO_XSOCKET_
+#ifndef _HPIO_XCMSGHDR_
+#define _HPIO_XCMSGHDR_
 
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
-char *xallocmsg(int size);
-void xfreemsg(char *ubuf);
-int xmsglen(char *ubuf);
+#define XMSG_CMSGNUM      0
+#define XMSG_GETCMSG      1
+#define XMSG_SETCMSG      2
+#define XMSG_CLONE        3
+#define XMSG_COPYCMSG     4
+#define XMSG_SWITCHCMSG   5
 
-/* Following address family are provided */
-#define XPF_TCP        1
-#define XPF_IPC        2
-#define XPF_INPROC     4
+struct xcmsg {
+    uint8_t idx;
+    char *outofband;
+};    
+int xmsgctl(char *ubuf, int opt, void *optval);
 
-/* Following socktype are provided */
-#define XLISTENER       1
-#define XCONNECTOR      2
 
-int xsocket(int pf, int socktype);
-int xbind(int fd, const char *addr);
-
-#define XSOCKADDRLEN 128
-int xlisten(const char *addr);
-int xaccept(int fd);
-int xconnect(const char *peer);
-
-int xrecv(int fd, char **ubuf);
-int xsend(int fd, char *ubuf);
-int xclose(int fd);
-
-/* Following sockopt-level are provided */
-#define XL_SOCKET          1
-
-/* Following sockopt-field are provided */
-#define XNOBLOCK           0
-#define XSNDWIN            1
-#define XRCVWIN            2
-#define XSNDBUF            3
-#define XRCVBUF            4
-#define XLINGER            5
-#define XSNDTIMEO          6
-#define XRCVTIMEO          7
-#define XRECONNECT         8
-#define XSOCKTYPE          9
-#define XSOCKPROTO         10
-#define XTRACEDEBUG        11
-    
-int xsetopt(int fd, int level, int opt, void *optval, int optlen);
-int xgetopt(int fd, int level, int opt, void *optval, int *optlen);
 
 #include <xio/cplusplus_endif.h>
 #endif
