@@ -28,7 +28,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *sendq_pop(struct sockbase *sb) {
+struct xmsg *sendq_rm(struct sockbase *sb) {
     struct sockbase_vfptr *vfptr = sb->vfptr;
     struct xmsg *msg = 0;
     i64 msgsz;
@@ -62,9 +62,9 @@ struct xmsg *sendq_pop(struct sockbase *sb) {
     return msg;
 }
 
-int sendq_push(struct sockbase *sb, struct xmsg *msg) {
-    int rc = -1;
+int sendq_add(struct sockbase *sb, struct xmsg *msg) {
     struct sockbase_vfptr *vfptr = sb->vfptr;
+    int rc = -1;
     u32 events = 0;
     i64 msgsz = xmsg_iovlen(msg);
 
@@ -108,7 +108,7 @@ int xsend(int fd, char *ubuf) {
 	return -1;
     }
     msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    if ((rc = sendq_push(sb, msg)) < 0) {
+    if ((rc = sendq_add(sb, msg)) < 0) {
 	errno = sb->fepipe ? EPIPE : EAGAIN;
     }
     xput(fd);

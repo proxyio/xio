@@ -28,7 +28,7 @@
 #include <runner/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *recvq_pop(struct sockbase *sb) {
+struct xmsg *recvq_rm(struct sockbase *sb) {
     struct xmsg *msg = 0;
     struct sockbase_vfptr *vfptr = sb->vfptr;
     i64 msgsz;
@@ -63,7 +63,7 @@ struct xmsg *recvq_pop(struct sockbase *sb) {
     return msg;
 }
 
-void recvq_push(struct sockbase *sb, struct xmsg *msg) {
+int recvq_add(struct sockbase *sb, struct xmsg *msg) {
     struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
     i64 msgsz = xmsg_iovlen(msg);
@@ -75,7 +75,7 @@ void recvq_push(struct sockbase *sb, struct xmsg *msg) {
 	events |= XMQ_FULL;
     events |= XMQ_PUSH;
     sb->rcv.buf += msgsz;
-    list_add_tail(&msg->item, &sb->rcv.head);    
+    list_add_tail(&msg->item, &sb->rcv.head);
     DEBUG_OFF("%d", sb->fd);
 
     /* Wakeup the blocking waiters. */
@@ -87,6 +87,7 @@ void recvq_push(struct sockbase *sb, struct xmsg *msg) {
 
     __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
+    return 0;
 }
 
 int xrecv(int fd, char **ubuf) {
@@ -102,7 +103,7 @@ int xrecv(int fd, char **ubuf) {
 	errno = EBADF;
 	return -1;
     }
-    if (!(msg = recvq_pop(sb))) {
+    if (!(msg = recvq_rm(sb))) {
 	errno = sb->fepipe ? EPIPE : EAGAIN;
 	rc = -1;
     } else {

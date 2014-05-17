@@ -48,8 +48,8 @@ static int snd_head_push(struct sockbase *sb) {
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-    if ((msg = sendq_pop(sb)))
-	recvq_push(peer, msg);
+    if ((msg = sendq_rm(sb)))
+	recvq_add(peer, msg);
     mutex_lock(&sb->lock);
     return rc;
 }

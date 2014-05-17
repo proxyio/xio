@@ -256,7 +256,7 @@ static int xio_connector_rcv(struct sockbase *sb) {
 	    BUG_ON(!cmsg);
 	    list_add_tail(&cmsg->item, &aim->cmsg_head);
 	}
-	recvq_push(sb, aim);
+	recvq_add(sb, aim);
 	DEBUG_OFF("%d xsock recv one message", sb->fd);
     }
     return rc;
@@ -339,7 +339,7 @@ static int xio_connector_sg(struct sockbase *sb) {
 	BUG_ON(!list_empty(&self->sg_head));
 
 	/* Third. serialize the queue message for send */
-	while ((msg = sendq_pop(sb)))
+	while ((msg = sendq_rm(sb)))
 	    self->iov_length += xiov_serialize(msg, &self->sg_head);
 	if (self->iov_length <= 0) {
 	    errno = EAGAIN;
@@ -370,7 +370,7 @@ static int xio_connector_snd(struct sockbase *sb) {
 
     if (self->tp_vfptr->sendmsg)
 	return xio_connector_sg(sb);
-    while ((msg = sendq_pop(sb)))
+    while ((msg = sendq_rm(sb)))
 	bufio_add(&self->out, msg);
     rc = bio_flush(&self->out, &self->ops);
     return rc;

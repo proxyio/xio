@@ -165,8 +165,12 @@ void xput(int fd);
 void xsock_init(struct sockbase *sb);
 void xsock_exit(struct sockbase *sb);
 
-void recvq_push(struct sockbase *sb, struct xmsg *msg);
-struct xmsg *sendq_pop(struct sockbase *sb);
+int recvq_add(struct sockbase *sb, struct xmsg *msg);
+struct xmsg *recvq_rm(struct sockbase *sb);
+
+int sendq_add(struct sockbase *sb, struct xmsg *msg);
+struct xmsg *sendq_rm(struct sockbase *sb);
+
 
 int acceptq_add(struct sockbase *sb, struct sockbase *new);
 int acceptq_rm(struct sockbase *sb, struct sockbase **new);
