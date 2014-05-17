@@ -40,14 +40,14 @@ static int snd_head_push(struct sockbase *sb) {
     struct sockbase *peer = (cont_of(sb, struct inproc_sock, base))->peer;
 
     // TODO: maybe the peer xsock can't recv anymore after the check.
+    mutex_unlock(&sb->lock);
+
     mutex_lock(&peer->lock);
     if (can_recv(peer))
 	can = true;
     mutex_unlock(&peer->lock);
     if (!can)
 	return -1;
-
-    mutex_unlock(&sb->lock);
     if ((msg = sendq_pop(sb)))
 	recvq_push(peer, msg);
     mutex_lock(&sb->lock);

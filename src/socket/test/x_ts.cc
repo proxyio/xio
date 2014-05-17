@@ -18,7 +18,7 @@ extern int randstr(char *buf, int len);
 const static int cnt = 3;
 
 static void xclient(string pf) {
-    int sfd, i;
+    int sfd, i, j;
     int64_t nbytes;
     char buf[1024] = {};
     struct xcmsg ent = {};
@@ -29,21 +29,24 @@ static void xclient(string pf) {
     BUG_ON((sfd = xconnect(host.c_str())) < 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
-	xbuf = xallocubuf(nbytes);
-	memcpy(xbuf, buf, nbytes);
-
-	xmsgctl(xbuf, XMSG_CLONE, &oob);
-	ent.idx = 0;
-	ent.outofband = oob;
-	BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent));
-
-	BUG_ON(0 != xsend(sfd, xbuf));
-	BUG_ON(0 != xrecv(sfd, &xbuf));
-	DEBUG_OFF("%d recv response", sfd);
-	BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
-	BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent));
-	BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
-	xfreeubuf(xbuf);
+	for (j = 0; j < 10; j++) {
+	    xbuf = xallocubuf(nbytes);
+	    memcpy(xbuf, buf, nbytes);
+	    xmsgctl(xbuf, XMSG_CLONE, &oob);
+	    ent.idx = 0;
+	    ent.outofband = oob;
+	    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent));
+	    BUG_ON(xsend(sfd, xbuf));
+	    DEBUG_OFF("%d send request %d", sfd, j);
+	}
+	for (j = 0; j < 10; j++) {
+	    BUG_ON(0 != xrecv(sfd, &xbuf));
+	    DEBUG_OFF("%d recv response %d", sfd, j);
+	    BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
+	    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent));
+	    BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
+	    xfreeubuf(xbuf);
+	}
     }
     xclose(sfd);
 }
@@ -67,7 +70,7 @@ static void xserver() {
     for (j = 0; j < 2; j++) {
 	BUG_ON((sfd = xaccept(afd)) < 0);
 	DEBUG_OFF("xserver accept %d", sfd);
-	for (i = 0; i < cnt; i++) {
+	for (i = 0; i < cnt * 10; i++) {
 	    BUG_ON(0 != xrecv(sfd, &xbuf));
 	    DEBUG_OFF("%d recv", sfd);
 	    BUG_ON(0 != xsend(sfd, xbuf));
