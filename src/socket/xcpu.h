@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XCPU_
-#define _HPIO_XCPU_
+#ifndef _XIO_XCPU_
+#define _XIO_XCPU_
 
 #include <ds/list.h>
 #include <sync/mutex.h>

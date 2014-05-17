@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_TASKPOOL_
-#define _HPIO_TASKPOOL_
+#ifndef _XIO_TASKPOOL_
+#define _XIO_TASKPOOL_
 
 #include "base.h"
 #include "ds/list.h"

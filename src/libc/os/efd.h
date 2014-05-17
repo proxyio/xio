@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_EVENTFD_
-#define _HPIO_EVENTFD_
+#ifndef _XIO_EVENTFD_
+#define _XIO_EVENTFD_
 
 struct efd {
     int r;

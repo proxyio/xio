@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_ATOMIC_
-#define _HPIO_ATOMIC_
+#ifndef _XIO_ATOMIC_
+#define _XIO_ATOMIC_
 
 #include <inttypes.h>
 #include "sync/spin.h"

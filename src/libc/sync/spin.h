@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SPINLOCK_
-#define _HPIO_SPINLOCK_
+#ifndef _XIO_SPINLOCK_
+#define _XIO_SPINLOCK_
 
 #include <pthread.h>
 

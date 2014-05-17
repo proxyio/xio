@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_BIO_
-#define _HPIO_BIO_
+#ifndef _XIO_BIO_
+#define _XIO_BIO_
 
 #include <inttypes.h>
 #include "base.h"

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SOCKADDR_
-#define _HPIO_SOCKADDR_
+#ifndef _XIO_SOCKADDR_
+#define _XIO_SOCKADDR_
 
 /* SOCKADDR example : 
  * ipc    group@ipc://tmp/ipc.sock

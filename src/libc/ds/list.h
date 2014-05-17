@@ -22,8 +22,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_LIST_
-#define _HPIO_LIST_
+#ifndef _XIO_LIST_
+#define _XIO_LIST_
 
 #include "base.h"
 

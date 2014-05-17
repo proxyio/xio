@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XGLOBAL_
-#define _HPIO_XGLOBAL_
+#ifndef _XIO_XGLOBAL_
+#define _XIO_XGLOBAL_
 
 #include <sync/mutex.h>
 #include <ds/list.h>

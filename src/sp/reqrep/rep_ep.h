@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_REP_EP_
-#define _HPIO_REP_EP_
+#ifndef _XIO_REP_EP_
+#define _XIO_REP_EP_
 
 #include <sp/sp_module.h>
 #include <sp/reqrep.h>

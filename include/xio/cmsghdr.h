@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XCMSGHDR_
-#define _HPIO_XCMSGHDR_
+#ifndef _XIO_XCMSGHDR_
+#define _XIO_XCMSGHDR_
 
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_CONDITION_
-#define _HPIO_CONDITION_
+#ifndef _XIO_CONDITION_
+#define _XIO_CONDITION_
 
 #include <pthread.h>
 #include "mutex.h"

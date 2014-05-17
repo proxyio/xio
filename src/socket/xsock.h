@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XSOCK_
-#define _HPIO_XSOCK_
+#ifndef _XIO_XSOCK_
+#define _XIO_XSOCK_
 
 #include <base.h>
 #include <ds/map.h>

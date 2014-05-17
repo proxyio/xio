@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_MODULESTAT_
-#define _HPIO_MODULESTAT_
+#ifndef _XIO_MODULESTAT_
+#define _XIO_MODULESTAT_
 
 #include "base.h"
 #include "os/timesz.h"

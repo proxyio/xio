@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XSOCKET_
-#define _HPIO_XSOCKET_
+#ifndef _XIO_XSOCKET_
+#define _XIO_XSOCKET_
 
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>

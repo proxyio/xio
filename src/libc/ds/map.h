@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_MAP_
-#define _HPIO_MAP_
+#ifndef _XIO_MAP_
+#define _XIO_MAP_
 
 #include "krb.h"
 #include <string.h>

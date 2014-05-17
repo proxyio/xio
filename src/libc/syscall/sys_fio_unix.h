@@ -1,3 +1,3 @@
-#ifndef _HPIO_sys_fio_unix_
-#define _HPIO_sys_fio_unix_
+#ifndef _XIO_sys_fio_unix_
+#define _XIO_sys_fio_unix_
 #endif

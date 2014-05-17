@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_FILEPATH_
-#define _HPIO_FILEPATH_
+#ifndef _XIO_FILEPATH_
+#define _XIO_FILEPATH_
 
 #include "os/alloc.h"
 

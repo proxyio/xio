@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XMSG_
-#define _HPIO_XMSG_
+#ifndef _XIO_XMSG_
+#define _XIO_XMSG_
 
 #include <base.h>
 #include <ds/list.h>

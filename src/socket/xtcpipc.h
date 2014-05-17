@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_TCPIPC_SOCK_
-#define _HPIO_TCPIPC_SOCK_
+#ifndef _XIO_TCPIPC_SOCK_
+#define _XIO_TCPIPC_SOCK_
 
 #include "xsock.h"
 

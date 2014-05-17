@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SP_XREQREP_
-#define _HPIO_SP_XREQREP_
+#ifndef _XIO_SP_XREQREP_
+#define _XIO_SP_XREQREP_
 
 #define REQREP_VERSION 0x0001
 

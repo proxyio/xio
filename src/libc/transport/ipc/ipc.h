@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_IPC_
-#define _HPIO_IPC_
+#ifndef _XIO_IPC_
+#define _XIO_IPC_
 
 #include <inttypes.h>
 #include "transport/transport.h"

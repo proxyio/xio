@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_WAITGROUP_
-#define _HPIO_WAITGROUP_
+#ifndef _XIO_WAITGROUP_
+#define _XIO_WAITGROUP_
 
 #include "mutex.h"
 #include "condition.h"

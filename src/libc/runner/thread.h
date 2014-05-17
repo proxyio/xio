@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_THREAD_
-#define _HPIO_THREAD_
+#ifndef _XIO_THREAD_
+#define _XIO_THREAD_
 
 #include <pthread.h>
 #include "base.h"

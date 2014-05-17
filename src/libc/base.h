@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_BASE_
-#define _HPIO_BASE_
+#ifndef _XIO_BASE_
+#define _XIO_BASE_
 
 #include <stdio.h>
 #include <stdlib.h>

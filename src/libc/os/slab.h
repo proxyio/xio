@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SLAB_
-#define _HPIO_SLAB_
+#ifndef _XIO_SLAB_
+#define _XIO_SLAB_
 
 #include "alloc.h"
 

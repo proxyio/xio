@@ -1,5 +1,5 @@
-#ifndef _HPIO_CRC_
-#define _HPIO_CRC_
+#ifndef _XIO_CRC_
+#define _XIO_CRC_
 
 #include <inttypes.h>
 

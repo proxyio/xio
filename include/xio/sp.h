@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SCALABILITY_PROTOCOLS_
-#define _HPIO_SCALABILITY_PROTOCOLS_
+#ifndef _XIO_SCALABILITY_PROTOCOLS_
+#define _XIO_SCALABILITY_PROTOCOLS_
 
 #include <xio/cplusplus_define.h>
 

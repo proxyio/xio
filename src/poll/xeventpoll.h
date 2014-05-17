@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_XPOLL_
-#define _HPIO_XPOLL_
+#ifndef _XIO_XPOLL_
+#define _XIO_XPOLL_
 
 #include <sync/atomic.h>
 #include <sync/mutex.h>

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_TIMESTAMP_
-#define _HPIO_TIMESTAMP_
+#ifndef _XIO_TIMESTAMP_
+#define _XIO_TIMESTAMP_
 
 #include <inttypes.h>
 #include "base.h"

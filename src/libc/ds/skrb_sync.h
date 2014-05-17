@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_SKRB_SYNC_
-#define _HPIO_SKRB_SYNC_
+#ifndef _XIO_SKRB_SYNC_
+#define _XIO_SKRB_SYNC_
 
 #include <stdint.h>
 #include <inttypes.h>

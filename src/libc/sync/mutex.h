@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _HPIO_MUTEX_
-#define _HPIO_MUTEX_
+#ifndef _XIO_MUTEX_
+#define _XIO_MUTEX_
 
 #include <pthread.h>
 
