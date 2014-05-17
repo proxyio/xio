@@ -24,6 +24,7 @@
 #define _HPIO_TRANSPORT_
 
 #include "ds/list.h"
+#include <sys/socket.h>
 
 #define TP_TCP            1
 #define TP_IPC            2
@@ -55,8 +56,9 @@ struct transport_vf {
     int  (*bind)     (const char *sock);
     int  (*accept)   (int fd);
     int  (*connect)  (const char *peer);
-    i64  (*read)     (int fd, char *buff, i64 size);
-    i64  (*write)    (int fd, const char *buff, i64 size);
+    i64  (*recv)     (int fd, char *buff, i64 size);
+    i64  (*send)     (int fd, const char *buff, i64 size);
+    i64  (*sendmsg)  (int fd, const struct msghdr *msg, int flags);
     int  (*setopt)   (int fd, int opt, void *optval, int optlen);
     int  (*getopt)   (int fd, int opt, void *optval, int *optlen);
     struct list_head item;

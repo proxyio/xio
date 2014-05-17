@@ -314,7 +314,7 @@ void epbase_exit(struct epbase *ep) {
     list_splice(&ep->rcv.head, &closed_head);
     walk_msg_safe(msg, nmsg, &closed_head) {
 	list_del_init(&msg->item);
-	xfreemsg(msg->vec.chunk);
+	xfreemsg(msg->vec.xiov_base);
     }
     BUG_ON(!list_empty(&closed_head));
     INIT_LIST_HEAD(&closed_head);

@@ -32,7 +32,7 @@
  * +--------+------------+------------+
  * | 0xffff | 0xffffffff | 0xffffffff |
  * +--------+------------+------------+
- * |  crc16 |    size    |    chunk   |
+ * |  crc16 |    size    |   chunkdt  |
  * +--------+------------+------------+
  */
 
@@ -43,10 +43,10 @@
 /* TODO: little endian and big endian */
 struct xiov {
     u16 checksum;
-    u32 size;
     u16 cmsg_num:4;
     u16 cmsg_length:12;
-    char chunk[0];
+    u32 xiov_len;
+    char xiov_base[0];
 };
 
 struct xmsg {
@@ -61,6 +61,7 @@ char *xiov_base(char *ubuf);
 #define xmsg_walk_safe(pos, next, head)					\
     list_for_each_entry_safe(pos, next, head, struct xmsg, item)
 
+int xiov_serialize(struct xmsg *msg, struct list_head *head);
 
 
 

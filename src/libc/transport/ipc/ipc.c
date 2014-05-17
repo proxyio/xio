@@ -75,8 +75,9 @@ int ipc_accept(int afd) {
     socklen_t addrlen = sizeof(addr);
     int fd = accept(afd, (struct sockaddr *) &addr, &addrlen);
     
-    if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
-		   || errno == ECONNABORTED || errno == EMFILE)) {
+    if (fd < 0 &&
+	(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR ||
+	 errno == ECONNABORTED || errno == EMFILE)) {
 	errno = EAGAIN;
 	return -1;
     }
@@ -92,8 +93,8 @@ int ipc_connect(const char *peer) {
     if ((fd = socket(AF_LOCAL, SOCK_STREAM, 0)) < 0)
 	return -1;
     addr.sun_family = AF_LOCAL;
-    snprintf(addr.sun_path,
-	     sizeof(addr.sun_path), "%s/%s", TP_IPC_SOCKDIR, peer);
+    snprintf(addr.sun_path, sizeof(addr.sun_path), "%s/%s", TP_IPC_SOCKDIR,
+	     peer);
     if (connect(fd, (struct sockaddr *)&addr, addr_len) < 0) {
 	close(fd);
 	return -1;
@@ -101,10 +102,11 @@ int ipc_connect(const char *peer) {
     return fd;
 }
 
-int64_t ipc_read(int sockfd, char *buf, int64_t len) {
-    int64_t nbytes = recv(sockfd, buf, len, 0);
+i64 ipc_recv(int sockfd, char *buf, i64 len) {
+    i64 nbytes = recv(sockfd, buf, len, 0);
 
-    if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+    if (nbytes == -1 &&
+	(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
 	errno = EAGAIN;
         return -1;
     } else if (nbytes == 0) {    //  Signalise peer failure.
@@ -114,10 +116,11 @@ int64_t ipc_read(int sockfd, char *buf, int64_t len) {
     return nbytes;
 }
 
-int64_t ipc_write(int sockfd, const char *buf, int64_t len) {
-    int64_t nbytes = send(sockfd, buf, len, 0);
+i64 ipc_send(int sockfd, const char *buf, i64 len) {
+    i64 nbytes = send(sockfd, buf, len, 0);
 
-    if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+    if (nbytes == -1 &&
+	(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
 	errno = EAGAIN;
         return -1;
     } else if (nbytes == -1) {
@@ -164,7 +167,7 @@ int ipc_peername(int fd, char *peer, int size) {
 }
 
 
-static struct transport_vf ipc_vf = {
+static struct transport_vf ipc_ops = {
     .name = "ipc",
     .proto = TP_IPC,
     .init = 0,
@@ -173,13 +176,14 @@ static struct transport_vf ipc_vf = {
     .bind = ipc_bind,
     .accept = ipc_accept,
     .connect = ipc_connect,
-    .read = ipc_read,
-    .write = ipc_write,
+    .recv = ipc_recv,
+    .send = ipc_send,
+    .sendmsg = 0,
     .setopt = ipc_setopt,
     .getopt = NULL,
     .item = LIST_ITEM_INITIALIZE,
 };
 
-struct transport_vf *ipc_vfptr = &ipc_vf;
+struct transport_vf *ipc_vfptr = &ipc_ops;
 
 

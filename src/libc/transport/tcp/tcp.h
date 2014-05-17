@@ -34,8 +34,10 @@ int tcp_connect(const char *peer);
 int tcp_setopt(int fd, int opt, void *optval, int optlen);
 int tcp_getopt(int fd, int opt, void *optval, int *optlen);
 
-int64_t tcp_read(int fd, char *buff, int64_t size);
-int64_t tcp_write(int fd, const char *buff, int64_t size);
+i64 tcp_recv(int fd, char *buff, i64 size);
+i64 tcp_send(int fd, const char *buff, i64 size);
+i64 tcp_sendmsg(int fd, const struct msghdr *msg, int flags);
+
 int tcp_sockname(int fd, char *sockname, int size);
 int tcp_peername(int fd, char *peername, int size);
 

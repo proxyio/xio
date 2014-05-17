@@ -35,8 +35,8 @@ void ipc_close(int fd);
 int ipc_setopt(int fd, int opt, void *optval, int optlen);
 int ipc_getopt(int fd, int opt, void *optval, int *optlen);
 
-int64_t ipc_read(int fd, char *buff, int64_t size);
-int64_t ipc_write(int fd, const char *buff, int64_t size);
+int64_t ipc_recv(int fd, char *buff, int64_t size);
+int64_t ipc_send(int fd, const char *buff, int64_t size);
 
 int ipc_sockname(int fd, char *sockname, int size);
 int ipc_peername(int fd, char *peername, int size);

@@ -32,6 +32,11 @@ struct tcpipc_sock {
     struct bio out;
     struct io ops;
     int sys_fd;
+    struct iovec iov[100];
+    struct iovec *biov;
+    int iov_start;
+    int iov_end;
+    int iov_length;
     struct transport_vf *tp_vfptr;
 };
 

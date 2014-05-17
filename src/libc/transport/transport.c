@@ -29,7 +29,7 @@
 static struct list_head transport_vfs = {};
 struct list_head *transport_vfptr_head = &transport_vfs;
 
-/* List all available transport here */
+/* Following transpotr vfptr are provided */
 extern struct transport_vf *tcp_vfptr;
 extern struct transport_vf *ipc_vfptr;
 

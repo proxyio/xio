@@ -19,8 +19,8 @@ static void tcp_client() {
 
     ASSERT_TRUE((sfd = tcp_connect("127.0.0.1:18894")) > 0);
     randstr(buf, 1024);
-    EXPECT_EQ(sizeof(buf), nbytes = tcp_write(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, tcp_read(sfd, buf, nbytes));
+    EXPECT_EQ(sizeof(buf), nbytes = tcp_send(sfd, buf, sizeof(buf)));
+    EXPECT_EQ(nbytes, tcp_recv(sfd, buf, nbytes));
     close(sfd);
 }
 
@@ -35,8 +35,8 @@ int tcp_client_event_handler(eloop_t *el, ev_t *et) {
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	EXPECT_EQ(sizeof(buf), tcp_read(et->fd, buf, sizeof(buf)));
-	EXPECT_EQ(sizeof(buf), tcp_write(et->fd, buf, sizeof(buf)));
+	EXPECT_EQ(sizeof(buf), tcp_recv(et->fd, buf, sizeof(buf)));
+	EXPECT_EQ(sizeof(buf), tcp_send(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
 	eloop_del(el, et);
@@ -87,8 +87,8 @@ static void ipc_client() {
     if ((sfd = ipc_connect("pio_ipc_socket")) < 0)
 	ASSERT_TRUE(0);
     randstr(buf, 1024);
-    EXPECT_EQ(sizeof(buf), nbytes = ipc_write(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, ipc_read(sfd, buf, nbytes));
+    EXPECT_EQ(sizeof(buf), nbytes = ipc_send(sfd, buf, sizeof(buf)));
+    EXPECT_EQ(nbytes, ipc_recv(sfd, buf, nbytes));
     close(sfd);
 }
 
@@ -103,8 +103,8 @@ int ipc_client_event_handler(eloop_t *el, ev_t *et) {
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	EXPECT_EQ(sizeof(buf), ipc_read(et->fd, buf, sizeof(buf)));
-	EXPECT_EQ(sizeof(buf), ipc_write(et->fd, buf, sizeof(buf)));
+	EXPECT_EQ(sizeof(buf), ipc_recv(et->fd, buf, sizeof(buf)));
+	EXPECT_EQ(sizeof(buf), ipc_send(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
 	eloop_del(el, et);

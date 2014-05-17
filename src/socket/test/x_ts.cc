@@ -15,7 +15,7 @@ using namespace std;
 
 extern int randstr(char *buf, int len);
 
-static int cnt = 3;
+const static int cnt = 3;
 
 static void xclient(string pf) {
     int sfd, i;
@@ -84,7 +84,7 @@ static int pollid;
 static void xclient2(string pf) {
     int i;
     int sfd[cnt];
-    struct xpoll_event event[cnt];
+    struct xpoll_event event[cnt] = {};
     string host(pf + "://127.0.0.1:18895");
 
     for (i = 0; i < cnt; i++) {
@@ -109,7 +109,7 @@ static void xserver2() {
     int i, j, mycnt;
     int afd, sfd[cnt];
     thread_t cli_thread = {};
-    struct xpoll_event event[cnt];
+    struct xpoll_event event[cnt] = {};
 
     pollid = xpoll_create();
     DEBUG_OFF("%d", pollid);

@@ -33,7 +33,7 @@ static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct transport_vf *tp_vfptr = self->tp_vfptr;
 
     BUG_ON(!tp_vfptr);
-    int rc = tp_vfptr->read(self->sys_fd, buff, sz);
+    int rc = tp_vfptr->recv(self->sys_fd, buff, sz);
     return rc;
 }
 
@@ -42,7 +42,7 @@ static i64 xio_connector_write(struct io *ops, char *buff, i64 sz) {
     struct transport_vf *tp_vfptr = self->tp_vfptr;
 
     BUG_ON(!tp_vfptr);
-    int rc = tp_vfptr->write(self->sys_fd, buff, sz);
+    int rc = tp_vfptr->send(self->sys_fd, buff, sz);
     return rc;
 }
 
@@ -221,7 +221,7 @@ static int bufio_check_msg(struct bio *b) {
     if (b->bsize < sizeof(aim.vec))
 	return false;
     bio_copy(b, (char *)(&aim.vec), sizeof(aim.vec));
-    if (b->bsize < xiov_len(aim.vec.chunk) + (u32)aim.vec.cmsg_length)
+    if (b->bsize < xiov_len(aim.vec.xiov_base) + (u32)aim.vec.cmsg_length)
 	return false;
     return true;
 }
@@ -232,9 +232,9 @@ static void bufio_rm(struct bio *b, struct xmsg **msg) {
     char *chunk;
 
     bio_copy(b, (char *)(&one.vec), sizeof(one.vec));
-    chunk = xallocmsg(one.vec.size);
+    chunk = xallocmsg(one.vec.xiov_len);
     bio_read(b, xiov_base(chunk), xiov_len(chunk));
-    *msg = cont_of(chunk, struct xmsg, vec.chunk);
+    *msg = cont_of(chunk, struct xmsg, vec.xiov_base);
 }
 
 static int xio_connector_rcv(struct sockbase *sb) {
@@ -264,14 +264,100 @@ static int xio_connector_rcv(struct sockbase *sb) {
 }
 
 static void bufio_add(struct bio *b, struct xmsg *msg) {
-    struct xmsg *cmsg, *ncmsg;
-    char *chunk = msg->vec.chunk;
+    struct list_head head = {};
+    char *ubuf;
+    struct xmsg *nmsg;
 
-    bio_write(b, xiov_base(chunk), xiov_len(chunk));
-    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
-	chunk = cmsg->vec.chunk;
-	bio_write(b, xiov_base(chunk), xiov_len(chunk));
+    INIT_LIST_HEAD(&head);
+    xiov_serialize(msg, &head);
+
+    xmsg_walk_safe(msg, nmsg, &head) {
+	ubuf = msg->vec.xiov_base;
+	bio_write(b, xiov_base(ubuf), xiov_len(ubuf));
+	xfreemsg(msg->vec.xiov_base);
     }
+}
+
+static int sg_send(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    int rc;
+    struct iovec *iov;
+    struct msghdr msghdr = {};
+    
+    /* First. sending the bufio caching */
+    if (bio_size(&self->out) > 0) {
+	if ((rc = bio_flush(&self->out, &self->ops)) < 0)
+	    return rc;
+	if (bio_size(&self->out) > 0) {
+	    errno = EAGAIN;
+	    return -1;
+	}
+    }
+    /* Second. sending the scatter-gather iovec */
+    BUG_ON(bio_size(&self->out));
+    if (!self->iov_length)
+	return 0;
+    msghdr.msg_iov = self->biov + self->iov_start;
+    msghdr.msg_iovlen = self->iov_end - self->iov_start;
+    if ((rc = self->tp_vfptr->sendmsg(self->sys_fd, &msghdr, 0)) < 0)
+	return rc;
+    iov = &self->biov[self->iov_start];
+    while (rc >= iov->iov_len && iov < &self->biov[self->iov_end]) {
+	rc -= iov->iov_len;
+	iov++;
+    }
+    /* Cache the reset iovec into bufio  */
+    if (rc > 0) {
+	bio_write(&self->out, iov->iov_base + rc, iov->iov_len - rc);
+	rc = 0;
+	iov++;
+    }
+    self->iov_start = iov - self->biov;
+    BUG_ON(iov > &self->iov[self->iov_end]);
+    if (bio_size(&self->out) || self->iov_start < self->iov_end) {
+	errno = EAGAIN;
+	return -1;
+    }
+    if (self->iov_length > NELEM(self->iov, struct iovec))
+	mem_free(self->biov, self->iov_length * sizeof(struct iovec));
+    self->biov = 0;
+    self->iov_start = self->iov_end = self->iov_length = 0;
+    return 0;
+}
+
+static int xio_connector_sg(struct sockbase *sb) {
+    struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
+    int rc;
+    struct xmsg *msg, *nmsg;
+    struct iovec *iov;
+    struct list_head sg_head;
+
+    INIT_LIST_HEAD(&sg_head);
+
+    while ((rc = sg_send(sb)) == 0) {
+	/* Third. serialize the queue message for send */
+	while ((msg = sendq_pop(sb)))
+	    self->iov_length += xiov_serialize(msg, &sg_head);
+	if (self->iov_length <= 0) {
+	    errno = EAGAIN;
+	    return -1;
+	}
+	self->iov_end = self->iov_length;
+	if (self->iov_length <= NELEM(self->iov, struct iovec)) {
+	    self->biov = &self->iov[0];
+	} else {
+	    self->biov = mem_zalloc(self->iov_length * sizeof(struct iovec));
+	    BUG_ON(!self->biov);
+	}
+	iov = self->biov;
+	xmsg_walk_safe(msg, nmsg, &sg_head) {
+	    list_del_init(&msg->item);
+	    iov->iov_base = xiov_base(msg->vec.xiov_base);
+	    iov->iov_len = xiov_len(msg->vec.xiov_base);
+	    iov++;
+	}
+    }
+    return rc;
 }
 
 static int xio_connector_snd(struct sockbase *sb) {
@@ -279,10 +365,10 @@ static int xio_connector_snd(struct sockbase *sb) {
     int rc;
     struct xmsg *msg;
 
-    while ((msg = sendq_pop(sb))) {
+    //if (self->tp_vfptr->sendmsg)
+    //return xio_connector_sg(sb);
+    while ((msg = sendq_pop(sb)))
 	bufio_add(&self->out, msg);
-	xfreemsg(msg->vec.chunk);
-    }
     rc = bio_flush(&self->out, &self->ops);
     return rc;
 }

@@ -142,43 +142,60 @@ int tcp_connect(const char *peer) {
 }
 
 
-int64_t tcp_read(int sockfd, char *buf, int64_t len) {
-    int64_t nbytes;
-    nbytes = recv(sockfd, buf, len, 0);
+i64 tcp_recv(int sockfd, char *buf, i64 len) {
+    i64 rc;
+    rc = recv(sockfd, buf, len, 0);
 
-    //  Several errors are OK. When speculative read is being done we
-    //  may not be able to read a single byte to the socket. Also, SIGSTOP
-    //  issued by a debugging tool can result in EINTR error.
-    if (nbytes == -1 && (errno == EAGAIN ||
-			 errno == EWOULDBLOCK || errno == EINTR)) {
-	errno = EAGAIN;
-        return -1;
-    }
     //  Signalise peer failure.
-    if (nbytes == 0) {
+    if (rc == 0) {
 	errno = EPIPE;
 	return -1;
     }
-    return nbytes;
+    //  Several errors are OK. When speculative read is being done we
+    //  may not be able to read a single byte to the socket. Also, SIGSTOP
+    //  issued by a debugging tool can result in EINTR error.
+    if (rc == -1 &&
+	(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+	errno = EAGAIN;
+        return -1;
+    }
+    return rc;
 }
 
-int64_t tcp_write(int sockfd, const char *buf, int64_t len) {
-    int64_t nbytes;
-    nbytes = send(sockfd, buf, len, 0);
+i64 tcp_send(int sockfd, const char *buf, i64 len) {
+    i64 rc = send(sockfd, buf, len, 0);
 
     //  Several errors are OK. When speculative write is being done we
     //  may not be able to write a single byte to the socket. Also, SIGSTOP
     //  issued by a debugging tool can result in EINTR error.
-    if (nbytes == -1 && (errno == EAGAIN ||
-			 errno == EWOULDBLOCK || errno == EINTR)) {
-	errno = EAGAIN;
-        return -1;
-    } else if (nbytes == -1) {
+    if (rc == -1) {
+	if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+	    errno = EAGAIN;
+	    return -1;
+	}
 	// Signalise peer failure.
 	errno = EPIPE;
 	return -1;
     }
-    return nbytes;
+    return rc;
+}
+
+i64 tcp_sendmsg(int sockfd, const struct msghdr *msg, int flags) {
+    i64 rc = sendmsg(sockfd, msg, flags);
+
+    //  Several errors are OK. When speculative write is being done we
+    //  may not be able to write a single byte to the socket. Also, SIGSTOP
+    //  issued by a debugging tool can result in EINTR error.
+    if (rc == -1) {
+	if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+	    errno = EAGAIN;
+	    return -1;
+	}
+	// Signalise peer failure.
+	errno = EPIPE;
+	return -1;
+    }
+    return rc;
 }
 
 int tcp_sockname(int fd, char *sock, int size) {
@@ -219,7 +236,7 @@ int tcp_peername(int fd, char *peer, int size) {
 
 
 
-static struct transport_vf tcp_vf = {
+static struct transport_vf tcp_ops = {
     .name = "tcp",
     .proto = TP_TCP,
     .init = 0,
@@ -228,11 +245,12 @@ static struct transport_vf tcp_vf = {
     .bind = tcp_bind,
     .accept = tcp_accept,
     .connect = tcp_connect,
-    .read = tcp_read,
-    .write = tcp_write,
+    .recv = tcp_recv,
+    .send = tcp_send,
+    .sendmsg = tcp_sendmsg,
     .setopt = tcp_setopt,
     .getopt = tcp_getopt,
     .item = LIST_ITEM_INITIALIZE,
 };
 
-struct transport_vf *tcp_vfptr = &tcp_vf;
+struct transport_vf *tcp_vfptr = &tcp_ops;

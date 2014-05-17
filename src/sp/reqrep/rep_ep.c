@@ -40,7 +40,7 @@ static void rep_ep_destroy(struct epbase *ep) {
 }
 
 static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
-    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct spr *r = rt_cur(ubuf);
     
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
@@ -59,7 +59,7 @@ static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 
 static void __routeback(struct epbase *ep, struct xmsg *msg) {
     struct epsk *sk, *nsk;
-    char *ubuf = msg->vec.chunk;
+    char *ubuf = msg->vec.xiov_base;
     struct spr *rt = rt_cur(ubuf);
 
     walk_epsk_safe(sk, nsk, &ep->connectors) {
@@ -92,7 +92,7 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 	return -1;
     BUG_ON(!(msg = list_first(&sk->snd_cache, struct xmsg, item)));
     list_del_init(&msg->item);
-    *ubuf = msg->vec.chunk;
+    *ubuf = msg->vec.xiov_base;
     
     mutex_lock(&ep->lock);
     ep->snd.size -= xmsglen(*ubuf);

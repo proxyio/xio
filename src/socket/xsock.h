@@ -151,12 +151,12 @@ struct sockbase {
 			     struct sockbase, sib_link)
 
 /* We guarantee that we can push one massage at least. */
-static inline int can_send(struct sockbase *cn) {
-    return list_empty(&cn->snd.head) || cn->snd.buf < cn->snd.wnd;
+static inline int can_send(struct sockbase *sb) {
+    return list_empty(&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
 }
 
-static inline int can_recv(struct sockbase *cn) {
-    return list_empty(&cn->rcv.head) || cn->rcv.buf < cn->rcv.wnd;
+static inline int can_recv(struct sockbase *sb) {
+    return list_empty(&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
 }
 
 int xalloc(int family, int socktype);
@@ -165,8 +165,8 @@ void xput(int fd);
 void xsock_init(struct sockbase *sb);
 void xsock_exit(struct sockbase *sb);
 
-void recvq_push(struct sockbase *cn, struct xmsg *msg);
-struct xmsg *sendq_pop(struct sockbase *cn);
+void recvq_push(struct sockbase *sb, struct xmsg *msg);
+struct xmsg *sendq_pop(struct sockbase *sb);
 
 int acceptq_add(struct sockbase *sb, struct sockbase *new);
 int acceptq_rm(struct sockbase *sb, struct sockbase **new);

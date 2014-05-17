@@ -44,8 +44,8 @@ int sp_recv(int eid, char **ubuf) {
     }
     msg = list_first(&ep->rcv.head, struct xmsg, item);
     list_del_init(&msg->item);
-    ep->rcv.size -= xmsglen(msg->vec.chunk);
-    *ubuf = msg->vec.chunk;
+    ep->rcv.size -= xmsglen(msg->vec.xiov_base);
+    *ubuf = msg->vec.xiov_base;
     mutex_unlock(&ep->lock);
     eid_put(eid);
     return 0;

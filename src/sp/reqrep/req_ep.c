@@ -40,7 +40,7 @@ static void req_ep_destroy(struct epbase *ep) {
 }
 
 static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
-    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.chunk);
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct sphdr *h = ubuf2sphdr(ubuf);
 
     h->ttl--;
@@ -71,7 +71,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     }
     BUG_ON(!(msg = list_first(&ep->snd.head, struct xmsg, item)));
     list_del_init(&msg->item);
-    *ubuf = msg->vec.chunk;
+    *ubuf = msg->vec.xiov_base;
     ep->snd.size -= xmsglen(*ubuf);
     BUG_ON(ep->snd.waiters < 0);
     if (ep->snd.waiters)

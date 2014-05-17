@@ -26,7 +26,7 @@
 
 int sp_send(int eid, char *xmsg) {
     struct epbase *ep = eid_get(eid);
-    struct xmsg *out = cont_of(xmsg, struct xmsg, vec.chunk);
+    struct xmsg *out = cont_of(xmsg, struct xmsg, vec.xiov_base);
     
     if (!ep) {
 	errno = EBADF;
