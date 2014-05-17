@@ -19,20 +19,20 @@ static void xclient(string pf) {
     int sfd, i;
     int64_t nbytes;
     char buf[1024] = {};
-    char *payload;
+    char *ubuf;
     string host(pf + "://127.0.0.1:18897");
 
     randstr(buf, 1024);
     BUG_ON((sfd = xconnect(host.c_str())) < 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
-	payload = xallocmsg(nbytes);
-	memcpy(payload, buf, nbytes);
-	BUG_ON(0 != xsend(sfd, payload));
-	BUG_ON(0 != xrecv(sfd, &payload));
+	ubuf = xallocubuf(nbytes);
+	memcpy(ubuf, buf, nbytes);
+	BUG_ON(0 != xsend(sfd, ubuf));
+	BUG_ON(0 != xrecv(sfd, &ubuf));
 	DEBUG_OFF("%d recv response", sfd);
-	assert(memcmp(payload, buf, nbytes) == 0);
-	xfreemsg(payload);
+	assert(memcmp(ubuf, buf, nbytes) == 0);
+	xfreeubuf(ubuf);
     }
     xclose(sfd);
 }
@@ -46,7 +46,7 @@ static int xclient_thread(void *arg) {
 
 TEST(xpoll, select) {
     int i, j;
-    char *payload = 0;
+    char *ubuf = 0;
     int afd, sfd, tmp;
     thread_t cli_thread = {};
 
@@ -60,8 +60,8 @@ TEST(xpoll, select) {
 	    while (xselect(XPOLLIN, 1, &sfd, 1, &tmp) <= 0)
 	        usleep(10000);
 	    BUG_ON(tmp != sfd);
-	    BUG_ON(0 != xrecv(sfd, &payload));
-	    BUG_ON(0 != xsend(sfd, payload));
+	    BUG_ON(0 != xrecv(sfd, &ubuf));
+	    BUG_ON(0 != xsend(sfd, ubuf));
         }
         xclose(sfd);
     }

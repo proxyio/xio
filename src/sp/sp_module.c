@@ -77,7 +77,7 @@ static void connector_event_hndl(struct epsk *sk) {
 	if ((rc = xrecv(sk->fd, &ubuf)) == 0) {
 	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
 	    if ((rc = ep->vfptr.add(ep, sk, ubuf)) < 0) {
-		xfreemsg(ubuf);
+		xfreeubuf(ubuf);
 		DEBUG_ON("ep %d drop message from socket %d of can't back",
 			  ep->eid, sk->fd);
 	    }
@@ -88,7 +88,7 @@ static void connector_event_hndl(struct epsk *sk) {
 	if ((rc = ep->vfptr.rm(ep, sk, &ubuf)) == 0) {
 	    DEBUG_OFF("ep %d socket %d send begin", ep->eid, sk->fd);
 	    if ((rc = xsend(sk->fd, ubuf)) < 0) {
-		xfreemsg(ubuf);
+		xfreeubuf(ubuf);
 		if (errno != EAGAIN)
 		    happened |= XPOLLERR;
 		DEBUG_OFF("ep %d socket %d send with errno %d", ep->eid, sk->fd,
@@ -314,7 +314,7 @@ void epbase_exit(struct epbase *ep) {
     list_splice(&ep->rcv.head, &closed_head);
     walk_msg_safe(msg, nmsg, &closed_head) {
 	list_del_init(&msg->item);
-	xfreemsg(msg->vec.xiov_base);
+	xfreemsg(msg);
     }
     BUG_ON(!list_empty(&closed_head));
     INIT_LIST_HEAD(&closed_head);

@@ -137,7 +137,7 @@ void xsock_init(struct sockbase *sb) {
 
 void xsock_exit(struct sockbase *sb) {
     struct list_head head = {};
-    struct xmsg *pos, *npos;
+    struct xmsg *msg, *nmsg;
 
     mutex_destroy(&sb->lock);
     condition_destroy(&sb->cond);
@@ -164,8 +164,8 @@ void xsock_exit(struct sockbase *sb) {
     sb->snd.wnd = -1;
     list_splice(&sb->snd.head, &head);
 
-    xmsg_walk_safe(pos, npos, &head) {
-	xfreemsg(pos->vec.xiov_base);
+    xmsg_walk_safe(msg, nmsg, &head) {
+	xfreemsg(msg);
     }
 
     /* It's possible that user call xclose() and xpoll_add()

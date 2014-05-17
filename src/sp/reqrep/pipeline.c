@@ -63,7 +63,7 @@ static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 	uuid_copy(sk->uuid, r->uuid);
     }
     list_add_tail(&msg->item, &target->snd_cache);
-    peer->snd.size += xmsglen(ubuf);
+    peer->snd.size += xubuflen(ubuf);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     return 0;
 }
@@ -79,7 +79,7 @@ static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     msg = list_first(&sk->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
     list_del_init(&msg->item);
-    ep->snd.size -= xmsglen(*ubuf);
+    ep->snd.size -= xubuflen(*ubuf);
     rt_append(*ubuf, rt);
     DEBUG_OFF("ep %d req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
@@ -96,7 +96,7 @@ static int dispatcher_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 	return -1;
     h->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
-    peer->snd.size += xmsglen(ubuf);
+    peer->snd.size += xubuflen(ubuf);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     return 0;
 }
@@ -109,7 +109,7 @@ static int receiver_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     msg = list_first(&sk->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
     list_del_init(&msg->item);
-    ep->snd.size -= xmsglen(*ubuf);
+    ep->snd.size -= xubuflen(*ubuf);
     DEBUG_OFF("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }

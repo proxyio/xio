@@ -34,7 +34,7 @@ static int req_thread(void *args) {
     }
     for (i = 0; i < 3; i++) {
 	sbuf = rbuf = 0;
-	sbuf = xallocmsg(sizeof(buf));
+	sbuf = xallocubuf(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
 	DEBUG_OFF("producer %d send %d request: %10.10s", eid, i, sbuf);
 	BUG_ON(sp_send(eid, sbuf) != 0);
@@ -43,9 +43,9 @@ static int req_thread(void *args) {
 	}
 	DEBUG_OFF("producer %d recv %d resp: %10.10s", eid, i, rbuf);
 	DEBUG_OFF("----------------------------------------");
-	BUG_ON(xmsglen(rbuf) != sizeof(buf));
+	BUG_ON(xubuflen(rbuf) != sizeof(buf));
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
-	xfreemsg(rbuf);
+	xfreeubuf(rbuf);
     }
     sp_close(eid);
     return 0;

@@ -39,7 +39,7 @@ struct xmsg *sendq_pop(struct sockbase *sb) {
 	DEBUG_OFF("xsock %d", sb->fd);
 	msg = list_first(&sb->snd.head, struct xmsg, item);
 	list_del_init(&msg->item);
-	msgsz = xiov_len(msg->vec.xiov_base);
+	msgsz = xmsg_iovlen(msg);
 	sb->snd.buf -= msgsz;
 	events |= XMQ_POP;
 	if (sb->snd.wnd - sb->snd.buf <= msgsz)
@@ -66,7 +66,7 @@ int sendq_push(struct sockbase *sb, struct xmsg *msg) {
     int rc = -1;
     struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
-    i64 msgsz = xiov_len(msg->vec.xiov_base);
+    i64 msgsz = xmsg_iovlen(msg);
 
     mutex_lock(&sb->lock);
     while (!sb->fepipe && !can_send(sb) && !sb->fasync) {

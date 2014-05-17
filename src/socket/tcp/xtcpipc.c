@@ -222,7 +222,7 @@ static int bufio_check_msg(struct bio *b) {
     if (b->bsize < sizeof(aim.vec))
 	return false;
     bio_copy(b, (char *)(&aim.vec), sizeof(aim.vec));
-    if (b->bsize < xiov_len(aim.vec.xiov_base) + (u32)aim.vec.cmsg_length)
+    if (b->bsize < xmsg_iovlen(&aim) + (u32)aim.vec.cmsg_length)
 	return false;
     return true;
 }
@@ -230,12 +230,10 @@ static int bufio_check_msg(struct bio *b) {
 
 static void bufio_rm(struct bio *b, struct xmsg **msg) {
     struct xmsg one = {};
-    char *chunk;
 
     bio_copy(b, (char *)(&one.vec), sizeof(one.vec));
-    chunk = xallocmsg(one.vec.xiov_len);
-    bio_read(b, xiov_base(chunk), xiov_len(chunk));
-    *msg = cont_of(chunk, struct xmsg, vec.xiov_base);
+    *msg = xallocmsg(one.vec.xiov_len);
+    bio_read(b, xmsg_iovbase(*msg), xmsg_iovlen(*msg));
 }
 
 static int xio_connector_rcv(struct sockbase *sb) {
@@ -266,16 +264,14 @@ static int xio_connector_rcv(struct sockbase *sb) {
 
 static void bufio_add(struct bio *b, struct xmsg *msg) {
     struct list_head head = {};
-    char *ubuf;
     struct xmsg *nmsg;
 
     INIT_LIST_HEAD(&head);
     xiov_serialize(msg, &head);
 
     xmsg_walk_safe(msg, nmsg, &head) {
-	ubuf = msg->vec.xiov_base;
-	bio_write(b, xiov_base(ubuf), xiov_len(ubuf));
-	xfreemsg(msg->vec.xiov_base);
+	bio_write(b, xmsg_iovbase(msg), xmsg_iovlen(msg));
+	xfreemsg(msg);
     }
 }
 
@@ -308,7 +304,7 @@ static int sg_send(struct sockbase *sb) {
 	rc -= iov->iov_len;
 	msg = cont_of(iov->iov_base, struct xmsg, vec);
 	list_del_init(&msg->item);
-	xfreemsg(msg->vec.xiov_base);
+	xfreemsg(msg);
 	iov++;
     }
     /* Cache the reset iovec into bufio  */
@@ -316,7 +312,7 @@ static int sg_send(struct sockbase *sb) {
 	bio_write(&self->out, iov->iov_base + rc, iov->iov_len - rc);
 	msg = cont_of(iov->iov_base, struct xmsg, vec);
 	list_del_init(&msg->item);
-	xfreemsg(msg->vec.xiov_base);
+	xfreemsg(msg);
 	rc = 0;
 	iov++;
     }
@@ -359,8 +355,8 @@ static int xio_connector_sg(struct sockbase *sb) {
 	iov = self->biov;
 	xmsg_walk_safe(msg, nmsg, &self->sg_head) {
 	    list_del_init(&msg->item);
-	    iov->iov_base = xiov_base(msg->vec.xiov_base);
-	    iov->iov_len = xiov_len(msg->vec.xiov_base);
+	    iov->iov_base = xmsg_iovbase(msg);
+	    iov->iov_len = xmsg_iovlen(msg);
 	    iov++;
 	}
     }

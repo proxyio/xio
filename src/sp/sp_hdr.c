@@ -25,17 +25,17 @@
 #include "sp_hdr.h"
 
 struct spr *spr_new() {
-    struct spr *r = (struct spr *)xallocmsg(sizeof(struct spr));
+    struct spr *r = (struct spr *)xallocubuf(sizeof(struct spr));
     BUG_ON(!r);
     return r;
 }
 
 void spr_free(struct spr *r) {
-    xfreemsg((char *)r);
+    xfreeubuf((char *)r);
 }
 
 struct sphdr *sphdr_new(u8 protocol, u8 version) {
-    struct sphdr *h = (struct sphdr *)xallocmsg(sizeof(*h));
+    struct sphdr *h = (struct sphdr *)xallocubuf(sizeof(*h));
     if (h) {
 	h->protocol = protocol;
 	h->version = version;
@@ -50,5 +50,5 @@ struct sphdr *sphdr_new(u8 protocol, u8 version) {
 }
 
 void sphdr_free(struct sphdr *eh) {
-    xfreemsg((char *)eh);
+    xfreeubuf((char *)eh);
 }

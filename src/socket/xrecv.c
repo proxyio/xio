@@ -44,7 +44,7 @@ struct xmsg *recvq_pop(struct sockbase *sb) {
 	DEBUG_OFF("%d", sb->fd);
 	msg = list_first(&sb->rcv.head, struct xmsg, item);
 	list_del_init(&msg->item);
-	msgsz = xiov_len(msg->vec.xiov_base);
+	msgsz = xmsg_iovlen(msg);
 	sb->rcv.buf -= msgsz;
 	events |= XMQ_POP;
 	if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
@@ -66,7 +66,7 @@ struct xmsg *recvq_pop(struct sockbase *sb) {
 void recvq_push(struct sockbase *sb, struct xmsg *msg) {
     struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
-    i64 msgsz = xiov_len(msg->vec.xiov_base);
+    i64 msgsz = xmsg_iovlen(msg);
 
     mutex_lock(&sb->lock);
     if (list_empty(&sb->rcv.head))

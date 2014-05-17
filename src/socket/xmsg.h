@@ -55,8 +55,11 @@ struct xmsg {
     struct xiov vec;
 };
 
-u32 xiov_len(char *ubuf);
-char *xiov_base(char *ubuf);
+u32 xmsg_iovlen(struct xmsg *msg);
+char *xmsg_iovbase(struct xmsg *msg);
+struct xmsg *xallocmsg(int size);
+void xfreemsg(struct xmsg *msg);
+int xmsglen(struct xmsg *msg);
 
 #define xmsg_walk_safe(pos, next, head)					\
     list_for_each_entry_safe(pos, next, head, struct xmsg, item)

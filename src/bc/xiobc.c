@@ -119,13 +119,13 @@ static void req_worker1(int eid) {
 	BUG_ON(sp_add(eid, fd));
     }
     while ((now = rt_mstime()) < timeout) {
-	ubuf = xallocmsg(rand() % buf_len);
-	memcpy(ubuf, buff, xmsglen(ubuf));
+	ubuf = xallocubuf(rand() % buf_len);
+	memcpy(ubuf, buff, xubuflen(ubuf));
 	BUG_ON(sp_send(eid, ubuf));
 	modstat_incrkey(st, SEND);
 	BUG_ON(sp_recv(eid, &ubuf));
 	modstat_incrkey(st, RECV);
-	xfreemsg(ubuf);
+	xfreeubuf(ubuf);
 	modstat_update_timestamp(st, now);
     }
 }
@@ -146,13 +146,13 @@ static void req_worker2(int eid) {
     BUG_ON((fd = xconnect(host)) < 0);
     DEBUG_ON("rep start send");
     while ((now = rt_mstime()) < timeout) {
-	ubuf = xallocmsg(rand() % buf_len);
-	memcpy(ubuf, buff, xmsglen(ubuf));
+	ubuf = xallocubuf(rand() % buf_len);
+	memcpy(ubuf, buff, xubuflen(ubuf));
 	BUG_ON(xsend(fd, ubuf));
 	modstat_incrkey(st, SEND);
 	BUG_ON(xrecv(fd, &ubuf));
 	modstat_incrkey(st, RECV);
-	xfreemsg(ubuf);
+	xfreeubuf(ubuf);
 	modstat_update_timestamp(st, now);
     }
     xclose(fd);

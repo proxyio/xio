@@ -29,7 +29,7 @@ static void xclient(string pf) {
     BUG_ON((sfd = xconnect(host.c_str())) < 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
-	xbuf = xallocmsg(nbytes);
+	xbuf = xallocubuf(nbytes);
 	memcpy(xbuf, buf, nbytes);
 
 	xmsgctl(xbuf, XMSG_CLONE, &oob);
@@ -43,7 +43,7 @@ static void xclient(string pf) {
 	BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
 	BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent));
 	BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
-	xfreemsg(xbuf);
+	xfreeubuf(xbuf);
     }
     xclose(sfd);
 }

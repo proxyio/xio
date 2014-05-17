@@ -24,9 +24,9 @@
 #include "sp_module.h"
 
 
-int sp_send(int eid, char *xmsg) {
+int sp_send(int eid, char *ubuf) {
     struct epbase *ep = eid_get(eid);
-    struct xmsg *out = cont_of(xmsg, struct xmsg, vec.xiov_base);
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     
     if (!ep) {
 	errno = EBADF;
@@ -45,8 +45,8 @@ int sp_send(int eid, char *xmsg) {
 	return -1;
     }
 
-    list_add_tail(&out->item, &ep->snd.head);
-    ep->snd.size += xmsglen(xmsg);
+    list_add_tail(&msg->item, &ep->snd.head);
+    ep->snd.size += xmsglen(msg);
     mutex_unlock(&ep->lock);
     eid_put(eid);
     return 0;

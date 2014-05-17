@@ -49,7 +49,7 @@ static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
-    ep->rcv.size += xmsglen(ubuf);
+    ep->rcv.size += xubuflen(ubuf);
     BUG_ON(ep->rcv.waiters < 0);
     if (ep->rcv.waiters)
 	condition_broadcast(&ep->cond);
@@ -68,7 +68,7 @@ static void __routeback(struct epbase *ep, struct xmsg *msg) {
 	list_add_tail(&msg->item, &sk->snd_cache);
 	return;
     }
-    xfreemsg(ubuf);
+    xfreemsg(msg);
 }
 
 static void routeback(struct epbase *ep) {
@@ -95,7 +95,7 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     *ubuf = msg->vec.xiov_base;
     
     mutex_lock(&ep->lock);
-    ep->snd.size -= xmsglen(*ubuf);
+    ep->snd.size -= xubuflen(*ubuf);
     BUG_ON(ep->snd.waiters < 0);
     if (ep->snd.waiters)
 	condition_broadcast(&ep->cond);

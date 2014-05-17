@@ -26,9 +26,9 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
-char *xallocmsg(int size);
-void xfreemsg(char *ubuf);
-int xmsglen(char *ubuf);
+char *xallocubuf(int size);
+void xfreeubuf(char *ubuf);
+int xubuflen(char *ubuf);
 
 /* Following address family are provided */
 #define XPF_TCP        1

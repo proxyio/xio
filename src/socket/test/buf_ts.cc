@@ -18,7 +18,7 @@ extern int randstr(char *buf, int len);
 TEST(xmsg, outofband) {
     int oob_count = -1;
     struct xcmsg ent = {};
-    char *xbuf = xallocmsg(12);
+    char *xbuf = xallocubuf(12);
     char *xbuf2;
     char oob1[12];
     char oob2[12];
@@ -28,7 +28,7 @@ TEST(xmsg, outofband) {
     BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
     BUG_ON(xmsgctl(xbuf2, XMSG_CMSGNUM, &oob_count));
     BUG_ON(oob_count != 0);
-    xfreemsg(xbuf2);
+    xfreeubuf(xbuf2);
     
     randstr(xbuf, 12);
     randstr(oob1, sizeof(oob1));
@@ -36,17 +36,17 @@ TEST(xmsg, outofband) {
     randstr(oob3, sizeof(oob3));
 
     ent.idx = 0;
-    ent.outofband = xallocmsg(sizeof(oob1));
+    ent.outofband = xallocubuf(sizeof(oob1));
     memcpy(ent.outofband, oob1, sizeof(oob1));
     BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
 
     ent.idx = 2;
-    ent.outofband = xallocmsg(sizeof(oob3));
+    ent.outofband = xallocubuf(sizeof(oob3));
     memcpy(ent.outofband, oob3, sizeof(oob3));
     BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
 
     ent.idx = 1;
-    ent.outofband = xallocmsg(sizeof(oob2));
+    ent.outofband = xallocubuf(sizeof(oob2));
     memcpy(ent.outofband, oob2, sizeof(oob2));
     BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
 
@@ -75,7 +75,7 @@ TEST(xmsg, outofband) {
     BUG_ON(xmsgctl(xbuf2, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob1, sizeof(oob1)) != 0);
 
-    xfreemsg(xbuf);
-    xfreemsg(xbuf2);
+    xfreeubuf(xbuf);
+    xfreeubuf(xbuf2);
 }
 
