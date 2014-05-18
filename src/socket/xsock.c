@@ -84,21 +84,25 @@ void xput(int fd) {
     struct sockbase *sb = xgb.sockbases[fd];
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
-    atomic_dec_and_lock(&sb->ref, mutex, cpu->lock) {
+    BUG_ON(fd != sb->fd);
+    mutex_lock(&xgb.lock);
+    if (atomic_dec(&sb->ref) == 1) {
+	xgb.sockbases[sb->fd] = 0;
+	xgb.unused[--xgb.nsockbases] = sb->fd;
+	DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+
+	mutex_lock(&cpu->lock);
         while (efd_signal(&cpu->efd) < 0)
             mutex_relock(&cpu->lock);
         list_add_tail(&sb->shutdown.link, &cpu->shutdown_socks);
 	mutex_unlock(&cpu->lock);
+	
     }
+    mutex_unlock(&xgb.lock);
 }
 
 static void xshutdown_task_f(struct xtask *ts) {
     struct sockbase *sb = cont_of(ts, struct sockbase, shutdown);
-    
-    DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
-    mutex_lock(&xgb.lock);
-    xgb.unused[--xgb.nsockbases] = sb->fd;
-    mutex_unlock(&xgb.lock);
     sb->vfptr->close(sb);
 }
 

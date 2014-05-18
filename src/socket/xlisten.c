@@ -97,18 +97,14 @@ int xaccept(int fd) {
 }
 
 int _xlisten(int pf, const char *addr) {
-    int fd = xsocket(pf, XLISTENER);
+    int fd;
 
-    if (pf <= 0) {
-	errno = EPROTO;
+    if ((fd = xsocket(pf, XLISTENER)) < 0)
+	return -1;
+    if (xbind(fd, addr) != 0) {
+	xclose(fd);
 	return -1;
     }
-    if (fd < 0) {
-	errno = EMFILE;
-	return -1;
-    }
-    if (xbind(fd, addr) != 0)
-	return -1;
     return fd;
 }
 
@@ -117,7 +113,9 @@ int xlisten(const char *addr) {
     int pf = sockaddr_pf(addr);
     char sockaddr[TP_SOCKADDRLEN] = {};
 
-    if (sockaddr_addr(addr, sockaddr, sizeof(sockaddr)) != 0)
+    if (pf < 0 || sockaddr_addr(addr, sockaddr, sizeof(sockaddr)) != 0) {
+	errno = EPROTO;
 	return -1;
+    }
     return _xlisten(pf, sockaddr);
 }
