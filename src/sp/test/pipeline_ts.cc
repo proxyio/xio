@@ -36,12 +36,12 @@ static int req_thread(void *args) {
 	sbuf = xallocubuf(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
 	BUG_ON(sp_send(eid, sbuf) != 0);
-	DEBUG_OFF("producer send %d request: %10.10s", i, sbuf);
+	DEBUG_ON("producer send %d request: %10.10s", i, sbuf);
 	while (sp_recv(eid, &rbuf) != 0) {
 	    usleep(10000);
 	}
-	DEBUG_OFF("producer recv %d resp: %10.10s", i, rbuf);
-	DEBUG_OFF("----------------------------------------");
+	DEBUG_ON("producer recv %d resp: %10.10s", i, rbuf);
+	DEBUG_ON("----------------------------------------");
 	BUG_ON(xubuflen(rbuf) != sizeof(buf));
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xfreeubuf(rbuf);
@@ -108,7 +108,7 @@ TEST(sp, pipeline) {
 	while (sp_recv(eid, &ubuf) != 0) {
 	    usleep(1000);
 	}
-	DEBUG_OFF("comsumer recv %d requst: %10.10s", i, ubuf);
+	DEBUG_ON("comsumer recv %d requst: %10.10s", i, ubuf);
 	BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum));
 	BUG_ON(cmsgnum != 3);
 	BUG_ON(sp_send(eid, ubuf));

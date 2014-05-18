@@ -27,12 +27,10 @@
 
 
 u32 xmsg_iovlen(struct xmsg *msg) {
-    //struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     return sizeof(msg->vec) + msg->vec.xiov_len;
 }
 
 char *xmsg_iovbase(struct xmsg *msg) {
-    //struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     return (char *)&msg->vec;
 }
 

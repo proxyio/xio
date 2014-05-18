@@ -38,16 +38,19 @@ int sp_rm(int eid, int fd) {
 	if (sk->fd != fd)
 	    continue;
 	list_del_init(&sk->item);
+	ep->listener_num--;
     }
     walk_epsk_safe(sk, nsk, &ep->connectors) {
 	if (sk->fd != fd)
 	    continue;
 	list_del_init(&sk->item);
+	ep->connector_num--;
     }
     walk_epsk_safe(sk, nsk, &ep->bad_socks) {
 	if (sk->fd != fd)
 	    continue;
 	list_del_init(&sk->item);
+	ep->bad_num--;
     }
     mutex_lock(&ep->lock);
     return 0;

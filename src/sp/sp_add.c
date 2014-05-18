@@ -41,9 +41,11 @@ struct epsk *sp_generic_join(struct epbase *ep, int fd) {
     switch (socktype) {
     case XLISTENER:
 	list_add_tail(&nsk->item, &ep->listeners);
+	ep->listener_num++;
 	break;
     case XCONNECTOR:
 	list_add_tail(&nsk->item, &ep->connectors);
+	ep->connector_num++;
 	break;
     default:
 	BUG_ON(1);

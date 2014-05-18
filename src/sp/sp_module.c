@@ -29,41 +29,89 @@ struct sp_global sg;
 static int SP_SNDWND = 1048576000;
 static int SP_RCVWND = 1048576000;
 
+
+void dump_epsk(struct list_head *head) {
+    struct epsk *sk, *nsk;
+
+    walk_epsk_safe(sk, nsk, head) {
+	DEBUG_ON("socket %d on addr %p", sk->fd, sk);
+    }
+}
+
+void dump_disable_out_epsk(struct list_head *head) {
+    struct epsk *sk, *nsk;
+
+    walk_disable_out_sk_safe(sk, nsk, head) {
+	DEBUG_ON("socket %d on addr %p", sk->fd, sk);
+    }
+}
+
+
 static void epsk_bad_status(struct epsk *sk) {
     struct epbase *ep = sk->owner;
+
+    xclose(sk->fd);
     mutex_lock(&ep->lock);
-    list_move_tail(&sk->item, &ep->bad_socks);
+    list_del_init(&sk->item);
+    if (attached(&sk->out_item)) {
+	ep->disable_out_num--;
+	list_del_init(&sk->out_item);
+    }
+    ep->bad_num++;
     mutex_unlock(&ep->lock);
-    DEBUG_OFF("%d", sk->fd);
+    DEBUG_ON("ep %d socket %d bad status", ep->eid, sk->fd);
+    epsk_free(sk);
+}
+
+static void epsk_try_disable_out(struct epsk *sk) {
+    struct epbase *ep = sk->owner;
+
+    mutex_lock(&ep->lock);
+    if (list_empty(&ep->snd.head) && list_empty(&sk->snd_cache)
+	&& !attached(&sk->out_item)) {
+	BUG_ON(!(sk->ent.care & XPOLLOUT));
+	sg_update_sk(sk, sk->ent.care & ~XPOLLOUT);
+	list_move(&sk->out_item, &ep->disable_pollout_socks);
+	ep->disable_out_num++;
+	DEBUG_OFF("ep %d socket %d disable pollout", ep->eid, sk->fd);
+    }
+    mutex_unlock(&ep->lock);
+}
+
+/* WARNING: ep->lock must be hold */
+void __epsk_try_enable_out(struct epsk *sk) {
+    struct epbase *ep = sk->owner;
+
+    if (attached(&sk->out_item)) {
+	list_del_init(&sk->out_item);
+	BUG_ON(sk->ent.care & XPOLLOUT);
+	sg_update_sk(sk, sk->ent.care | XPOLLOUT);
+	ep->disable_out_num--;
+	DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, sk->fd);
+    }
+}
+
+void epsk_try_enable_out(struct epsk *sk) {
+    struct epbase *ep = sk->owner;
+
+    mutex_lock(&ep->lock);
+    __epsk_try_enable_out(sk);
+    mutex_unlock(&ep->lock);
 }
 
 void sg_add_sk(struct epsk *sk) {
     int rc;
-    mutex_lock(&sg.lock);
     rc = xpoll_ctl(sg.pollid, XPOLL_ADD, &sk->ent);
-    mutex_unlock(&sg.lock);
-    BUG_ON(rc);
-}
-
-void sg_rm_sk(struct epsk *sk) {
-    int rc;
-    mutex_lock(&sg.lock);
-    rc = xpoll_ctl(sg.pollid, XPOLL_DEL, &sk->ent);
-    mutex_unlock(&sg.lock);
-    BUG_ON(rc);
-}
-
-void __sg_update_sk(struct epsk *sk, u32 ev) {
-    int rc;
-    sk->ent.care = ev;
-    rc = xpoll_ctl(sg.pollid, XPOLL_MOD, &sk->ent);
     BUG_ON(rc);
 }
 
 void sg_update_sk(struct epsk *sk, u32 ev) {
-    mutex_lock(&sg.lock);
-    __sg_update_sk(sk, ev);
-    mutex_unlock(&sg.lock);
+    int rc;
+    sk->ent.care = ev;
+    rc = xpoll_ctl(sg.pollid, XPOLL_MOD, &sk->ent);
+
+    /* has bug here */
+    BUG_ON(rc);
 }
 
 static void connector_event_hndl(struct epsk *sk) {
@@ -78,8 +126,8 @@ static void connector_event_hndl(struct epsk *sk) {
 	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
 	    if ((rc = ep->vfptr.add(ep, sk, ubuf)) < 0) {
 		xfreeubuf(ubuf);
-		DEBUG_ON("ep %d drop message from socket %d of can't back",
-			  ep->eid, sk->fd);
+		DEBUG_ON("ep %d drop msg from socket %d of can't back",
+			 ep->eid, sk->fd);
 	    }
 	} else if (errno != EAGAIN)
 	    happened |= XPOLLERR;
@@ -95,11 +143,13 @@ static void connector_event_hndl(struct epsk *sk) {
 			  errno);
 	    } else
 		DEBUG_OFF("ep %d socket %d send ok", ep->eid, sk->fd);
+	} else {
+	    epsk_try_disable_out(sk);
+	    // epsk_try_enable_out(sk);
 	}
     }
     if (happened & XPOLLERR) {
-	DEBUG_OFF("ep %d socket %d epipe", ep->eid, sk->fd);
-	sg_rm_sk(sk);
+	DEBUG_ON("ep %d connector %d epipe", ep->eid, sk->fd);
 	epsk_bad_status(sk);
     }
 }
@@ -124,8 +174,7 @@ static void listener_event_hndl(struct epsk *sk) {
 	    happened |= XPOLLERR;
     }
     if (happened & XPOLLERR) {
-	DEBUG_OFF("socket %d epipe", sk->fd);
-	sg_rm_sk(sk);
+	DEBUG_OFF("ep %d listener %d epipe", ep->eid, sk->fd);
 	epsk_bad_status(sk);
     }
 }
@@ -170,20 +219,24 @@ extern const char *event_str[];
 static int po_routine_worker(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
     int rc, i;
+    int ivl = 0;
     const char *estr;
     struct xpoll_event ent[100];
 
     waitgroup_done(wg);
     while (!sg.exiting) {
 	rc = xpoll_wait(sg.pollid, ent, NELEM(ent, struct xpoll_event), 1);
+	if (ivl)
+	    usleep(ivl);
 	if (rc < 0)
-	    continue;
+	    goto SD_EPBASE;
 	DEBUG_OFF("%d sockets happened events", rc);
 	for (i = 0; i < rc; i++) {
 	    estr = event_str[ent[i].happened];
 	    DEBUG_OFF("socket %d with events %s", ent[i].fd, estr);
 	    event_hndl(&ent[i]);
 	}
+    SD_EPBASE:
 	shutdown_epbase();
     }
     shutdown_epbase();
@@ -274,6 +327,7 @@ void eid_put(int eid) {
 struct epsk *epsk_new() {
     struct epsk *sk = (struct epsk *)mem_zalloc(sizeof(*sk));
     if (sk) {
+	INIT_LIST_HEAD(&sk->out_item);
 	INIT_LIST_HEAD(&sk->snd_cache);
     }
     return sk;
@@ -299,9 +353,14 @@ void epbase_init(struct epbase *ep) {
     ep->snd.waiters = 0;
     INIT_LIST_HEAD(&ep->snd.head);
 
+    ep->listener_num = 0;
+    ep->connector_num = 0;
+    ep->bad_num = 0;
+    ep->disable_out_num = 0;
     INIT_LIST_HEAD(&ep->listeners);
     INIT_LIST_HEAD(&ep->connectors);
     INIT_LIST_HEAD(&ep->bad_socks);
+    INIT_LIST_HEAD(&ep->disable_pollout_socks);
 }
 
 void epbase_exit(struct epbase *ep) {
@@ -325,6 +384,7 @@ void epbase_exit(struct epbase *ep) {
     walk_epsk_safe(sk, nsk, &closed_head) {
 	list_del_init(&sk->item);
 	xclose(sk->fd);
+	DEBUG_ON("ep %d close socket %d", ep->eid, sk->fd);
 	epsk_free(sk);
     }
 

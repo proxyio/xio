@@ -146,9 +146,38 @@ static int __eloop_wait(eloop_t *el) {
 }
 
 
+#define epoll_str_case(token)			\
+    case token:					\
+    str = #token;				\
+    break					\
+
+static char *epoll_str(u32 events) {
+    char *str = 0;
+
+    switch (events) {
+	epoll_str_case(EPOLLIN|EPOLLOUT|EPOLLERR|EPOLLRDHUP);
+	epoll_str_case(EPOLLIN);
+	epoll_str_case(EPOLLOUT);
+	epoll_str_case(EPOLLERR);
+	epoll_str_case(EPOLLRDHUP);
+	epoll_str_case(EPOLLIN|EPOLLOUT);
+	epoll_str_case(EPOLLIN|EPOLLERR);
+	epoll_str_case(EPOLLOUT|EPOLLERR);
+	epoll_str_case(EPOLLIN|EPOLLRDHUP);
+	epoll_str_case(EPOLLOUT|EPOLLRDHUP);
+	epoll_str_case(EPOLLERR|EPOLLRDHUP);
+	epoll_str_case(EPOLLIN|EPOLLOUT|EPOLLERR);
+	epoll_str_case(EPOLLIN|EPOLLOUT|EPOLLRDHUP);
+	epoll_str_case(EPOLLIN|EPOLLERR|EPOLLRDHUP);
+	epoll_str_case(EPOLLOUT|EPOLLERR|EPOLLRDHUP);
+    }
+    return str;
+}
+
 int eloop_once(eloop_t *el) {
     int n = 0;
     ev_t *et;
+    u32 happ;
     struct epoll_event *ev_buf = el->ev_buf;
     
     if ((n = __eloop_wait(el)) < 0)
@@ -156,8 +185,8 @@ int eloop_once(eloop_t *el) {
     DEBUG_OFF("%d fd has events", n);
     while (ev_buf < el->ev_buf + n) {
 	et = (ev_t *)ev_buf->data.ptr;
-	et->happened = ev_buf->events;
-	DEBUG_OFF("fd %d eventloop with events %d", et->fd, et->happened);
+	happ = et->happened = ev_buf->events;
+	DEBUG_OFF("fd %d waitup with events %s", et->fd, epoll_str(happ));
 	et->f(el, et);
 	ev_buf++;
     }

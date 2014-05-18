@@ -59,6 +59,7 @@ struct epsk {
     int fd;
     uuid_t uuid;
     struct list_head item;
+    struct list_head out_item;
     struct list_head snd_cache;
 };
 
@@ -67,6 +68,8 @@ void epsk_free(struct epsk *sk);
 void sg_add_sk(struct epsk *sk);
 void sg_rm_sk(struct epsk *sk);
 void sg_update_sk(struct epsk *sk, u32 ev);
+void __epsk_try_enable_out(struct epsk *sk);
+
 
 struct skbuf {
     int wnd;
@@ -88,10 +91,15 @@ struct epbase {
     struct xpoll_event ent;
     struct skbuf rcv;
     struct skbuf snd;
+    struct list_head item;
+    u64 listener_num;
+    u64 connector_num;
+    u64 bad_num;
+    u64 disable_out_num;
     struct list_head listeners;
     struct list_head connectors;
     struct list_head bad_socks;
-    struct list_head item;
+    struct list_head disable_pollout_socks;
 };
 
 void epbase_init(struct epbase *ep);
@@ -102,6 +110,12 @@ void epbase_exit(struct epbase *ep);
 
 #define walk_epsk_safe(sk, nsk, head)				\
     list_for_each_entry_safe(sk, nsk, head, struct epsk, item)
+
+#define walk_disable_out_sk_safe(sk, nsk, head)				\
+    list_for_each_entry_safe(sk, nsk, head, struct epsk, out_item)
+
+void dump_epsk(struct list_head *head);
+void dump_disable_out_epsk(struct list_head *head);
 
 
 #define XIO_MAX_ENDPOINTS 10240

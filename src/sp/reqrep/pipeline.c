@@ -64,6 +64,7 @@ static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     }
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
+    __epsk_try_enable_out(target);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     return 0;
 }
@@ -97,6 +98,7 @@ static int dispatcher_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     h->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
+    __epsk_try_enable_out(target);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     return 0;
 }

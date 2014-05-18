@@ -66,6 +66,7 @@ static void __routeback(struct epbase *ep, struct xmsg *msg) {
 	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
 	    continue;
 	list_add_tail(&msg->item, &sk->snd_cache);
+	__epsk_try_enable_out(sk);
 	return;
     }
     xfreemsg(msg);

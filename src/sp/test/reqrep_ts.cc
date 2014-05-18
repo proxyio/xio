@@ -47,6 +47,7 @@ static int req_thread(void *args) {
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xfreeubuf(rbuf);
     }
+    DEBUG_ON("producer %d close on %s", eid, host.c_str());
     sp_close(eid);
     return 0;
 }
@@ -57,8 +58,8 @@ TEST(sp, reqrep) {
     u32 i;
     thread_t t[3];
     const char *pf[] = {
-	"tcp",
 	"ipc",
+	"tcp",
 	"inproc",
     };
     int s;

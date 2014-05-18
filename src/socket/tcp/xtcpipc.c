@@ -151,7 +151,7 @@ static int xio_connector_bind(struct sockbase *sb, const char *sock) {
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     self->sys_fd = sys_fd;
     self->ops = default_xops;
-    self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
+    self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
     self->et.fd = sys_fd;
     self->et.f = xio_connector_hndl;
     self->et.data = self;
@@ -389,8 +389,9 @@ int xio_connector_hndl(eloop_t *el, ev_t *et) {
 	DEBUG_OFF("io xsock %d EPOLLOUT", sb->fd);
 	rc = xio_connector_snd(sb);
     }
-    if ((rc < 0 && errno != EAGAIN) || et->happened & (EPOLLERR|EPOLLRDHUP)) {
-	DEBUG_OFF("io xsock %d EPIPE", sb->fd);
+    if ((rc < 0 && errno != EAGAIN) ||
+	et->happened & (EPOLLERR|EPOLLRDHUP|EPOLLHUP)) {
+	DEBUG_OFF("io xsock %d EPIPE with events %d", sb->fd, et->happened);
 	mutex_lock(&sb->lock);
 	sb->fepipe = true;
 	if (sb->rcv.waiters || sb->snd.waiters)

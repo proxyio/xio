@@ -143,6 +143,7 @@ void xsock_exit(struct sockbase *sb) {
     struct list_head head = {};
     struct xmsg *msg, *nmsg;
 
+    DEBUG_ON("socket %d close", sb->fd);
     mutex_destroy(&sb->lock);
     condition_destroy(&sb->cond);
     ZERO(sb->addr);
