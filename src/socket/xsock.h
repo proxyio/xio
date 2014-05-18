@@ -117,7 +117,7 @@ struct sockbase {
     u64 fasync:1;
     u64 fepipe:1;
 
-    int owner;
+    struct sockbase *owner;
     struct list_head sub_socks;
     struct list_head sib_link;
 

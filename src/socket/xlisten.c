@@ -32,8 +32,9 @@
 int acceptq_add(struct sockbase *sb, struct sockbase *new) {
     int rc = 0;
 
-    while (sb->owner >= 0)
-	sb = xgb.sockbases[sb->owner];
+    /* Compatible for multi_listener */
+    if (sb->owner)
+	sb = sb->owner;
 
     mutex_lock(&sb->lock);
     if (list_empty(&sb->acceptq.head) && sb->acceptq.waiters > 0) {

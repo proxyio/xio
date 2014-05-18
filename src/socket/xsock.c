@@ -113,7 +113,7 @@ void xsock_init(struct sockbase *sb) {
     ZERO(sb->peer);
     sb->fasync = false;
     sb->fepipe = false;
-    sb->owner = -1;
+    sb->owner = 0;
     INIT_LIST_HEAD(&sb->sub_socks);
     INIT_LIST_HEAD(&sb->sib_link);
 
@@ -149,7 +149,7 @@ void xsock_exit(struct sockbase *sb) {
     ZERO(sb->peer);
     sb->fasync = 0;
     sb->fepipe = 0;
-    sb->owner = -1;
+    sb->owner = 0;
     BUG_ON(!list_empty(&sb->sub_socks));
     BUG_ON(attached(&sb->sib_link));
     
