@@ -34,7 +34,7 @@ char *xmsg_iovbase(struct xmsg *msg) {
     return (char *)&msg->vec;
 }
 
-int xiov_serialize(struct xmsg *msg, struct list_head *head) {
+int xmsg_serialize(struct xmsg *msg, struct list_head *head) {
     int rc = 0;
     struct xmsg *cmsg, *ncmsg;
 
@@ -42,7 +42,7 @@ int xiov_serialize(struct xmsg *msg, struct list_head *head) {
     list_add_tail(&msg->item, head);
     xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
 	list_del_init(&cmsg->item);
-	rc += xiov_serialize(cmsg, head);
+	rc += xmsg_serialize(cmsg, head);
     }
     return rc;
 }

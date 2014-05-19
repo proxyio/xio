@@ -64,7 +64,7 @@ int xmsglen(struct xmsg *msg);
 #define xmsg_walk_safe(pos, next, head)					\
     list_for_each_entry_safe(pos, next, head, struct xmsg, item)
 
-int xiov_serialize(struct xmsg *msg, struct list_head *head);
+int xmsg_serialize(struct xmsg *msg, struct list_head *head);
 
 
 

@@ -267,7 +267,7 @@ static void bufio_add(struct bio *b, struct xmsg *msg) {
     struct xmsg *nmsg;
 
     INIT_LIST_HEAD(&head);
-    xiov_serialize(msg, &head);
+    xmsg_serialize(msg, &head);
 
     xmsg_walk_safe(msg, nmsg, &head) {
 	bio_write(b, xmsg_iovbase(msg), xmsg_iovlen(msg));
@@ -340,7 +340,7 @@ static int xio_connector_sg(struct sockbase *sb) {
 
 	/* Third. serialize the queue message for send */
 	while ((msg = sendq_rm(sb)))
-	    self->iov_length += xiov_serialize(msg, &self->sg_head);
+	    self->iov_length += xmsg_serialize(msg, &self->sg_head);
 	if (self->iov_length <= 0) {
 	    errno = EAGAIN;
 	    return -1;
