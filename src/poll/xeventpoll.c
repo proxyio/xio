@@ -54,7 +54,7 @@ void xpollbase_emit(struct pollbase *pb, u32 events) {
 	list_move(&itm->lru_link, &self->lru_head);
 	if (self->uwaiters)
 	    condition_broadcast(&self->cond);
-    } else {
+    } else if (pb->event.happened && !events) {
 	DEBUG_OFF("socket %d disable events notify", pb->event.fd);
 	pb->event.happened = 0;
 	list_move_tail(&itm->lru_link, &self->lru_head);
@@ -138,8 +138,8 @@ static int xpoll_mod(struct xpoll_t *self, struct xpoll_event *event) {
 
     mutex_lock(&self->lock);
     spin_lock(&itm->lock);
-    event->happened = 0;
-    itm->base.event = *event;
+    /* WANRING: only update care events here. */
+    itm->base.event.care = event->care;
     spin_unlock(&itm->lock);
     mutex_unlock(&self->lock);
 
