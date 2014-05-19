@@ -22,7 +22,7 @@ image:images/arch.png[The Architecture of proxyio]
 For more details, see APIs:
 linkxio:xio[7]
 linkxio:xpoll[7]
-linkxio:xendpoint[7]
+linkxio:sp[7]
 
 The communication patterns, also called "scalability protocols", are basic blocks
 for building distributed systems. By combining them you can create a vast array of
@@ -30,7 +30,6 @@ distributed applications. The following scalability protocols are provided in th
 near future:
 
 ==============================================
-	PAIR:   simple one-to-one communication
 	BUS:    simple many-to-many communication
 	REQREP: build clusters of stateless services to process user requests
 	PUBSUB: distributes messages to large sets of interested subscribers

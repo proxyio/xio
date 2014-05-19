@@ -10,13 +10,12 @@ SYNOPSIS
 --------
 *#include <xio/socket.h>*
 
-*int xgetsockopt (int 's', int 'level', int 'option', void '*val',
-    size_t '*vallen');*
+*int xgetsockopt (int 's', int 'level', int 'opt', void '*optval', size_t '*optlen');*
 
 DESCRIPTION
 -----------
-Retrieves the value for the 'option'. The 'level' argument specifies the
-protocol level at which the option resides. For generic socket-level
+Retrieves the value for the 'opt'. The 'level' argument specifies the
+protocol level at which the opt resides. For generic socket-level
 options use _XSOCKET_ level. For transport-specific options use ID of the
 transport as the 'level' argument (e.g. _XTCP_).
 

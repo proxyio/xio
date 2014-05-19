@@ -1,19 +1,19 @@
-xsetsockopt(3)
-================
+sp_setopt(3)
+============
 
 NAME
 ----
-xsetsockopt - set a socket option
-
+sp_setopt - set an endpoint option
 
 SYNOPSIS
 --------
-*#include <xio/socket.h>*
+*#include <xio/sp.h>*
 
-*int xsetsockopt (int 's', int 'level', int 'opt', void '*optval', size_t '*optlen');*
+*int sp_setopt (int 's', int 'opt', void '*optval', int 'optlen');*
 
+DESCRIPTION
+-----------
 
-for more details. see xgetsockopt[3]
 
 RETURN VALUE
 ------------
@@ -24,18 +24,22 @@ appropriately.
 ERRORS
 ------
 *EBADF*::
-The provided socket is invalid.
+The provided endpoint is invalid.
 *EINVAL*::
 The option is unknown or option is invalid.
 
+EXAMPLE
+-------
+
+
 SEE ALSO
 --------
-linkxio:xsocket[3]
-linkxio:xgetsockopt[3]
-linkxio:xio[7]
+linkxio:sp_endpoint[3]
+linkxio:sp[7]
 
 AUTHORS
 -------
 	Dong Fang <yp.fangdong@gmail.com>
 	Martin Sustrik <sustrik@250bpm.com>
+
 
