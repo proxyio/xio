@@ -50,8 +50,8 @@ void dump_disable_out_epsk(struct list_head *head) {
 static void epsk_bad_status(struct epsk *sk) {
     struct epbase *ep = sk->owner;
 
-    xclose(sk->fd);
     mutex_lock(&ep->lock);
+    xclose(sk->fd);
     list_del_init(&sk->item);
     if (attached(&sk->out_item)) {
 	ep->disable_out_num--;
@@ -109,8 +109,6 @@ void sg_update_sk(struct epsk *sk, u32 ev) {
     int rc;
     sk->ent.care = ev;
     rc = xpoll_ctl(sg.pollid, XPOLL_MOD, &sk->ent);
-
-    /* has bug here */
     BUG_ON(rc);
 }
 
