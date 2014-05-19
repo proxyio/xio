@@ -30,22 +30,21 @@ static int SP_SNDWND = 1048576000;
 static int SP_RCVWND = 1048576000;
 
 
-void dump_epsk(struct list_head *head) {
+void ep_traceback(int eid) {
+    struct epbase *ep = sg.endpoints[eid];
     struct epsk *sk, *nsk;
 
-    walk_epsk_safe(sk, nsk, head) {
-	DEBUG_ON("socket %d on addr %p", sk->fd, sk);
+    DEBUG_ON("%d sndQ %d rcvQ %d", ep->eid, ep->snd.size, ep->rcv.size);
+    walk_epsk_safe(sk, nsk, &ep->connectors) {
+	DEBUG_ON("connector %d sndQ %d", sk->fd, list_empty(&sk->snd_cache));
+    }
+    walk_epsk_safe(sk, nsk, &ep->listeners) {
+	DEBUG_ON("listener %d", sk->fd);
+    }
+    walk_disable_out_sk_safe(sk, nsk, &ep->disable_pollout_socks) {
+	DEBUG_ON("no-out connector %d sndQ %d", sk->fd, list_empty(&sk->snd_cache));
     }
 }
-
-void dump_disable_out_epsk(struct list_head *head) {
-    struct epsk *sk, *nsk;
-
-    walk_disable_out_sk_safe(sk, nsk, head) {
-	DEBUG_ON("socket %d on addr %p", sk->fd, sk);
-    }
-}
-
 
 static void epsk_bad_status(struct epsk *sk) {
     struct epbase *ep = sk->owner;

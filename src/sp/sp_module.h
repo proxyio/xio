@@ -114,8 +114,6 @@ void epbase_exit(struct epbase *ep);
 #define walk_disable_out_sk_safe(sk, nsk, head)				\
     list_for_each_entry_safe(sk, nsk, head, struct epsk, out_item)
 
-void dump_epsk(struct list_head *head);
-void dump_disable_out_epsk(struct list_head *head);
 
 
 #define XIO_MAX_ENDPOINTS 10240
