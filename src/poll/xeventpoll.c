@@ -49,13 +49,13 @@ void xpollbase_emit(struct pollbase *pb, u32 events) {
     }
     spin_lock(&itm->lock);
     if (events) {
-	DEBUG_OFF("xsock %d update events %s", pb->event.fd, event_str[events]);
+	DEBUG_OFF("socket %d update events %s", pb->event.fd, event_str[events]);
 	pb->event.happened = events;
 	list_move(&itm->lru_link, &self->lru_head);
 	if (self->uwaiters)
 	    condition_broadcast(&self->cond);
-    } else if (pb->event.happened && !events) {
-	DEBUG_OFF("xsock %d disable events notify", pb->event.fd);
+    } else {
+	DEBUG_OFF("socket %d disable events notify", pb->event.fd);
 	pb->event.happened = 0;
 	list_move_tail(&itm->lru_link, &self->lru_head);
     }
@@ -177,7 +177,7 @@ int xpoll_ctl(int pollid, int op, struct xpoll_event *event) {
     return rc;
 }
 
-int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
+int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int to) {
     struct xpoll_t *self = pget(pollid);
     int n = 0;
     struct xpitem *itm, *nitm;
@@ -187,11 +187,12 @@ int xpoll_wait(int pollid, struct xpoll_event *ev_buf, int size, int timeout) {
 	return -1;
     }
     mutex_lock(&self->lock);
-    /* If havn't any events here. we wait */
+
+    /* WAITING any events happened */
     itm = list_first(&self->lru_head, struct xpitem, lru_link);
-    if (!itm->base.event.happened && timeout > 0) {
+    if (!itm->base.event.happened && to > 0) {
 	self->uwaiters++;
-	condition_timedwait(&self->cond, &self->lock, timeout);
+	condition_timedwait(&self->cond, &self->lock, to);
 	self->uwaiters--;
     }
     walk_xpitem_safe(itm, nitm, &self->lru_head) {

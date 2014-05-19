@@ -58,7 +58,7 @@ static void epsk_bad_status(struct epsk *sk) {
     }
     ep->bad_num++;
     mutex_unlock(&ep->lock);
-    DEBUG_ON("ep %d socket %d bad status", ep->eid, sk->fd);
+    DEBUG_OFF("ep %d socket %d bad status", ep->eid, sk->fd);
     epsk_free(sk);
 }
 
@@ -123,7 +123,7 @@ static void connector_event_hndl(struct epsk *sk) {
 	    DEBUG_OFF("ep %d socket %d recv ok", ep->eid, sk->fd);
 	    if ((rc = ep->vfptr.add(ep, sk, ubuf)) < 0) {
 		xfreeubuf(ubuf);
-		DEBUG_ON("ep %d drop msg from socket %d of can't back",
+		DEBUG_OFF("ep %d drop msg from socket %d of can't back",
 			 ep->eid, sk->fd);
 	    }
 	} else if (errno != EAGAIN)
@@ -146,7 +146,7 @@ static void connector_event_hndl(struct epsk *sk) {
 	}
     }
     if (happened & XPOLLERR) {
-	DEBUG_ON("ep %d connector %d epipe", ep->eid, sk->fd);
+	DEBUG_OFF("ep %d connector %d epipe", ep->eid, sk->fd);
 	epsk_bad_status(sk);
     }
 }
@@ -381,7 +381,7 @@ void epbase_exit(struct epbase *ep) {
     walk_epsk_safe(sk, nsk, &closed_head) {
 	list_del_init(&sk->item);
 	xclose(sk->fd);
-	DEBUG_ON("ep %d close socket %d", ep->eid, sk->fd);
+	DEBUG_OFF("ep %d close socket %d", ep->eid, sk->fd);
 	epsk_free(sk);
     }
 
