@@ -1,0 +1,52 @@
+sp_close(3)
+============
+
+NAME
+----
+sp_close - close an endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/sp.h>*
+
+*int sp_close (int 'eid');*
+
+
+DESCRIPTION
+-----------
+Close the endpoint 'eid'. so that it no longer refers to any endpoint and may be reused.
+
+RETURN VALUE
+------------
+close() returns zero on success.  On error, -1 is returned, and errno is set appropriately.
+
+ERRORS
+------
+*EBADF*::
+The provided socket is invalid.
+
+EXAMPLE
+-------
+
+----
+int eid = sp_endpoint (SP_REQREP, SP_REP);
+assert (sp_close (eid) == 0);
+----
+
+
+SEE ALSO
+--------
+linkxio:sp_endpoint[3]
+linkxio:sp_add[3]
+linkxio:sp_rm[3]
+linkxio:sp_send[3]
+linkxio:sp_recv[3]
+linkxio:sp.[7]
+
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+
+

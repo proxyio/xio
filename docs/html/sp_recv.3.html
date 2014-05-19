@@ -4,7 +4,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="generator" content="AsciiDoc 8.4.5" />
-<title>xep_add(3)</title>
+<title>sp_recv(3)</title>
 <style type="text/css">
 /* Debug borders */
 p, li, dt, dd, div, pre, h1, h2, h3, h4, h5, h6 {
@@ -384,39 +384,45 @@ div#toc a:visited { color: blue; }
 </head>
 <body>
 <div id="header">
-<h1>xep_add(3)</h1>
+<h1>sp_recv(3)</h1>
 </div>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xep_add - add xio socket into endpoint</p></div>
+<div class="paragraph"><p>sp_recv - receive one ubuf from endpoint</p></div>
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><strong>#include &lt;xio/endpoint.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>int xep_add(int <em>eid</em>, int <em>xsockfd</em>);</strong></p></div>
+<div class="paragraph"><p><strong>#include &lt;xio/sp.h&gt;</strong></p></div>
+<div class="paragraph"><p><strong>int sp_recv (int <em>eid</em>, char <em></strong>*ubuf</em>);*</p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
+<div class="paragraph"><p>Receive a ubuf from the endpoint <em>eid</em> and store it in the buffer referenced by
+the <em>ubuf</em> argument.</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
+<div class="paragraph"><p>On success, zero is returned.  On error, -1 is returned, and errno is set
+appropriately.</p></div>
 </div>
 <h2 id="_errors">ERRORS</h2>
 <div class="sectionbody">
-</div>
-<h2 id="_example">EXAMPLE</h2>
-<div class="sectionbody">
-<div class="listingblock">
-<div class="content">
-<pre><tt>assert( xep_add(eid, sockfd) == 0 );</tt></pre>
-</div></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+<strong>EAGAIN</strong>
+</dt>
+<dd>
+<p>
+No any available ubuf. try again.
+</p>
+</dd>
+</dl></div>
 </div>
 <h2 id="_see_also">SEE ALSO</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><a href="xep_rm.3.html">xep_rm(3)</a>
-<a href="xep_send.3.html">xep_send(3)</a>
-<a href="xep_recv.3.html">xep_recv(3)</a>
-<a href="xendpoint.7.html">xendpoint(7)</a></p></div>
+<div class="paragraph"><p><a href="sp_send.3.html">sp_send(3)</a>
+<a href="sp_close.3.html">sp_close(3)</a>
+<a href="sp.7.html">sp(7)</a></p></div>
 </div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
@@ -430,7 +436,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-04 13:59:21 CST
+Last updated 2014-05-19 14:06:21 CST
 </div>
 </div>
 </body>

@@ -53,7 +53,7 @@ EXAMPLE
 
 SEE ALSO
 --------
-linkxio:xfreemsg[3]
+linkxio:xfreeubuf[3]
 linkxio:xsend[3]
 linkxio:xio[7]
 

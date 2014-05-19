@@ -1,0 +1,49 @@
+sp(7)
+=====
+
+NAME
+----
+sp - scalability protocols for building large distributed clusters
+
+SYNOPSIS
+--------
+cc ['flags'] 'files' *-lxio* ['libraries']
+
+
+DESCRIPTION
+-----------
+
+
+APIs
+----
+
+Create an sp endpoint::
+    linkxio:sp_endpoint[3]
+
+Close an endpoint id::
+    linkxio:sp_close[3]
+
+Add a xio socket into endpoint::
+    linkxio:sp_add[3]
+
+Remove a xio socket from endpoint::
+    linkxio:sp_rm[3]
+
+Recv one ubuf from endpoint::
+    linkxio:sp_recv[3]
+
+Send one ubuf into endpoint::
+    linkxio:sp_send[3]
+
+Set an endpoint option::
+    linkxio:sp_setopt[3]
+
+Get an endpoint option::
+    linkxio:sp_getopt[3]
+
+    
+AUTHORS
+-------
+	Dong Fang <yp.fangdong@gmail.com>
+	Martin Sustrik <sustrik@250bpm.com>
+

@@ -1,16 +1,16 @@
-xallocmsg(3)
+xallocubuf(3)
 ============
 
 NAME
 ----
-xallocmsg - allocate a message
+xallocubuf - allocate a message
 
 
 SYNOPSIS
 --------
 *#include <xio/socket.h>*
 
-*void *xallocmsg (size_t 'size');*
+*void *xallocubuf (size_t 'size');*
 
 
 DESCRIPTION
@@ -36,15 +36,15 @@ EXAMPLE
 -------
 
 ----
-void *buf = xallocmsg (12);
-memcpy (buf, "Hello world!", 12);
-xsend (s, buf);
+void *ubuf = xallocubuf (12);
+memcpy (ubuf, "Hello world!", 12);
+xsend (s, ubuf);
 ----
 
 
 SEE ALSO
 --------
-linkxio:xfreemsg[3]
+linkxio:xfreeubuf[3]
 linkxio:xsend[3]
 linkxio:xio[7]
 

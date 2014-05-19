@@ -1,21 +1,21 @@
-xmsglen(3)
+xubuflen(3)
 ==========
 
 NAME
 ----
-xmsglen - return length of xmsg
+xubuflen - return length of xmsg
 
 
 SYNOPSIS
 --------
 *#include <xio/socket.h>*
 
-*int *xmsglen (void '*xmsg');*
+*int *xubuflen (void '*xmsg');*
 
 
 DESCRIPTION
 -----------
-Return the xmessage size allocated by xallocmsg[3]
+Return the xmessage size allocated by xallocubuf[3]
 
 RETURN VALUE
 ------------
@@ -32,14 +32,14 @@ EXAMPLE
 -------
 
 ----
-void *buf = xallocmsg (12);
-assert (xmsglen(buf) == 12)
+void *ubuf = xallocubuf (12);
+assert (xubuflen(ubuf) == 12)
 ----
 
 
 SEE ALSO
 --------
-linkxio:xallocmsg[3]
+linkxio:xallocubuf[3]
 linkxio:xio[7]
 
 AUTHORS

@@ -4,7 +4,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="generator" content="AsciiDoc 8.4.5" />
-<title>xep_freeubuf(3)</title>
+<title>sp(7)</title>
 <style type="text/css">
 /* Debug borders */
 p, li, dt, dd, div, pre, h1, h2, h3, h4, h5, h6 {
@@ -384,45 +384,87 @@ div#toc a:visited { color: blue; }
 </head>
 <body>
 <div id="header">
-<h1>xep_freeubuf(3)</h1>
+<h1>sp(7)</h1>
 </div>
 <h2 id="_name">NAME</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xep_freeubuf - deallocate a endpoint user-space buf</p></div>
+<div class="paragraph"><p>sp - scalability protocols for building large distributed clusters</p></div>
 </div>
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
-<div class="paragraph"><p><strong>#include &lt;xio/endpoint.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>void xep_freeubuf (char <em>*ubuf</em>);</strong></p></div>
+<div class="paragraph"><p>cc [<em>flags</em>] <em>files</em> <strong>-lxio</strong> [<em>libraries</em>]</p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Deallocates a ep_ubuf allocated using <a href="xep_allocubuf.3.html">xep_allocubuf(3)</a> function or
-received via <a href="xep_recv.3.html">xep_recv(3)</a> function.</p></div>
 </div>
-<h2 id="_return_value">RETURN VALUE</h2>
+<h2 id="_apis">APIs</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>Nothing return</p></div>
-</div>
-<h2 id="_errors">ERRORS</h2>
-<div class="sectionbody">
-</div>
-<h2 id="_example">EXAMPLE</h2>
-<div class="sectionbody">
-<div class="listingblock">
-<div class="content">
-<pre><tt>char *ubuf;
-assert( xep_recv (eid, &amp;ubuf) == 0);
-xep_freeubuf (ubuf);</tt></pre>
-</div></div>
-</div>
-<h2 id="_see_also">SEE ALSO</h2>
-<div class="sectionbody">
-<div class="paragraph"><p><a href="xep_allocubuf.3.html">xep_allocubuf(3)</a>
-<a href="xep_ubuflen.3.html">xep_ubuflen(3)</a>
-<a href="xep_recv.3.html">xep_recv(3)</a>
-<a href="xep_send.3.html">xep_send(3)</a>
-<a href="xendpoint.7.html">xendpoint(7)</a></p></div>
+<div class="dlist"><dl>
+<dt class="hdlist1">
+Create an sp endpoint
+</dt>
+<dd>
+<p>
+    <a href="sp_endpoint.3.html">sp_endpoint(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Close an endpoint id
+</dt>
+<dd>
+<p>
+    <a href="sp_close.3.html">sp_close(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Add a xio socket into endpoint
+</dt>
+<dd>
+<p>
+    <a href="sp_add.3.html">sp_add(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Remove a xio socket from endpoint
+</dt>
+<dd>
+<p>
+    <a href="sp_rm.3.html">sp_rm(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Recv one ubuf from endpoint
+</dt>
+<dd>
+<p>
+    <a href="sp_recv.3.html">sp_recv(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Send one ubuf into endpoint
+</dt>
+<dd>
+<p>
+    <a href="sp_send.3.html">sp_send(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Set an endpoint option
+</dt>
+<dd>
+<p>
+    <a href="sp_setopt.3.html">sp_setopt(3)</a>
+</p>
+</dd>
+<dt class="hdlist1">
+Get an endpoint option
+</dt>
+<dd>
+<p>
+    <a href="sp_getopt.3.html">sp_getopt(3)</a>
+</p>
+</dd>
+</dl></div>
 </div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
@@ -436,7 +478,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-04 13:59:21 CST
+Last updated 2014-05-19 13:52:08 CST
 </div>
 </div>
 </body>

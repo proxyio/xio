@@ -1,16 +1,16 @@
-xep_add(3)
+sp_add(3)
 ==========
 
 NAME
 ----
-xep_add - add xio socket into endpoint
+sp_add - add xio socket into an endpoint
 
 
 SYNOPSIS
 --------
-*#include <xio/endpoint.h>*
+*#include <xio/sp.h>*
 
-*int xep_add(int 'eid', int 'xsockfd');*
+*int sp_add(int 'eid', int 'xsockfd');*
 
 
 DESCRIPTION
@@ -29,16 +29,16 @@ EXAMPLE
 -------
 
 ----
-assert( xep_add(eid, sockfd) == 0 );
+assert( sp_add(eid, sockfd) == 0 );
 ----
 
 
 SEE ALSO
 --------
-linkxio:xep_rm[3]
-linkxio:xep_send[3]
-linkxio:xep_recv[3]
-linkxio:xendpoint[7]
+linkxio:sp_rm[3]
+linkxio:sp_send[3]
+linkxio:sp_recv[3]
+linkxio:sp[7]
 
 AUTHORS
 -------

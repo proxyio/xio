@@ -1,0 +1,49 @@
+sp_rm(3)
+=========
+
+NAME
+----
+sp_rm - remove xio socket into endpoint
+
+
+SYNOPSIS
+--------
+*#include <xio/sp.h>*
+
+*int sp_rm(int 'eid', int 'xsockfd');*
+
+
+DESCRIPTION
+-----------
+
+
+RETURN VALUE
+------------
+
+
+ERRORS
+------
+
+
+EXAMPLE
+-------
+
+----
+assert( sp_add(eid, sockfd) == 0 );
+assert( sp_rm(eid, sockfd) == 0 );
+----
+
+
+SEE ALSO
+--------
+linkxio:sp_add[3]
+linkxio:sp_send[3]
+linkxio:sp_recv[3]
+linkxio:sp[7]
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
+
+

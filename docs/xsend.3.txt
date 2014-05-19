@@ -15,7 +15,7 @@ SYNOPSIS
 DESCRIPTION
 -----------
 The function will send a message containing the data from buffer pointed to
-by 'xmsg' parameter to the socket 's'. the xmsg must alloc by xallocmsg[3]
+by 'xmsg' parameter to the socket 's'. the xmsg must alloc by xallocubuf[3]
 
 
 RETURN VALUE

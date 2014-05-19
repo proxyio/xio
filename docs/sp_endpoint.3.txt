@@ -1,33 +1,29 @@
-xep_open(3)
-===========
+sp_endpoint(3)
+==============
 
 NAME
 ----
-xep_open - create an endpoint
+sp_endpoint - create an scalability protocol's endpoint
 
 
 SYNOPSIS
 --------
-*#include <xio/endpoint.h>*
+*#include <xio/sp.h>*
 
-*int xep_open(int eptype);*
-
+*int sp_endpoint(int sp_family, int sp_type);*
 
 DESCRIPTION
 -----------
-Creates an endpoint with specified 'eptype'. Returns a endpoint id
-for the newly created endpoint.  'eptype' parameter defines the type
-of the endpoint, which in turn determines the exact semantics of the
-endpoint. 
+Creates an endpoint with specified 'sp_family' and 'sp_type'. Returns
+a endpoint id for the newly created endpoint.  'sp_family' parameter
+defines the scalability protocol of the endpoint, which in turn
+determines the exact semantics of the endpoint. and 'sp_type' parameter
+defines the type of endpoint.
 
-Following eptypes are defined at the moment:
+Following sp_family are defined at the moment:
 
-*XEP_PRODUCER*::
-producer endpoint, recv request from network and send response
-
-*XEP_COMSUMER*::
-comsumer endpoint, send request into network and recv response
-
+*SP_REQREP*::
+simple many-to-many communication
 
 RETURN VALUE
 ------------
@@ -50,18 +46,18 @@ EXAMPLE
 -------
 
 ----
-int eid = xep_open (XEP_PRODUCER);
+int eid = sp_endpoint (SP_REQREP, SP_REQ);
 assert( eid >= 0 );
 ----
 
 SEE ALSO
 --------
-linkxio:xep_close[3]
-linkxio:xep_add[3]
-linkxio:xep_rm[3]
-linkxio:xep_send[3]
-linkxio:xep_recv[3]
-linkxio:xendpoint[7]
+linkxio:sp_close[3]
+linkxio:sp_add[3]
+linkxio:sp_rm[3]
+linkxio:sp_send[3]
+linkxio:sp_recv[3]
+linkxio:sp[7]
 
 AUTHORS
 -------

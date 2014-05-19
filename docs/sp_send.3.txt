@@ -1,22 +1,21 @@
-xep_send(3)
+sp_send(3)
 ===========
 
 NAME
 ----
-xep_send - send a ubuf into endpoint
+sp_send - send a ubuf into endpoint
 
 
 SYNOPSIS
 --------
-*#include <xio/endpoint.h>*
+*#include <xio/sp.h>*
 
-*int xep_send (int 'eid', char '*ubuf');*
+*int sp_send (int 'eid', char '*ubuf');*
 
 DESCRIPTION
 -----------
 The function will send a ubuf containing the data from buffer pointed to
-by 'ubuf' parameter to the endpoint 'eid'. the ubuf must alloc by
-xep_allocubuf[3]
+by 'ubuf' parameter to the endpoint 'eid'. the ubuf must alloc by xallocubuf[3]
 
 RETURN VALUE
 ------------
@@ -31,8 +30,8 @@ Non-blocking mode was requested and there's no ubuf to receive at the moment.
 
 SEE ALSO
 --------
-linkxio:xep_recv[3]
-linkxio:xendpoint[7]
+linkxio:sp_recv[3]
+linkxio:sp[7]
 
 AUTHORS
 -------

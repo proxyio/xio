@@ -56,14 +56,14 @@ Send a message::
 Receive a message::
     linkxio:xrecv[3]
 
-Allocate a xmsg::
-    linkxio:xallocmsg[3]
+Allocate a ubuf::
+    linkxio:xallocubuf[3]
 
-Deallocate a xmsg::
-    linkxio:xfreemsg[3]
+Deallocate a ubuf::
+    linkxio:xfreeubuf[3]
 
-Get xmsg length::
-    linkxio:xmsglen[3]
+Get ubuf length::
+    linkxio:xubuflen[3]
 
 Control xmsg::
     linkxio:xmsgctl[3]

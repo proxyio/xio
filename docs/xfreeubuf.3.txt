@@ -1,21 +1,21 @@
-xfreemsg(3)
+xfreeubuf(3)
 =============
 
 NAME
 ----
-xfreemsg - deallocate a message
+xfreeubuf - deallocate a message
 
 
 SYNOPSIS
 --------
 *#include <xio/socket.h>*
 
-*void xfreemsg (void '*msg');*
+*void xfreeubuf (void '*msg');*
 
 
 DESCRIPTION
 -----------
-Deallocates a message allocated using linkxio:xallocmsg[3] function or
+Deallocates a message allocated using linkxio:xallocubuf[3] function or
 received via linkxio:xrecv[3] function. when message send, it maybe directly
 push into the peer xmq. it allows for using zero-copy techniques.
 
@@ -31,16 +31,16 @@ EXAMPLE
 -------
 
 ----
-void *buf;
-xrecv (s, &buf);
-xfreemsg (buf);
+void *ubuf;
+assert (xrecv (s, &ubuf) == 0);
+xfreeubuf (ubuf);
 ----
 
 
 SEE ALSO
 --------
-linkxio:xallocmsg[3]
-linkxio:xmsglen[3]
+linkxio:xallocubuf[3]
+linkxio:xubuflen[3]
 linkxio:xrecv[3]
 linkxio:xio[7]
 
