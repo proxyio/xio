@@ -1,4 +1,4 @@
-proxyio
+PROXYIO
 ========
 
 http://github.com/pipul[Development]
