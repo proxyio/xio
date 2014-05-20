@@ -9,7 +9,7 @@ SYNOPSIS
 --------
 *#include <xio/poll.h>*
 
-*void xpoll_close(struct xpoll_t *po);*
+*int xpoll_close(int pollfd);*
 
 DESCRIPTION
 -----------

@@ -9,14 +9,16 @@ SYNOPSIS
 --------
 *#include <xio/poll.h>*
 
-*struct xpoll_t *xpoll_create();*
+*int xpoll_create();*
 
 DESCRIPTION
 -----------
-xpoll_create() creates an xpoll  "instance", and returns a xpoll_t pointer
-referring to the new xpoll instance.  This pointer is used for all the
-subsequent calls to the xpoll interface.  When no longer required, the pointer
-returned by xpoll_create() should be  closed  by  using  xpoll_close[3].
+xpoll_create() returns a file descriptor referring to the new xpoll instance.
+This file descriptor is used for all the subsequent calls to the xpoll interface.
+When no longer required, the file descriptor returned by xpoll_create() should
+be closed by using xpoll_close(2). When all file descriptors referring to an xpoll
+instance have been closed, the kernel destroys the instance and releases the
+associated resources for re-use.
 
 RETURN VALUE
 ------------

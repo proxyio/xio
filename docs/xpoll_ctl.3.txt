@@ -9,22 +9,22 @@ SYNOPSIS
 --------
 *#include <xio/poll.h>*
 
-	  #define XPOLL_ADD 1
-	  #define XPOLL_DEL 2
-	  #define XPOLL_MOD 3
-*int xpoll_ctl(struct xpoll_t *xp, int op, struct xpoll_event *ev);*
+#define XPOLL_ADD 1
+#define XPOLL_DEL 2
+#define XPOLL_MOD 3
+*int xpoll_ctl(int pollfd, int op, struct xpoll_event *ent);*
 
 
 DESCRIPTION
 -----------
 This call performs control operations on the xpoll instance referred to by
-the xp.  It requests that the operation op be performed for the target
-xio socket descriptor: xd.
+the pollfd.  It requests that the operation op be performed for the target
+xsocket file descriptor: fd.
 
 Valid values for the op argument are :
 
 XPOLL_ADD
-    Register the target xio socket descriptor xd on the xpoll instance referred
+    Register the target xsocket file descriptor xd on the xpoll instance referred
     to by xp and associate the event event with the internal xio socket descriptor
     linked to xd.
 
@@ -72,6 +72,7 @@ ERRORS
 *EEXIST*::
 op was XPOLL_ADD, and the supplied xio socket is already registered with this
 xpoll instance.
+
 *EINVAL*::
 the requested operation op is not supported by this interface.
 
