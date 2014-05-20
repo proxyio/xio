@@ -393,14 +393,16 @@ div#toc a:visited { color: blue; }
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>#include &lt;xio/poll.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>struct xpoll_t *xpoll_create();</strong></p></div>
+<div class="paragraph"><p><strong>int xpoll_create();</strong></p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>xpoll_create() creates an xpoll  "instance", and returns a xpoll_t pointer
-referring to the new xpoll instance.  This pointer is used for all the
-subsequent calls to the xpoll interface.  When no longer required, the pointer
-returned by xpoll_create() should be  closed  by  using  xpoll_close[3].</p></div>
+<div class="paragraph"><p>xpoll_create() returns a file descriptor referring to the new xpoll instance.
+This file descriptor is used for all the subsequent calls to the xpoll interface.
+When no longer required, the file descriptor returned by xpoll_create() should
+be closed by using xpoll_close(2). When all file descriptors referring to an xpoll
+instance have been closed, the kernel destroys the instance and releases the
+associated resources for re-use.</p></div>
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
@@ -439,7 +441,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-04 13:59:21 CST
+Last updated 2014-05-20 23:23:09 CST
 </div>
 </div>
 </body>

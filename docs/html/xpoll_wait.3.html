@@ -393,8 +393,7 @@ div#toc a:visited { color: blue; }
 <h2 id="_synopsis">SYNOPSIS</h2>
 <div class="sectionbody">
 <div class="paragraph"><p><strong>#include &lt;xio/poll.h&gt;</strong></p></div>
-<div class="paragraph"><p><strong>int xpoll_wait(struct xpoll_t *xp, struct xpoll_event *events, int n,
-               u32 timeout);</strong></p></div>
+<div class="paragraph"><p><strong>int xpoll_wait(int pollfd, struct xpoll_event *events, int n, u32 timeout);</strong></p></div>
 </div>
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
@@ -402,8 +401,8 @@ div#toc a:visited { color: blue; }
 </div>
 <h2 id="_return_value">RETURN VALUE</h2>
 <div class="sectionbody">
-<div class="paragraph"><p>When successful, xpoll_wait() returns the number of xio socket ready for
-the requested I/O, or zero if no xio socket ready during the requested timeout
+<div class="paragraph"><p>When successful, xpoll_wait() returns the number of xsocket ready for
+the requested I/O, or zero if no xsocket ready during the requested timeout
 milliseconds.  When an error occurs, epoll_wait() returns -1 and errno is
 set appropriately.</p></div>
 </div>
@@ -437,7 +436,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-04 13:59:21 CST
+Last updated 2014-05-20 23:20:11 CST
 </div>
 </div>
 </body>

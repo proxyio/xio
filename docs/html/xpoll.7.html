@@ -397,19 +397,19 @@ div#toc a:visited { color: blue; }
 <h2 id="_description">DESCRIPTION</h2>
 <div class="sectionbody">
 <div class="paragraph"><p>xpoll is a variant of epoll(2) that scales well to large numbers of watched
-xio socket descriptors.  The following xio calls are provided  to create
+xsocket descriptors.  The following xio calls are provided  to create
 and manage an xpoll instance:</p></div>
 <div class="ulist"><ul>
 <li>
 <p>
-An xpoll instance created by xpoll_create[3], which returns a xpoll_t
-      pointerreferring to the xpoll instance.
+An xpoll instance created by xpoll_create[3], which returns a file
+      descriptor referring to the xpoll instance.
 </p>
 </li>
 <li>
 <p>
-Interest in particular xio socket descriptors is then registered
-      via xpoll_ctl().  The set of xio socket descriptors currently registered
+Interest in particular xsocket file descriptors is then registered
+      via xpoll_ctl().  The set of xsocket file descriptors currently registered
       on an xpoll instance is sometimes called an xpoll set.
 </p>
 </li>
@@ -478,7 +478,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-05 11:29:24 CST
+Last updated 2014-05-20 23:15:05 CST
 </div>
 </div>
 </body>
