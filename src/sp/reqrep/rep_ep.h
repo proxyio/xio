@@ -20,11 +20,10 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_REP_EP_
-#define _XIO_REP_EP_
+#ifndef _SP_REP_
+#define _SP_REP_
 
 #include <sp/sp_module.h>
-#include <sp/reqrep.h>
 
 struct req_ep;
 

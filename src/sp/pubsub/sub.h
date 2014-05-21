@@ -20,18 +20,10 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_REQ_
-#define _SP_REQ_
+#ifndef _SP_SUB_
+#define _SP_SUB_
 
-#include <sp/sp_module.h>
 
-struct rep_ep;
 
-struct req_ep {
-    struct epbase base;
-    struct rep_ep *peer;
-};
-
-extern int epbase_proxyto(struct epbase *rep_ep, struct epbase *req_ep);
 
 #endif

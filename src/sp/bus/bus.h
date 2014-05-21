@@ -20,10 +20,9 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SP_XREQREP_
-#define _XIO_SP_XREQREP_
+#ifndef _SP_BUS_
+#define _SP_BUS_
 
-#define REQREP_VERSION 0x0001
 
 
 #endif
