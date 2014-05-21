@@ -26,6 +26,8 @@
 #include <xio/sp.h>
 #include <xio/cplusplus_define.h>
 
+#define SP_REQREP_VERSION 0x0001
+
 /* Following sp_types are provided by REQREP protocol */
 #define SP_REQ         1
 #define SP_REP         2
