@@ -5,12 +5,13 @@ http://github.com/pipul[Development]
 http://github.com/pipul[Community]
 http://github.com/pipul[Download]
 http://pipul.org[Blog]
+http://proxyio.org/reqrep.html[demo]
 http://nanomsg.org[nanomsg]
 
 
 DESCRIPTION
 -----------
-WARNING: proxyio is still in beta stage, very unstable!
+*WARNING* proxyio is still in beta stage, very unstable!
 
 proxyio is a socket library that provides several common communication patterns.
 It aims to make the networking layer scalable, and easy to use. proxyio is
@@ -29,11 +30,11 @@ for building distributed systems. By combining them you can create a vast array 
 distributed applications. The following scalability protocols are provided in the
 near future:
 
-==============================================
-	BUS:    simple many-to-many communication
-	REQREP: build clusters of stateless services to process user requests
-	PUBSUB: distributes messages to large sets of interested subscribers
-==============================================
+----------
+BUS      simple many-to-many communication
+REQREP   build clusters of stateless services to process user requests
+PUBSUB   distributes messages to large sets of interested subscribers
+----------
 
 Scalability protocols are layered on top of the transport layer in the network stack
 and implemented by endpoint.
