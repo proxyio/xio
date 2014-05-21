@@ -5,9 +5,7 @@ http://github.com/pipul[Development]
 http://github.com/pipul[Community]
 http://github.com/pipul[Download]
 http://pipul.org[Blog]
-http://proxyio.org/reqrep.html[demo]
 http://nanomsg.org[nanomsg]
-
 
 DESCRIPTION
 -----------
@@ -30,11 +28,16 @@ for building distributed systems. By combining them you can create a vast array 
 distributed applications. The following scalability protocols are provided in the
 near future:
 
-----------
+----
 BUS      simple many-to-many communication
 REQREP   build clusters of stateless services to process user requests
 PUBSUB   distributes messages to large sets of interested subscribers
-----------
+----
+
+For more details, see patterns demo
+http://proxyio.org/reqrep.7.html['REQREP']
+http://proxyio.org/bus.7.html['BUS']
+http://proxyio.org/pubsub.7.html['PUBSUB']
 
 Scalability protocols are layered on top of the transport layer in the network stack
 and implemented by endpoint.
