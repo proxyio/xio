@@ -31,7 +31,7 @@
 #define SP_REP         2
 
 /* Following options are provided by REQREP protocol */
-#define SP_PIPELINE    1
+#define SP_PROXY       1
 
 #include <xio/cplusplus_endif.h>
 #endif

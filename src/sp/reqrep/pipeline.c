@@ -116,7 +116,7 @@ static int receiver_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     return 0;
 }
 
-int epbase_pipeline(struct epbase *rep_ep, struct epbase *req_ep) {
+int epbase_proxyto(struct epbase *rep_ep, struct epbase *req_ep) {
     struct rep_ep *frontend = cont_of(rep_ep, struct rep_ep, base);
     struct req_ep *backend = cont_of(req_ep, struct req_ep, base);
 

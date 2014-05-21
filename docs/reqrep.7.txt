@@ -97,6 +97,14 @@ proxy
 
 image:images/sp-reqrep-patterns-4.png[The proxy pattern]
 
+*1 proxy*
+----
+int frontend = sp_endpoint(SP_REQREP, SP_REQ);
+int backend = sp_endpoint(SP_REQREP, SP_REP);
+rc = sp_setopt(frontend, SP_PROXY, &backend, sizeof(backend));
+assert (rc == 0);
+----
+
 *10 client*
 ----
 int eid = sp_endpoint(SP_REQREP, SP_REQ);

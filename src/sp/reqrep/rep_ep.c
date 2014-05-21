@@ -119,7 +119,7 @@ static int rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
     return 0;
 }
 
-static int set_pipeline(struct epbase *ep, void *optval, int optlen) {
+static int set_proxyto(struct epbase *ep, void *optval, int optlen) {
     int rc, backend_eid = *(int *)optval;
     struct epbase *peer = eid_get(backend_eid);
 
@@ -127,14 +127,14 @@ static int set_pipeline(struct epbase *ep, void *optval, int optlen) {
 	errno = EBADF;
 	return -1;
     }
-    rc = epbase_pipeline(ep, peer);
+    rc = epbase_proxyto(ep, peer);
     eid_put(backend_eid);
     return rc;
 }
 
 static const ep_setopt setopt_vfptr[] = {
     0,
-    set_pipeline,
+    set_proxyto,
 };
 
 static const ep_getopt getopt_vfptr[] = {

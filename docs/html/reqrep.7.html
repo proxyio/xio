@@ -483,6 +483,14 @@ for (;;) {
 <div class="paragraph"><p><span class="image">
 <img src="images/sp-reqrep-patterns-4.png" alt="images/sp-reqrep-patterns-4.png" />
 </span></p></div>
+<div class="paragraph"><p><strong>1 proxy</strong></p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>int frontend = sp_endpoint(SP_REQREP, SP_REQ);
+int backend = sp_endpoint(SP_REQREP, SP_REP);
+rc = sp_setopt(frontend, SP_PROXY, &amp;backend, sizeof(backend));
+assert (rc == 0);</tt></pre>
+</div></div>
 <div class="paragraph"><p><strong>10 client</strong></p></div>
 <div class="listingblock">
 <div class="content">
@@ -553,7 +561,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-21 22:39:27 CST
+Last updated 2014-05-21 22:50:45 CST
 </div>
 </div>
 </body>
