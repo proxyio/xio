@@ -1,0 +1,161 @@
+SP_REQREP
+=========
+
+'*load balance*' forward, and '*route*' backward, specified your load_balance algo by sp_setopt() API
+
+
+one-to-many
+-----------
+
+image:images/sp-reqrep-patterns-1.png[The one-to-many network]
+
+
+*1 client*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REQ);
+
+for (int i = 0; i < 10; i++)
+    sp_add(eid, connfds[i]);
+
+for (int i = 0; i < 10; i++) {
+    req = "hello" + i;
+    sp_send(eid, req);
+    sp_recv(eid, &result);
+    assert (req == result);
+}
+----
+
+*10 server*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REP);
+sp_add(eid, listenfd);
+for (;;) {
+    sp_recv(eid, &msg);
+    sp_send(eid, msg);
+}
+----
+
+
+many-to-one
+-----------
+
+image:images/sp-reqrep-patterns-2.png[The many-to-one pattern]
+
+*10 client*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REQ);
+sp_add(eid, connfd);
+sp_send(eid, req);
+sp_recv(eid, &result);
+assert(req == result);
+----
+
+*1 server*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REP);
+sp_add(eid, listenfd);
+for (;;) {
+    sp_recv(eid, &msg);
+    sp_send(eid, msg);
+}
+----
+
+
+many-to-many
+------------
+
+image:images/sp-reqrep-patterns-3.png[The many-to-many pattern]
+
+*10 client*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REQ);
+
+for (i = 0; i < 10; i++)
+    sp_add(eid, connfds[i]);
+
+for (i = 0; i < 10; i++) {
+    sp_send(eid, req);
+    sp_recv(eid, &result);
+    assert(req == result);
+}
+----
+
+*10 server*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REP);
+sp_add(eid, listenfd);
+
+for (;;) {
+    sp_recv(eid, &msg);
+    sp_send(eid, msg);
+}
+----
+
+
+proxy
+-----
+
+image:images/sp-reqrep-patterns-4.png[The proxy pattern]
+
+*10 client*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REQ);
+sp_add(eid, connfd);
+
+for (i = 0; i < 10; i++) {
+    sp_send(eid, req);
+    sp_recv(eid, &result);
+    assert(req == result);
+}
+----
+
+*10 server*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REP);
+sp_add(eid, connfd);
+
+for (i = 0; i < 10; i++) {
+    sp_recv(eid, &msg);
+    sp_send(eid, msg);
+}
+----
+
+
+pipelines
+---------
+
+image:images/sp-reqrep-patterns-5.png[The pipelines pattern]
+
+*10 client*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REQ);
+sp_add(eid, connfd);
+
+for (i = 0; i < 10; i++) {
+    sp_send(eid, req);
+    sp_recv(eid, &result);
+    assert(req == result);
+}
+----
+
+*1 server*
+----
+int eid = sp_endpoint(SP_REQREP, SP_REP);
+sp_add(eid, connfd);
+
+queue waiting_process_msg;
+queue done_msg;
+
+for (;;) {
+    sp_recv(eid, &msg);
+    waiting_process_msg.push(msg);
+    while (!done_msg.empty())
+        sp_send(eid, done_msg.pop());
+}
+----
+
+
+AUTHORS
+-------
+    Dong Fang <yp.fangdong@gmail.com>
+    Martin Sustrik <sustrik@250bpm.com>
