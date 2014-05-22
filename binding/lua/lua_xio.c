@@ -82,7 +82,11 @@ static int lxconnect(lua_State *L) {
 }
 
 static int lxrecv(lua_State *L) {
-    return 0;
+    char *ubuf = 0;
+    int fd = luaL_checkint(L, 1);
+    lua_pushnumber(L, xrecv(fd, &ubuf));
+    lua_pushlightuserdata(L, ubuf);
+    return 2;
 }
 
 static int lxsend(lua_State *L) {
