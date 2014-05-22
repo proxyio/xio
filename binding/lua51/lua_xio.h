@@ -20,12 +20,12 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_LUA_XMSG_
-#define _XIO_LUA_XMSG_
+#ifndef _XIO_LUAXIO_
+#define _XIO_LUAXIO_
 
 #include <lua.h>
 
-int lopen_xmsg (lua_State *L);
+int luaopen_xio (lua_State *L);
 
 
 

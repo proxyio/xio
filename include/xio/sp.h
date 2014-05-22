@@ -32,8 +32,8 @@
 
 int sp_endpoint(int sp_family, int sp_type);
 int sp_close(int eid);
-int sp_send(int eid, char *xmsg);
-int sp_recv(int eid, char **xmsg);
+int sp_send(int eid, char *ubuf);
+int sp_recv(int eid, char **ubuf);
 int sp_add(int eid, int fd);
 int sp_rm(int eid, int fd);
 int sp_setopt(int eid, int opt, void *optval, int optlen);

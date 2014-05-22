@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project( proxyio )
 
 include_directories(
+	${PROJECT_SOURCE_DIR}/binding/
 	${PROJECT_SOURCE_DIR}/src/
 	${PROJECT_SOURCE_DIR}/src/libc/
 	${PROJECT_SOURCE_DIR}/include/
@@ -29,6 +30,10 @@ add_subdirectory(binding)
 
 ## include( src/CMakeTest.cmake )
 
+add_test(test ${PROJECT_BINARY_DIR}/bin/unit_test)
+add_test(test ${PROJECT_BINARY_DIR}/bin/btest)
 
 install( DIRECTORY ${PROJECT_SOURCE_DIR}/include/xio DESTINATION /usr/local/include )
 install( PROGRAMS ${PROJECT_BINARY_DIR}/lib/libxio.a DESTINATION /usr/local/lib/ )
+
+
