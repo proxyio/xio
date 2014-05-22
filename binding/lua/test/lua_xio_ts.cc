@@ -4,7 +4,7 @@
 #include <string.h>
 #include <string>
 extern "C" {
-#include <lua51/lua_xio.h>
+#include <lua/lua_xio.h>
 #include <lualib.h>
 #include <lauxlib.h>
 }
@@ -19,7 +19,7 @@ TEST(xio, lua) {
     if (!xio_source_path)
 	return;
     string lua_file = xio_source_path;
-    lua_file += "/binding/lua51/test/ts.lua";
+    lua_file += "/binding/lua/test/ts.lua";
     luaopen_xio(l);
     luaL_openlibs(l);
     int erred = luaL_dofile(l, lua_file.c_str());
