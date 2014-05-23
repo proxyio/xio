@@ -27,8 +27,7 @@
 
 #define SP_REQREP    1
 #define SP_BUS       2
-#define SP_PAIR      3
-#define SP_MULL      4
+#define SP_PUBSUB    3
 
 int sp_endpoint(int sp_family, int sp_type);
 int sp_close(int eid);

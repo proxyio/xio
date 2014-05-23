@@ -16,8 +16,7 @@ static string xio_ts_code;
 TEST(xio, lua) {
     lua_State * l = luaL_newstate();
     const char *xio_source_path = getenv("XIO_SOURCE_PATH");
-    if (!xio_source_path)
-	return;
+    assert (xio_source_path);
     string lua_file = xio_source_path;
     lua_file += "/binding/lua/test/ts.lua";
     luaopen_xio(l);

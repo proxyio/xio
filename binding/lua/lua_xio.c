@@ -23,8 +23,10 @@
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include <xio/sp.h>
+#include <xio/sp_reqrep.h>
 #include <string.h>
 #include <lauxlib.h>
+#include <libc/base.h>
 #include "lua_xio.h"
 
 static int lxallocubuf (lua_State *L) {
@@ -157,6 +159,7 @@ static int lsp_getopt(lua_State *L) {
     return 0;
 }
 
+
 static const struct luaL_reg luaL_libxio [] = {
     {"xallocubuf",      lxallocubuf},
     {"xubuflen",        lxubuflen},
@@ -179,10 +182,66 @@ static const struct luaL_reg luaL_libxio [] = {
     {"sp_rm",           lsp_rm},
     {"sp_setopt",       lsp_setopt},
     {"sp_getopt",       lsp_getopt},
-    {NULL, NULL}
 };
 
+static const struct {
+    const char *name;
+    int value;
+} xio_const [] = {
+    {"XPOLLIN",      XPOLLIN},
+    {"XPOLLOUT",     XPOLLOUT},
+    {"XPOLLERR",     XPOLLERR},
+
+    {"XPOLL_ADD",    XPOLL_ADD},
+    {"XPOLL_DEL",    XPOLL_DEL},
+    {"XPOLL_MOD",    XPOLL_MOD},
+
+    {"XPF_TCP",      XPF_TCP},
+    {"XPF_IPC",      XPF_IPC},
+    {"XPF_INPROC",   XPF_INPROC},
+    {"XLISTENER",    XLISTENER},
+    {"XCONNECTOR",   XCONNECTOR},
+    {"XSOCKADDRLEN", XSOCKADDRLEN},
+
+    {"XL_SOCKET",    XL_SOCKET},
+    {"XNOBLOCK",     XNOBLOCK},
+    {"XSNDWIN",      XSNDWIN},
+    {"XRCVWIN",      XRCVWIN},
+    {"XSNDBUF",      XSNDBUF},
+    {"XRCVBUF",      XRCVBUF},
+    {"XLINGER",      XLINGER},
+    {"XSNDTIMEO",    XSNDTIMEO},
+    {"XRCVTIMEO",    XRCVTIMEO},
+    {"XRECONNECT",   XRECONNECT},
+    {"XSOCKTYPE",    XSOCKTYPE},
+    {"XSOCKPROTO",   XSOCKPROTO},
+    {"XTRACEDEBUG",  XTRACEDEBUG},
+
+    {"SP_REQREP",    SP_REQREP},
+    {"SP_BUS",       SP_BUS},
+    {"SP_PUBSUB",    SP_PUBSUB},
+
+    {"SP_REQ",       SP_REQ},
+    {"SP_REP",       SP_REP},
+    {"SP_PROXY",     SP_PROXY},
+};
+
+
+#define lua_registerFunc(L, reg) do {		\
+	lua_pushcfunction(L, reg.func);		\
+	lua_setglobal(L, reg.name);		\
+    } while (0)
+
+#define lua_registerConst(L, name) do {		\
+	lua_pushnumber(L, name );		\
+	lua_setglobal(L, #name );		\
+    } while (0)
+
 int luaopen_xio (lua_State *L) {
-    luaL_openlib(L, "", luaL_libxio, 0);
+    int i;
+    for (i = 0; i < NELEM(luaL_libxio, luaL_reg); i++) {
+	lua_registerFunc(L, luaL_libxio[i]);
+    }
+    lua_registerConst(L, SP_REQREP);
     return 1;
 }
