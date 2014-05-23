@@ -20,7 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include "timesz.h"
+#include "timer.h"
 #include "condition.h"
 
 int condition_init(condition_t *cond) {
@@ -33,7 +33,7 @@ int condition_destroy(condition_t *cond) {
 
 int condition_timedwait(condition_t *cond, mutex_t *mutex, int to) {
     struct timespec ts;
-    u64 endlife = rt_nstime() + (u64)to * 1000000;
+    u64 endlife = gettimeofns() + (u64)to * 1000000;
     
     /* Abstime for pthread timedwait */
     ts.tv_sec = endlife / 1000000000;

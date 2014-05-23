@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <uuid/uuid.h>
 #include <utils/list.h>
-#include <utils/timesz.h>
+#include <utils/timer.h>
 #include <utils/crc.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
@@ -82,7 +82,7 @@ static inline struct sphdr *ubuf2sphdr(char *ubuf) {
 }
 
 static inline int sphdr_timeout(struct sphdr *h) {
-    return h->timeout && (h->sendstamp + h->timeout < rt_mstime());
+    return h->timeout && (h->sendstamp + h->timeout < gettimeofms());
 }
 
 static inline struct spr *rt_cur(char *ubuf) {

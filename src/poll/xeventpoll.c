@@ -20,7 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include <utils/timesz.h>
+#include <utils/timer.h>
 #include <utils/base.h>
 #include "xeventpoll.h"
 

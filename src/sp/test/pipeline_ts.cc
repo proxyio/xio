@@ -35,8 +35,8 @@ static int req_thread(void *args) {
 	sbuf = rbuf = 0;
 	sbuf = xallocubuf(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
-	BUG_ON(sp_send(eid, sbuf) != 0);
 	DEBUG_ON("producer send %d request: %10.10s", i, sbuf);
+	BUG_ON(sp_send(eid, sbuf) != 0);
 	while (sp_recv(eid, &rbuf) != 0) {
 	    usleep(10000);
 	}

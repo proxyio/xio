@@ -24,7 +24,7 @@
 #define _XIO_MODULESTAT_
 
 #include "base.h"
-#include "timesz.h"
+#include "timer.h"
 
 #define MODSTAT_KEYMAX 256
 
@@ -90,7 +90,7 @@ typedef struct modstat {
 	    self->threshold[sl] = (int64_t *)&ms.threshold[sl];		\
 	self->f = (threshold_warn *)&ms.f;				\
 	for (sl = 0; sl < MSL_NUM; sl++)				\
-	    self->timestamp[sl] = rt_mstime();				\
+	    self->timestamp[sl] = gettimeofms();			\
     } while (0)
 
 static inline void modstat_incrkey(modstat_t *ms, int key) {

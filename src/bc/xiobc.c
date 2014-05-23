@@ -83,7 +83,7 @@ static int get_option(int argc, char* argv[]) {
 	    return -1;
         }
     }
-    timeout += rt_mstime();
+    timeout += gettimeofms();
     return 0;
 }
 
@@ -117,7 +117,7 @@ static void req_worker1(int eid) {
 	BUG_ON((fd = xconnect(host)) < 0);
 	BUG_ON(sp_add(eid, fd));
     }
-    while ((now = rt_mstime()) < timeout) {
+    while ((now = gettimeofms()) < timeout) {
 	ubuf = xallocubuf(rand() % buf_len);
 	memcpy(ubuf, buff, xubuflen(ubuf));
 	BUG_ON(sp_send(eid, ubuf));
@@ -144,7 +144,7 @@ static void req_worker2(int eid) {
 
     BUG_ON((fd = xconnect(host)) < 0);
     DEBUG_ON("rep start send");
-    while ((now = rt_mstime()) < timeout) {
+    while ((now = gettimeofms()) < timeout) {
 	ubuf = xallocubuf(rand() % buf_len);
 	memcpy(ubuf, buff, xubuflen(ubuf));
 	BUG_ON(xsend(fd, ubuf));
@@ -172,7 +172,7 @@ static void rep_worker1(int eid) {
 
     BUG_ON((fd = xlisten(host)) < 0);
     BUG_ON(sp_add(eid, fd));
-    while ((now = rt_mstime()) < timeout) {
+    while ((now = gettimeofms()) < timeout) {
 	BUG_ON(sp_recv(eid, &ubuf));
 	BUG_ON(sp_send(eid, ubuf));
 	modstat_incrkey(st, RECV);
@@ -196,7 +196,7 @@ static void rep_worker2(int eid) {
     BUG_ON((fd = xlisten(host)) < 0);
     BUG_ON((sfd = xaccept(fd)) < 0);
     DEBUG_ON("rep start recv");
-    while ((now = rt_mstime()) < timeout) {
+    while ((now = gettimeofms()) < timeout) {
 	BUG_ON(xrecv(sfd, &ubuf));
 	BUG_ON(xsend(sfd, ubuf));
 	modstat_incrkey(st, RECV);

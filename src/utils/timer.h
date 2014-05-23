@@ -20,43 +20,16 @@
   IN THE SOFTWARE.
 */
 
-#include <time.h>
-#include <sys/time.h>
-#include "timesz.h"
+#ifndef _XIO_TIMESTAMP_
+#define _XIO_TIMESTAMP_
 
-i64 rt_mstime() {
-    struct timeval tv;
-    i64 ct;
+#include "base.h"
 
-    gettimeofday(&tv, NULL);
-    ct = (i64)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+i64 gettimeofms();
+i64 gettimeofus();
+i64 gettimeofns();
 
-    return ct;
-}
 
-i64 rt_ustime() {
-    struct timeval tv;
-    i64 ct;
 
-    gettimeofday(&tv, NULL);
-    ct = (i64)tv.tv_sec * 1000000 + tv.tv_usec;
 
-    return ct;
-}
-
-i64 rt_nstime() {
-    struct timeval tv;
-    i64 ct;
-
-    gettimeofday(&tv, NULL);
-    ct = (i64)tv.tv_sec * 1000000000 + (i64)tv.tv_usec * 1000;
-
-    return ct;
-}
-
-int rt_usleep(i64 usec) {
-    struct timespec tv;
-    tv.tv_sec = usec / 1000000;
-    tv.tv_nsec = (usec % 1000000) * 1000;
-    return nanosleep(&tv, NULL);
-}
+#endif

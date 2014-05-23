@@ -42,7 +42,7 @@ static int modstat_test() {
     for (i = 0; i < 1000; i++) {
 	modstat_incrkey(ms, SEND);
 	modstat_incrkey(ms, RECV);
-	modstat_update_timestamp(ms, rt_mstime());
+	modstat_update_timestamp(ms, gettimeofms());
     }
     return 0;
 }

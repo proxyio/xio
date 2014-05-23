@@ -27,13 +27,13 @@
 #include <string.h>
 #include <unistd.h>
 #include "taskpool.h"
-#include "timesz.h"
+#include "timer.h"
 #include "eventloop.h"
 #include "skrb_sync.h"
 
 int eloop_add(eloop_t *el, ev_t *ev) {
     int rc = 0;
-    int64_t _cur_nsec = rt_nstime();
+    int64_t _cur_nsec = gettimeofns();
     struct epoll_event ee = {};
 
     if (ev->to_nsec > 0) {
@@ -52,7 +52,7 @@ int eloop_add(eloop_t *el, ev_t *ev) {
 
 int eloop_mod(eloop_t *el, ev_t *ev) {
     int rc = 0;
-    int64_t _cur_nsec = rt_nstime();
+    int64_t _cur_nsec = gettimeofns();
     struct epoll_event ee = {};
 
     if (ev->to_nsec > 0) {
@@ -113,13 +113,13 @@ static int __eloop_wait(eloop_t *el) {
     ev_t *ev = NULL;
     struct epoll_event *ev_buf = el->ev_buf;
     skrb_node_t *node = NULL;
-    int64_t to = 0, _cur_nsec = rt_nstime();
+    int64_t to = 0, _cur_nsec = gettimeofns();
     
     to = _cur_nsec + max_to * 1000000;
     max_to = eloop_find_timer(el, to);
     max_to = max_to > _cur_nsec ? max_to - _cur_nsec : 0;
     if (el->event_size <= 0)
-	rt_usleep(max_to/1000);
+	usleep(max_to/1000);
     else if ((n = epoll_wait(el->efd, ev_buf, size, max_to/1000000)) < 0)
 	n = 0;
     while (ev_buf < el->ev_buf + n) {

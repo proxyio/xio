@@ -21,7 +21,7 @@
 */
 
 
-#include <utils/timesz.h>
+#include <utils/timer.h>
 #include <socket/xgb.h>
 #include "xeventpoll.h"
 
