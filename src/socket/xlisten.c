@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sockaddr.h>
+#include <utils/sockaddr.h>
 #include "xgb.h"
 
 int acceptq_add(struct sockbase *sb, struct sockbase *new) {

@@ -24,7 +24,7 @@
 #define _XIO_ATOMIC_
 
 #include <inttypes.h>
-#include "spin.h"
+#include "spinlock.h"
 
 typedef struct atomic {
     int64_t val;

@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <waitgroup.h>
-#include <taskpool.h>
+#include <utils/waitgroup.h>
+#include <utils/taskpool.h>
 #include "xgb.h"
 
 typedef int (*sock_setopt) (struct sockbase *sb, void *optval, int optlen);

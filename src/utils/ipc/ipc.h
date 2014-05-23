@@ -24,7 +24,7 @@
 #define _XIO_IPC_
 
 #include <inttypes.h>
-#include "transport.h"
+#include "../transport.h"
 
 
 int ipc_bind(const char *sock);

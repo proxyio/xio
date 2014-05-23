@@ -4,7 +4,7 @@
 #include <string.h>
 #include <string>
 extern "C" {
-#include <utils/spin.h>
+#include <utils/spinlock.h>
 #include <utils/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>

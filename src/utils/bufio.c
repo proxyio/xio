@@ -21,7 +21,7 @@
 */
 
 #include <errno.h>
-#include "bio.h"
+#include "bufio.h"
 #include "alloc.h"
 
 #define list_for_each_page_safe(bp, tmp, head)				\

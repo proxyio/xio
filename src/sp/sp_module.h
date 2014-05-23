@@ -27,7 +27,7 @@
 #include <utils/list.h>
 #include <utils/mutex.h>
 #include <utils/atomic.h>
-#include <utils/spin.h>
+#include <utils/spinlock.h>
 #include <utils/condition.h>
 #include <utils/thread.h>
 #include <socket/xgb.h>

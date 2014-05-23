@@ -6,7 +6,7 @@
 #include <xio/sp_reqrep.h>
 #include <xio/socket.h>
 extern "C" {
-#include <utils/spin.h>
+#include <utils/spinlock.h>
 #include <utils/thread.h>
 }
 

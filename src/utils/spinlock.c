@@ -20,29 +20,26 @@
   IN THE SOFTWARE.
 */
 
-#include "base.h"
+#include "spinlock.h"
 
-extern void xsocket_module_init();
-extern void xsocket_module_exit();
-extern void transport_module_init();
-extern void transport_module_exit();
-extern void sp_module_init();
-extern void sp_module_exit();
-extern void xpoll_module_init();
-extern void xpoll_module_exit();
-
-
-void base_init() {
-    transport_module_init();
-    xsocket_module_init();
-    xpoll_module_init();
-    sp_module_init();
+int spin_init(spin_t *spin) {
+    pthread_spinlock_t *lock = (pthread_spinlock_t *)spin;
+    return pthread_spin_init(lock, PTHREAD_PROCESS_SHARED);
 }
 
 
-void base_exit() {
-    sp_module_exit();
-    xpoll_module_exit();
-    xsocket_module_exit();
-    transport_module_exit();
+int spin_lock(spin_t *spin) {
+    pthread_spinlock_t *lock = (pthread_spinlock_t *)spin;
+    return pthread_spin_lock(lock);
+}
+
+int spin_unlock(spin_t *spin) {
+    pthread_spinlock_t *lock = (pthread_spinlock_t *)spin;
+    return pthread_spin_unlock(lock);
+}
+
+
+int spin_destroy(spin_t *spin) {
+    pthread_spinlock_t *lock = (pthread_spinlock_t *)spin;    
+    return pthread_spin_destroy(lock);
 }

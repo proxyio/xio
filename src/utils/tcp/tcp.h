@@ -24,7 +24,7 @@
 #define _XIO_TCP_
 
 #include <inttypes.h>
-#include "transport.h"
+#include "../transport.h"
 
 void tcp_close(int fd);
 int tcp_bind(const char *sock);

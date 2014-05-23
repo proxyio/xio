@@ -23,11 +23,11 @@
 #ifndef _XIO_XCPU_
 #define _XIO_XCPU_
 
-#include <list.h>
-#include <mutex.h>
-#include <spin.h>
-#include <eventloop.h>
-#include <efd.h>
+#include <utils/list.h>
+#include <utils/mutex.h>
+#include <utils/spinlock.h>
+#include <utils/eventloop.h>
+#include <utils/efd.h>
 
 struct xtask;
 typedef void (*xtask_func) (struct xtask *ts);

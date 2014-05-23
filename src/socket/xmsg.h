@@ -23,8 +23,8 @@
 #ifndef _XIO_XMSG_
 #define _XIO_XMSG_
 
-#include <base.h>
-#include <list.h>
+#include <utils/base.h>
+#include <utils/list.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
 

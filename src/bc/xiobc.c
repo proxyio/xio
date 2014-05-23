@@ -20,7 +20,6 @@
   IN THE SOFTWARE.
 */
 
-#include <utils/base.h>
 #include <utils/modstat.h>
 #include <xio/socket.h>
 #include <xio/sp_reqrep.h>
@@ -211,7 +210,6 @@ static void rep_worker2(int eid) {
 int main(int argc, char  **argv) {
     int eid;
 
-    base_init();
     randstr(buff, sizeof(buff));
     get_option(argc, argv);
     DEBUG_ON("start xio benchmark with {role:%c thread:%d connection:%d host:%s}",
@@ -233,6 +231,5 @@ int main(int argc, char  **argv) {
     default:
 	BUG_ON(1);
     }
-    base_exit();
     return 0;
 }

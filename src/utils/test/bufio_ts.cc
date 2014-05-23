@@ -1,7 +1,7 @@
 #include <iostream>
 #include <gtest/gtest.h>
 extern "C" {
-#include <utils/bio.h>
+#include <utils/bufio.h>
 }
 
 extern int randstr(char *buf, int len);

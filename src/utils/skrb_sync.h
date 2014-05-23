@@ -27,7 +27,7 @@
 #include <inttypes.h>
 #include "base.h"
 #include "skrb.h"
-#include "spin.h"
+#include "spinlock.h"
 #include "mutex.h"
 
 #define skrb_mutex_empty(tree, mutex) ({	\

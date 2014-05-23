@@ -25,7 +25,7 @@
 
 #include <utils/atomic.h>
 #include <utils/mutex.h>
-#include <utils/spin.h>
+#include <utils/spinlock.h>
 #include <utils/condition.h>
 #include <utils/list.h>
 #include <xio/poll.h>
