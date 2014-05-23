@@ -4,7 +4,6 @@ project( proxyio )
 include_directories(
 	${PROJECT_SOURCE_DIR}/binding/
 	${PROJECT_SOURCE_DIR}/src/
-	${PROJECT_SOURCE_DIR}/src/utils/
 	${PROJECT_SOURCE_DIR}/include/
 )
 
