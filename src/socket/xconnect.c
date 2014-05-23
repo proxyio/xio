@@ -24,9 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sync/waitgroup.h>
-#include <runner/taskpool.h>
-#include <transport/sockaddr.h>
+#include <utils/waitgroup.h>
+#include <utils/taskpool.h>
+#include <utils/sockaddr.h>
 #include "xgb.h"
 
 int xconnect(const char *peer) {

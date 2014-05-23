@@ -20,8 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include <os/timesz.h>
-#include <base.h>
+#include <utils/timesz.h>
 #include "xeventpoll.h"
 
 extern int check_pollevents(struct sockbase *sb, int events);

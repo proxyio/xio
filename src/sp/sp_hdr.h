@@ -25,9 +25,9 @@
 
 #include <errno.h>
 #include <uuid/uuid.h>
-#include <ds/list.h>
-#include <os/timesz.h>
-#include <hash/crc.h>
+#include <utils/list.h>
+#include <utils/timesz.h>
+#include <utils/crc.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
 

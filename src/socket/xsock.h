@@ -24,16 +24,16 @@
 #define _XIO_XSOCK_
 
 #include <base.h>
-#include <ds/map.h>
-#include <os/eventloop.h>
-#include <bufio/bio.h>
-#include <os/alloc.h>
-#include <sync/atomic.h>
-#include <sync/mutex.h>
-#include <sync/spin.h>
-#include <sync/condition.h>
-#include <runner/taskpool.h>
-#include <transport/transport.h>
+#include <map.h>
+#include <eventloop.h>
+#include <bio.h>
+#include <alloc.h>
+#include <atomic.h>
+#include <mutex.h>
+#include <spin.h>
+#include <condition.h>
+#include <taskpool.h>
+#include <transport.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include "xmsg.h"

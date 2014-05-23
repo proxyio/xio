@@ -24,9 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sync/waitgroup.h>
-#include <runner/taskpool.h>
-#include <transport/sockaddr.h>
+#include <sockaddr.h>
 #include "xgb.h"
 
 int acceptq_add(struct sockbase *sb, struct sockbase *new) {

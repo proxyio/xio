@@ -24,7 +24,7 @@
 #define _XIO_XMSG_
 
 #include <base.h>
-#include <ds/list.h>
+#include <list.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
 

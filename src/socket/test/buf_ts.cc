@@ -4,8 +4,8 @@
 #include <string.h>
 #include <string>
 extern "C" {
-#include <sync/spin.h>
-#include <runner/thread.h>
+#include <utils/spin.h>
+#include <utils/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>

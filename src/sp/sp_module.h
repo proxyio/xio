@@ -24,12 +24,12 @@
 #define _XIO_SP_MODULE_
 
 #include <uuid/uuid.h>
-#include <ds/list.h>
-#include <sync/mutex.h>
-#include <sync/atomic.h>
-#include <sync/spin.h>
-#include <sync/condition.h>
-#include <runner/thread.h>
+#include <utils/list.h>
+#include <utils/mutex.h>
+#include <utils/atomic.h>
+#include <utils/spin.h>
+#include <utils/condition.h>
+#include <utils/thread.h>
 #include <socket/xgb.h>
 #include <xio/poll.h>
 #include <xio/sp_reqrep.h>

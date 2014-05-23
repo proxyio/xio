@@ -20,7 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include <sync/waitgroup.h>
+#include <utils/waitgroup.h>
 #include "sp_module.h"
 
 struct sp_global sg;

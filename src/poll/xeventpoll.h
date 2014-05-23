@@ -23,11 +23,11 @@
 #ifndef _XIO_XPOLL_
 #define _XIO_XPOLL_
 
-#include <sync/atomic.h>
-#include <sync/mutex.h>
-#include <sync/spin.h>
-#include <sync/condition.h>
-#include <ds/list.h>
+#include <utils/atomic.h>
+#include <utils/mutex.h>
+#include <utils/spin.h>
+#include <utils/condition.h>
+#include <utils/list.h>
 #include <xio/poll.h>
 #include <socket/xsock.h>
 

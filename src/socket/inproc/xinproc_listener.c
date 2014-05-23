@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <runner/taskpool.h>
+#include <utils/taskpool.h>
 #include "../xgb.h"
 
 /******************************************************************************

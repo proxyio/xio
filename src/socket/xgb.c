@@ -24,8 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <sync/waitgroup.h>
-#include <runner/taskpool.h>
+#include <utils/waitgroup.h>
+#include <utils/taskpool.h>
 #include "xgb.h"
 
 /* Backend poller wait kernel timeout msec */

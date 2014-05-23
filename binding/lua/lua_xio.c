@@ -26,7 +26,7 @@
 #include <xio/sp_reqrep.h>
 #include <string.h>
 #include <lauxlib.h>
-#include <libc/base.h>
+#include <utils/base.h>
 #include "lua_xio.h"
 
 static int lxallocubuf (lua_State *L) {

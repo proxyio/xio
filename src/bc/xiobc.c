@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#include <base.h>
-#include <stats/modstat.h>
+#include <utils/base.h>
+#include <utils/modstat.h>
 #include <xio/socket.h>
 #include <xio/sp_reqrep.h>
 

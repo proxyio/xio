@@ -23,8 +23,8 @@
 #ifndef _XIO_XGLOBAL_
 #define _XIO_XGLOBAL_
 
-#include <sync/mutex.h>
-#include <ds/list.h>
+#include <utils/mutex.h>
+#include <utils/list.h>
 #include "xinproc.h"
 #include "xtcpipc.h"
 #include "xcpu.h"

@@ -21,8 +21,8 @@
 */
 
 #include <stdio.h>
-#include <os/alloc.h>
-#include <hash/crc.h>
+#include <utils/alloc.h>
+#include <utils/crc.h>
 #include "xmsg.h"
 
 
