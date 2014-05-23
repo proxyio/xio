@@ -160,7 +160,7 @@ static int lsp_getopt(lua_State *L) {
 }
 
 
-static const struct luaL_reg luaL_libxio [] = {
+static const struct luaL_reg xio_apis [] = {
     {"xallocubuf",      lxallocubuf},
     {"xubuflen",        lxubuflen},
     {"xfreeubuf",       lxfreeubuf},
@@ -184,10 +184,13 @@ static const struct luaL_reg luaL_libxio [] = {
     {"sp_getopt",       lsp_getopt},
 };
 
-static const struct {
+
+typedef struct {
     const char *name;
     int value;
-} xio_const [] = {
+} XIOCONST;
+
+static XIOCONST xio_consts [] = {
     {"XPOLLIN",      XPOLLIN},
     {"XPOLLOUT",     XPOLLOUT},
     {"XPOLLERR",     XPOLLERR},
@@ -232,16 +235,18 @@ static const struct {
 	lua_setglobal(L, reg.name);		\
     } while (0)
 
-#define lua_registerConst(L, name) do {		\
-	lua_pushnumber(L, name );		\
-	lua_setglobal(L, #name );		\
+#define lua_registerConst(L, cst) do {		\
+	lua_pushnumber(L, cst.value );		\
+	lua_setglobal(L, cst.name );		\
     } while (0)
 
 int luaopen_xio (lua_State *L) {
     int i;
-    for (i = 0; i < NELEM(luaL_libxio, luaL_reg); i++) {
-	lua_registerFunc(L, luaL_libxio[i]);
+    for (i = 0; i < NELEM(xio_apis, luaL_reg); i++) {
+	lua_registerFunc(L, xio_apis[i]);
     }
-    lua_registerConst(L, SP_REQREP);
+    for (i = 0; i < NELEM(xio_consts, XIOCONST); i++) {
+	lua_registerConst(L, xio_consts[i]);
+    }
     return 1;
 }
