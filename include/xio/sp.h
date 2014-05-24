@@ -23,6 +23,7 @@
 #ifndef _XIO_SCALABILITY_PROTOCOLS_
 #define _XIO_SCALABILITY_PROTOCOLS_
 
+#include <xio/socket.h>
 #include <xio/cplusplus_define.h>
 
 #define SP_REQREP    1
@@ -37,6 +38,24 @@ int sp_add(int eid, int fd);
 int sp_rm(int eid, int fd);
 int sp_setopt(int eid, int opt, void *optval, int optlen);
 int sp_getopt(int eid, int opt, void *optval, int *optlen);
+
+
+static inline int sp_connect(int eid, const char *sockaddr) {
+    int fd = xconnect(sockaddr);
+
+    if (fd < 0)
+	return -1;
+    return sp_add(eid, fd);
+}
+
+static inline int sp_listen(int eid, const char *sockaddr) {
+    int fd = xlisten(sockaddr);
+
+    if (fd < 0)
+	return -1;
+    return sp_add(eid, fd);
+}
+
 
 #include <xio/cplusplus_endif.h>
 #endif

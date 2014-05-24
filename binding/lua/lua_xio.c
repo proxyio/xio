@@ -133,7 +133,11 @@ static int lsp_send(lua_State *L) {
 }
 
 static int lsp_recv(lua_State *L) {
-    return 0;
+    char *ubuf = 0;
+    int fd = luaL_checkint(L, 1);
+    lua_pushnumber(L, sp_recv(fd, &ubuf));
+    lua_pushlightuserdata(L, ubuf);
+    return 2;
 }
 
 static int lsp_add(lua_State *L) {
@@ -159,6 +163,20 @@ static int lsp_getopt(lua_State *L) {
     return 0;
 }
 
+static int lsp_connect(lua_State *L) {
+    int eid = luaL_checkint(L, 1);
+    const char *sockaddr = luaL_checkstring(L, 2);
+    lua_pushnumber(L, sp_connect(eid, sockaddr));
+    return 1;
+}
+
+
+static int lsp_listen(lua_State *L) {
+    int eid = luaL_checkint(L, 1);
+    const char *sockaddr = luaL_checkstring(L, 2);
+    lua_pushnumber(L, sp_listen(eid, sockaddr));
+    return 1;
+}
 
 static const struct luaL_reg xio_apis [] = {
     {"xallocubuf",      lxallocubuf},
@@ -174,6 +192,7 @@ static const struct luaL_reg xio_apis [] = {
     {"xclose",          lxclose},
     {"xsetopt",         lxsetopt},
     {"xgetopt",         lxgetopt},
+
     {"sp_endpoint",     lsp_endpoint},
     {"sp_close",        lsp_close},
     {"sp_send",         lsp_send},
@@ -182,6 +201,8 @@ static const struct luaL_reg xio_apis [] = {
     {"sp_rm",           lsp_rm},
     {"sp_setopt",       lsp_setopt},
     {"sp_getopt",       lsp_getopt},
+    {"sp_connect",       lsp_connect},
+    {"sp_listen",       lsp_listen},
 };
 
 
