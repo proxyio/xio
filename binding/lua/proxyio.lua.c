@@ -27,7 +27,7 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <utils/base.h>
-#include "lua_proxyio.h"
+#include "proxyio.lua.h"
 
 static int lxallocubuf (lua_State *L) {
     const char *str = luaL_checkstring(L, 1);

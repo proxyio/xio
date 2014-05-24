@@ -5,7 +5,7 @@
 #include <string>
 extern "C" {
 #include <utils/thread.h>
-#include <lua/lua_proxyio.h>
+#include <lua/proxyio.lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 }
