@@ -72,10 +72,7 @@ struct pollbase_vfptr {
 
 struct pollbase {
     struct pollbase_vfptr *vfptr;
-
-    /* struct xpoll_event contain the care events and what happened */
-    struct xpoll_event event;
-
+    struct poll_ent ent;
     struct list_head link;
 };
 

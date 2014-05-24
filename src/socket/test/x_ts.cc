@@ -87,15 +87,15 @@ static int pollid;
 static void xclient2(string pf) {
     int i;
     int sfd[cnt];
-    struct xpoll_event event[cnt] = {};
+    struct poll_ent ent[cnt] = {};
     string host(pf + "://127.0.0.1:18895");
 
     for (i = 0; i < cnt; i++) {
 	BUG_ON((sfd[i] = xconnect(host.c_str())) < 0);
-	event[i].fd = sfd[i];
-	event[i].self = 0;
-	event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	assert(xpoll_ctl(pollid, XPOLL_ADD, &event[i]) == 0);
+	ent[i].fd = sfd[i];
+	ent[i].self = 0;
+	ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
+	assert(xpoll_ctl(pollid, XPOLL_ADD, &ent[i]) == 0);
     }
     for (i = 0; i < cnt; i++)
 	xclose(sfd[i]);
@@ -112,36 +112,36 @@ static void xserver2() {
     int i, j, mycnt;
     int afd, sfd[cnt];
     thread_t cli_thread = {};
-    struct xpoll_event event[cnt] = {};
+    struct poll_ent ent[cnt] = {};
 
     pollid = xpoll_create();
     DEBUG_OFF("%d", pollid);
     BUG_ON((afd = xlisten("tcp+ipc+inproc://127.0.0.1:18895")) < 0);
     thread_start(&cli_thread, xclient_thread2, 0);
-    event[0].fd = afd;
-    event[0].self = 0;
-    event[0].care = XPOLLERR;
-    BUG_ON(xpoll_ctl(pollid, XPOLL_ADD, &event[0]) != 0);
+    ent[0].fd = afd;
+    ent[0].self = 0;
+    ent[0].events = XPOLLERR;
+    BUG_ON(xpoll_ctl(pollid, XPOLL_ADD, &ent[0]) != 0);
 
     for (j = 0; j < 3; j++) {
 	for (i = 0; i < cnt; i++) {
 	    BUG_ON((sfd[i] = xaccept(afd)) < 0);
 	    DEBUG_OFF("%d", sfd[i]);
-	    event[i].fd = sfd[i];
-	    event[i].self = 0;
-	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	    BUG_ON(xpoll_ctl(pollid, XPOLL_ADD, &event[i]) != 0);
+	    ent[i].fd = sfd[i];
+	    ent[i].self = 0;
+	    ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_ADD, &ent[i]) != 0);
 	}
 	mycnt = rand() % (cnt);
 	for (i = 0; i < mycnt; i++) {
 	    DEBUG_OFF("%d", sfd[i]);
-	    event[i].fd = sfd[i];
-	    event[i].self = 0;
-	    event[i].care = XPOLLIN|XPOLLOUT|XPOLLERR;
-	    BUG_ON(xpoll_ctl(pollid, XPOLL_MOD, &event[i]) != 0);
-	    BUG_ON(xpoll_ctl(pollid, XPOLL_MOD, &event[i]) != 0);
-	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &event[i]) != 0);
-	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &event[i]) != -1);
+	    ent[i].fd = sfd[i];
+	    ent[i].self = 0;
+	    ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_MOD, &ent[i]) != 0);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_MOD, &ent[i]) != 0);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &ent[i]) != 0);
+	    BUG_ON(xpoll_ctl(pollid, XPOLL_DEL, &ent[i]) != -1);
 	}
 	for (i = 0; i < cnt; i++)
 	    xclose(sfd[i]);

@@ -58,7 +58,7 @@ void __emit_pollevents(struct sockbase *self) {
     happened |= check_pollevents(self, XPOLLIN|XPOLLOUT|XPOLLERR);
     walk_pollbase_safe(pb, npb, &self->poll_entries) {
 	BUG_ON(!pb->vfptr);
-	pb->vfptr->emit(pb, happened & pb->event.care);
+	pb->vfptr->emit(pb, happened & pb->ent.events);
     }
 }
 

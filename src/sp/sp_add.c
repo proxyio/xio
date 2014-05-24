@@ -35,7 +35,7 @@ struct epsk *sp_generic_join(struct epbase *ep, int fd) {
     nsk->owner = ep;
     nsk->ent.fd = fd;
     nsk->ent.self = nsk;
-    nsk->ent.care = (socktype == XLISTENER) ?
+    nsk->ent.events = (socktype == XLISTENER) ?
 	XPOLLIN|XPOLLERR : XPOLLIN|XPOLLOUT|XPOLLERR;
     mutex_lock(&ep->lock);
     switch (socktype) {

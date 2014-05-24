@@ -68,8 +68,8 @@ static void epsk_try_disable_out(struct epsk *sk) {
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head) && list_empty(&sk->snd_cache)
 	&& !attached(&sk->out_item)) {
-	BUG_ON(!(sk->ent.care & XPOLLOUT));
-	sg_update_sk(sk, sk->ent.care & ~XPOLLOUT);
+	BUG_ON(!(sk->ent.events & XPOLLOUT));
+	sg_update_sk(sk, sk->ent.events & ~XPOLLOUT);
 	list_move(&sk->out_item, &ep->disable_pollout_socks);
 	ep->disable_out_num++;
 	DEBUG_OFF("ep %d socket %d disable pollout", ep->eid, sk->fd);
@@ -83,8 +83,8 @@ void __epsk_try_enable_out(struct epsk *sk) {
 
     if (attached(&sk->out_item)) {
 	list_del_init(&sk->out_item);
-	BUG_ON(sk->ent.care & XPOLLOUT);
-	sg_update_sk(sk, sk->ent.care | XPOLLOUT);
+	BUG_ON(sk->ent.events & XPOLLOUT);
+	sg_update_sk(sk, sk->ent.events | XPOLLOUT);
 	ep->disable_out_num--;
 	DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, sk->fd);
     }
@@ -106,7 +106,7 @@ void sg_add_sk(struct epsk *sk) {
 
 void sg_update_sk(struct epsk *sk, u32 ev) {
     int rc;
-    sk->ent.care = ev;
+    sk->ent.events = ev;
     rc = xpoll_ctl(sg.pollid, XPOLL_MOD, &sk->ent);
     BUG_ON(rc);
 }
@@ -175,7 +175,7 @@ static void listener_event_hndl(struct epsk *sk) {
     }
 }
 
-static void event_hndl(struct xpoll_event *ent) {
+static void event_hndl(struct poll_ent *ent) {
     int socktype = 0;
     int optlen;
     struct epsk *sk = (struct epsk *)ent->self;
@@ -217,11 +217,11 @@ static int po_routine_worker(void *args) {
     int rc, i;
     int ivl = 0;
     const char *estr;
-    struct xpoll_event ent[100];
+    struct poll_ent ent[100];
 
     waitgroup_done(wg);
     while (!sg.exiting) {
-	rc = xpoll_wait(sg.pollid, ent, NELEM(ent, struct xpoll_event), 1);
+	rc = xpoll_wait(sg.pollid, ent, NELEM(ent, struct poll_ent), 1);
 	if (ivl)
 	    usleep(ivl);
 	if (rc < 0)

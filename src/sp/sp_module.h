@@ -55,7 +55,7 @@ struct epsk *sp_generic_join(struct epbase *ep, int fd);
 
 struct epsk {
     struct epbase *owner;
-    struct xpoll_event ent;
+    struct poll_ent ent;
     int fd;
     uuid_t uuid;
     struct list_head item;
@@ -88,7 +88,7 @@ struct epbase {
     int eid;
     mutex_t lock;
     condition_t cond;
-    struct xpoll_event ent;
+    struct poll_ent ent;
     struct skbuf rcv;
     struct skbuf snd;
     struct list_head item;

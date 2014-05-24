@@ -141,7 +141,7 @@ struct xpitem *ffd(struct xpoll_t *self, int fd) {
     struct xpitem *itm, *nitm;
 
     walk_xpitem_safe(itm, nitm, &self->lru_head) {
-	if (itm->base.event.fd == fd || fd == XPOLL_HEADFD)
+	if (itm->base.ent.fd == fd || fd == XPOLL_HEADFD)
 	    return itm;
     }
     return 0;
@@ -182,7 +182,7 @@ struct xpitem *addfd(struct xpoll_t *self, int fd) {
     itm->ref++;
     atomic_inc(&self->ref);
 
-    itm->base.event.fd = fd;
+    itm->base.ent.fd = fd;
     BUG_ON(attached(&itm->lru_link));
     self->size++;
     list_add_tail(&itm->lru_link, &self->lru_head);
