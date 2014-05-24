@@ -20,11 +20,13 @@
   IN THE SOFTWARE.
 */
 
+#include <utils/base.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include <xio/sp.h>
+#include <xio/sp_reqrep.h>
 #include <string.h>
-#include "cpy_xio.h"
+#include "py_proxyio.h"
 
 const static char MODULE_NAME[] = "_xio_cpy";
 
@@ -44,7 +46,7 @@ static PyObject *Message_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     PyErr_Format(PyExc_TypeError,
                  "cannot create '%.100s' instances us xallocubuf instead",
                  type->tp_name);
-    return NULL;
+    return 0;
 }
 
 static PyMemberDef Message_members[] = {
@@ -158,7 +160,7 @@ static PyObject *cpy_xallocubuf(PyObject *self, PyObject *args) {
     Message *message = 0;
 
     if (!PyArg_ParseTuple(args, "i", &size))
-        return NULL;
+        return 0;
     message = (Message *)PyType_GenericAlloc(&MessageType, 0);
     if ((message->ubuf = xallocubuf(size)) == NULL) {
         Py_DECREF((PyObject*)message);
@@ -177,7 +179,7 @@ static PyObject *cpy_xsocket(PyObject *self, PyObject *args) {
     int socktype = 0;
 
     if (!PyArg_ParseTuple(args, "ii", &pf, &socktype))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", xsocket(pf, socktype));
 }
 
@@ -186,15 +188,15 @@ static PyObject *cpy_xbind(PyObject *self, PyObject *args) {
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "is", &fd, &sockaddr))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", xbind(fd, sockaddr));
 }
 
 static PyObject *cpy_xaccept(PyObject *self, PyObject *args) {
-    int fd;
+    int fd = 0;
 
     if (!PyArg_ParseTuple(args, "i", &fd))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", xaccept(fd));
 }
 
@@ -202,7 +204,7 @@ static PyObject *cpy_xlisten(PyObject *self, PyObject *args) {
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "s", &sockaddr))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", xlisten(sockaddr));
 }
 
@@ -210,23 +212,45 @@ static PyObject *cpy_xconnect(PyObject *self, PyObject *args) {
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "s", &sockaddr))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", xconnect(sockaddr));
 }
 
 static PyObject *cpy_xrecv(PyObject *self, PyObject *args) {
-    return 0;
+    PyObject *tuple = PyTuple_New(2);
+    Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
+    int fd = 0;
+    int rc;
+    char *ubuf = 0;
+
+    if (!PyArg_ParseTuple(args, "i", &fd))
+	return 0;
+    if ((rc = xrecv(fd, &ubuf)) == 0)
+	message->ubuf = ubuf;
+    PyTuple_SetItem(tuple, 0, Py_BuildValue("i", rc));
+    PyTuple_SetItem(tuple, 1, (PyObject *)message);
+    return tuple;
 }
 
 static PyObject *cpy_xsend(PyObject *self, PyObject *args) {
-    return 0;
+    int fd = 0;
+    int rc;
+    Message *message = (Message *)PyTuple_GetItem(args, 1);
+
+    if (!message || !PyArg_ParseTuple(PyTuple_GetItem(args, 0), "i", &fd))
+	return 0;
+    if ((rc = xsend(fd, message->ubuf)) == 0) {
+	message->ubuf = 0;
+        Py_DECREF((PyObject*)message);
+    }
+    return Py_BuildValue("i", rc);
 }
 
 static PyObject *cpy_xclose(PyObject *self, PyObject *args) {
     int fd = 0;
 
     if (!PyArg_ParseTuple(args, "i", &fd))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", xclose(fd));
 }
 
@@ -243,7 +267,7 @@ static PyObject *cpy_sp_endpoint(PyObject *self, PyObject *args) {
     int sp_type = 0;
 
     if (!PyArg_ParseTuple(args, "ii", &sp_family, &sp_type))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", sp_endpoint(sp_family, sp_type));
 }
 
@@ -251,16 +275,37 @@ static PyObject *cpy_sp_close(PyObject *self, PyObject *args) {
     int eid = 0;
 
     if (!PyArg_ParseTuple(args, "i", &eid))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", sp_close(eid));
 }
 
 static PyObject *cpy_sp_send(PyObject *self, PyObject *args) {
-    return 0;
+    int eid = 0;
+    int rc;
+    Message *message = 0;
+
+    if (!PyArg_ParseTuple(args, "iO", &eid, &message))
+	return 0;
+    if ((rc = sp_send(eid, message->ubuf)) == 0) {
+	message->ubuf = 0;
+    }
+    return Py_BuildValue("i", rc);
 }
 
 static PyObject *cpy_sp_recv(PyObject *self, PyObject *args) {
-    return 0;
+    PyObject *tuple = PyTuple_New(2);
+    Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
+    int eid = 0;
+    int rc;
+    char *ubuf = 0;
+
+    if (!PyArg_ParseTuple(args, "i", &eid))
+	return 0;
+    if ((rc = sp_recv(eid, &ubuf)) == 0)
+	message->ubuf = ubuf;
+    PyTuple_SetItem(tuple, 0, Py_BuildValue("i", rc));
+    PyTuple_SetItem(tuple, 1, (PyObject *)message);
+    return tuple;
 }
 
 static PyObject *cpy_sp_add(PyObject *self, PyObject *args) {
@@ -268,7 +313,7 @@ static PyObject *cpy_sp_add(PyObject *self, PyObject *args) {
     int sockfd = 0;
 
     if (!PyArg_ParseTuple(args, "ii", &eid, &sockfd))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", sp_add(eid, sockfd));
 }
 
@@ -277,7 +322,7 @@ static PyObject *cpy_sp_rm(PyObject *self, PyObject *args) {
     int sockfd = 0;
 
     if (!PyArg_ParseTuple(args, "ii", &eid, &sockfd))
-        return NULL;
+        return 0;
     return Py_BuildValue("i", sp_rm(eid, sockfd));
 }
 
@@ -288,6 +333,25 @@ static PyObject *cpy_sp_setopt(PyObject *self, PyObject *args) {
 
 static PyObject *cpy_sp_getopt(PyObject *self, PyObject *args) {
     return 0;
+}
+
+static PyObject *cpy_sp_listen(PyObject *self, PyObject *args) {
+    int eid = 0;
+    const char *sockaddr = 0;
+
+    if (!PyArg_ParseTuple(args, "is", &eid, &sockaddr))
+	return 0;
+    return Py_BuildValue("i", sp_listen(eid, sockaddr));
+}
+
+
+static PyObject *cpy_sp_connect(PyObject *self, PyObject *args) {
+    int eid = 0;
+    const char *sockaddr = 0;
+
+    if (!PyArg_ParseTuple(args, "is", &eid, &sockaddr))
+	return 0;
+    return Py_BuildValue("i", sp_connect(eid, sockaddr));
 }
 
 static PyMethodDef module_methods[] = {
@@ -312,9 +376,63 @@ static PyMethodDef module_methods[] = {
     {"sp_rm",           cpy_sp_rm,          METH_VARARGS,  "remove socket from endpoint"},
     {"sp_setopt",       cpy_sp_setopt,      METH_VARARGS,  "set SP options"},
     {"sp_getopt",       cpy_sp_getopt,      METH_VARARGS,  "get SP options"},
+    {"sp_listen",       cpy_sp_listen,      METH_VARARGS,  "helper API for add a listener to endpoint"},
+    {"sp_connect",      cpy_sp_connect,     METH_VARARGS,  "helper API for add a connector to endpoint"},
     {NULL, NULL, 0, NULL}
 };
 
-int cpyopen_xio () {
+typedef struct {
+    const char *name;
+    int value;
+} pyxio_constant;
+
+static pyxio_constant xio_consts[] = {
+    {"XPOLLIN",      XPOLLIN},
+    {"XPOLLOUT",     XPOLLOUT},
+    {"XPOLLERR",     XPOLLERR},
+
+    {"XPOLL_ADD",    XPOLL_ADD},
+    {"XPOLL_DEL",    XPOLL_DEL},
+    {"XPOLL_MOD",    XPOLL_MOD},
+
+    {"XPF_TCP",      XPF_TCP},
+    {"XPF_IPC",      XPF_IPC},
+    {"XPF_INPROC",   XPF_INPROC},
+    {"XLISTENER",    XLISTENER},
+    {"XCONNECTOR",   XCONNECTOR},
+    {"XSOCKADDRLEN", XSOCKADDRLEN},
+
+    {"XL_SOCKET",    XL_SOCKET},
+    {"XNOBLOCK",     XNOBLOCK},
+    {"XSNDWIN",      XSNDWIN},
+    {"XRCVWIN",      XRCVWIN},
+    {"XSNDBUF",      XSNDBUF},
+    {"XRCVBUF",      XRCVBUF},
+    {"XLINGER",      XLINGER},
+    {"XSNDTIMEO",    XSNDTIMEO},
+    {"XRCVTIMEO",    XRCVTIMEO},
+    {"XRECONNECT",   XRECONNECT},
+    {"XSOCKTYPE",    XSOCKTYPE},
+    {"XSOCKPROTO",   XSOCKPROTO},
+    {"XTRACEDEBUG",  XTRACEDEBUG},
+
+    {"SP_REQREP",    SP_REQREP},
+    {"SP_BUS",       SP_BUS},
+    {"SP_PUBSUB",    SP_PUBSUB},
+
+    {"SP_REQ",       SP_REQ},
+    {"SP_REP",       SP_REP},
+    {"SP_PROXY",     SP_PROXY},
+};
+
+int pyopen_xio() {
+    PyObject *pyxio = Py_InitModule("xio", module_methods);
+    int i;
+    pyxio_constant *c;
+    
+    for (i = 0; i < NELEM(xio_consts, pyxio_constant); i++) {
+	c = &xio_consts[i];
+	PyModule_AddIntConstant(pyxio, c->name, c->value);
+    }
     return 0;
 }

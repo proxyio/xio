@@ -136,13 +136,12 @@ static void connector_event_hndl(struct epsk *sk) {
 		xfreeubuf(ubuf);
 		if (errno != EAGAIN)
 		    happened |= XPOLLERR;
-		DEBUG_OFF("ep %d socket %d send with errno %d", ep->eid, sk->fd,
-			  errno);
+		DEBUG_OFF("ep %d socket %d send with errno %d", ep->eid,
+			  sk->fd, errno);
 	    } else
 		DEBUG_OFF("ep %d socket %d send ok", ep->eid, sk->fd);
 	} else {
 	    epsk_try_disable_out(sk);
-	    // epsk_try_enable_out(sk);
 	}
     }
     if (happened & XPOLLERR) {

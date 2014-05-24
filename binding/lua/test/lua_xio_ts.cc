@@ -5,14 +5,12 @@
 #include <string>
 extern "C" {
 #include <utils/thread.h>
-#include <lua/lua_xio.h>
+#include <lua/lua_proxyio.h>
 #include <lualib.h>
 #include <lauxlib.h>
 }
 
 using namespace std;
-
-static string xio_ts_code;
 
 static int lua_do_file(void *arg) {
     lua_State * l = luaL_newstate();

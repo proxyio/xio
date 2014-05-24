@@ -27,7 +27,7 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <utils/base.h>
-#include "lua_xio.h"
+#include "lua_proxyio.h"
 
 static int lxallocubuf (lua_State *L) {
     const char *str = luaL_checkstring(L, 1);
@@ -201,7 +201,7 @@ static const struct luaL_reg xio_apis [] = {
     {"sp_rm",           lsp_rm},
     {"sp_setopt",       lsp_setopt},
     {"sp_getopt",       lsp_getopt},
-    {"sp_connect",       lsp_connect},
+    {"sp_connect",      lsp_connect},
     {"sp_listen",       lsp_listen},
 };
 
@@ -209,9 +209,9 @@ static const struct luaL_reg xio_apis [] = {
 typedef struct {
     const char *name;
     int value;
-} XIOCONST;
+} luaxio_constant;
 
-static XIOCONST xio_consts [] = {
+static luaxio_constant xio_consts [] = {
     {"XPOLLIN",      XPOLLIN},
     {"XPOLLOUT",     XPOLLOUT},
     {"XPOLLERR",     XPOLLERR},
@@ -266,8 +266,10 @@ int luaopen_xio (lua_State *L) {
     for (i = 0; i < NELEM(xio_apis, luaL_reg); i++) {
 	lua_registerFunc(L, xio_apis[i]);
     }
-    for (i = 0; i < NELEM(xio_consts, XIOCONST); i++) {
-	lua_registerConst(L, xio_consts[i]);
+    for (i = 0; i < NELEM(xio_consts, luaxio_constant); i++) {
+	luaxio_constant *c = &xio_consts[i];
+	lua_pushnumber(L, c->value);
+	lua_setglobal(L, c->name);
     }
     return 1;
 }

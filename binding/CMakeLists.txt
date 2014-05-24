@@ -14,5 +14,6 @@ target_link_libraries( pyxio xio )
 ## compile unit_test
 aux_source_directory( test/ BTEST )
 aux_source_directory( lua/test BTEST )
+aux_source_directory( python/test BTEST )
 add_executable( btest ${BTEST} )
-target_link_libraries( btest xio luaxio gtest pthread profiler lua )
+target_link_libraries( btest xio luaxio lua pyxio python2.6 gtest pthread profiler )
