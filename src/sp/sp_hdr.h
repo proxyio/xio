@@ -115,7 +115,7 @@ static inline void rt_append(char *ubuf, struct spr *r) {
     struct xcmsg ent;
     
     BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum) != 0);
-    BUG_ON(!cmsgnum && cmsgnum != eh->ttl + 1);
+    BUG_ON(!cmsgnum || cmsgnum != eh->ttl + 1);
     ent.idx = ++eh->ttl;
     ent.outofband = (char *)r;
     BUG_ON(xmsgctl(ubuf, XMSG_SETCMSG, &ent) != 0);
