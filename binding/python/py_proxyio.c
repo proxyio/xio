@@ -35,7 +35,8 @@ typedef struct {
     void *ubuf;
 } Message;
 
-static PyObject *Message_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+static PyObject *Message_new(PyTypeObject *type, PyObject *args,
+			     PyObject *kwds) {
     PyErr_Format(PyExc_TypeError,
                  "cannot create '%.100s' instances us xallocubuf instead",
                  type->tp_name);
@@ -50,15 +51,7 @@ static PyMethodDef Message_methods[] = {
     {NULL}
 };
 
-int Message_getbuffer(Message *self, Py_buffer *view, int flags) {
-    if (self->ubuf == NULL) {
-	PyErr_BadInternalCall();
-	return -1;
-    }
-    return PyBuffer_FillInfo(view, (PyObject *)self, self->ubuf, xubuflen(self->ubuf), 0, flags);
-}
 
-#ifndef IS_PY3K
 static int Message_getreadbuffer(Message *self, int segment, void **ptrptr) {
     if (segment != 0 || self->ubuf == NULL) {
 	PyErr_BadInternalCall();
@@ -70,8 +63,8 @@ static int Message_getreadbuffer(Message *self, int segment, void **ptrptr) {
 
 static int Message_getwritebuffer(Message *self, int segment, void **ptrptr) {
     if (segment != 0 || self->ubuf == NULL) {
-	PyErr_BadInternalCall();
-	return -1;
+        PyErr_BadInternalCall();
+        return -1;
     }
     *ptrptr = ((Message *)self)->ubuf;
     return xubuflen(((Message *)self)->ubuf);
@@ -82,16 +75,11 @@ static int Message_getsegcountproc(PyObject *self, int *lenp) {
         *lenp = xubuflen(((Message *)self)->ubuf);
     return 1;
 }
-#endif
 
 static PyBufferProcs Message_bufferproces = {
-#ifndef IS_PY3K
     (readbufferproc)     Message_getreadbuffer,
     (writebufferproc)    Message_getwritebuffer,
     (segcountproc)       Message_getsegcountproc,
-    NULL,
-#endif
-    (getbufferproc)      Message_getbuffer,
     NULL
 };
 
@@ -124,10 +112,8 @@ static PyTypeObject MessageType = {
     0,                           /*tp_getattro*/
     0,                           /*tp_setattro*/
     &Message_bufferproces,       /*tp_as_buffer*/
-    //Py_TPFLAGS_DEFAULT,
     Py_TPFLAGS_HAVE_CLASS
-    | Py_TPFLAGS_HAVE_NEWBUFFER
-    | Py_TPFLAGS_IS_ABSTRACT,    /*tp_flags*/
+    | Py_TPFLAGS_HAVE_NEWBUFFER,
     "allocated message wrapper supporting buffer protocol",
     /* tp_doc */
     0,                           /* tp_traverse */
@@ -169,7 +155,6 @@ static PyObject *cpy_xfreeubuf(PyObject *self, PyObject *args) {
     if (!PyArg_ParseTuple(args, "O", &message))
 	return 0;
     xfreeubuf(message->ubuf);
-    //Py_DECREF((PyObject*)message);
     Py_RETURN_NONE;
 }
 
@@ -244,9 +229,12 @@ static PyObject *cpy_xsend(PyObject *self, PyObject *args) {
 
     if (!PyArg_ParseTuple(args, "iO", &fd, &message))
 	return 0;
+    if (!message->ubuf) {
+	PyErr_BadInternalCall();
+	return 0;
+    }
     if ((rc = xsend(fd, message->ubuf)) == 0) {
 	message->ubuf = 0;
-        //Py_DECREF((PyObject*)message);
     }
     return Py_BuildValue("i", rc);
 }
@@ -291,10 +279,12 @@ static PyObject *cpy_sp_send(PyObject *self, PyObject *args) {
 
     if (!PyArg_ParseTuple(args, "iO", &eid, &message))
 	return 0;
-    DEBUG_OFF("%p", message->ubuf);
+    if (!message->ubuf) {
+	PyErr_BadInternalCall();
+	return 0;
+    }
     if ((rc = sp_send(eid, message->ubuf)) == 0) {
 	message->ubuf = 0;
-        //Py_DECREF((PyObject*)message);
     }
     return Py_BuildValue("i", rc);
 }
