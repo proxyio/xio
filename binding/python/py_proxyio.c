@@ -35,13 +35,6 @@ typedef struct {
     void *ubuf;
 } Message;
 
-static void Message_dealloc(Message *self) {
-    if (self->ubuf != NULL) {
-        xfreeubuf(self->ubuf);
-    }
-    Py_TYPE(self)->tp_free((PyObject*)self);
-}
-
 static PyObject *Message_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     PyErr_Format(PyExc_TypeError,
                  "cannot create '%.100s' instances us xallocubuf instead",
@@ -103,7 +96,7 @@ static PyBufferProcs Message_bufferproces = {
 };
 
 static PyObject *Message_repr(Message *self) {
-    return PyUnicode_FromFormat("<_nanomsg_cpy.Message size %zu, address %p >",
+    return PyUnicode_FromFormat("<_xio_cpy.Message size %zu, address %p >",
 				xubuflen(self->ubuf), self->ubuf);
 }
 
@@ -116,7 +109,7 @@ static PyTypeObject MessageType = {
     "_xio_cpy.Message",          /*tp_name*/
     sizeof(Message),             /*tp_basicsize*/
     0,                           /*tp_itemsize*/
-    (destructor)Message_dealloc, /*tp_dealloc*/
+    0,                           /*tp_dealloc*/
     0,                           /*tp_print*/
     0,                           /*tp_getattr*/
     0,                           /*tp_setattr*/
@@ -131,10 +124,11 @@ static PyTypeObject MessageType = {
     0,                           /*tp_getattro*/
     0,                           /*tp_setattro*/
     &Message_bufferproces,       /*tp_as_buffer*/
+    //Py_TPFLAGS_DEFAULT,
     Py_TPFLAGS_HAVE_CLASS
     | Py_TPFLAGS_HAVE_NEWBUFFER
     | Py_TPFLAGS_IS_ABSTRACT,    /*tp_flags*/
-    "nanomsg allocated message wrapper supporting buffer protocol",
+    "allocated message wrapper supporting buffer protocol",
     /* tp_doc */
     0,                           /* tp_traverse */
     0,                           /* tp_clear */
@@ -168,6 +162,17 @@ static PyObject *cpy_xallocubuf(PyObject *self, PyObject *args) {
     }
     return (PyObject*)message;
 }
+
+static PyObject *cpy_xfreeubuf(PyObject *self, PyObject *args) {
+    Message *message = 0;
+
+    if (!PyArg_ParseTuple(args, "O", &message))
+	return 0;
+    xfreeubuf(message->ubuf);
+    //Py_DECREF((PyObject*)message);
+    Py_RETURN_NONE;
+}
+
 
 static PyObject *cpy_xubuflen (PyObject *self, PyObject *args) {
     Message *message = (Message *)self;
@@ -235,13 +240,13 @@ static PyObject *cpy_xrecv(PyObject *self, PyObject *args) {
 static PyObject *cpy_xsend(PyObject *self, PyObject *args) {
     int fd = 0;
     int rc;
-    Message *message = (Message *)PyTuple_GetItem(args, 1);
+    Message *message = 0;
 
-    if (!message || !PyArg_ParseTuple(PyTuple_GetItem(args, 0), "i", &fd))
+    if (!PyArg_ParseTuple(args, "iO", &fd, &message))
 	return 0;
     if ((rc = xsend(fd, message->ubuf)) == 0) {
 	message->ubuf = 0;
-        Py_DECREF((PyObject*)message);
+        //Py_DECREF((PyObject*)message);
     }
     return Py_BuildValue("i", rc);
 }
@@ -281,13 +286,15 @@ static PyObject *cpy_sp_close(PyObject *self, PyObject *args) {
 
 static PyObject *cpy_sp_send(PyObject *self, PyObject *args) {
     int eid = 0;
-    int rc;
+    int rc = 0;
     Message *message = 0;
 
     if (!PyArg_ParseTuple(args, "iO", &eid, &message))
 	return 0;
+    DEBUG_OFF("%p", message->ubuf);
     if ((rc = sp_send(eid, message->ubuf)) == 0) {
 	message->ubuf = 0;
+        //Py_DECREF((PyObject*)message);
     }
     return Py_BuildValue("i", rc);
 }
@@ -296,7 +303,7 @@ static PyObject *cpy_sp_recv(PyObject *self, PyObject *args) {
     PyObject *tuple = PyTuple_New(2);
     Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
     int eid = 0;
-    int rc;
+    int rc = 0;
     char *ubuf = 0;
 
     if (!PyArg_ParseTuple(args, "i", &eid))
@@ -357,7 +364,7 @@ static PyObject *cpy_sp_connect(PyObject *self, PyObject *args) {
 static PyMethodDef module_methods[] = {
     {"xallocubuf",      cpy_xallocubuf,     METH_VARARGS,  "alloc a user-space message"},
     {"xubuflen",        cpy_xubuflen,       METH_VARARGS,  "return the ubuf's length"},
-    {"xfreeubuf",       0,                  METH_VARARGS,  ""},
+    {"xfreeubuf",       cpy_xfreeubuf,      METH_VARARGS,  "free ubuf"},
     {"xsocket",         cpy_xsocket,        METH_VARARGS,  "create an socket"},
     {"xbind",           cpy_xbind,          METH_VARARGS,  "bind the sockaddr to the socket"},
     {"xlisten",         cpy_xlisten,        METH_VARARGS,  "listen the sockaddr"},
@@ -425,14 +432,16 @@ static pyxio_constant xio_consts[] = {
     {"SP_PROXY",     SP_PROXY},
 };
 
-int pyopen_xio() {
+void pyopen_xio() {
     PyObject *pyxio = Py_InitModule("xio", module_methods);
     int i;
     pyxio_constant *c;
-    
+
+    BUG_ON(PyType_Ready(&MessageType) < 0);
+    Py_INCREF(&MessageType);
+    PyModule_AddObject(pyxio, "Message", (PyObject *)&MessageType);
     for (i = 0; i < NELEM(xio_consts, pyxio_constant); i++) {
 	c = &xio_consts[i];
 	PyModule_AddIntConstant(pyxio, c->name, c->value);
     }
-    return 0;
 }

@@ -26,7 +26,6 @@
 #include <python2.6/Python.h>
 #include <python2.6/structmember.h>
 
-int pyopen_xio();
-
+void pyopen_xio();
 
 #endif

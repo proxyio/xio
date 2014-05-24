@@ -18,10 +18,8 @@ for i in range(1, 10) :
     msg = xallocubuf(12);
     rc = sp_send(cli_eid, msg);
     assert (rc == 0);
-    print("send", i);
-
+    
     rc, msg1 = sp_recv(svr_eid)
-    print("recv", i);
     assert (rc == 0);
     rc = sp_send(svr_eid, msg1);
     assert (rc == 0);
@@ -32,3 +30,4 @@ for i in range(1, 10) :
 
 sp_close(svr_eid);
 sp_close(cli_eid);
+
