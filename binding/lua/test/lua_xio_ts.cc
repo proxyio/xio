@@ -5,7 +5,7 @@
 #include <string>
 extern "C" {
 #include <utils/thread.h>
-#include <lua/proxyio.lua.h>
+#include <lua/lua_xio.h>
 #include <lualib.h>
 #include <lauxlib.h>
 }
@@ -17,7 +17,7 @@ static int lua_do_file(void *arg) {
     const char *xio_source_path = getenv("XIO_SOURCE_PATH");
     assert (xio_source_path);
     string lua_file = string(xio_source_path) + string((char *)arg);
-    luaopen_xio(l);
+    luaL_xio(l);
     luaL_openlibs(l);
     int erred = luaL_dofile(l, lua_file.c_str());
     if(erred)

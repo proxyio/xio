@@ -20,13 +20,25 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_LUAXIO_
-#define _XIO_LUAXIO_
+#include <xio/poll.h>
+#include <string.h>
+#include <lauxlib.h>
+#include <utils/base.h>
+#include "lua_xio.h"
 
-#include <lua.h>
+static const struct luaL_reg __poll_apis [] = {
+};
+const struct luaL_reg *poll_apis = __poll_apis;
+int poll_apis_num = NELEM(__poll_apis, struct luaL_reg);
 
-int luaopen_xio (lua_State *L);
 
-
-
-#endif
+static const struct xio_constant __poll_consts [] = {
+    {"XPOLLIN",      XPOLLIN},
+    {"XPOLLOUT",     XPOLLOUT},
+    {"XPOLLERR",     XPOLLERR},
+    {"XPOLL_ADD",    XPOLL_ADD},
+    {"XPOLL_DEL",    XPOLL_DEL},
+    {"XPOLL_MOD",    XPOLL_MOD},
+};
+const struct xio_constant *poll_consts = __poll_consts;
+int poll_consts_num = NELEM(__poll_consts, struct xio_constant);

@@ -27,7 +27,7 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <utils/base.h>
-#include "proxyio.lua.h"
+#include "lua_xio.h"
 
 static int lxallocubuf (lua_State *L) {
     const char *str = luaL_checkstring(L, 1);
@@ -112,73 +112,7 @@ static int lxgetopt(lua_State *L) {
     return 0;
 }
 
-static int lsp_endpoint(lua_State *L) {
-    int sp_family = luaL_checkint(L, 1);
-    int sp_type = luaL_checkint(L, 2);
-    lua_pushnumber(L, sp_endpoint(sp_family, sp_type));
-    return 1;
-}
-
-static int lsp_close(lua_State *L) {
-    int eid = luaL_checkint(L, 1);
-    lua_pushnumber(L, sp_close(eid));
-    return 1;
-}
-
-static int lsp_send(lua_State *L) {
-    int eid = luaL_checkint(L, 1);
-    char *ubuf = (char *)lua_touserdata(L, 2);
-    lua_pushnumber(L, sp_send(eid, ubuf));
-    return 1;
-}
-
-static int lsp_recv(lua_State *L) {
-    char *ubuf = 0;
-    int fd = luaL_checkint(L, 1);
-    lua_pushnumber(L, sp_recv(fd, &ubuf));
-    lua_pushlightuserdata(L, ubuf);
-    return 2;
-}
-
-static int lsp_add(lua_State *L) {
-    int eid = luaL_checkint(L, 1);
-    int sockfd = luaL_checkint(L, 2);
-    lua_pushnumber(L, sp_add(eid, sockfd));
-    return 1;
-}
-
-static int lsp_rm(lua_State *L) {
-    int eid = luaL_checkint(L, 1);
-    int sockfd = luaL_checkint(L, 2);
-    lua_pushnumber(L, sp_rm(eid, sockfd));
-    return 1;
-}
-
-static int lsp_setopt(lua_State *L) {
-    return 0;
-}
-
-
-static int lsp_getopt(lua_State *L) {
-    return 0;
-}
-
-static int lsp_connect(lua_State *L) {
-    int eid = luaL_checkint(L, 1);
-    const char *sockaddr = luaL_checkstring(L, 2);
-    lua_pushnumber(L, sp_connect(eid, sockaddr));
-    return 1;
-}
-
-
-static int lsp_listen(lua_State *L) {
-    int eid = luaL_checkint(L, 1);
-    const char *sockaddr = luaL_checkstring(L, 2);
-    lua_pushnumber(L, sp_listen(eid, sockaddr));
-    return 1;
-}
-
-static const struct luaL_reg xio_apis [] = {
+static const struct luaL_reg __socket_apis [] = {
     {"xallocubuf",      lxallocubuf},
     {"xubuflen",        lxubuflen},
     {"xfreeubuf",       lxfreeubuf},
@@ -192,34 +126,11 @@ static const struct luaL_reg xio_apis [] = {
     {"xclose",          lxclose},
     {"xsetopt",         lxsetopt},
     {"xgetopt",         lxgetopt},
-
-    {"sp_endpoint",     lsp_endpoint},
-    {"sp_close",        lsp_close},
-    {"sp_send",         lsp_send},
-    {"sp_recv",         lsp_recv},
-    {"sp_add",          lsp_add},
-    {"sp_rm",           lsp_rm},
-    {"sp_setopt",       lsp_setopt},
-    {"sp_getopt",       lsp_getopt},
-    {"sp_connect",      lsp_connect},
-    {"sp_listen",       lsp_listen},
 };
+const struct luaL_reg *socket_apis = __socket_apis;
+int socket_apis_num = NELEM(__socket_apis, struct luaL_reg);
 
-
-typedef struct {
-    const char *name;
-    int value;
-} luaxio_constant;
-
-static luaxio_constant xio_consts [] = {
-    {"XPOLLIN",      XPOLLIN},
-    {"XPOLLOUT",     XPOLLOUT},
-    {"XPOLLERR",     XPOLLERR},
-
-    {"XPOLL_ADD",    XPOLL_ADD},
-    {"XPOLL_DEL",    XPOLL_DEL},
-    {"XPOLL_MOD",    XPOLL_MOD},
-
+static const struct xio_constant __socket_consts [] = {
     {"XPF_TCP",      XPF_TCP},
     {"XPF_IPC",      XPF_IPC},
     {"XPF_INPROC",   XPF_INPROC},
@@ -240,36 +151,6 @@ static luaxio_constant xio_consts [] = {
     {"XSOCKTYPE",    XSOCKTYPE},
     {"XSOCKPROTO",   XSOCKPROTO},
     {"XTRACEDEBUG",  XTRACEDEBUG},
-
-    {"SP_REQREP",    SP_REQREP},
-    {"SP_BUS",       SP_BUS},
-    {"SP_PUBSUB",    SP_PUBSUB},
-
-    {"SP_REQ",       SP_REQ},
-    {"SP_REP",       SP_REP},
-    {"SP_PROXY",     SP_PROXY},
 };
-
-
-#define lua_registerFunc(L, reg) do {		\
-	lua_pushcfunction(L, reg.func);		\
-	lua_setglobal(L, reg.name);		\
-    } while (0)
-
-#define lua_registerConst(L, cst) do {		\
-	lua_pushnumber(L, cst.value );		\
-	lua_setglobal(L, cst.name );		\
-    } while (0)
-
-int luaopen_xio (lua_State *L) {
-    int i;
-    for (i = 0; i < NELEM(xio_apis, luaL_reg); i++) {
-	lua_registerFunc(L, xio_apis[i]);
-    }
-    for (i = 0; i < NELEM(xio_consts, luaxio_constant); i++) {
-	luaxio_constant *c = &xio_consts[i];
-	lua_pushnumber(L, c->value);
-	lua_setglobal(L, c->name);
-    }
-    return 1;
-}
+const struct xio_constant *socket_consts = __socket_consts;
+int socket_consts_num = NELEM(__socket_consts, struct xio_constant);
