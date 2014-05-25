@@ -5,7 +5,7 @@
 #include <string>
 extern "C" {
 #include <utils/thread.h>
-#include <python/proxyio.py.h>
+#include <python/cpy_xio.h>
 #include <python2.6/pythonrun.h>
 }
 
