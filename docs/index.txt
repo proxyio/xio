@@ -16,6 +16,12 @@ It aims to make the networking layer scalable, and easy to use. proxyio is
 implemented in C, now only support unix/linux, we will support windows and other
 os platform in the near future.
 
+proxyio now support
+https://github.com/pipul/xio/tree/master/binding/python[python]/
+https://github.com/pipul/xio/tree/master/binding/go[golang]/
+https://github.com/pipul/xio/tree/master/binding/lua[lua]/
+https://github.com/pipul/xio/tree/master/include[c/c++] languages binding
+
 image:images/arch.png[The Architecture of proxyio]
 
 For more details, see APIs:
