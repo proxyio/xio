@@ -1,8 +1,8 @@
 package xio
 
 import (
-	"testing"
 	"strconv"
+	"testing"
 )
 
 func TestREQREP(t *testing.T) {

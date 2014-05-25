@@ -31,7 +31,6 @@ const (
 	XTRACEDEBUG  = C.XTRACEDEBUG
 )
 
-
 func xallocubuf(size int) *C.char {
 	var ubuf *C.char
 	ubuf = C.xallocubuf(C.int(size))

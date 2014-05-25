@@ -11,12 +11,12 @@ package xio
 import "C"
 
 const (
-	SP_REQREP    = C.SP_REQREP
-	SP_BUS       = C.SP_BUS
-	SP_PUBSUB    = C.SP_PUBSUB
-	SP_REQ       = C.SP_REQ
-	SP_REP       = C.SP_REP
-	SP_PROXY     = C.SP_PROXY
+	SP_REQREP = C.SP_REQREP
+	SP_BUS    = C.SP_BUS
+	SP_PUBSUB = C.SP_PUBSUB
+	SP_REQ    = C.SP_REQ
+	SP_REP    = C.SP_REP
+	SP_PROXY  = C.SP_PROXY
 )
 
 func sp_endpoint(sp_family int, sp_type int) (eid int) {
@@ -28,7 +28,6 @@ func sp_close(eid int) (rc int) {
 	rc = int(C.sp_close(C.int(eid)))
 	return rc
 }
-
 
 func sp_recv(eid int) (rc int, ubuf *C.char) {
 	rc = int(C.sp_recv(C.int(eid), &ubuf))

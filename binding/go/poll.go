@@ -6,23 +6,22 @@ package xio
 
  #include <xio/poll.h>
 
- */
+*/
 import "C"
 
-
 const (
-	XPOLLIN      = C.XPOLLIN
-	XPOLLOUT     = C.XPOLLOUT
-	XPOLLERR     = C.XPOLLERR
-	XPOLL_ADD    = C.XPOLL_ADD
-	XPOLL_DEL    = C.XPOLL_DEL
-	XPOLL_MOD    = C.XPOLL_MOD
+	XPOLLIN   = C.XPOLLIN
+	XPOLLOUT  = C.XPOLLOUT
+	XPOLLERR  = C.XPOLLERR
+	XPOLL_ADD = C.XPOLL_ADD
+	XPOLL_DEL = C.XPOLL_DEL
+	XPOLL_MOD = C.XPOLL_MOD
 )
 
 type PollEnt struct {
-	fd int
-	self interface{}
-	events int
+	fd       int
+	self     interface{}
+	events   int
 	happened int
 }
 
