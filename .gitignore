@@ -16,6 +16,6 @@
 *.exe
 *.out
 *.app
-
+.*
 # usr
 build
