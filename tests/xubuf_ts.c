@@ -1,21 +1,14 @@
-#include <gtest/gtest.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <string>
-extern "C" {
 #include <utils/spinlock.h>
 #include <utils/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
-}
+#include "testutil.h"
 
-using namespace std;
-extern int randstr(char *buf, int len);
-
-
-TEST(xmsg, outofband) {
+int main(int argc, char **argv) {
     int oob_count = -1;
     struct xcmsg ent = {};
     char *xbuf = xallocubuf(12);
@@ -77,5 +70,6 @@ TEST(xmsg, outofband) {
 
     xfreeubuf(xbuf);
     xfreeubuf(xbuf2);
+    return 0;
 }
 

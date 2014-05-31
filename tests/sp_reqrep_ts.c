@@ -1,35 +1,25 @@
-#include <gtest/gtest.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <string>
 #include <xio/sp_reqrep.h>
 #include <xio/socket.h>
-extern "C" {
 #include <utils/spinlock.h>
 #include <utils/thread.h>
-}
-
-
-
-using namespace std;
-
-extern int randstr(char *buf, int len);
+#include "testutil.h"
 
 static int req_thread(void *args) {
-    string host;
+    char host[1024];
     char buf[128];
     int s;
     int i;
     int eid;
     char *sbuf, *rbuf;
 
-    host.assign((char *)args);
-    host += "://127.0.0.1:18898";
+    sprintf(host, "%s%s", (char *)args, "://127.0.0.1:18898");
     randstr(buf, sizeof(buf));
     BUG_ON((eid = sp_endpoint(SP_REQREP, SP_REQ)) < 0);
     for (i = 0; i < 1; i++) {
-	BUG_ON((s = xconnect(host.c_str())) < 0);
+	BUG_ON((s = xconnect(host)) < 0);
 	BUG_ON(sp_add(eid, s) < 0);
     }
     for (i = 0; i < 3; i++) {
@@ -47,14 +37,15 @@ static int req_thread(void *args) {
 	BUG_ON(memcmp(rbuf, buf, sizeof(buf)) != 0);
 	xfreeubuf(rbuf);
     }
-    DEBUG_ON("producer %d close on %s", eid, host.c_str());
+    DEBUG_OFF("producer %d close on %s", eid, host);
     sp_close(eid);
     return 0;
 }
 
 
-TEST(sp, reqrep) {
-    string addr("://127.0.0.1:18898"), host;
+int main(int argc, char **argv) {
+    char *addr = "://127.0.0.1:18898";
+    char host[1024] = {};
     u32 i;
     thread_t t[3];
     const char *pf[] = {
@@ -68,8 +59,8 @@ TEST(sp, reqrep) {
 
     BUG_ON((eid = sp_endpoint(SP_REQREP, SP_REP)) < 0);
     for (i = 0; i < NELEM(t, thread_t); i++) {
-	host = pf[i] + addr;
-	BUG_ON((s = xlisten(host.c_str())) < 0);
+	sprintf(host, "%s%s", pf[i], addr);
+	BUG_ON((s = xlisten(host)) < 0);
 	BUG_ON(sp_add(eid, s) < 0);
     }
     for (i = 0; i < NELEM(t, thread_t); i++) {
@@ -87,4 +78,5 @@ TEST(sp, reqrep) {
 	thread_stop(&t[i]);
     }
     sp_close(eid);
+    return 0;
 }

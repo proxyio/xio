@@ -1,29 +1,24 @@
-#include <gtest/gtest.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <string>
-extern "C" {
 #include <utils/spinlock.h>
 #include <utils/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
-}
+#include "testutil.h"
 
-using namespace std;
-
-extern int randstr(char *buf, int len);
 static int cnt = 10;
 
-static void xclient(string pf) {
+static void xclient(const char *pf) {
     int sfd, i;
     int64_t nbytes;
     char buf[1024] = {};
     char *ubuf;
-    string host(pf + "://127.0.0.1:18897");
+    char host[1024] = {};
 
+    sprintf(host, "%s%s", pf, "://127.0.0.1:18897");
     randstr(buf, 1024);
-    BUG_ON((sfd = xconnect(host.c_str())) < 0);
+    BUG_ON((sfd = xconnect(host)) < 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	ubuf = xallocubuf(nbytes);
@@ -44,7 +39,7 @@ static int xclient_thread(void *arg) {
     return 0;
 }
 
-TEST(xpoll, select) {
+int main(int argc, char **argv) {
     int i, j;
     char *ubuf = 0;
     int afd, sfd, tmp;
@@ -67,4 +62,5 @@ TEST(xpoll, select) {
     }
     thread_stop(&cli_thread);
     xclose(afd);
+    return 0;
 }

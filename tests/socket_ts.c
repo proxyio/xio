@@ -1,26 +1,22 @@
-#include <gtest/gtest.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-extern "C" {
 #include <utils/waitgroup.h>
 #include <utils/eventloop.h>
 #include <utils/tcp/tcp.h>
 #include <utils/ipc/ipc.h>
 #include <utils/thread.h>
-}
-
-extern int randstr(char *buf, int len);
+#include "testutil.h"
 
 static void tcp_client() {
     int sfd;
     int64_t nbytes;
     char buf[1024] = {};
 
-    ASSERT_TRUE((sfd = tcp_connect("127.0.0.1:18894")) > 0);
+    BUG_ON((sfd = tcp_connect("127.0.0.1:18894")) <= 0);
     randstr(buf, 1024);
-    EXPECT_EQ(sizeof(buf), nbytes = tcp_send(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, tcp_recv(sfd, buf, nbytes));
+    BUG_ON(sizeof(buf) != (nbytes = tcp_send(sfd, buf, sizeof(buf))));
+    BUG_ON(nbytes != tcp_recv(sfd, buf, nbytes));
     close(sfd);
 }
 
@@ -35,8 +31,8 @@ int tcp_client_event_handler(eloop_t *el, ev_t *et) {
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	EXPECT_EQ(sizeof(buf), tcp_recv(et->fd, buf, sizeof(buf)));
-	EXPECT_EQ(sizeof(buf), tcp_send(et->fd, buf, sizeof(buf)));
+	BUG_ON(sizeof(buf) != tcp_recv(et->fd, buf, sizeof(buf)));
+	BUG_ON(sizeof(buf) != tcp_send(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
 	eloop_del(el, et);
@@ -54,10 +50,10 @@ static void tcp_server_thread() {
     
     eloop_init(&el, 1024, 100, 10);
 
-    ASSERT_TRUE((afd = tcp_bind("*:18894")) > 0);
+    BUG_ON((afd = tcp_bind("*:18894")) <= 0);
     thread_start(&cli_thread, tcp_client_thread, NULL);
 
-    ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);
+    BUG_ON((sfd = tcp_accept(afd)) <= 0);
     et.f = tcp_client_event_handler;
     et.fd = sfd;
     et.events = EPOLLIN|EPOLLRDHUP;
@@ -67,7 +63,7 @@ static void tcp_server_thread() {
 
     eloop_del(&el, &et);
     close(sfd);
-    ASSERT_TRUE((sfd = tcp_accept(afd)) > 0);
+    BUG_ON((sfd = tcp_accept(afd)) <= 0);
     et.fd = sfd;
     eloop_add(&el, &et);
     eloop_once(&el);
@@ -85,10 +81,10 @@ static void ipc_client() {
     char buf[1024] = {};
 
     if ((sfd = ipc_connect("pio_ipc_socket")) < 0)
-	ASSERT_TRUE(0);
+	BUG_ON(1);
     randstr(buf, 1024);
-    EXPECT_EQ(sizeof(buf), nbytes = ipc_send(sfd, buf, sizeof(buf)));
-    EXPECT_EQ(nbytes, ipc_recv(sfd, buf, nbytes));
+    BUG_ON(sizeof(buf) != (nbytes = ipc_send(sfd, buf, sizeof(buf))));
+    BUG_ON(nbytes != ipc_recv(sfd, buf, nbytes));
     close(sfd);
 }
 
@@ -103,8 +99,8 @@ int ipc_client_event_handler(eloop_t *el, ev_t *et) {
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	EXPECT_EQ(sizeof(buf), ipc_recv(et->fd, buf, sizeof(buf)));
-	EXPECT_EQ(sizeof(buf), ipc_send(et->fd, buf, sizeof(buf)));
+	BUG_ON(sizeof(buf) != ipc_recv(et->fd, buf, sizeof(buf)));
+	BUG_ON(sizeof(buf) != ipc_send(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
 	eloop_del(el, et);
@@ -122,9 +118,9 @@ static void ipc_server_thread() {
     
     eloop_init(&el, 1024, 100, 10);
 
-    ASSERT_TRUE((afd = ipc_bind("pio_ipc_socket")) > 0);
+    BUG_ON((afd = ipc_bind("pio_ipc_socket")) <= 0);
     thread_start(&cli_thread, ipc_client_thread, NULL);
-    ASSERT_TRUE((sfd = ipc_accept(afd)) > 0);
+    BUG_ON((sfd = ipc_accept(afd)) <= 0);
     et.f = ipc_client_event_handler;
     et.fd = sfd;
     et.events = EPOLLIN|EPOLLRDHUP;
@@ -134,7 +130,7 @@ static void ipc_server_thread() {
 
     eloop_del(&el, &et);
     close(sfd);
-    ASSERT_TRUE((sfd = ipc_accept(afd)) > 0);
+    BUG_ON((sfd = ipc_accept(afd)) <= 0);
     et.fd = sfd;
     eloop_add(&el, &et);
     eloop_once(&el);
@@ -143,14 +139,6 @@ static void ipc_server_thread() {
     close(sfd);
 
     close(afd);
-}
-
-TEST(transport, ipc) {
-    ipc_server_thread();
-}
-
-TEST(transport, tcp) {
-    tcp_server_thread();
 }
 
 static void tcp_test_sock_opt(int sfd) {
@@ -213,7 +201,7 @@ static int server_thread(void *args) {
 static void tcp_option() {
     waitgroup_t wg;
     int sfd;
-    thread t;
+    thread_t t;
 
     waitgroup_init(&wg);
     waitgroup_add(&wg);
@@ -232,7 +220,10 @@ static void ipc_option() {
 }
 
 
-TEST(transport, option) {
+int main(int argc, char **argv) {
+    ipc_server_thread();
+    tcp_server_thread();
     tcp_option();
     ipc_option();
+    return 0;
 }

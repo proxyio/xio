@@ -135,3 +135,38 @@ libxio_la_SOURCES = \
 	$(XIO_POLL) \
 	$(XIO_SP)
 
+LIBS = -lpthread -luuid
+LDADD = libxio.la
+
+#  automated tests
+UTILS_TESTS = \
+	tests/bufio_ts \
+	tests/krb_ts \
+	tests/modstat_ts \
+	tests/path_ts \
+	tests/runner_ts \
+	tests/sync_ts \
+	tests/socket_ts \
+	tests/xubuf_ts \
+	tests/xsocket_ts \
+	tests/poll_ts \
+	tests/sp_reqrep_ts \
+	tests/sp_pipeline_ts
+
+
+SOCKET_TESTS = \
+	src/socket/test/buf_ts \
+	src/socket/test/x_ts
+
+POLL_TESTS = \
+	src/poll/test/poll_ts
+
+SP_TESTS = \
+	src/sp/test/pipeline_ts \
+	src/sp/test/reqrep_ts
+
+check_PROGRAMS = \
+	$(UTILS_TESTS)
+
+TESTS = $(check_PROGRAMS)
+

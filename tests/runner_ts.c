@@ -1,11 +1,5 @@
-#include <gtest/gtest.h>
-#include <list>
-extern "C" {
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-}
-
-using namespace std;
 
 static int worker(void *args) {
     waitgroup_t *wg = (waitgroup_t *)args;
@@ -14,7 +8,7 @@ static int worker(void *args) {
     return 0;
 }
 
-static void taskpool_test() {
+int main(int argc, char **argv) {
     taskpool_t tp = {};
     waitgroup_t wg = {};
 
@@ -26,8 +20,5 @@ static void taskpool_test() {
     waitgroup_wait(&wg);
     taskpool_stop(&tp);
     taskpool_destroy(&tp);
-}
-
-TEST(runner, taskpool) {
-    taskpool_test();
+    return 0;
 }

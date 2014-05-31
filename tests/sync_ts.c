@@ -1,11 +1,5 @@
-#include <gtest/gtest.h>
-#include <list>
-extern "C" {
 #include <utils/thread.h>
 #include <utils/waitgroup.h>
-}
-
-using namespace std;
 
 static int test_waitgroup_single_thread() {
     waitgroup_t wg = {};
@@ -38,22 +32,21 @@ static int test_waitgroup_multi_threads() {
     waitgroup_t wg = {};
     int i, nthreads = 0;
     thread_t *tt = NULL;
-    list<thread_t *> workers;
-    list<thread_t *>::iterator it;
-    
+    thread_t *workers[20];
+
     nthreads = rand() % 20;
     for (i = 0; i < nthreads; i++) {
-	EXPECT_TRUE((tt = thread_new()) != NULL);
-	workers.push_back(tt);
+	BUG_ON(!(tt = thread_new()));
+	workers[i] = tt;
     }
     waitgroup_adds(&wg, nthreads * 100);
-    for (it = workers.begin(); it != workers.end(); ++it) {
-	tt = *it;
+    for (i = 0; i != nthreads; i++) {
+	tt = workers[i];
 	thread_start(tt, task_func, &wg);
     }
     waitgroup_wait(&wg);
-    for (it = workers.begin(); it != workers.end(); ++it) {
-	tt = *it;
+    for (i = 0; i != nthreads; i++) {
+	tt = workers[i];
 	thread_stop(tt);
 	free(tt);
     }
@@ -61,15 +54,7 @@ static int test_waitgroup_multi_threads() {
 }
 
 
-TEST(sync, waitgroup_single_thread) {
-    test_waitgroup_single_thread();
-}
-
-TEST(sync, waitgroup_multi_threads) {
-    test_waitgroup_multi_threads();
-}
-
-TEST(sync, condition_timedwait) {
+static void test_condition_timedwait() {
     condition_t cond;
     mutex_t lock;
 
@@ -82,4 +67,11 @@ TEST(sync, condition_timedwait) {
 
     mutex_destroy(&lock);
     condition_destroy(&cond);
+}
+
+
+int main(int argc, char **argv) {
+    test_waitgroup_single_thread();
+    test_waitgroup_multi_threads();
+    test_condition_timedwait();
 }

@@ -23,6 +23,7 @@
 #ifndef _XIO_FILEPATH_
 #define _XIO_FILEPATH_
 
+#include "base.h"
 #include "alloc.h"
 
 char *fp_join(const char *p1, const char *p2);

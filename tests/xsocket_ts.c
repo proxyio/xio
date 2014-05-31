@@ -1,32 +1,26 @@
-#include <gtest/gtest.h>
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <string>
-extern "C" {
 #include <utils/spinlock.h>
 #include <utils/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
-}
+#include "testutil.h"
 
-using namespace std;
+#define cnt 3
 
-extern int randstr(char *buf, int len);
-
-const static int cnt = 3;
-
-static void xclient(string pf) {
+static void xclient(const char *pf) {
     int sfd, i, j;
     int64_t nbytes;
     char buf[1024] = {};
     struct xcmsg ent = {};
     char *xbuf, *oob;
-    string host(pf + "://127.0.0.1:18894");
+    char host[1024];
 
+    sprintf(host, "%s%s", pf, "://127.0.0.1:18894");
     randstr(buf, 1024);
-    BUG_ON((sfd = xconnect(host.c_str())) < 0);
+    BUG_ON((sfd = xconnect(host)) < 0);
     for (i = 0; i < cnt; i++) {
 	nbytes = rand() % 1024;
 	for (j = 0; j < 10; j++) {
@@ -62,9 +56,9 @@ static void xserver() {
     int afd, sfd;
     thread_t cli_thread = {};
     char *xbuf;
-    string host("tcp+inproc://127.0.0.1:18894");
+    char *host = "tcp+inproc://127.0.0.1:18894";
     
-    BUG_ON((afd = xlisten(host.c_str())) < 0);
+    BUG_ON((afd = xlisten(host)) < 0);
     thread_start(&cli_thread, xclient_thread, 0);
 
     for (j = 0; j < 2; j++) {
@@ -84,14 +78,15 @@ static void xserver() {
 
 static int pollid;
 
-static void xclient2(string pf) {
+static void xclient2(const char *pf) {
     int i;
     int sfd[cnt];
     struct poll_ent ent[cnt] = {};
-    string host(pf + "://127.0.0.1:18895");
+    char host[1024] = {};
 
+    sprintf(host, "%s%s", pf, "://127.0.0.1:18895");
     for (i = 0; i < cnt; i++) {
-	BUG_ON((sfd[i] = xconnect(host.c_str())) < 0);
+	BUG_ON((sfd[i] = xconnect(host)) < 0);
 	ent[i].fd = sfd[i];
 	ent[i].self = 0;
 	ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -161,15 +156,7 @@ static void xsock_test(int count) {
 }
 
 
-TEST(xsock, vf) {
-    xsock_test(1);
-}
-
-
-
-
-
-static int cnt2 = 100;
+#define cnt2 100
 
 static void inproc_client2() {
     int sfd, i;
@@ -222,7 +209,7 @@ static void inproc_server_thread2() {
     thread_stop(&cli_thread[1]);
 }
 
-TEST(xsock, inproc) {
+static void xexp_test() {
     int i;
     int fd1 = xsocket(XPF_INPROC, XCONNECTOR);
     int fd2 = xsocket(XPF_INPROC, XCONNECTOR);
@@ -235,3 +222,8 @@ TEST(xsock, inproc) {
     inproc_server_thread2();
 }
 
+int main(int argc, char **argv) {
+    xsock_test(1);
+    xexp_test();
+    return 0;
+}

@@ -1,10 +1,6 @@
-#include <iostream>
-#include <gtest/gtest.h>
-extern "C" {
 #include <utils/bufio.h>
-}
+#include "testutil.h"
 
-extern int randstr(char *buf, int len);
 char buf1[PAGE_SIZE * 4] = {}, buf2[PAGE_SIZE * 4] = {};
 
 static void bufio_test() {
@@ -15,13 +11,13 @@ static void bufio_test() {
     bio_init(&b);
     randstr(buf1, sizeof(buf1));
     for (i = 0; i < rlen; i++)
-	EXPECT_EQ(1, bio_write(&b, buf1 + i, 1));
-    EXPECT_EQ(b.bsize, rlen);
-    EXPECT_EQ(rlen, bio_copy(&b, buf2, 4 * PAGE_SIZE));
-    EXPECT_EQ(rlen, bio_read(&b, buf2, 4 * PAGE_SIZE));
-    EXPECT_EQ(b.bsize, 0);
-    EXPECT_TRUE(list_empty(&b.page_head));
-    EXPECT_TRUE(memcmp(buf1, buf2, rlen) == 0);
+	BUG_ON(1 != bio_write(&b, buf1 + i, 1));
+    BUG_ON(b.bsize != rlen);
+    BUG_ON(rlen != bio_copy(&b, buf2, 4 * PAGE_SIZE));
+    BUG_ON(rlen != bio_read(&b, buf2, 4 * PAGE_SIZE));
+    BUG_ON(b.bsize != 0);
+    BUG_ON(!list_empty(&b.page_head));
+    BUG_ON(!memcmp(buf1, buf2, rlen) == 0);
     bio_destroy(&b);
 }
 
@@ -88,22 +84,23 @@ static void bufio_fetch_flush_test() {
     BUG_ON(nbytes != tio.ridx);
     BUG_ON(nbytes > 4 * PAGE_SIZE);
     bio_copy(&b, buf2, nbytes);
-    EXPECT_TRUE(memcmp(buf1, buf2, nbytes) == 0);
+    BUG_ON(memcmp(buf1, buf2, nbytes) != 0);
     bio_copy(&b, buf2, nbytes);
-    EXPECT_TRUE(memcmp(buf1, buf2, nbytes) == 0);
-    EXPECT_TRUE(b.bsize == nbytes);
+    BUG_ON(memcmp(buf1, buf2, nbytes) != 0);
+    BUG_ON(b.bsize != nbytes);
     while (nbytes > 0) {
 	if ((rc =  bio_flush(&b, &tio.io_ops)) > 0)
 	    nbytes -= rc;
     }
     BUG_ON(tio.widx > 4 * PAGE_SIZE);
-    EXPECT_EQ(b.bsize, 0);
-    EXPECT_TRUE(list_empty(&b.page_head));
-    EXPECT_TRUE(memcmp(buf1, buf2, nbytes) == 0);
+    BUG_ON(b.bsize != 0);
+    BUG_ON(!list_empty(&b.page_head));
+    BUG_ON(memcmp(buf1, buf2, nbytes) != 0);
     bio_destroy(&b);
 }
 
-TEST(bufio, bio) {
+int main(int argc, char **argv) {
     bufio_test();
     bufio_fetch_flush_test();
+    return 0;
 }
