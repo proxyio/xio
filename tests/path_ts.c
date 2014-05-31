@@ -6,12 +6,12 @@ static void my_walkfn(const char *path, void *data) {
     entries_cnt++;
 }
 
-static test_ffp(char *ptr, const char *dst) {
+static void test_ffp(char *ptr, const char *dst) {
     BUG_ON(strcmp(ptr, dst) != 0);
     free(ptr);
 }
 
-static test_fp(const char *ptr, const char *dst) {
+static void test_fp(const char *ptr, const char *dst) {
     BUG_ON(strcmp(ptr, dst) != 0);
 }
 

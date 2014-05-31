@@ -19,6 +19,7 @@
 .*
 *.la
 *.lo
+*_ts
 # usr
 build
 
