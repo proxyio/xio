@@ -6,7 +6,7 @@ includedir=${prefix}/include
 Name: xio
 Description: xio library is a high-performance implementation of several scalability protocols.
 URL: http://proxyio.org/
-Version: 1.0.1
+Version: 0.9
 Requires:
 Libs: -L${libdir} -lxio
 Cflags: -I${includedir}

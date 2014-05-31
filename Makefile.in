@@ -20,6 +20,7 @@
 ################################################################################
 
 
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -42,8 +43,9 @@ host_triplet = @host@
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	config.guess config.sub depcomp install-sh ltmain.sh missing
+	$(top_srcdir)/configure $(xinclude_HEADERS) AUTHORS COPYING \
+	ChangeLog INSTALL NEWS config.guess config.sub depcomp \
+	install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -75,7 +77,8 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)"
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" \
+	"$(DESTDIR)$(xincludedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libxio_la_LIBADD =
 am__objects_1 = transport.lo ipc_getopt.lo ipc_setopt.lo ipc.lo \
@@ -111,6 +114,7 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 SOURCES = $(libxio_la_SOURCES)
 DIST_SOURCES = $(libxio_la_SOURCES)
 DATA = $(pkgconfig_DATA)
+HEADERS = $(xinclude_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -239,8 +243,18 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-CURRENTPATH = ./
-INCLUDES = -I$(CURRENTPATH)/include/xio -I$(CURRENTPATH)/src/
+EXTRA_DIST = 
+INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/src/
+xincludedir = $(includedir)/xio
+xinclude_HEADERS = \
+	include/xio/poll.h \
+	include/xio/cplusplus_endif.h \
+	include/xio/sp_reqrep.h \
+	include/xio/cmsghdr.h \
+	include/xio/cplusplus_define.h \
+	include/xio/sp.h \
+	include/xio/socket.h
+
 lib_LTLIBRARIES = libxio.la
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \
@@ -994,6 +1008,26 @@ uninstall-pkgconfigDATA:
 	test -n "$$files" || exit 0; \
 	echo " ( cd '$(DESTDIR)$(pkgconfigdir)' && rm -f" $$files ")"; \
 	cd "$(DESTDIR)$(pkgconfigdir)" && rm -f $$files
+install-xincludeHEADERS: $(xinclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	test -z "$(xincludedir)" || $(MKDIR_P) "$(DESTDIR)$(xincludedir)"
+	@list='$(xinclude_HEADERS)'; test -n "$(xincludedir)" || list=; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(xincludedir)'"; \
+	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(xincludedir)" || exit $$?; \
+	done
+
+uninstall-xincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(xinclude_HEADERS)'; test -n "$(xincludedir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	test -n "$$files" || exit 0; \
+	echo " ( cd '$(DESTDIR)$(xincludedir)' && rm -f" $$files ")"; \
+	cd "$(DESTDIR)$(xincludedir)" && rm -f $$files
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -1196,9 +1230,9 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(DATA) config.h
+all-am: Makefile $(LTLIBRARIES) $(DATA) $(HEADERS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkgconfigdir)" "$(DESTDIR)$(xincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -1250,7 +1284,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pkgconfigDATA
+install-data-am: install-pkgconfigDATA install-xincludeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -1298,7 +1332,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libLTLIBRARIES uninstall-pkgconfigDATA
+uninstall-am: uninstall-libLTLIBRARIES uninstall-pkgconfigDATA \
+	uninstall-xincludeHEADERS
 
 .MAKE: all install-am install-strip
 
@@ -1313,12 +1348,12 @@ uninstall-am: uninstall-libLTLIBRARIES uninstall-pkgconfigDATA
 	install-exec install-exec-am install-html install-html-am \
 	install-info install-info-am install-libLTLIBRARIES \
 	install-man install-pdf install-pdf-am install-pkgconfigDATA \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-ps install-ps-am install-strip install-xincludeHEADERS \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-libLTLIBRARIES \
-	uninstall-pkgconfigDATA
+	uninstall-pkgconfigDATA uninstall-xincludeHEADERS
 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

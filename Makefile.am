@@ -2,8 +2,20 @@
 #  xio library                                                                 #
 ################################################################################
 
-CURRENTPATH = ./
-INCLUDES = -I$(CURRENTPATH)/include/xio -I$(CURRENTPATH)/src/
+EXTRA_DIST =
+
+INCLUDES = -I$(top_srcdir)/include -I$(top_srcdir)/src/
+
+
+xincludedir = $(includedir)/xio
+xinclude_HEADERS = \
+	include/xio/poll.h \
+	include/xio/cplusplus_endif.h \
+	include/xio/sp_reqrep.h \
+	include/xio/cmsghdr.h \
+	include/xio/cplusplus_define.h \
+	include/xio/sp.h \
+	include/xio/socket.h
 
 lib_LTLIBRARIES = libxio.la
 
