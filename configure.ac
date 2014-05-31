@@ -49,5 +49,19 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getcwd gettimeofday memmove memset socket strchr strdup strndup strrchr strstr])
 
+
+#  If --enable-python is specified, building xio modules for cpython.
+
+
+AC_ARG_ENABLE([python],
+    AS_HELP_STRING([--enable-python], [Build python binding])
+)
+
+AM_CONDITIONAL([PYTHON], [test "$enable_python" = "yes"])
+
+AS_IF([test "$enable_python" = "yes"], [
+    AC_CHECK_LIB([python2.6], [Py_BuildValue])
+])
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

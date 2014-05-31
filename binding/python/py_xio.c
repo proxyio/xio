@@ -26,7 +26,7 @@
 #include <xio/sp.h>
 #include <xio/sp_reqrep.h>
 #include <string.h>
-#include "cpy_xio.h"
+#include "py_xio.h"
 
 const static char MODULE_NAME[] = "_xio_cpy";
 

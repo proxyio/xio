@@ -144,6 +144,8 @@ bin_PROGRAMS =
 xiobc_SOURCES = \
 	tools/xiobc.c
 
+bin_PROGRAMS += xiobc
+
 #  automated tests
 UTILS_TESTS = \
 	tests/bufio_ts \
@@ -159,20 +161,16 @@ UTILS_TESTS = \
 	tests/sp_reqrep_ts \
 	tests/sp_pipeline_ts
 
-
-SOCKET_TESTS = \
-	src/socket/test/buf_ts \
-	src/socket/test/x_ts
-
-POLL_TESTS = \
-	src/poll/test/poll_ts
-
-SP_TESTS = \
-	src/sp/test/pipeline_ts \
-	src/sp/test/reqrep_ts
-
 check_PROGRAMS = \
 	$(UTILS_TESTS)
 
 TESTS = $(check_PROGRAMS)
 
+
+if PYTHON
+xinclude_HEADERS += binding/python/py_xio.h
+PYXIO_SOURCES = \
+	binding/python/py_xio.c \
+	binding/python/py_xio.h
+libxio_la_SOURCES += $(PYXIO_SOURCES)
+endif
