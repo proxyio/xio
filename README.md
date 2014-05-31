@@ -1,4 +1,4 @@
-# proxyio
+# PROXYIO
 
 **proxyio** is a socket library that provides several common communication patterns. for more details about this project, see [Home](http://proxyio.org)
 
