@@ -20,6 +20,8 @@
 *.la
 *.lo
 *_ts
+*.log
+*.scan
 # usr
 build
 

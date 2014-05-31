@@ -21,6 +21,10 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
+# FIXME: Replace `main' with a function in `-lpthread':
+AC_CHECK_LIB([pthread], [pthread_create])
+# FIXME: Replace `main' with a function in `-luuid':
+AC_CHECK_LIB([uuid], [uuid_copy])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h malloc.h netdb.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])

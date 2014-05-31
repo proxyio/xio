@@ -135,7 +135,6 @@ libxio_la_SOURCES = \
 	$(XIO_POLL) \
 	$(XIO_SP)
 
-LIBS = -lpthread -luuid
 LDADD = libxio.la
 
 #  automated tests
