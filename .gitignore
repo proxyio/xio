@@ -17,6 +17,8 @@
 *.out
 *.app
 .*
+*.la
+*.lo
 # usr
 build
 
