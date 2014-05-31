@@ -51,17 +51,25 @@ AC_CHECK_FUNCS([getcwd gettimeofday memmove memset socket strchr strdup strndup 
 
 
 #  If --enable-python is specified, building xio modules for cpython.
-
-
 AC_ARG_ENABLE([python],
     AS_HELP_STRING([--enable-python], [Build python binding])
 )
-
 AM_CONDITIONAL([PYTHON], [test "$enable_python" = "yes"])
-
 AS_IF([test "$enable_python" = "yes"], [
     AC_CHECK_LIB([python2.6], [Py_BuildValue])
 ])
+
+
+#  If --enable-lua is specified, building xio modules for lua.
+AC_ARG_ENABLE([lua],
+    AS_HELP_STRING([--enable-lua], [Build lua binding])
+)
+AM_CONDITIONAL([LUA], [test "$enable_lua" = "yes"])
+AS_IF([test "$enable_lua" = "yes"], [
+    AC_CHECK_LIB([lua], [lua_pushnumber])
+])
+
+
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
