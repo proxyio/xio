@@ -22,6 +22,7 @@ build
 
 
 # for autoconf
+INSTALL
 *Makefile
 *Makefile.in
 .dirstamp

@@ -5,7 +5,7 @@ AC_PREREQ([2.63])
 AC_INIT([xio], [0.9], [yp.fangdong@gmail.com])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS(config.h)
-AM_INIT_AUTOMAKE(xio, 0.9)
+AM_INIT_AUTOMAKE([0.9 foreign subdir-objects tar-ustar dist-zip])
 
 m4_ifdef([AM_SILENT_RULES], [
     AM_SILENT_RULES([yes])
