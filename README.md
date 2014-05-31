@@ -6,10 +6,10 @@
 
 To build proxyio :
 
-    $ source env.sh
-    $ mkdir build && cd build
-    $ cmake ..
+    $ sh autogen.sh
+    $ ./configure
     $ make
+	$ make check
     $ sudo make install
 
 ## License
