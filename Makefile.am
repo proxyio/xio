@@ -137,6 +137,13 @@ libxio_la_SOURCES = \
 
 LDADD = libxio.la
 
+
+#  tools
+bin_PROGRAMS =
+
+xiobc_SOURCES = \
+	tools/xiobc.c
+
 #  automated tests
 UTILS_TESTS = \
 	tests/bufio_ts \
