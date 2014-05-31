@@ -135,6 +135,3 @@ libxio_la_SOURCES = \
 	$(XIO_POLL) \
 	$(XIO_SP)
 
-
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libxio.pc
