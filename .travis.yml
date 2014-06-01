@@ -1,4 +1,4 @@
 language: c
 before_script:
-        yum install uuid
-        sh autogen.sh
+  - sudo apt-get install uuid 
+  - sh autogen.sh
