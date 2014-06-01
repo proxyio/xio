@@ -1,3 +1,4 @@
 language: c
+install: uuid
 before_script:
-  sh autogen.sh
+        sh autogen.sh
