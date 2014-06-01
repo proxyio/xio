@@ -1,4 +1,4 @@
 language: c
 before_script:
-  - sudo apt-get install uuid 
+  - sudo apt-get install uuid-devel 
   - sh autogen.sh
