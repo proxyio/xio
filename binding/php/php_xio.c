@@ -89,12 +89,12 @@ static function_entry xio_functions[] = {
     {0, 0, 0}
 };
 
-typedef struct {
+struct xsymbol {
     const char *name;
     int value;
-} php_xio_constant;
+};
 
-static php_xio_constant xio_consts[] = {
+static struct xsymbol const_symbols[] = {
     {"XPOLLIN",      XPOLLIN},
     {"XPOLLOUT",     XPOLLOUT},
     {"XPOLLERR",     XPOLLERR},
@@ -135,11 +135,11 @@ static php_xio_constant xio_consts[] = {
 
 PHP_MINIT_FUNCTION(xio) {
     int i;
-    php_xio_constant *c;
+    struct xsymbol *sb;
 
-    for (i = 0; i < NELEM(xio_consts, php_xio_constant); i++) {
-	c = &xio_consts[i];
-	REGISTER_LONG_CONSTANT(c->name, c->value, CONST_CS | CONST_PERSISTENT);
+    for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++) {
+	sb = &const_symbols[i];
+	REGISTER_LONG_CONSTANT(sb->name, sb->value, CONST_CS | CONST_PERSISTENT);
     }
 }
 
