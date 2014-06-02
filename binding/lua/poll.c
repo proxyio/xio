@@ -32,7 +32,7 @@ const struct luaL_reg *poll_apis = __poll_apis;
 int poll_apis_num = NELEM(__poll_apis, struct luaL_reg);
 
 
-static const struct xio_constant __poll_consts [] = {
+static const struct xsymbol __poll_consts [] = {
     {"XPOLLIN",      XPOLLIN},
     {"XPOLLOUT",     XPOLLOUT},
     {"XPOLLERR",     XPOLLERR},
@@ -40,5 +40,5 @@ static const struct xio_constant __poll_consts [] = {
     {"XPOLL_DEL",    XPOLL_DEL},
     {"XPOLL_MOD",    XPOLL_MOD},
 };
-const struct xio_constant *poll_consts = __poll_consts;
-int poll_consts_num = NELEM(__poll_consts, struct xio_constant);
+const struct xsymbol *poll_consts = __poll_consts;
+int poll_consts_num = NELEM(__poll_consts, struct xsymbol);

@@ -25,7 +25,7 @@
 
 #include <lua.h>
 
-struct xio_constant {
+struct xsymbol {
     const char *name;
     int value;
 };

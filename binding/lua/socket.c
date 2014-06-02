@@ -130,7 +130,7 @@ static const struct luaL_reg __socket_apis [] = {
 const struct luaL_reg *socket_apis = __socket_apis;
 int socket_apis_num = NELEM(__socket_apis, struct luaL_reg);
 
-static const struct xio_constant __socket_consts [] = {
+static const struct xsymbol __socket_consts [] = {
     {"XPF_TCP",      XPF_TCP},
     {"XPF_IPC",      XPF_IPC},
     {"XPF_INPROC",   XPF_INPROC},
@@ -152,5 +152,5 @@ static const struct xio_constant __socket_consts [] = {
     {"XSOCKPROTO",   XSOCKPROTO},
     {"XTRACEDEBUG",  XTRACEDEBUG},
 };
-const struct xio_constant *socket_consts = __socket_consts;
-int socket_consts_num = NELEM(__socket_consts, struct xio_constant);
+const struct xsymbol *socket_consts = __socket_consts;
+int socket_consts_num = NELEM(__socket_consts, struct xsymbol);

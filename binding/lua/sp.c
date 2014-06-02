@@ -111,7 +111,7 @@ const struct luaL_reg *sp_apis = __sp_apis;
 int sp_apis_num = NELEM(__sp_apis, struct luaL_reg);
 
 
-static const struct xio_constant __sp_consts [] = {
+static const struct xsymbol __sp_consts [] = {
     {"SP_REQREP",    SP_REQREP},
     {"SP_BUS",       SP_BUS},
     {"SP_PUBSUB",    SP_PUBSUB},
@@ -119,5 +119,5 @@ static const struct xio_constant __sp_consts [] = {
     {"SP_REP",       SP_REP},
     {"SP_PROXY",     SP_PROXY},
 };
-const struct xio_constant *sp_consts = __sp_consts;
-int sp_consts_num = NELEM(__sp_consts, struct xio_constant);
+const struct xsymbol *sp_consts = __sp_consts;
+int sp_consts_num = NELEM(__sp_consts, struct xsymbol);

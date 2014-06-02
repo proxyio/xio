@@ -44,11 +44,11 @@ extern int poll_apis_num;
 extern const struct luaL_reg *sp_apis;
 extern int sp_apis_num;
 
-extern const struct xio_constant *socket_consts;
+extern const struct xsymbol *socket_consts;
 extern int socket_consts_num;
-extern const struct xio_constant *poll_consts;
+extern const struct xsymbol *poll_consts;
 extern int poll_consts_num;
-extern const struct xio_constant *sp_consts;
+extern const struct xsymbol *sp_consts;
 extern int sp_consts_num;
 
 int luaL_xio (lua_State *L) {

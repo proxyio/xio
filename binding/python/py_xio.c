@@ -378,12 +378,12 @@ static PyMethodDef module_methods[] = {
     {NULL, NULL, 0, NULL}
 };
 
-typedef struct {
+struct xsymbol {
     const char *name;
     int value;
-} py_xio_constant;
+};
 
-static py_xio_constant xio_consts[] = {
+static struct xsymbol const_symbols[] = {
     {"XPOLLIN",      XPOLLIN},
     {"XPOLLOUT",     XPOLLOUT},
     {"XPOLLERR",     XPOLLERR},
@@ -425,13 +425,13 @@ static py_xio_constant xio_consts[] = {
 void pyopen_xio() {
     PyObject *pyxio = Py_InitModule("xio", module_methods);
     int i;
-    py_xio_constant *c;
+    struct xsymbol *sb;
 
     BUG_ON(PyType_Ready(&MessageType) < 0);
     Py_INCREF(&MessageType);
     PyModule_AddObject(pyxio, "Message", (PyObject *)&MessageType);
-    for (i = 0; i < NELEM(xio_consts, py_xio_constant); i++) {
-	c = &xio_consts[i];
-	PyModule_AddIntConstant(pyxio, c->name, c->value);
+    for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++) {
+	sb = &const_symbols[i];
+	PyModule_AddIntConstant(pyxio, sb->name, sb->value);
     }
 }
