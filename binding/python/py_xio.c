@@ -379,7 +379,7 @@ static PyMethodDef module_methods[] = {
 };
 
 struct xsymbol {
-    const char *name;
+    const char name[32];
     int value;
 };
 

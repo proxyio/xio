@@ -26,7 +26,7 @@
 #include <lua.h>
 
 struct xsymbol {
-    const char *name;
+    const char name[32];
     int value;
 };
 
