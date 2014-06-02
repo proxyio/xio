@@ -22,6 +22,7 @@
 *_ts
 *.log
 *.scan
+*.ini
 # usr
 build
 
