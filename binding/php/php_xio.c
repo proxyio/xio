@@ -155,6 +155,7 @@ PHP_FUNCTION(sp_endpoint) {
     rc = zend_parse_parameters(ZEND_NUM_ARGS(), "ii", &sp_family, &sp_type);
     if (rc == FAILURE)
 	return;
+    DEBUG_ON("sp_family: %d and sp_type: %d", sp_family, sp_type);
     eid = sp_endpoint(sp_family, sp_type);
     RETURN_LONG(eid);
 }
@@ -305,8 +306,15 @@ PHP_MINIT_FUNCTION(xio) {
 
     for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++) {
 	sb = &const_symbols[i];
-	REGISTER_MAIN_LONG_CONSTANT(sb->name, sb->value, CONST_CS | CONST_PERSISTENT);
+	DEBUG_OFF("register constant %s as %d", sb->name, sb->value);
+	REGISTER_LONG_CONSTANT(sb->name, sb->value, CONST_CS | CONST_PERSISTENT);
     }
+}
+
+PHP_MINFO_FUNCTION(xio) {
+    php_info_print_table_start();
+    php_info_print_table_header(2, "xio support", "enabled");
+    php_info_print_table_end();
 }
 
 zend_module_entry xio_module_entry = {
@@ -319,7 +327,7 @@ zend_module_entry xio_module_entry = {
     NULL,
     NULL,
     NULL,
-    NULL,
+    PHP_MINFO(xio),
 #if ZEND_MODULE_API_NO >= 20010901
     PHP_XIO_VERSION,
 #endif

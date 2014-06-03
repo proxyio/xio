@@ -1,7 +1,17 @@
 <?php
 
-$svr_eid = sp_endpoint($SP_REQREP, $SP_REP);
-$cli_eid = sp_endpoint($SP_REQREP, $SP_REQ);
+if(!extension_loaded('xio')) {
+    dl('xio.' . PHP_SHLIB_SUFFIX);
+}
+if(!extension_loaded('xio')) {
+    die("xio extension is not avaliable, please compile it.\n");
+}
+
+$arr = get_defined_constants(true);
+print_r($arr["xio"]);
+
+$svr_eid = sp_endpoint(SP_REQREP, SP_REP);
+$cli_eid = sp_endpoint(SP_REQREP, SP_REQ);
 $host = "inproc://py_reqrep";
 
 for ($i = 0; $i < 10; $i++) {
