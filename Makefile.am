@@ -170,21 +170,22 @@ TESTS = $(check_PROGRAMS)
 
 #  Building python binding
 if PYTHON
-xinclude_HEADERS += binding/python/py_xio.h
+xinclude_HEADERS += binding/python/xio_if.h
 PYTHON_SOURCES = \
-	binding/python/py_xio.c \
-	binding/python/py_xio.h
+	binding/python/xio_if.c \
+	binding/python/xio_if.h
 libxio_la_SOURCES += $(PYTHON_SOURCES)
 endif
 
 #  Building lua binding
 if LUA
-xinclude_HEADERS += binding/lua/lua_xio.h
+xinclude_HEADERS += binding/lua/xio_if.h
 LUA_SOURCES = \
-	binding/lua/lua_xio.c \
+	binding/lua/xio_if.c \
+	binding/lua/xio_if.h \
 	binding/lua/socket.c \
 	binding/lua/poll.c \
-	binding/lua/sp.c \
-	binding/lua/lua_xio.h
+	binding/lua/sp.c
+
 libxio_la_SOURCES += $(LUA_SOURCES)
 endif

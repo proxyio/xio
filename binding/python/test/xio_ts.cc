@@ -5,7 +5,7 @@
 #include <string>
 extern "C" {
 #include <utils/thread.h>
-#include <python/py_xio.h>
+#include <python/xio_if.h>
 #include <python2.6/pythonrun.h>
 }
 

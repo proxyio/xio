@@ -24,7 +24,7 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <utils/base.h>
-#include "lua_xio.h"
+#include "xio_if.h"
 
 static const struct luaL_reg __poll_apis [] = {
 };

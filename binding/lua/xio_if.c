@@ -23,7 +23,7 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <utils/base.h>
-#include "lua_xio.h"
+#include "xio_if.h"
 
 
 #define lua_registerFunc(L, reg) do {		\
