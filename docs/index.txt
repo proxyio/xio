@@ -17,6 +17,8 @@ implemented in C, now only support unix/linux, we will support windows and other
 os platform in the near future.
 
 proxyio now support
+https://github.com/pipul/xio/tree/master/binding/php[php]/
+https://github.com/pipul/xio/tree/master/binding/ruby[ruby]/
 https://github.com/pipul/xio/tree/master/binding/python[python]/
 https://github.com/pipul/xio/tree/master/binding/go[golang]/
 https://github.com/pipul/xio/tree/master/binding/lua[lua]/
