@@ -8,7 +8,7 @@
 #include <xio/sp.h>
 #include <xio/sp_reqrep.h>
 #include "../../src/utils/base.h"
-#include "php_xio.h"
+#include "xio_if.h"
 
 PHP_FUNCTION(xallocubuf) {
     int rc;
