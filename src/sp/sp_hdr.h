@@ -65,6 +65,7 @@ struct sphdr {
 	u64 __align[2];
 	struct list_head link;
     } u;
+    struct spr rt[0];
 };
 
 struct sphdr *sphdr_new(u8 protocol, u8 version);
@@ -86,39 +87,35 @@ static inline int sphdr_timeout(struct sphdr *h) {
 }
 
 static inline struct spr *rt_cur(char *ubuf) {
-    struct sphdr *eh = ubuf2sphdr(ubuf);
-    int cmsgnum = 0;
-    struct xcmsg ent;
-
-    BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum) != 0);
-    BUG_ON(!cmsgnum && cmsgnum != eh->ttl + 1);
-    ent.idx = eh->ttl;
-    BUG_ON(xmsgctl(ubuf, XMSG_GETCMSG, &ent) != 0);
-    return (struct spr *)ent.outofband;
+    struct sphdr *hdr = ubuf2sphdr(ubuf);
+    BUG_ON(hdr->ttl < 1);
+    return &hdr->rt[hdr->ttl - 1];
 }
 
 static inline struct spr *rt_prev(char *ubuf) {
-    struct sphdr *eh = ubuf2sphdr(ubuf);
-    int cmsgnum = 0;
-    struct xcmsg ent;
-
-    BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum) != 0);
-    BUG_ON(!cmsgnum && cmsgnum != eh->ttl + 1);
-    ent.idx = eh->ttl - 1;
-    BUG_ON(xmsgctl(ubuf, XMSG_GETCMSG, &ent) != 0);
-    return (struct spr *)ent.outofband;
+    struct sphdr *hdr = ubuf2sphdr(ubuf);
+    BUG_ON(hdr->ttl < 2);
+    return &hdr->rt[hdr->ttl - 2];
 }
 
 static inline void rt_append(char *ubuf, struct spr *r) {
-    struct sphdr *eh = ubuf2sphdr(ubuf);
+    char *hdr;
+    u32 hlen = 0;
+    int rc;
     int cmsgnum = 0;
-    struct xcmsg ent;
-    
-    BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum) != 0);
-    BUG_ON(!cmsgnum || cmsgnum != eh->ttl + 1);
-    ent.idx = ++eh->ttl;
-    ent.outofband = (char *)r;
-    BUG_ON(xmsgctl(ubuf, XMSG_SETCMSG, &ent) != 0);
+    struct xcmsg ent = { 1, 0 };
+
+    rc = xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum);
+    BUG_ON(rc || cmsgnum != 1);
+    rc = xmsgctl(ubuf, XMSG_RMCMSG, &ent);
+    BUG_ON(rc || !ent.outofband);
+    hlen = xubuflen(ent.outofband);
+    hdr = xallocubuf(hlen + sizeof(struct spr));
+    memcpy(hdr, ent.outofband, hlen);
+    memcpy(hdr + hlen, r, sizeof(struct spr));
+    xfreeubuf(ent.outofband);
+    ent.outofband = hdr;
+    BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
 }
 
 

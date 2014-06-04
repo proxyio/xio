@@ -26,10 +26,12 @@ static void xclient(const char *pf) {
 	for (j = 0; j < 10; j++) {
 	    xbuf = xallocubuf(nbytes);
 	    memcpy(xbuf, buf, nbytes);
-	    xmsgctl(xbuf, XMSG_CLONE, &oob);
-	    ent.idx = 0;
+
+	    oob = xallocubuf(nbytes);
+	    memcpy(oob, buf, nbytes);
+
 	    ent.outofband = oob;
-	    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent));
+	    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent));
 	    BUG_ON(xsend(sfd, xbuf));
 	    DEBUG_OFF("%d send request %d", sfd, j);
 	}

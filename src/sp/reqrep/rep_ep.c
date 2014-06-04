@@ -86,8 +86,7 @@ static void routeback(struct epbase *ep) {
 static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
     struct sphdr *h;
-    int cmsgnum = 0;
-    
+
     routeback(ep);
     if (list_empty(&sk->snd_cache))
 	return -1;
@@ -102,11 +101,9 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
 
-    BUG_ON(xmsgctl(*ubuf, XMSG_CMSGNUM, &cmsgnum));
     h = ubuf2sphdr(*ubuf);
     h->go = 0;
     h->end_ttl = h->ttl;
-    BUG_ON(!cmsgnum || cmsgnum != h->end_ttl + 1);
     DEBUG_OFF("ep %d send resp %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }

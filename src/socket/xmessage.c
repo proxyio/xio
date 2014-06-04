@@ -23,11 +23,21 @@
 #include <stdio.h>
 #include <utils/alloc.h>
 #include <utils/crc.h>
-#include "xmsg.h"
+#include "xmessage.h"
 
 
 u32 xmsg_iovlen(struct xmsg *msg) {
     return sizeof(msg->vec) + msg->vec.xiov_len;
+}
+
+u32 xmsg_iovlens(struct xmsg *msg) {
+    struct xmsg *cmsg, *ncmsg;
+    u32 iovlen = xmsg_iovlen(msg);
+
+    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+	iovlen += xmsg_iovlens(cmsg);
+    }
+    return iovlen;
 }
 
 char *xmsg_iovbase(struct xmsg *msg) {
@@ -102,105 +112,60 @@ static int msgctl_cmsgnum(char *ubuf, void *optval) {
 static int msgctl_getcmsg(char *ubuf, void *optval) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct xcmsg *ent = (struct xcmsg *)optval;
+    int pos;
     struct xmsg *cmsg, *ncmsg;
 
-    if (!msg->vec.cmsg_num) {
+    if (!ent->idx || ent->idx > msg->vec.cmsg_num) {
 	errno = ENOENT;
 	return -1;
     }
-    if (ent->idx > XMSG_CMSGNUMMARK) {
-	errno = EINVAL;
-	return -1;
-    }
-    ent->idx = ent->idx > msg->vec.cmsg_num ? msg->vec.cmsg_num : ent->idx;
+    pos = ent->idx;
     xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
-	if (cmsg->vec.cmsg_num == ent->idx) {
-	    ent->outofband = cmsg->vec.xiov_base;
-	    return 0;
-	}
+	if (--pos)
+	    continue;
+	ent->outofband = cmsg->vec.xiov_base;
+	return 0;
     }
     BUG_ON(1);
     return -1;
 }
 
-static int msgctl_setcmsg(char *ubuf, void *optval) {
+static int msgctl_addcmsg(char *ubuf, void *optval) {
     struct xcmsg *ent = (struct xcmsg *)optval;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct xmsg *new = cont_of(ent->outofband, struct xmsg, vec.xiov_base);
 
-    if (new->vec.cmsg_length > 0 || new->vec.cmsg_num > 0 ||
-	ent->idx > XMSG_CMSGNUMMARK) {
-	errno = EINVAL;
-	return -1;
-    }
     if (msg->vec.cmsg_num == XMSG_CMSGNUMMARK ||
-	msg->vec.cmsg_length + xmsg_iovlen(new) > XMSG_CMSGLENMARK) {
+	msg->vec.cmsg_length + xmsg_iovlens(new) > XMSG_CMSGLENMARK) {
 	errno = EFBIG;
 	return -1;
     }
     msg->vec.cmsg_num++;
-    msg->vec.cmsg_length += xmsg_iovlen(new);
-    new->vec.cmsg_num = ent->idx;
-    new->vec.cmsg_length = 0;
+    msg->vec.cmsg_length += xmsg_iovlens(new);
     list_add_tail(&new->item, &msg->cmsg_head);
     return 0;
 }
 
-struct xmsg *__xdupmsg(struct xmsg *msg) {
-    struct xmsg *dst = xallocmsg(xmsglen(msg));
+static int msgctl_rmcmsg(char *ubuf, void *optval) {
+    int rc;
+    struct xcmsg *ent = (struct xcmsg *)optval;
+    struct xmsg *rm;
+    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
 
-    if (dst)
-	memcpy(&dst->vec, &msg->vec, xmsg_iovlen(msg));
-    return dst;
-}
-
-static int msgctl_clone(char *ubuf, void *optval) {
-    struct xmsg *src = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct xmsg *dst = __xdupmsg(src);
-    struct xmsg *cmsg, *ncmsg;
-
-    xmsg_walk_safe(cmsg, ncmsg, &src->cmsg_head) {
-	BUG_ON(!(cmsg = __xdupmsg(cmsg)));
-	list_add_tail(&cmsg->item, &dst->cmsg_head);
-    }
-    *(char **)optval = dst->vec.xiov_base;
+    if ((rc = msgctl_getcmsg(ubuf, optval)))
+	return rc;
+    rm = cont_of(ent->outofband, struct xmsg, vec.xiov_base);
+    msg->vec.cmsg_num--;
+    msg->vec.cmsg_length -= xmsg_iovlens(rm);
+    list_del_init(&rm->item);
     return 0;
 }
-
-static int msgctl_copycmsg(char *ubuf, void *optval) {
-    struct xmsg *src = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct xmsg *dst = cont_of(optval, struct xmsg, vec.xiov_base);
-    struct xmsg *cmsg, *ncmsg;
-
-    dst->vec.cmsg_num += src->vec.cmsg_num;
-    dst->vec.cmsg_length += src->vec.cmsg_length;
-    xmsg_walk_safe(cmsg, ncmsg, &src->cmsg_head) {
-	BUG_ON(!(cmsg = __xdupmsg(cmsg)));
-	list_add_tail(&cmsg->item, &dst->cmsg_head);
-    }
-    return 0;
-}
-
-static int msgctl_switchcmsg(char *ubuf, void *optval) {
-    struct xmsg *src = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct xmsg *dst = cont_of(optval, struct xmsg, vec.xiov_base);
-
-    dst->vec.cmsg_num += src->vec.cmsg_num;
-    dst->vec.cmsg_length += src->vec.cmsg_length;
-    src->vec.cmsg_num = 0;
-    src->vec.cmsg_length = 0;
-    list_move_tail(&src->cmsg_head, &dst->cmsg_head);
-    return 0;
-}
-
 
 static const msgctl msgctl_vfptr[] = {
     msgctl_cmsgnum,
     msgctl_getcmsg,
-    msgctl_setcmsg,
-    msgctl_clone,
-    msgctl_copycmsg,
-    msgctl_switchcmsg,
+    msgctl_addcmsg,
+    msgctl_rmcmsg,
 };
 
 

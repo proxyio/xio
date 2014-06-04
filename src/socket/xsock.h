@@ -36,7 +36,7 @@
 #include <utils/transport.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
-#include "xmsg.h"
+#include "xmessage.h"
 #include "xcpu.h"
 
 #define null NULL

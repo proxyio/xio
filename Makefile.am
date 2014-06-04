@@ -37,10 +37,10 @@ XIO_SOCKET = \
 	src/socket/tcp/xtcpipc_listener.c \
 	src/socket/tcp/xtcpipc.c \
 	src/socket/xsock.c \
-	src/socket/xmsg.h \
 	src/socket/xgetsockopt.c \
 	src/socket/xinproc.h \
-	src/socket/xmsg.c \
+	src/socket/xmessage.c \
+	src/socket/xmessage.h \
 	src/socket/xtcpipc.h \
 	src/socket/inproc/xinproc.c \
 	src/socket/inproc/xinproc_listener.c \

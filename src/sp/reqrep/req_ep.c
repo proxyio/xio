@@ -57,7 +57,6 @@ static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 
 static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     int rc;
-    int cmsgnum;
     struct xmsg *msg;
     struct xcmsg ent;
     struct sphdr *h;
@@ -85,14 +84,12 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 
     ent.idx = 0;
     ent.outofband = (char *)h;
-    rc = xmsgctl(*ubuf, XMSG_SETCMSG, &ent);
+    rc = xmsgctl(*ubuf, XMSG_ADDCMSG, &ent);
     BUG_ON(rc);
 
     h->go = 1;
     uuid_copy(r->uuid, sk->uuid);
     rt_append(*ubuf, r);
-    BUG_ON(xmsgctl(*ubuf, XMSG_CMSGNUM, &cmsgnum));
-    BUG_ON(cmsgnum != 2);
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }

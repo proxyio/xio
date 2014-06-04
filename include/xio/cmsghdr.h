@@ -28,10 +28,8 @@
 
 #define XMSG_CMSGNUM      0
 #define XMSG_GETCMSG      1
-#define XMSG_SETCMSG      2
-#define XMSG_CLONE        3
-#define XMSG_COPYCMSG     4
-#define XMSG_SWITCHCMSG   5
+#define XMSG_ADDCMSG      2
+#define XMSG_RMCMSG       3
 
 struct xcmsg {
     uint8_t idx;

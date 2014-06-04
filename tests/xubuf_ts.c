@@ -18,11 +18,6 @@ int main(int argc, char **argv) {
     char oob3[12];
 
 
-    BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
-    BUG_ON(xmsgctl(xbuf2, XMSG_CMSGNUM, &oob_count));
-    BUG_ON(oob_count != 0);
-    xfreeubuf(xbuf2);
-    
     randstr(xbuf, 12);
     randstr(oob1, sizeof(oob1));
     randstr(oob2, sizeof(oob2));
@@ -31,24 +26,18 @@ int main(int argc, char **argv) {
     ent.idx = 0;
     ent.outofband = xallocubuf(sizeof(oob1));
     memcpy(ent.outofband, oob1, sizeof(oob1));
-    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent) != 0);
 
     ent.idx = 2;
     ent.outofband = xallocubuf(sizeof(oob3));
     memcpy(ent.outofband, oob3, sizeof(oob3));
-    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent) != 0);
 
     ent.idx = 1;
     ent.outofband = xallocubuf(sizeof(oob2));
     memcpy(ent.outofband, oob2, sizeof(oob2));
-    BUG_ON(xmsgctl(xbuf, XMSG_SETCMSG, &ent) != 0);
+    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent) != 0);
 
-
-
-    BUG_ON(xmsgctl(xbuf, XMSG_CLONE, &xbuf2));
-    BUG_ON(xmsgctl(xbuf2, XMSG_CMSGNUM, &oob_count));
-    BUG_ON(oob_count != 3);
-    
     ent.idx = 2;
     BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob3, sizeof(oob3)) != 0);
