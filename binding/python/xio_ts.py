@@ -27,6 +27,7 @@ for i in range(1, 10) :
     rc, msg2 = sp_recv(cli_eid)
     assert (rc == 0);
     xfreeubuf(msg2);
+    print "PASS " + str(i);
 
 sp_close(svr_eid);
 sp_close(cli_eid);

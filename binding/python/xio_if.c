@@ -422,7 +422,7 @@ static struct xsymbol const_symbols[] = {
     {"SP_PROXY",     SP_PROXY},
 };
 
-void pyopen_xio() {
+PyMODINIT_FUNC initxio() {
     PyObject *pyxio = Py_InitModule("xio", module_methods);
     int i;
     struct xsymbol *sb;
