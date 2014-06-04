@@ -72,13 +72,11 @@ struct sphdr *sphdr_new(u8 protocol, u8 version);
 void sphdr_free(struct sphdr *eh);
 
 static inline struct sphdr *ubuf2sphdr(char *ubuf) {
-    int cmsgnum = 0;
-    struct xcmsg ent;
+    int rc;
+    struct xcmsg ent = { 0, 0 };
 
-    BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum) != 0);
-    BUG_ON(!cmsgnum);
-    ent.idx = 0;
-    BUG_ON(xmsgctl(ubuf, XMSG_GETCMSG, &ent) != 0);
+    rc = xmsgctl(ubuf, XMSG_GETCMSG, &ent);
+    BUG_ON(rc || !ent.outofband);
     return (struct sphdr *)ent.outofband;
 }
 
@@ -86,35 +84,43 @@ static inline int sphdr_timeout(struct sphdr *h) {
     return h->timeout && (h->sendstamp + h->timeout < gettimeofms());
 }
 
-static inline struct spr *rt_cur(char *ubuf) {
-    struct sphdr *hdr = ubuf2sphdr(ubuf);
+static inline struct spr *__rt_cur(struct sphdr *hdr) {
     BUG_ON(hdr->ttl < 1);
     return &hdr->rt[hdr->ttl - 1];
 }
 
-static inline struct spr *rt_prev(char *ubuf) {
+static inline struct spr *rt_cur(char *ubuf) {
     struct sphdr *hdr = ubuf2sphdr(ubuf);
+    return __rt_cur(hdr);
+}
+
+static inline struct spr *__rt_prev(struct sphdr *hdr) {
     BUG_ON(hdr->ttl < 2);
     return &hdr->rt[hdr->ttl - 2];
 }
 
-static inline void rt_append(char *ubuf, struct spr *r) {
-    char *hdr;
-    u32 hlen = 0;
-    int rc;
-    int cmsgnum = 0;
-    struct xcmsg ent = { 1, 0 };
+static inline struct spr *rt_prev(char *ubuf) {
+    struct sphdr *hdr = ubuf2sphdr(ubuf);
+    return __rt_prev(hdr);
+}
 
-    rc = xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum);
-    BUG_ON(rc || cmsgnum != 1);
+static inline char *__rt_append(char *hdr, struct spr *r) {
+    u32 hlen = xubuflen(hdr);
+    char *nhdr = xallocubuf(hlen + sizeof(*r));
+    memcpy(nhdr, hdr, hlen);
+    xfreeubuf(hdr);
+    ((struct sphdr *)nhdr)->ttl++;
+    *__rt_cur((struct sphdr *)nhdr) = *r;
+    return nhdr;
+}
+
+static inline void rt_append(char *ubuf, struct spr *r) {
+    int rc;
+    struct xcmsg ent = { 0, 0 };
+
     rc = xmsgctl(ubuf, XMSG_RMCMSG, &ent);
     BUG_ON(rc || !ent.outofband);
-    hlen = xubuflen(ent.outofband);
-    hdr = xallocubuf(hlen + sizeof(struct spr));
-    memcpy(hdr, ent.outofband, hlen);
-    memcpy(hdr + hlen, r, sizeof(struct spr));
-    xfreeubuf(ent.outofband);
-    ent.outofband = hdr;
+    ent.outofband = __rt_append(ent.outofband, r);
     BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
 }
 

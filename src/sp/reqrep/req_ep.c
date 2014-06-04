@@ -60,7 +60,7 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
     struct xcmsg ent;
     struct sphdr *h;
-    struct spr *r;
+    struct spr rt = {};
 
     DEBUG_OFF("ep %d XPOLLOUT", ep->eid);
     mutex_lock(&ep->lock);
@@ -79,17 +79,14 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 
     h = sphdr_new(SP_REQREP, SP_REQREP_VERSION);
     BUG_ON(!h);
-    r = spr_new();
-    BUG_ON(!r);
 
-    ent.idx = 0;
     ent.outofband = (char *)h;
     rc = xmsgctl(*ubuf, XMSG_ADDCMSG, &ent);
     BUG_ON(rc);
 
     h->go = 1;
-    uuid_copy(r->uuid, sk->uuid);
-    rt_append(*ubuf, r);
+    uuid_copy(rt.uuid, sk->uuid);
+    rt_append(*ubuf, &rt);
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }

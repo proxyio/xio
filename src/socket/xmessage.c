@@ -115,13 +115,12 @@ static int msgctl_getcmsg(char *ubuf, void *optval) {
     int pos;
     struct xmsg *cmsg, *ncmsg;
 
-    if (!ent->idx || ent->idx > msg->vec.cmsg_num) {
+    if ((pos = ent->idx) >= msg->vec.cmsg_num) {
 	errno = ENOENT;
 	return -1;
     }
-    pos = ent->idx;
     xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
-	if (--pos)
+	if (pos--)
 	    continue;
 	ent->outofband = cmsg->vec.xiov_base;
 	return 0;

@@ -71,17 +71,16 @@ static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 
 static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
-    struct spr *rt;
+    struct spr rt = {};
 
     if (list_empty(&sk->snd_cache))
 	return -1;
-    BUG_ON(!(rt = spr_new()));
-    uuid_copy(rt->uuid, sk->uuid);
+    uuid_copy(rt.uuid, sk->uuid);
     msg = list_first(&sk->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);
-    rt_append(*ubuf, rt);
+    rt_append(*ubuf, &rt);
     DEBUG_OFF("ep %d req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }
