@@ -41,10 +41,6 @@
 struct sphdr {
     u8 protocol;
     u8 version;
-    u16 ttl:4;
-    u16 end_ttl:4;
-    u16 go:1;
-    u32 size;
     u16 timeout;
     i64 sendstamp;
     union {
@@ -52,9 +48,6 @@ struct sphdr {
 	struct list_head link;
     } u;
 };
-
-struct sphdr *sphdr_new(u8 protocol, u8 version);
-void sphdr_free(struct sphdr *eh);
 
 static inline struct sphdr *get_sphdr(char *ubuf) {
     int rc;

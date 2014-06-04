@@ -41,9 +41,9 @@ static void req_ep_destroy(struct epbase *ep) {
 
 static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct sphdr *sp_hdr = get_sphdr(ubuf);
+    struct rrhdr *rr_hdr = get_rrhdr(ubuf);
 
-    sp_hdr->ttl--;
+    rr_hdr->ttl--;
     DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
@@ -57,11 +57,11 @@ static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 
 static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     int rc;
-    struct xmsg *msg;
-    struct xcmsg ent;
-    struct sphdr *sp_hdr;
+    struct xmsg *msg = 0;
+    struct xcmsg ent = {};
     struct rrr rt = {};
-
+    struct rrhdr *rr_hdr = 0;
+    
     DEBUG_OFF("ep %d XPOLLOUT", ep->eid);
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head)) {
@@ -77,16 +77,10 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
 
-    sp_hdr = sphdr_new(SP_REQREP, SP_REQREP_VERSION);
-    BUG_ON(!sp_hdr);
-
-    ent.outofband = (char *)sp_hdr;
-    rc = xmsgctl(*ubuf, XMSG_ADDCMSG, &ent);
-    BUG_ON(rc);
-
-    sp_hdr->go = 1;
     uuid_copy(rt.uuid, sk->uuid);
-    rt_append(*ubuf, &rt);
+    rr_hdr = rqhdr_first(&rt);
+    ent.outofband = (char *)rr_hdr;
+    BUG_ON((rc = xmsgctl(*ubuf, XMSG_ADDCMSG, &ent)));
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }

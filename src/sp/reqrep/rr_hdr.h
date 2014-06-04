@@ -42,13 +42,37 @@ struct rrr {
 
 struct rrhdr {
     struct sphdr sp_hdr;
+    u16 ttl:4;
+    u16 end_ttl:4;
+    u16 go:1;
     struct rrr rt[0];
 };
 
+static inline struct rrhdr *rqhdr_first(struct rrr *r) {
+    struct sphdr *sp_hdr = 0;
+    struct rrhdr *rr_hdr = 0;
+
+    rr_hdr = (struct rrhdr *)xallocubuf(sizeof(*rr_hdr) + sizeof(*r));
+    BUG_ON(!rr_hdr);
+    sp_hdr = &rr_hdr->sp_hdr;
+    sp_hdr->protocol = SP_REQREP;
+    sp_hdr->version = SP_REQREP_VERSION;
+    sp_hdr->timeout = 0;
+    sp_hdr->sendstamp = 0;
+    rr_hdr->go = 1;
+    rr_hdr->ttl = 1;
+    rr_hdr->end_ttl = 0;
+    rr_hdr->rt[0] = *r;
+    return rr_hdr;
+}
+
+static inline struct rrhdr *get_rrhdr(char *ubuf) {
+    return (struct rrhdr *)get_sphdr(ubuf);
+}
+
 static inline struct rrr *__rt_cur(struct rrhdr *rr_hdr) {
-    struct sphdr *sp_hdr = &rr_hdr->sp_hdr;
-    BUG_ON(sp_hdr->ttl < 1);
-    return &rr_hdr->rt[sp_hdr->ttl - 1];
+    BUG_ON(rr_hdr->ttl < 1);
+    return &rr_hdr->rt[rr_hdr->ttl - 1];
 }
 
 static inline struct rrr *rt_cur(char *ubuf) {
@@ -57,9 +81,8 @@ static inline struct rrr *rt_cur(char *ubuf) {
 }
 
 static inline struct rrr *__rt_prev(struct rrhdr *rr_hdr) {
-    struct sphdr *sp_hdr = &rr_hdr->sp_hdr;
-    BUG_ON(sp_hdr->ttl < 2);
-    return &rr_hdr->rt[sp_hdr->ttl - 2];
+    BUG_ON(rr_hdr->ttl < 2);
+    return &rr_hdr->rt[rr_hdr->ttl - 2];
 }
 
 static inline struct rrr *rt_prev(char *ubuf) {
@@ -72,7 +95,7 @@ static inline char *__rt_append(char *hdr, struct rrr *r) {
     char *nhdr = xallocubuf(hlen + sizeof(*r));
     memcpy(nhdr, hdr, hlen);
     xfreeubuf(hdr);
-    ((struct sphdr *)nhdr)->ttl++;
+    ((struct rrhdr *)nhdr)->ttl++;
     *__rt_cur((struct rrhdr *)nhdr) = *r;
     return nhdr;
 }

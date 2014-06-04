@@ -66,7 +66,6 @@ XIO_SP = \
 	src/sp/reqrep/rep_ep.h \
 	src/sp/reqrep/req_ep.c \
 	src/sp/sp_rm.c \
-	src/sp/sp_hdr.c \
 	src/sp/pubsub/sub.h \
 	src/sp/pubsub/pub.h \
 	src/sp/sp_recv.c \

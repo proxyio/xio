@@ -89,12 +89,12 @@ static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 static int dispatcher_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct sphdr *sp_hdr = get_sphdr(ubuf);
+    struct rrhdr *rr_hdr = get_rrhdr(ubuf);
     struct epsk *target = route_backward(peer, ubuf);
 
     if (!target)
 	return -1;
-    sp_hdr->ttl--;
+    rr_hdr->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
     __epsk_try_enable_out(target);
