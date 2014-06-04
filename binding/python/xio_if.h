@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_PYXIO_
-#define _XIO_PYXIO_
+#ifndef _PYTHON_XIO_
+#define _PYTHON_XIO_
 
 #include <python2.6/Python.h>
 #include <python2.6/structmember.h>

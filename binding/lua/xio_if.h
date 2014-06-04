@@ -20,18 +20,11 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_LUAXIO_
-#define _XIO_LUAXIO_
+#ifndef _LUAXIO_
+#define _LUAXIO_
 
 #include <lua.h>
 
-struct xsymbol {
-    const char name[32];
-    int value;
-};
-
-int luaL_xio (lua_State *L);
-
-
+LUASOCKET_API int luaopen_xio(lua_State *L);
 
 #endif

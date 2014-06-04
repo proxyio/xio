@@ -29,6 +29,10 @@
 #include <utils/base.h>
 #include "xio_if.h"
 
+struct xsymbol {
+    const char name[32];
+    int value;
+};
 
 static int lua_xallocubuf (lua_State *L) {
     const char *str = luaL_checkstring(L, 1);
@@ -257,9 +261,8 @@ static const struct xsymbol const_symbols [] = {
 	lua_setglobal(L, (cst).name );			\
     } while (0)
 
-int luaL_xio (lua_State *L) {
+LUASOCKET_API int luaopen_xio(lua_State *L) {
     int i;
-
     for (i = 0; i < NELEM(api_symbols, struct luaL_reg); i++)
 	LUA_REGISTER_GLOBAL_FUNCTION(L, api_symbols[i]);
     for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++)
