@@ -43,7 +43,7 @@ static struct epsk *rrbin_forward(struct epbase *ep, char *ubuf) {
 
 static struct epsk *route_backward(struct epbase *ep, char *ubuf) {
     struct epsk *sk, *nsk;
-    struct spr *rt = rt_prev(ubuf);
+    struct rrr *rt = rt_prev(ubuf);
 
     walk_epsk_safe(sk, nsk, &ep->connectors) {
 	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
@@ -56,7 +56,7 @@ static struct epsk *route_backward(struct epbase *ep, char *ubuf) {
 static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct spr *r = rt_cur(ubuf);
+    struct rrr *r = rt_cur(ubuf);
     struct epsk *target = rrbin_forward(peer, ubuf);
 
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
@@ -71,7 +71,7 @@ static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 
 static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
-    struct spr rt = {};
+    struct rrr rt = {};
 
     if (list_empty(&sk->snd_cache))
 	return -1;
@@ -89,12 +89,12 @@ static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 static int dispatcher_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct sphdr *h = ubuf2sphdr(ubuf);
+    struct sphdr *sp_hdr = get_sphdr(ubuf);
     struct epsk *target = route_backward(peer, ubuf);
 
     if (!target)
 	return -1;
-    h->ttl--;
+    sp_hdr->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
     __epsk_try_enable_out(target);

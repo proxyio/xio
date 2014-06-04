@@ -24,31 +24,21 @@
 #include <stdarg.h>
 #include "sp_hdr.h"
 
-struct spr *spr_new() {
-    struct spr *r = (struct spr *)xallocubuf(sizeof(struct spr));
-    BUG_ON(!r);
-    return r;
-}
-
-void spr_free(struct spr *r) {
-    xfreeubuf((char *)r);
-}
-
 struct sphdr *sphdr_new(u8 protocol, u8 version) {
-    struct sphdr *h = (struct sphdr *)xallocubuf(sizeof(*h));
-    if (h) {
-	h->protocol = protocol;
-	h->version = version;
-	h->ttl = 0;
-	h->end_ttl = 0;
-	h->go = 0;
-	h->size = 0;
-	h->timeout = 0;
-	h->sendstamp = 0;
+    struct sphdr *sp_hdr = (struct sphdr *)xallocubuf(sizeof(*sp_hdr));
+    if (sp_hdr) {
+	sp_hdr->protocol = protocol;
+	sp_hdr->version = version;
+	sp_hdr->ttl = 0;
+	sp_hdr->end_ttl = 0;
+	sp_hdr->go = 0;
+	sp_hdr->size = 0;
+	sp_hdr->timeout = 0;
+	sp_hdr->sendstamp = 0;
     }
-    return h;
+    return sp_hdr;
 }
 
-void sphdr_free(struct sphdr *eh) {
-    xfreeubuf((char *)eh);
+void sphdr_free(struct sphdr *sp_hdr) {
+    xfreeubuf((char *)sp_hdr);
 }

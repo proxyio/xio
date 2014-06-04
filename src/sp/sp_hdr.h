@@ -33,24 +33,10 @@
 
 
 /* The sphdr looks like this:
- * +-------+---------+-------+--------+
- * | sphdr |  spr[]  |  uhdr |  ubuf  |
- * +-------+---------+-------+--------+
+ * +-------+----------------------+-------+--------+
+ * | sphdr |  protocol specified  |  uhdr |  ubuf  |
+ * +-------+----------------------+-------+--------+
  */
-
-#define XSPUBUF_APPENDRT 0x02
-
-struct spr {
-    uuid_t uuid;
-    u8 ip[4];
-    u16 port;
-    u16 begin[2];
-    u16 cost[2];
-    u16 stay[2];
-};
-
-struct spr *spr_new();
-void spr_free(struct spr *r);
 
 struct sphdr {
     u8 protocol;
@@ -65,13 +51,12 @@ struct sphdr {
 	u64 __align[2];
 	struct list_head link;
     } u;
-    struct spr rt[0];
 };
 
 struct sphdr *sphdr_new(u8 protocol, u8 version);
 void sphdr_free(struct sphdr *eh);
 
-static inline struct sphdr *ubuf2sphdr(char *ubuf) {
+static inline struct sphdr *get_sphdr(char *ubuf) {
     int rc;
     struct xcmsg ent = { 0, 0 };
 
@@ -83,47 +68,5 @@ static inline struct sphdr *ubuf2sphdr(char *ubuf) {
 static inline int sphdr_timeout(struct sphdr *h) {
     return h->timeout && (h->sendstamp + h->timeout < gettimeofms());
 }
-
-static inline struct spr *__rt_cur(struct sphdr *hdr) {
-    BUG_ON(hdr->ttl < 1);
-    return &hdr->rt[hdr->ttl - 1];
-}
-
-static inline struct spr *rt_cur(char *ubuf) {
-    struct sphdr *hdr = ubuf2sphdr(ubuf);
-    return __rt_cur(hdr);
-}
-
-static inline struct spr *__rt_prev(struct sphdr *hdr) {
-    BUG_ON(hdr->ttl < 2);
-    return &hdr->rt[hdr->ttl - 2];
-}
-
-static inline struct spr *rt_prev(char *ubuf) {
-    struct sphdr *hdr = ubuf2sphdr(ubuf);
-    return __rt_prev(hdr);
-}
-
-static inline char *__rt_append(char *hdr, struct spr *r) {
-    u32 hlen = xubuflen(hdr);
-    char *nhdr = xallocubuf(hlen + sizeof(*r));
-    memcpy(nhdr, hdr, hlen);
-    xfreeubuf(hdr);
-    ((struct sphdr *)nhdr)->ttl++;
-    *__rt_cur((struct sphdr *)nhdr) = *r;
-    return nhdr;
-}
-
-static inline void rt_append(char *ubuf, struct spr *r) {
-    int rc;
-    struct xcmsg ent = { 0, 0 };
-
-    rc = xmsgctl(ubuf, XMSG_RMCMSG, &ent);
-    BUG_ON(rc || !ent.outofband);
-    ent.outofband = __rt_append(ent.outofband, r);
-    BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
-}
-
-
 
 #endif

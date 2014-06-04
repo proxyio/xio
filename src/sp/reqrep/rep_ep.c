@@ -41,7 +41,7 @@ static void rep_ep_destroy(struct epbase *ep) {
 
 static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct spr *r = rt_cur(ubuf);
+    struct rrr *r = rt_cur(ubuf);
     
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
 	uuid_copy(sk->uuid, r->uuid);
@@ -60,7 +60,7 @@ static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 static void __routeback(struct epbase *ep, struct xmsg *msg) {
     struct epsk *sk, *nsk;
     char *ubuf = msg->vec.xiov_base;
-    struct spr *rt = rt_cur(ubuf);
+    struct rrr *rt = rt_cur(ubuf);
 
     walk_epsk_safe(sk, nsk, &ep->connectors) {
 	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
@@ -85,7 +85,7 @@ static void routeback(struct epbase *ep) {
 
 static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     struct xmsg *msg;
-    struct sphdr *h;
+    struct sphdr *sp_hdr;
 
     routeback(ep);
     if (list_empty(&sk->snd_cache))
@@ -101,9 +101,9 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
 
-    h = ubuf2sphdr(*ubuf);
-    h->go = 0;
-    h->end_ttl = h->ttl;
+    sp_hdr = get_sphdr(*ubuf);
+    sp_hdr->go = 0;
+    sp_hdr->end_ttl = sp_hdr->ttl;
     DEBUG_OFF("ep %d send resp %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
     return 0;
 }
