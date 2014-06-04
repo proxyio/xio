@@ -181,10 +181,7 @@ if LUA
 xinclude_HEADERS += binding/lua/xio_if.h
 LUA_SOURCES = \
 	binding/lua/xio_if.c \
-	binding/lua/xio_if.h \
-	binding/lua/socket.c \
-	binding/lua/poll.c \
-	binding/lua/sp.c
+	binding/lua/xio_if.h
 
 libxio_la_SOURCES += $(LUA_SOURCES)
 endif
