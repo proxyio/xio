@@ -15,13 +15,13 @@ $cli_eid = sp_endpoint(SP_REQREP, SP_REQ);
 $host = "inproc://py_reqrep";
 
 for ($i = 0; $i < 10; $i++) {
-    $sockaddr = $host + strval($i);
+    $sockaddr = $host . strval($i);
     $rc = sp_listen($svr_eid, $sockaddr);
     assert ($rc == 0);
 }
 
 for ($i = 0; $i < 10; $i++) {
-    $sockaddr = $host + strval($i);
+    $sockaddr = $host . strval($i);
     $rc = sp_connect($cli_eid, $sockaddr);
     assert ($rc == 0);
 }
@@ -39,6 +39,8 @@ for ($i = 0; $i < 10; $i++) {
     $msg2 = sp_recv($cli_eid);
     assert ($msg2 > 0);
     xfreeubuf($msg2);
+
+    print("PASS " . strval($i) . "\n");
 }
 
 sp_close($svr_eid);
