@@ -20,14 +20,17 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_PUB_
-#define _SP_PUB_
+#ifndef _SP_PUBSUB_
+#define _SP_PUBSUB_
 
-#include <xio/sp_pubsub.h>
-#include <sp/sp_module.h>
+#include <xio/sp.h>
+#include <xio/cplusplus_define.h>
 
-struct pub_ep {
-    struct epbase base;
-};
+#define SP_PUBSUB_VERSION 0x0001
 
+/* Following sp_types are provided by PUBSUB protocol */
+#define SP_PUB         1
+#define SP_SUB         2
+
+#include <xio/cplusplus_endif.h>
 #endif

@@ -13,6 +13,7 @@ xinclude_HEADERS = \
 	include/xio/poll.h \
 	include/xio/cplusplus_endif.h \
 	include/xio/sp_reqrep.h \
+	include/xio/sp_pubsub.h \
 	include/xio/cmsghdr.h \
 	include/xio/cplusplus_define.h \
 	include/xio/sp.h \
@@ -60,11 +61,15 @@ XIO_SP = \
 	src/sp/sp_endpoint.c \
 	src/sp/bus/bus.h \
 	src/sp/sp_send.c \
-	src/sp/reqrep/req_ep.h \
 	src/sp/reqrep/pipeline.c \
 	src/sp/reqrep/rep_ep.c \
 	src/sp/reqrep/rep_ep.h \
 	src/sp/reqrep/req_ep.c \
+	src/sp/reqrep/req_ep.h \
+	src/sp/pubsub/pub.h \
+	src/sp/pubsub/pub.c \
+	src/sp/pubsub/sub.h \
+	src/sp/pubsub/sub.c \
 	src/sp/sp_rm.c \
 	src/sp/pubsub/sub.h \
 	src/sp/pubsub/pub.h \

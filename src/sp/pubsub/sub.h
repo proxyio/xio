@@ -23,7 +23,11 @@
 #ifndef _SP_SUB_
 #define _SP_SUB_
 
+#include <xio/sp_pubsub.h>
+#include <sp/sp_module.h>
 
-
+struct sub_ep {
+    struct epbase base;
+};
 
 #endif

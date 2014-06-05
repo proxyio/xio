@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SP_REQREP_
-#define _XIO_SP_REQREP_
+#ifndef _SP_REQREP_
+#define _SP_REQREP_
 
 #include <xio/sp.h>
 #include <xio/cplusplus_define.h>
