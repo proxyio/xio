@@ -45,7 +45,7 @@ static struct socktg *route_backward(struct epbase *ep, char *ubuf) {
     struct rrr *rt = rt_prev(ubuf);
     struct socktg *tg = 0;
 
-    rm_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    get_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
     return tg;
 }
 

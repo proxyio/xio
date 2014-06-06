@@ -22,7 +22,7 @@ static int req_thread(void *args) {
 	BUG_ON((s = xconnect(host)) < 0);
 	BUG_ON(sp_add(eid, s) < 0);
     }
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 9; i++) {
 	sbuf = rbuf = 0;
 	sbuf = xallocubuf(sizeof(buf));
 	memcpy(sbuf, buf, sizeof(buf));
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 	thread_start(&t[i], req_thread, (void *)pf[i]);
     }
 
-    for (i = 0; i < NELEM(t, thread_t) * 3; i++) {
+    for (i = 0; i < NELEM(t, thread_t) * 9; i++) {
 	while (sp_recv(eid, &ubuf) != 0) {
 	    usleep(10000);
 	}
