@@ -44,7 +44,7 @@ static void __shutdown_socks_task_hndl(struct xcpu *cpu) {
     list_splice(&cpu->shutdown_socks, &st_head);
     mutex_unlock(&cpu->lock);
 
-    xtask_walk_safe(ts, nx_ts, &st_head) {
+    xtask_walk_s(ts, nx_ts, &st_head) {
 	list_del_init(&ts->link);
 	ts->f(ts);
     }
@@ -100,7 +100,7 @@ static inline int kcpud(void *args) {
 struct sockbase_vfptr *sockbase_vfptr_lookup(int pf, int type) {
     struct sockbase_vfptr *vfptr, *ss;
 
-    walk_sockbase_vfptr_safe(vfptr, ss, &xgb.sockbase_vfptr_head) {
+    walk_sockbase_vfptr_s(vfptr, ss, &xgb.sockbase_vfptr_head) {
 	if (pf == vfptr->pf && vfptr->type == type)
 	    return vfptr;
     }

@@ -33,9 +33,8 @@ struct list_head *transport_vfptr_head = &transport_vfs;
 extern struct transport_vf *tcp_vfptr;
 extern struct transport_vf *ipc_vfptr;
 
-#define walk_transpotr_vfptr_safe(tp_vfptr)		\
-    list_for_each_entry(tp_vfptr, &transport_vfs,	\
-			struct transport_vf, item)
+#define walk_transpotr_vfptr_s(tp_vfptr)				\
+    walk_each_entry(tp_vfptr, &transport_vfs, struct transport_vf, item)
 
 void transport_module_init() {
     INIT_LIST_HEAD(&transport_vfs);
@@ -50,7 +49,7 @@ void transport_module_init() {
 void transport_module_exit() {
     struct transport_vf *tp_vfptr;
 
-    walk_transpotr_vfptr_safe(tp_vfptr) {
+    walk_transpotr_vfptr_s(tp_vfptr) {
 	if (tp_vfptr->exit)
 	    tp_vfptr->exit();
     }
@@ -59,7 +58,7 @@ void transport_module_exit() {
 struct transport_vf *transport_lookup(int pf) {
     struct transport_vf *tp;
 
-    walk_transpotr_vfptr_safe(tp) {
+    walk_transpotr_vfptr_s(tp) {
 	if (tp->proto == pf)
 	    return tp;
     }

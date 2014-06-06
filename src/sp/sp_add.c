@@ -23,10 +23,10 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-struct epsk *sp_generic_join(struct epbase *ep, int fd) {
+struct socktg *sp_generic_join(struct epbase *ep, int fd) {
     int socktype;
     int optlen = sizeof(socktype);
-    struct epsk *nsk = epsk_new();
+    struct socktg *nsk = socktg_new();
 
     if (!nsk)
 	return 0;

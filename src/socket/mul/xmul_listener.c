@@ -29,7 +29,6 @@
 
 extern int _xlisten(int pf, const char *addr);
 
-
 static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
     struct sockbase_vfptr *vfptr, *ss;
     struct sockbase *sub, *nsub, *new;
@@ -40,7 +39,7 @@ static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
 
     INIT_LIST_HEAD(&sub_socks);
     INIT_LIST_HEAD(&new_socks);
-    walk_sockbase_vfptr_safe(vfptr, ss, &xgb.sockbase_vfptr_head) {
+    walk_sockbase_vfptr_s(vfptr, ss, &xgb.sockbase_vfptr_head) {
 	if (!(pf & vfptr->pf) || vfptr->type != XLISTENER)
 	    continue;
 	pf &= ~vfptr->pf;

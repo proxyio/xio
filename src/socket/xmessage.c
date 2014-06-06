@@ -34,7 +34,7 @@ u32 xmsg_iovlens(struct xmsg *msg) {
     struct xmsg *cmsg, *ncmsg;
     u32 iovlen = xmsg_iovlen(msg);
 
-    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+    walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
 	iovlen += xmsg_iovlens(cmsg);
     }
     return iovlen;
@@ -50,7 +50,7 @@ int xmsg_serialize(struct xmsg *msg, struct list_head *head) {
 
     rc++;
     list_add_tail(&msg->item, head);
-    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+    walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
 	list_del_init(&cmsg->item);
 	rc += xmsg_serialize(cmsg, head);
     }
@@ -78,7 +78,7 @@ char *xallocubuf(int size) {
 
 void xfreemsg(struct xmsg *msg) {
     struct xmsg *cmsg, *ncmsg;
-    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+    walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
 	list_del_init(&cmsg->item);
 	xfreemsg(cmsg);
     }
@@ -119,7 +119,7 @@ static int msgctl_getcmsg(char *ubuf, void *optval) {
 	errno = ENOENT;
 	return -1;
     }
-    xmsg_walk_safe(cmsg, ncmsg, &msg->cmsg_head) {
+    walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
 	if (pos--)
 	    continue;
 	ent->outofband = cmsg->vec.xiov_base;

@@ -39,7 +39,7 @@ static void req_ep_destroy(struct epbase *ep) {
     mem_free(req_ep, sizeof(*req_ep));
 }
 
-static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+static int req_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
 
@@ -55,7 +55,7 @@ static int req_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
     return 0;
 }
 
-static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
+static int req_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
     int rc;
     struct xmsg *msg = 0;
     struct xcmsg ent = {};
@@ -85,8 +85,8 @@ static int req_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     return 0;
 }
 
-static int req_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
-    struct epsk *nsk = sp_generic_join(ep, nfd);
+static int req_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
+    struct socktg *nsk = sp_generic_join(ep, nfd);
 
     if (!nsk)
 	return -1;

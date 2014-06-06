@@ -61,8 +61,8 @@ struct xmsg *xallocmsg(int size);
 void xfreemsg(struct xmsg *msg);
 int xmsglen(struct xmsg *msg);
 
-#define xmsg_walk_safe(pos, next, head)					\
-    list_for_each_entry_safe(pos, next, head, struct xmsg, item)
+#define walk_msg_s(pos, next, head)				\
+    walk_each_entry_s(pos, next, head, struct xmsg, item)
 
 int xmsg_serialize(struct xmsg *msg, struct list_head *head);
 

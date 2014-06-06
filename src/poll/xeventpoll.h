@@ -41,9 +41,8 @@ struct xpitem {
 
 extern struct pollbase_vfptr xpollbase_vfptr;
 
-#define walk_xpitem_safe(itm, nitm, head)		\
-    list_for_each_entry_safe(itm, nitm, head,		\
-			     struct xpitem, lru_link)
+#define walk_xpitem_s(itm, nitm, head)				\
+    walk_each_entry_s(itm, nitm, head, struct xpitem, lru_link)
 
 struct xpitem *xpitem_alloc();
 int xpitem_get(struct xpitem *itm);

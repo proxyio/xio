@@ -269,7 +269,7 @@ static void bufio_add(struct bio *b, struct xmsg *msg) {
     INIT_LIST_HEAD(&head);
     xmsg_serialize(msg, &head);
 
-    xmsg_walk_safe(msg, nmsg, &head) {
+    walk_msg_s(msg, nmsg, &head) {
 	bio_write(b, xmsg_iovbase(msg), xmsg_iovlen(msg));
 	xfreemsg(msg);
     }
@@ -353,7 +353,7 @@ static int xio_connector_sg(struct sockbase *sb) {
 	    BUG_ON(!self->biov);
 	}
 	iov = self->biov;
-	xmsg_walk_safe(msg, nmsg, &self->sg_head) {
+	walk_msg_s(msg, nmsg, &self->sg_head) {
 	    list_del_init(&msg->item);
 	    iov->iov_base = xmsg_iovbase(msg);
 	    iov->iov_len = xmsg_iovlen(msg);

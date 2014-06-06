@@ -196,7 +196,7 @@ int xpoll_wait(int pollid, struct poll_ent *ents, int size, int to) {
 	condition_timedwait(&self->cond, &self->lock, to);
 	self->uwaiters--;
     }
-    walk_xpitem_safe(itm, nitm, &self->lru_head) {
+    walk_xpitem_s(itm, nitm, &self->lru_head) {
 	if (!itm->base.ent.happened || n >= size)
 	    break;
 	ents[n++] = itm->base.ent;

@@ -27,7 +27,7 @@
 int sp_send(int eid, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct epbase *ep = eid_get(eid);
-    struct epsk *sk, *nsk;
+    struct socktg *sk, *nsk;
     
     if (!ep) {
 	errno = EBADF;
@@ -47,8 +47,8 @@ int sp_send(int eid, char *ubuf) {
     }
 
     list_add_tail(&msg->item, &ep->snd.head);
-    walk_disable_out_sk_safe(sk, nsk, &ep->disable_pollout_socks) {
-	__epsk_try_enable_out(sk);
+    walk_disable_out_sk_s(sk, nsk, &ep->disable_pollout_socks) {
+	__socktg_try_enable_out(sk);
     }
     ep->snd.size += xmsglen(msg);
     mutex_unlock(&ep->lock);

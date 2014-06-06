@@ -39,7 +39,7 @@ static void rep_ep_destroy(struct epbase *ep) {
     mem_free(rep_ep, sizeof(*rep_ep));
 }
 
-static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+static int rep_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
     
@@ -58,15 +58,15 @@ static int rep_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
 }
 
 static void __routeback(struct epbase *ep, struct xmsg *msg) {
-    struct epsk *sk, *nsk;
+    struct socktg *sk, *nsk;
     char *ubuf = msg->vec.xiov_base;
     struct rrr *rt = rt_cur(ubuf);
 
-    walk_epsk_safe(sk, nsk, &ep->connectors) {
+    walk_socktg_s(sk, nsk, &ep->connectors) {
 	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
 	    continue;
 	list_add_tail(&msg->item, &sk->snd_cache);
-	__epsk_try_enable_out(sk);
+	__socktg_try_enable_out(sk);
 	return;
     }
     xfreemsg(msg);
@@ -76,14 +76,14 @@ static void routeback(struct epbase *ep) {
     struct xmsg *msg, *nmsg;
 
     mutex_lock(&ep->lock);
-    walk_msg_safe(msg, nmsg, &ep->snd.head) {
+    walk_msg_s(msg, nmsg, &ep->snd.head) {
 	list_del_init(&msg->item);
 	__routeback(ep, msg);
     }
     mutex_unlock(&ep->lock);
 }
 
-static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
+static int rep_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
     struct xmsg *msg = 0;
     struct rrhdr *rr_hdr = 0;
 
@@ -108,8 +108,8 @@ static int rep_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
     return 0;
 }
 
-static int rep_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
-    struct epsk *nsk = sp_generic_join(ep, nfd);
+static int rep_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
+    struct socktg *nsk = sp_generic_join(ep, nfd);
 
     if (!nsk)
 	return -1;

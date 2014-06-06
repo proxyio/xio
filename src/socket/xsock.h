@@ -76,8 +76,8 @@ struct pollbase {
     struct list_head link;
 };
 
-#define walk_pollbase_safe(pb, npb, head)				\
-    list_for_each_entry_safe(pb, npb, head, struct pollbase, link)
+#define walk_pollbase_s(pb, npb, head)				\
+    walk_each_entry_s(pb, npb, head, struct pollbase, link)
 
 static inline
 void pollbase_init(struct pollbase *pb, struct pollbase_vfptr *vfptr) {
@@ -143,9 +143,8 @@ struct sockbase {
     struct list_head poll_entries;
 };
 
-#define xsock_walk_sub_socks(sub, nx, head)		\
-    list_for_each_entry_safe(sub, nx, head,		\
-			     struct sockbase, sib_link)
+#define xsock_walk_sub_socks(sub, nx, head)			\
+    walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 
 /* We guarantee that we can push one massage at least. */
 static inline int can_send(struct sockbase *sb) {

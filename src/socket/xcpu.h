@@ -37,9 +37,9 @@ struct xtask {
     struct list_head link;
 };
 
-#define xtask_walk_safe(ts, nt, head)				\
-    list_for_each_entry_safe(ts, nt, head, struct xtask,	\
-			     link)
+#define xtask_walk_s(ts, nt, head)			\
+    walk_each_entry_s(ts, nt, head, struct xtask, link)
+
 struct xcpu {
     //spin_t lock; // for release mode
 

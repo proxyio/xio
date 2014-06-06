@@ -37,16 +37,16 @@ static void sub_ep_destroy(struct epbase *ep) {
     mem_free(sub_ep, sizeof(*sub_ep));
 }
 
-static int sub_ep_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+static int sub_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     return 0;
 }
 
-static int sub_ep_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
+static int sub_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
     return 0;
 }
 
-static int sub_ep_join(struct epbase *ep, struct epsk *sk, int nfd) {
-    struct epsk *nsk = sp_generic_join(ep, nfd);
+static int sub_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
+    struct socktg *nsk = sp_generic_join(ep, nfd);
 
     if (!nsk)
 	return -1;

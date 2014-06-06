@@ -140,7 +140,7 @@ void pput(int pollid) {
 struct xpitem *ffd(struct xpoll_t *self, int fd) {
     struct xpitem *itm, *nitm;
 
-    walk_xpitem_safe(itm, nitm, &self->lru_head) {
+    walk_xpitem_s(itm, nitm, &self->lru_head) {
 	if (itm->base.ent.fd == fd || fd == XPOLL_HEADFD)
 	    return itm;
     }

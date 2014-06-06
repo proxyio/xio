@@ -37,23 +37,23 @@
 
 
 struct epbase;
-struct epsk;
+struct socktg;
 struct epbase_vfptr {
     int sp_family;
     int sp_type;
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
-    int  (*rm)      (struct epbase *ep, struct epsk *sk, char **ubuf);
-    int  (*add)     (struct epbase *ep, struct epsk *sk, char *ubuf);
-    int  (*join)    (struct epbase *ep, struct epsk *sk, int fd);
+    int  (*rm)      (struct epbase *ep, struct socktg *sk, char **ubuf);
+    int  (*add)     (struct epbase *ep, struct socktg *sk, char *ubuf);
+    int  (*join)    (struct epbase *ep, struct socktg *sk, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
 };
 
-struct epsk *sp_generic_join(struct epbase *ep, int fd);
+struct socktg *sp_generic_join(struct epbase *ep, int fd);
 
-struct epsk {
+struct socktg {
     struct epbase *owner;
     struct poll_ent ent;
     int fd;
@@ -63,12 +63,12 @@ struct epsk {
     struct list_head snd_cache;
 };
 
-struct epsk *epsk_new();
-void epsk_free(struct epsk *sk);
-void sg_add_sk(struct epsk *sk);
-void sg_rm_sk(struct epsk *sk);
-void sg_update_sk(struct epsk *sk, u32 ev);
-void __epsk_try_enable_out(struct epsk *sk);
+struct socktg *socktg_new();
+void socktg_free(struct socktg *sk);
+void sg_add_sk(struct socktg *sk);
+void sg_rm_sk(struct socktg *sk);
+void sg_update_sk(struct socktg *sk, u32 ev);
+void __socktg_try_enable_out(struct socktg *sk);
 
 
 struct skbuf {
@@ -105,14 +105,11 @@ struct epbase {
 void epbase_init(struct epbase *ep);
 void epbase_exit(struct epbase *ep);
 
-#define walk_msg_safe(msg, nmsg, head)					\
-    list_for_each_entry_safe(msg, nmsg, head, struct xmsg, item)
+#define walk_socktg_s(sk, nsk, head)				\
+    walk_each_entry_s(sk, nsk, head, struct socktg, item)
 
-#define walk_epsk_safe(sk, nsk, head)				\
-    list_for_each_entry_safe(sk, nsk, head, struct epsk, item)
-
-#define walk_disable_out_sk_safe(sk, nsk, head)				\
-    list_for_each_entry_safe(sk, nsk, head, struct epsk, out_item)
+#define walk_disable_out_sk_s(sk, nsk, head)			\
+    walk_each_entry_s(sk, nsk, head, struct socktg, out_item)
 
 
 
@@ -143,13 +140,11 @@ struct sp_global {
 
 extern struct sp_global sg;
 
-#define walk_epbase_safe(ep, tmp, head)			\
-    list_for_each_entry_safe(ep, tmp, head,		\
-			     struct epbase, item)
+#define walk_epbase_s(ep, tmp, head)				\
+    walk_each_entry_s(ep, tmp, head, struct epbase, item)
 
-#define walk_epbase_vfptr(ep, tmp, head)		\
-    list_for_each_entry_safe(ep, tmp, head,		\
-			     struct epbase_vfptr, item)
+#define walk_epbase_vfptr(ep, tmp, head)			\
+    walk_each_entry_s(ep, tmp, head, struct epbase_vfptr, item)
 
 static inline
 struct epbase_vfptr *epbase_vfptr_lookup(int sp_family, int sp_type) {

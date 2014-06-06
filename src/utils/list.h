@@ -70,10 +70,10 @@ struct list_link {
 	(link)->linked = 0;			\
     } while (0)
 
-#define list_for_each_list_link(pos, head)			\
-    list_for_each_entry((pos), (head), struct list_link, node)
-#define list_for_each_list_link_safe(pos, next, head)			\
-    list_for_each_entry_safe((pos), (next), (head), struct list_link, node)
+#define walk_each_list_link(pos, head)				\
+    walk_each_entry((pos), (head), struct list_link, node)
+#define walk_each_list_link_s(pos, next, head)				\
+    walk_each_entry_s((pos), (next), (head), struct list_link, node)
 
     
 #define list_first(head, type, member)		\
@@ -199,14 +199,14 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // Interate over a list
 // @param pos        the &struct list_head to use as a loop conter.
 // @param head       the head for your list.
-#define list_for_each(pos, head)				\
+#define walk_each(pos, head)					\
     for (pos = (head)->next; pos != head; pos = (pos)->next)
 
 
 // Interate over a list backwards
 // @param pos        the &struct list_head to use as a loop conter.
 // @param head       the head for your list.
-#define list_for_each_prev(pos, head)				\
+#define walk_each_prev(pos, head)				\
     for (pos = (head)->prev; pos != head; pos = (pos)->prev)
 
 
@@ -215,7 +215,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param pos       the &struct list_head to use as a loop conter.
 // @param n         another &struct list_head to use as temp storage
 // @param head      the head for your list.
-#define list_for_each_safe(pos, n, head)			\
+#define walk_each_s(pos, n, head)				\
     for (pos = (head)->next, n = pos->next; pos != head;	\
 	 pos = n; n = pos->next)
 
@@ -225,7 +225,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param head      the head for your list.
 // @param type      the list_head struct container type
 // @param member    the field name of the list_head struct within..
-#define list_for_each_entry(pos, head, type, member)		\
+#define walk_each_entry(pos, head, type, member)		\
     for (pos = list_entry((head)->next, type, member);		\
 	 &(pos)->member != head;				\
 	 pos = list_entry((pos)->member.next, type, member))
@@ -236,7 +236,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param head      the head for your list.
 // @param type      the list_head struct container type
 // @param member    the field name of the list_head struct within..
-#define list_for_each_entry_prev(pos, head, type, member)	\
+#define walk_each_entry_prev(pos, head, type, member)		\
     for (pos = list_entry((head)->prev, type, member);		\
 	 &(pos)->member != head;				\
 	 pos = list_entry((pos)->member.prev, type, member))
@@ -248,7 +248,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param head      the head for your list.
 // @param type      the list_head struct container type
 // @param member    the field name of the list_head struct within..
-#define list_for_each_entry_continue(pos, head, type, member)	\
+#define walk_each_entry_continue(pos, head, type, member)	\
     for (pos = list_entry((pos)->member.next, type, member);	\
 	 &(pos)->member != head;				\
 	 pos = list_entry((pos)->member.next, type, member))
@@ -262,7 +262,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param head      the head for your list.
 // @param type      the list_head struct container type
 // @param member    the field name of the list_head struct within..
-#define list_for_each_entry_safe(pos, n, head, type, member)	\
+#define walk_each_entry_s(pos, n, head, type, member)		\
     for (pos = list_entry((head)->next, type, member),		\
 	     n = list_entry(pos->member.next, type, member);	\
 	 &pos->member != head;					\
@@ -276,10 +276,10 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param head      the head for your list.
 // @param type      the list_head struct container type
 // @param member    the field name of the list_head struct within..
-#define list_for_each_entry_prev_safe(pos, n, head, type, member)	\
-    for (pos = list_entry((head)->prev, type, member),			\
-	     n = list_entry(pos->member.prev, type, member);		\
-	 &pos->member != head;						\
+#define walk_each_entry_prev_s(pos, n, head, type, member)	\
+    for (pos = list_entry((head)->prev, type, member),		\
+	     n = list_entry(pos->member.prev, type, member);	\
+	 &pos->member != head;					\
 	 pos = n, n = list_entry(n->member.prev, type, member))
 
 
@@ -290,10 +290,10 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param head      the head for your list.
 // @param type      the list_head struct container type
 // @param member    the field name of the list_head struct within..
-#define list_for_each_entry_continue_safe(pos, n, head, type, member)	\
-    for (pos = list_entry(pos->member.next, type, member),		\
-	     n = list_entry(pos->member.next, type, member);		\
-	 &pos->member != head;						\
+#define walk_each_entry_continue_s(pos, n, head, type, member)	\
+    for (pos = list_entry(pos->member.next, type, member),	\
+	     n = list_entry(pos->member.next, type, member);	\
+	 &pos->member != head;					\
 	 pos = n, n = list_entry(n->member.next, type, member))
 
 
@@ -389,26 +389,26 @@ static inline void hlist_add_after(struct hlist_node *node, struct hlist_node *p
 
 #define hlist_entry(ptr, type, member) cont_of(ptr, type, member)
 
-#define hlist_for_each(pos, head)			\
+#define hwalk_each(pos, head)				\
     for (pos = (head)->first; pos; pos = pos->next)
 
-#define hlist_for_each_safe(pos, n, head)				\
+#define hwalk_each_s(pos, n, head)					\
     for (pos = (head)->first; pos && ({n = pos->next; 1;}); pos = n)
 
 //
-// hlist_for_each_entry	- iterate over list of given type
+// hwalk_each_entry	- iterate over list of given type
 // @param pos	the &struct hlist_node to use as a loop counter.
 // @param head	the head for your list.
 // @param type
 // @param member        the name of the hlist_node within the struct.
 
-#define hlist_for_each_entry(pos, head, type, member)			\
+#define hwalk_each_entry(pos, head, type, member)			\
     for (pos = (type *)(head)->first; pos &&				\
 	     ({pos = hlist_entry((struct hlist_node *)pos, type, member); 1;}); \
 	 pos = (type *)pos->member.next)
 
 
-// hlist_for_each_entry_safe - iterate over list of given type safe against
+// hwalk_each_entry_safe - iterate over list of given type safe against
 // removal of list entry
 //
 // @param pos	the &struct hlist_node to use as a loop counter.
@@ -418,33 +418,33 @@ static inline void hlist_add_after(struct hlist_node *node, struct hlist_node *p
 // @param member        the name of the hlist_node within the struct.
 
 
-#define hlist_for_each_entry_safe(pos, n, head, type, member)		\
+#define hwalk_each_entry_s(pos, n, head, type, member)			\
     for (pos = (type *)(head)->first;					\
 	 pos && ({pos = hlist_entry((struct hlist_node *)pos, type, member); \
 		 n = pos->member.next ? hlist_entry(pos->member.next, type, member) : NULL; 1;}); \
 	 pos = n ? (type *)&n->member : NULL)
 
 
-// hlist_for_each_entry_continue - iterate over a hlist continuing
+// hwalk_each_entry_continue - iterate over a hlist continuing
 // after existing point
 //
 // @param pos	the &struct hlist_node to use as a loop counter.
 // @param type
 // @param member	the name of the hlist_node within the struct.
 
-#define hlist_for_each_entry_continue(pos, type, member)		\
+#define hwalk_each_entry_continue(pos, type, member)			\
     for (pos = (type *)(pos)->member.next; pos &&			\
 	     ({ pos = hlist_entry((struct hlist_node *)pos, type, member); 1;}); \
 	 pos = (type *)pos->member.next)
 
-// hlist_for_each_entry_from - iterate over a hlist continuing
+// hwalk_each_entry_from - iterate over a hlist continuing
 // from existing point
 //
 // @param pos	the &struct hlist_node to use as a loop counter.
 // @param type
 // @param member	the name of the hlist_node within the struct.
 
-#define hlist_for_each_entry_from(pos, type, member)			\
+#define hwalk_each_entry_from(pos, type, member)			\
     for (pos = (type *)&pos->member; pos &&				\
 	     ({pos = hlist_entry((struct hlist_node *)pos, type, member); 1;}); \
 	 pos = (type *)pos->member.next)

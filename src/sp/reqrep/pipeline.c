@@ -34,18 +34,18 @@ static void dunlock(struct epbase *ep1, struct epbase *ep2) {
 }
 
 
-static struct epsk *rrbin_forward(struct epbase *ep, char *ubuf) {
-    struct epsk *sk = list_first(&ep->connectors, struct epsk, item);
+static struct socktg *rrbin_forward(struct epbase *ep, char *ubuf) {
+    struct socktg *sk = list_first(&ep->connectors, struct socktg, item);
 
     list_move_tail(&sk->item, &ep->connectors);
     return sk;
 }
 
-static struct epsk *route_backward(struct epbase *ep, char *ubuf) {
-    struct epsk *sk, *nsk;
+static struct socktg *route_backward(struct epbase *ep, char *ubuf) {
+    struct socktg *sk, *nsk;
     struct rrr *rt = rt_prev(ubuf);
 
-    walk_epsk_safe(sk, nsk, &ep->connectors) {
+    walk_socktg_s(sk, nsk, &ep->connectors) {
 	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
 	    continue;
 	return sk;
@@ -53,23 +53,23 @@ static struct epsk *route_backward(struct epbase *ep, char *ubuf) {
     return 0;
 }
 
-static int receiver_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+static int receiver_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
-    struct epsk *target = rrbin_forward(peer, ubuf);
+    struct socktg *target = rrbin_forward(peer, ubuf);
 
     if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
 	uuid_copy(sk->uuid, r->uuid);
     }
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
-    __epsk_try_enable_out(target);
+    __socktg_try_enable_out(target);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     return 0;
 }
 
-static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
+static int dispatcher_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
     struct xmsg *msg;
     struct rrr rt = {};
 
@@ -86,23 +86,23 @@ static int dispatcher_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
 }
 
 
-static int dispatcher_add(struct epbase *ep, struct epsk *sk, char *ubuf) {
+static int dispatcher_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
-    struct epsk *target = route_backward(peer, ubuf);
+    struct socktg *target = route_backward(peer, ubuf);
 
     if (!target)
 	return -1;
     rr_hdr->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
-    __epsk_try_enable_out(target);
+    __socktg_try_enable_out(target);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     return 0;
 }
 
-static int receiver_rm(struct epbase *ep, struct epsk *sk, char **ubuf) {
+static int receiver_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
     struct xmsg *msg = 0;
 
     if (list_empty(&sk->snd_cache))

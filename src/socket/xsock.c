@@ -168,7 +168,7 @@ void xsock_exit(struct sockbase *sb) {
     sb->snd.wnd = -1;
     list_splice(&sb->snd.head, &head);
 
-    xmsg_walk_safe(msg, nmsg, &head) {
+    walk_msg_s(msg, nmsg, &head) {
 	xfreemsg(msg);
     }
 

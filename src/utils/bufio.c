@@ -24,8 +24,8 @@
 #include "bufio.h"
 #include "alloc.h"
 
-#define list_for_each_page_safe(bp, tmp, head)				\
-    list_for_each_entry_safe(bp, tmp, head, bio_page_t, page_link)
+#define walk_each_page_s(bp, tmp, head)				\
+    walk_each_entry_s(bp, tmp, head, bio_page_t, page_link)
 
 int bio_empty(struct bio *b) {
     if (b->bsize == 0)
@@ -101,7 +101,7 @@ struct bio *bio_new() {
 
 void bio_reset(struct bio *b) {
     bio_page_t *bp, *tmp;
-    list_for_each_page_safe(bp, tmp, &b->page_head) {
+    walk_each_page_s(bp, tmp, &b->page_head) {
 	list_del(&bp->page_link);
 	mem_free(bp, sizeof(*bp));
     }
@@ -136,7 +136,7 @@ int64_t bio_copy(struct bio *b, char *buff, int64_t sz) {
     bio_page_t *bp, *tmp;
     int64_t nbytes = 0;
 
-    list_for_each_page_safe(bp, tmp, &b->page_head) {
+    walk_each_page_s(bp, tmp, &b->page_head) {
 	nbytes += bio_page_copy(bp, buff + nbytes, sz - nbytes);
 	if (sz == nbytes)
 	    break;
@@ -189,7 +189,7 @@ int64_t bio_flush(struct bio *b, struct io *io_ops) {
     
     while (!list_empty(&b->page_head)) {
 	if ((nbytes = io_ops->write(io_ops, page, bio_copy(b, page,
-	   PAGE_SIZE))) < 0)
+							   PAGE_SIZE))) < 0)
 	    break;
 	sum += nbytes;
 	BUG_ON(nbytes != bio_read(b, page, nbytes));
