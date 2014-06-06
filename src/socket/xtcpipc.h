@@ -38,7 +38,7 @@ struct tcpipc_sock {
     int iov_end;
     int iov_length;
     struct list_head sg_head;
-    struct transport_vf *tp_vfptr;
+    struct transport *vtp;
 };
 
 extern struct sockbase_vfptr xtcp_listener_spec;

@@ -62,11 +62,11 @@ static int xio_listener_bind(struct sockbase *sb, const char *sock) {
     int sys_fd, on = 1;
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
-    BUG_ON(!(self->tp_vfptr = transport_lookup(sb->vfptr->pf)));
-    if ((sys_fd = self->tp_vfptr->bind(sock)) < 0)
+    BUG_ON(!(self->vtp = transport_lookup(sb->vfptr->pf)));
+    if ((sys_fd = self->vtp->bind(sock)) < 0)
 	return -1;
     strncpy(sb->addr, sock, TP_SOCKADDRLEN);
-    self->tp_vfptr->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on));
+    self->vtp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on));
 
     self->sys_fd = sys_fd;
     self->et.events = EPOLLIN|EPOLLERR;
@@ -82,18 +82,18 @@ static void xio_listener_close(struct sockbase *sb) {
     struct xcpu *cpu = xcpuget(sb->cpu_no);
     struct sockbase *nsb;
     
-    BUG_ON(!self->tp_vfptr);
+    BUG_ON(!self->vtp);
 
     /* Detach xsock low-level file descriptor from poller */
     BUG_ON(eloop_del(&cpu->el, &self->et) != 0);
-    self->tp_vfptr->close(self->sys_fd);
+    self->vtp->close(self->sys_fd);
 
     self->sys_fd = -1;
     self->et.events = -1;
     self->et.fd = -1;
     self->et.f = 0;
     self->et.data = 0;
-    self->tp_vfptr = 0;
+    self->vtp = 0;
 
     /* Destroy acceptq's connection */
     while (acceptq_rm_nohup(sb, &nsb) == 0) {
@@ -142,12 +142,12 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
 	mutex_unlock(&sb->lock);
 	return -1;
     }
-    BUG_ON(!self->tp_vfptr);
-    if ((sys_fd = self->tp_vfptr->accept(self->sys_fd)) < 0) {
+    BUG_ON(!self->vtp);
+    if ((sys_fd = self->vtp->accept(self->sys_fd)) < 0) {
 	return -1;
     }
     if ((nfd = xalloc(sb->vfptr->pf, XCONNECTOR)) < 0) {
-	self->tp_vfptr->close(sys_fd);
+	self->vtp->close(sys_fd);
 	return -1;
     }
     nsb = xgb.sockbases[nfd];
@@ -156,8 +156,8 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
 
     DEBUG_OFF("%d accept new connection %d", sb->fd, nfd);
     nself->sys_fd = sys_fd;
-    nself->tp_vfptr = self->tp_vfptr;
-    BUG_ON(nself->tp_vfptr->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
+    nself->vtp = self->vtp;
+    BUG_ON(nself->vtp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
     nself->ops = default_xops;
     nself->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
     nself->et.fd = sys_fd;

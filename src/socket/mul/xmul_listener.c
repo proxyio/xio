@@ -50,7 +50,7 @@ static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
     }
     if (list_empty(&sub_socks))
 	return -1;
-    xsock_walk_sub_socks(sub, nsub, &sub_socks) {
+    walk_sub_sock(sub, nsub, &sub_socks) {
         sub->owner = sb;
         while (acceptq_rm_nohup(sub, &new) == 0) {
             list_add_tail(&new->acceptq.link, &new_socks);
@@ -62,7 +62,7 @@ static int xmul_listener_bind(struct sockbase *sb, const char *sock) {
     mutex_unlock(&sb->lock);
     return 0; 
  BAD:
-    xsock_walk_sub_socks(sub, nsub, &sub_socks) {
+    walk_sub_sock(sub, nsub, &sub_socks) {
         list_del_init(&sub->sib_link);
         xclose(sub->fd);
     }
@@ -73,7 +73,7 @@ static void xmul_listener_close(struct sockbase *sb) {
     struct sockbase *nsb;
     struct sockbase *sub, *nx;
 
-    xsock_walk_sub_socks(sub, nx, &sb->sub_socks) {
+    walk_sub_sock(sub, nx, &sb->sub_socks) {
 	sub->owner = 0;
 	list_del_init(&sub->sib_link);
 	xclose(sub->fd);

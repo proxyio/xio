@@ -46,7 +46,7 @@ typedef int (*tp_getopt) (int fd, void *optval, int *optlen);
 #define TP_RCVBUFLEN      104857600
 #define TP_SOCKADDRLEN    128
 
-struct transport_vf {
+struct transport {
     const char *name;
     int proto;
     void (*init)     (void);
@@ -63,7 +63,7 @@ struct transport_vf {
     struct list_head item;
 };
 
-struct transport_vf *transport_lookup(int proto);
+struct transport *transport_lookup(int proto);
 
 
 #endif

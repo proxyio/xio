@@ -167,7 +167,7 @@ int ipc_peername(int fd, char *peer, int size) {
 }
 
 
-static struct transport_vf ipc_ops = {
+static struct transport ipc_ops = {
     .name = "ipc",
     .proto = TP_IPC,
     .init = 0,
@@ -184,6 +184,6 @@ static struct transport_vf ipc_ops = {
     .item = LIST_ITEM_INITIALIZE,
 };
 
-struct transport_vf *ipc_vfptr = &ipc_ops;
+struct transport *ipc_vfptr = &ipc_ops;
 
 

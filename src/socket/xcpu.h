@@ -37,7 +37,7 @@ struct xtask {
     struct list_head link;
 };
 
-#define xtask_walk_s(ts, nt, head)			\
+#define walk_task_s(ts, nt, head)			\
     walk_each_entry_s(ts, nt, head, struct xtask, link)
 
 struct xcpu {

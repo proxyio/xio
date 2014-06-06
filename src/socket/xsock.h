@@ -143,7 +143,7 @@ struct sockbase {
     struct list_head poll_entries;
 };
 
-#define xsock_walk_sub_socks(sub, nx, head)			\
+#define walk_sub_sock(sub, nx, head)				\
     walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 
 /* We guarantee that we can push one massage at least. */

@@ -44,7 +44,7 @@ static void __shutdown_socks_task_hndl(struct xcpu *cpu) {
     list_splice(&cpu->shutdown_socks, &st_head);
     mutex_unlock(&cpu->lock);
 
-    xtask_walk_s(ts, nx_ts, &st_head) {
+    walk_task_s(ts, nx_ts, &st_head) {
 	list_del_init(&ts->link);
 	ts->f(ts);
     }

@@ -30,19 +30,19 @@
 
 static i64 xio_connector_read(struct io *ops, char *buff, i64 sz) {
     struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
-    struct transport_vf *tp_vfptr = self->tp_vfptr;
+    struct transport *vtp = self->vtp;
 
-    BUG_ON(!tp_vfptr);
-    int rc = tp_vfptr->recv(self->sys_fd, buff, sz);
+    BUG_ON(!vtp);
+    int rc = vtp->recv(self->sys_fd, buff, sz);
     return rc;
 }
 
 static i64 xio_connector_write(struct io *ops, char *buff, i64 sz) {
     struct tcpipc_sock *self = cont_of(ops, struct tcpipc_sock, ops);
-    struct transport_vf *tp_vfptr = self->tp_vfptr;
+    struct transport *vtp = self->vtp;
 
-    BUG_ON(!tp_vfptr);
-    int rc = tp_vfptr->send(self->sys_fd, buff, sz);
+    BUG_ON(!vtp);
+    int rc = vtp->send(self->sys_fd, buff, sz);
     return rc;
 }
 
@@ -141,12 +141,12 @@ static int xio_connector_bind(struct sockbase *sb, const char *sock) {
     int blen = max(default_sndbuf, default_rcvbuf);
 
     BUG_ON(!cpu);
-    BUG_ON(!(self->tp_vfptr = transport_lookup(sb->vfptr->pf)));
-    if ((sys_fd = self->tp_vfptr->connect(sock)) < 0)
+    BUG_ON(!(self->vtp = transport_lookup(sb->vfptr->pf)));
+    if ((sys_fd = self->vtp->connect(sock)) < 0)
 	return -1;
-    BUG_ON(self->tp_vfptr->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
-    self->tp_vfptr->setopt(sys_fd, TP_SNDBUF, &blen, sizeof(blen));
-    self->tp_vfptr->setopt(sys_fd, TP_RCVBUF, &blen, sizeof(blen));
+    BUG_ON(self->vtp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on)));
+    self->vtp->setopt(sys_fd, TP_SNDBUF, &blen, sizeof(blen));
+    self->vtp->setopt(sys_fd, TP_RCVBUF, &blen, sizeof(blen));
 
     strncpy(sb->peer, sock, TP_SOCKADDRLEN);
     self->sys_fd = sys_fd;
@@ -165,21 +165,21 @@ static void xio_connector_close(struct sockbase *sb) {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
-    BUG_ON(!self->tp_vfptr);
+    BUG_ON(!self->vtp);
 
     /* Try flush buf massage into network before close */
     xio_connector_snd(sb);
 
     /* Detach xsock low-level file descriptor from poller */
     BUG_ON(eloop_del(&cpu->el, &self->et) != 0);
-    self->tp_vfptr->close(self->sys_fd);
+    self->vtp->close(self->sys_fd);
 
     self->sys_fd = -1;
     self->et.events = -1;
     self->et.fd = -1;
     self->et.f = 0;
     self->et.data = 0;
-    self->tp_vfptr = 0;
+    self->vtp = 0;
 
     /* Destroy the xsock base and free xsockid. */
     xsock_exit(sb);
@@ -297,7 +297,7 @@ static int sg_send(struct sockbase *sb) {
 	return 0;
     msghdr.msg_iov = self->biov + self->iov_start;
     msghdr.msg_iovlen = self->iov_end - self->iov_start;
-    if ((rc = self->tp_vfptr->sendmsg(self->sys_fd, &msghdr, 0)) < 0)
+    if ((rc = self->vtp->sendmsg(self->sys_fd, &msghdr, 0)) < 0)
 	return rc;
     iov = &self->biov[self->iov_start];
     while (rc >= iov->iov_len && iov < &self->biov[self->iov_end]) {
@@ -368,7 +368,7 @@ static int xio_connector_snd(struct sockbase *sb) {
     int rc;
     struct xmsg *msg;
 
-    if (self->tp_vfptr->sendmsg)
+    if (self->vtp->sendmsg)
 	return xio_connector_sg(sb);
     while ((msg = sendq_rm(sb)))
 	bufio_add(&self->out, msg);

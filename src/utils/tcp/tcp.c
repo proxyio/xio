@@ -236,7 +236,7 @@ int tcp_peername(int fd, char *peer, int size) {
 
 
 
-static struct transport_vf tcp_ops = {
+static struct transport tcp_ops = {
     .name = "tcp",
     .proto = TP_TCP,
     .init = 0,
@@ -253,4 +253,4 @@ static struct transport_vf tcp_ops = {
     .item = LIST_ITEM_INITIALIZE,
 };
 
-struct transport_vf *tcp_vfptr = &tcp_ops;
+struct transport *tcp_vfptr = &tcp_ops;
