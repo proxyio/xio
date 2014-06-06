@@ -105,8 +105,27 @@ struct epbase {
 void epbase_init(struct epbase *ep);
 void epbase_exit(struct epbase *ep);
 
-#define walk_socktg_s(sk, nsk, head)				\
-    walk_each_entry_s(sk, nsk, head, struct socktg, item)
+#define walk_socktg_s(tg, tmp, head)				\
+    walk_each_entry_s(tg, tmp, head, struct socktg, item)
+
+#define get_socktg_if(tg, head, cond) ({			\
+	    int ok = false;					\
+	    walk_each_entry(tg, head, struct socktg, item) {	\
+		if (cond) {					\
+		    ok = true;					\
+		    break;					\
+		}						\
+	    }							\
+	    if (!ok)						\
+		tg = 0;						\
+	    tg;							\
+	})
+
+#define rm_socktg_if(tg, head, cond) ({			\
+	    if ((tg = get_socktg_if(tg, head, cond)))	\
+		list_del_init(&tg->item);		\
+	    tg;						\
+	});
 
 #define walk_disable_out_sk_s(sk, nsk, head)			\
     walk_each_entry_s(sk, nsk, head, struct socktg, out_item)

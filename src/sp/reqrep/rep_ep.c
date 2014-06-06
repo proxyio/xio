@@ -43,9 +43,8 @@ static int rep_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
     
-    if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
+    if (uuid_compare(r->uuid, sk->uuid))
 	uuid_copy(sk->uuid, r->uuid);
-    }
     DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, sk->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
@@ -58,18 +57,16 @@ static int rep_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
 }
 
 static void __routeback(struct epbase *ep, struct xmsg *msg) {
-    struct socktg *sk, *nsk;
     char *ubuf = msg->vec.xiov_base;
     struct rrr *rt = rt_cur(ubuf);
+    struct socktg *tg = 0;
 
-    walk_socktg_s(sk, nsk, &ep->connectors) {
-	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
-	    continue;
-	list_add_tail(&msg->item, &sk->snd_cache);
-	__socktg_try_enable_out(sk);
-	return;
-    }
-    xfreemsg(msg);
+    get_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    if (tg) {
+	list_add_tail(&msg->item, &tg->snd_cache);
+	__socktg_try_enable_out(tg);
+    } else
+	xfreemsg(msg);
 }
 
 static void routeback(struct epbase *ep) {

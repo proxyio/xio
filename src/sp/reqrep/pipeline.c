@@ -42,15 +42,11 @@ static struct socktg *rrbin_forward(struct epbase *ep, char *ubuf) {
 }
 
 static struct socktg *route_backward(struct epbase *ep, char *ubuf) {
-    struct socktg *sk, *nsk;
     struct rrr *rt = rt_prev(ubuf);
+    struct socktg *tg = 0;
 
-    walk_socktg_s(sk, nsk, &ep->connectors) {
-	if (memcmp(sk->uuid, rt->uuid, sizeof(sk->uuid)) != 0)
-	    continue;
-	return sk;
-    }
-    return 0;
+    rm_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    return tg;
 }
 
 static int receiver_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
@@ -59,9 +55,8 @@ static int receiver_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct rrr *r = rt_cur(ubuf);
     struct socktg *target = rrbin_forward(peer, ubuf);
 
-    if (memcmp(r->uuid, sk->uuid, sizeof(sk->uuid)) != 0) {
+    if (uuid_compare(r->uuid, sk->uuid))
 	uuid_copy(sk->uuid, r->uuid);
-    }
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
     __socktg_try_enable_out(target);
