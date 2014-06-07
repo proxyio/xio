@@ -26,33 +26,33 @@
 struct socktg *sp_generic_join(struct epbase *ep, int fd) {
     int socktype;
     int optlen = sizeof(socktype);
-    struct socktg *nsk = socktg_new();
+    struct socktg *tg = socktg_new();
 
-    if (!nsk)
+    if (!tg)
 	return 0;
     BUG_ON(xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen));
-    nsk->fd = fd;
-    nsk->owner = ep;
-    nsk->ent.fd = fd;
-    nsk->ent.self = nsk;
-    nsk->ent.events = (socktype == XLISTENER) ?
+    tg->fd = fd;
+    tg->owner = ep;
+    tg->ent.fd = fd;
+    tg->ent.self = tg;
+    tg->ent.events = (socktype == XLISTENER) ?
 	XPOLLIN|XPOLLERR : XPOLLIN|XPOLLOUT|XPOLLERR;
     mutex_lock(&ep->lock);
     switch (socktype) {
     case XLISTENER:
-	list_add_tail(&nsk->item, &ep->listeners);
+	list_add_tail(&tg->item, &ep->listeners);
 	ep->listener_num++;
 	break;
     case XCONNECTOR:
-	list_add_tail(&nsk->item, &ep->connectors);
+	list_add_tail(&tg->item, &ep->connectors);
 	ep->connector_num++;
 	break;
     default:
 	BUG_ON(1);
     }
     mutex_unlock(&ep->lock);
-    sg_add_sk(nsk);
-    return nsk;
+    sg_add_tg(tg);
+    return tg;
 }
 
 int sp_add(int eid, int fd) {

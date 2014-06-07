@@ -44,9 +44,9 @@ struct epbase_vfptr {
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
     int  (*send)     (struct epbase *ep, char *ubuf);
-    int  (*rm)      (struct epbase *ep, struct socktg *sk, char **ubuf);
-    int  (*add)     (struct epbase *ep, struct socktg *sk, char *ubuf);
-    int  (*join)    (struct epbase *ep, struct socktg *sk, int fd);
+    int  (*rm)      (struct epbase *ep, struct socktg *tg, char **ubuf);
+    int  (*add)     (struct epbase *ep, struct socktg *tg, char *ubuf);
+    int  (*join)    (struct epbase *ep, struct socktg *tg, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
@@ -65,11 +65,11 @@ struct socktg {
 };
 
 struct socktg *socktg_new();
-void socktg_free(struct socktg *sk);
-void sg_add_sk(struct socktg *sk);
-void sg_rm_sk(struct socktg *sk);
-void sg_update_sk(struct socktg *sk, u32 ev);
-void __socktg_try_enable_out(struct socktg *sk);
+void socktg_free(struct socktg *tg);
+void sg_add_tg(struct socktg *tg);
+void sg_rm_tg(struct socktg *tg);
+void sg_update_tg(struct socktg *tg, u32 ev);
+void __socktg_try_enable_out(struct socktg *tg);
 
 
 struct skbuf {
@@ -79,12 +79,9 @@ struct skbuf {
     struct list_head head;
 };
 
-
-#define EP_SHUTDOWN 1
-
 struct epbase {
     struct epbase_vfptr vfptr;
-    u32 status;
+    u32 shutdown:1;
     atomic_t ref;
     int eid;
     mutex_t lock;
@@ -106,6 +103,9 @@ struct epbase {
 void epbase_init(struct epbase *ep);
 void epbase_exit(struct epbase *ep);
 
+#define walk_socktg(tg, head)				\
+    walk_each_entry(tg, head, struct socktg, item)
+
 #define walk_socktg_s(tg, tmp, head)				\
     walk_each_entry_s(tg, tmp, head, struct socktg, item)
 
@@ -126,10 +126,14 @@ void epbase_exit(struct epbase *ep);
 	    if ((tg = get_socktg_if(tg, head, cond)))	\
 		list_del_init(&tg->item);		\
 	    tg;						\
-	});
+	})
 
-#define walk_disable_out_sk_s(sk, nsk, head)			\
-    walk_each_entry_s(sk, nsk, head, struct socktg, out_item)
+
+#define walk_disable_out_tg(tg, head)			\
+    walk_each_entry(tg, head, struct socktg, out_item)
+
+#define walk_disable_out_tg_s(tg, tmp, head)			\
+    walk_each_entry_s(tg, tmp, head, struct socktg, out_item)
 
 
 

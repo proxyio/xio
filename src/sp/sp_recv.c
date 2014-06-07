@@ -32,12 +32,12 @@ int sp_recv(int eid, char **ubuf) {
 	return -1;
     }
     mutex_lock(&ep->lock);
-    while (ep->status != EP_SHUTDOWN && list_empty(&ep->rcv.head)) {
+    while (!ep->shutdown && list_empty(&ep->rcv.head)) {
 	ep->rcv.waiters++;
 	condition_wait(&ep->cond, &ep->lock);
 	ep->rcv.waiters--;
     }
-    if (ep->status == EP_SHUTDOWN) {
+    if (ep->shutdown) {
 	mutex_unlock(&ep->lock);
 	errno = EBADF;
 	return -1;

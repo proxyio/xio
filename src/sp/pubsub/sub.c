@@ -42,20 +42,20 @@ static int sub_ep_send(struct epbase *ep, char *ubuf) {
     return rc;
 }
 
-static int sub_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
+static int sub_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
     int rc = 0;
     return rc;
 }
 
-static int sub_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
+static int sub_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
     int rc = 0;
     return rc;
 }
 
-static int sub_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
-    struct socktg *nsk = sp_generic_join(ep, nfd);
+static int sub_ep_join(struct epbase *ep, struct socktg *tg, int nfd) {
+    struct socktg *_tg = sp_generic_join(ep, nfd);
 
-    if (!nsk)
+    if (!_tg)
 	return -1;
     return 0;
 }

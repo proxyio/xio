@@ -39,12 +39,12 @@ static void req_ep_destroy(struct epbase *ep) {
     mem_free(req_ep, sizeof(*req_ep));
 }
 
-static int req_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
+static int req_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
 
     rr_hdr->ttl--;
-    DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, sk->fd);
+    DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
     ep->rcv.size += xubuflen(ubuf);
@@ -76,17 +76,17 @@ static int req_ep_send(struct epbase *ep, char *ubuf) {
     return rc;
 }
 
-static int req_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
+static int req_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
     int rc = -1;
     return rc;
 }
 
-static int req_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
-    struct socktg *nsk = sp_generic_join(ep, nfd);
+static int req_ep_join(struct epbase *ep, struct socktg *tg, int nfd) {
+    struct socktg *_tg = sp_generic_join(ep, nfd);
 
-    if (!nsk)
+    if (!_tg)
 	return -1;
-    uuid_generate(nsk->uuid);
+    uuid_generate(_tg->uuid);
     return 0;
 }
 

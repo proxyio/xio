@@ -42,22 +42,22 @@ static int pub_ep_send(struct epbase *ep, char *ubuf) {
     return rc;
 }
 
-static int pub_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
+static int pub_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
     int rc = 0;
     return rc;
 }
 
-static int pub_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
+static int pub_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
     int rc = 0;
     return rc;
 }
 
-static int pub_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
-    struct socktg *nsk = sp_generic_join(ep, nfd);
+static int pub_ep_join(struct epbase *ep, struct socktg *tg, int nfd) {
+    struct socktg *_tg = sp_generic_join(ep, nfd);
 
-    if (!nsk)
+    if (!_tg)
 	return -1;
-    uuid_generate(nsk->uuid);
+    uuid_generate(_tg->uuid);
     return 0;
 }
 

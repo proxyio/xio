@@ -32,7 +32,7 @@ int sp_close(int eid) {
 	return -1;
     }
     mutex_lock(&ep->lock);
-    ep->status = EP_SHUTDOWN;
+    ep->shutdown = true;
     if (ep->snd.waiters || ep->rcv.waiters)
 	condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);

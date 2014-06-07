@@ -26,7 +26,7 @@
 
 int sp_rm(int eid, int fd) {
     struct epbase *ep = eid_get(eid);
-    struct socktg *sk, *nsk;
+    struct socktg *tg = 0;
 
     if (!ep) {
 	errno = EBADF;
@@ -34,24 +34,12 @@ int sp_rm(int eid, int fd) {
     }
     /* BUG */
     mutex_lock(&ep->lock);
-    walk_socktg_s(sk, nsk, &ep->listeners) {
-	if (sk->fd != fd)
-	    continue;
-	list_del_init(&sk->item);
+    if ((tg = rm_socktg_if(tg, &ep->listeners, tg->fd == fd)))
 	ep->listener_num--;
-    }
-    walk_socktg_s(sk, nsk, &ep->connectors) {
-	if (sk->fd != fd)
-	    continue;
-	list_del_init(&sk->item);
+    if ((tg = rm_socktg_if(tg, &ep->connectors, tg->fd == fd)))
 	ep->connector_num--;
-    }
-    walk_socktg_s(sk, nsk, &ep->bad_socks) {
-	if (sk->fd != fd)
-	    continue;
-	list_del_init(&sk->item);
+    if ((tg = rm_socktg_if(tg, &ep->connectors, tg->fd == fd)))
 	ep->bad_num--;
-    }
     mutex_lock(&ep->lock);
     return 0;
 }
