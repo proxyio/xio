@@ -43,6 +43,7 @@ struct epbase_vfptr {
     int sp_type;
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
+    int  (*send)     (struct epbase *ep, char *ubuf);
     int  (*rm)      (struct epbase *ep, struct socktg *sk, char **ubuf);
     int  (*add)     (struct epbase *ep, struct socktg *sk, char *ubuf);
     int  (*join)    (struct epbase *ep, struct socktg *sk, int fd);

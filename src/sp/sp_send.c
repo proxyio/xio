@@ -25,33 +25,14 @@
 
 
 int sp_send(int eid, char *ubuf) {
-    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
+    int rc;
     struct epbase *ep = eid_get(eid);
-    struct socktg *sk, *nsk;
-    
-    if (!ep) {
-	errno = EBADF;
-	return -1;
-    }
-    mutex_lock(&ep->lock);
-    while (!list_empty(&ep->snd.head) && ep->snd.size >= ep->snd.wnd
-	   && ep->status != EP_SHUTDOWN) {
-	ep->snd.waiters++;
-	condition_wait(&ep->cond, &ep->lock);
-	ep->snd.waiters--;
-    }
-    if (ep->status == EP_SHUTDOWN) {
-	mutex_unlock(&ep->lock);
-	errno = EBADF;
-	return -1;
-    }
 
-    list_add_tail(&msg->item, &ep->snd.head);
-    walk_disable_out_sk_s(sk, nsk, &ep->disable_pollout_socks) {
-	__socktg_try_enable_out(sk);
+    if (!ep || ep->status == EP_SHUTDOWN) {
+	errno = EBADF;
+	return -1;
     }
-    ep->snd.size += xmsglen(msg);
-    mutex_unlock(&ep->lock);
+    rc = ep->vfptr.send (ep, ubuf);
     eid_put(eid);
-    return 0;
+    return rc;
 }

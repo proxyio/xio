@@ -37,12 +37,19 @@ static void sub_ep_destroy(struct epbase *ep) {
     mem_free(sub_ep, sizeof(*sub_ep));
 }
 
+static int sub_ep_send(struct epbase *ep, char *ubuf) {
+    int rc = 0;
+    return rc;
+}
+
 static int sub_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
-    return 0;
+    int rc = 0;
+    return rc;
 }
 
 static int sub_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
-    return 0;
+    int rc = 0;
+    return rc;
 }
 
 static int sub_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
@@ -86,6 +93,7 @@ static struct epbase_vfptr sub_epbase = {
     .sp_type = SP_SUB,
     .alloc = sub_ep_alloc,
     .destroy = sub_ep_destroy,
+    .send = sub_ep_send,
     .add = sub_ep_add,
     .rm = sub_ep_rm,
     .join = sub_ep_join,

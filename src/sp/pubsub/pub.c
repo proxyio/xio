@@ -37,12 +37,19 @@ static void pub_ep_destroy(struct epbase *ep) {
     mem_free(pub_ep, sizeof(*pub_ep));
 }
 
+static int pub_ep_send(struct epbase *ep, char *ubuf) {
+    int rc = 0;
+    return rc;
+}
+
 static int pub_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
-    return 0;
+    int rc = 0;
+    return rc;
 }
 
 static int pub_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
-    return 0;
+    int rc = 0;
+    return rc;
 }
 
 static int pub_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
@@ -87,6 +94,7 @@ static struct epbase_vfptr pub_epbase = {
     .sp_type = SP_PUB,
     .alloc = pub_ep_alloc,
     .destroy = pub_ep_destroy,
+    .send = pub_ep_send,
     .add = pub_ep_add,
     .rm = pub_ep_rm,
     .join = pub_ep_join,

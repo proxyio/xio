@@ -39,6 +39,28 @@ static void rep_ep_destroy(struct epbase *ep) {
     mem_free(rep_ep, sizeof(*rep_ep));
 }
 
+static int rep_ep_send(struct epbase *ep, char *ubuf) {
+    int rc = -1;
+    struct rrhdr *rr_hdr = get_rrhdr(ubuf);
+    struct rrr *rt = rt_cur(ubuf);
+    struct socktg *tg = 0;
+    
+    mutex_lock(&ep->lock);
+    get_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    if (tg)
+	list_move(&tg->item, &ep->connectors);
+    mutex_unlock(&ep->lock);
+
+    rr_hdr->go = 0;
+    rr_hdr->end_ttl = rr_hdr->ttl;
+
+    if (tg) {
+	rc = xsend(tg->fd, ubuf);
+	DEBUG_OFF("ep %d send resp %10.10s to socket %d", ep->eid, ubuf, tg->fd);
+    }
+    return rc;
+}
+
 static int rep_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
@@ -56,53 +78,9 @@ static int rep_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     return 0;
 }
 
-static void __routeback(struct epbase *ep, struct xmsg *msg) {
-    char *ubuf = msg->vec.xiov_base;
-    struct rrr *rt = rt_cur(ubuf);
-    struct socktg *tg = 0;
-
-    get_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
-    if (tg) {
-	list_add_tail(&msg->item, &tg->snd_cache);
-	__socktg_try_enable_out(tg);
-    } else
-	xfreemsg(msg);
-}
-
-static void routeback(struct epbase *ep) {
-    struct xmsg *msg, *nmsg;
-
-    mutex_lock(&ep->lock);
-    walk_msg_s(msg, nmsg, &ep->snd.head) {
-	list_del_init(&msg->item);
-	__routeback(ep, msg);
-    }
-    mutex_unlock(&ep->lock);
-}
-
 static int rep_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
-    struct xmsg *msg = 0;
-    struct rrhdr *rr_hdr = 0;
-
-    routeback(ep);
-    if (list_empty(&sk->snd_cache))
-	return -1;
-    BUG_ON(!(msg = list_first(&sk->snd_cache, struct xmsg, item)));
-    list_del_init(&msg->item);
-    *ubuf = msg->vec.xiov_base;
-    
-    mutex_lock(&ep->lock);
-    ep->snd.size -= xubuflen(*ubuf);
-    BUG_ON(ep->snd.waiters < 0);
-    if (ep->snd.waiters)
-	condition_broadcast(&ep->cond);
-    mutex_unlock(&ep->lock);
-
-    rr_hdr = get_rrhdr(*ubuf);
-    rr_hdr->go = 0;
-    rr_hdr->end_ttl = rr_hdr->ttl;
-    DEBUG_OFF("ep %d send resp %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
-    return 0;
+    int rc = -1;
+    return rc;
 }
 
 static int rep_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
@@ -161,6 +139,7 @@ struct epbase_vfptr rep_epbase = {
     .sp_type = SP_REP,
     .alloc = rep_ep_alloc,
     .destroy = rep_ep_destroy,
+    .send = rep_ep_send,
     .add = rep_ep_add,
     .rm = rep_ep_rm,
     .join = rep_ep_join,

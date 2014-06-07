@@ -55,34 +55,30 @@ static int req_ep_add(struct epbase *ep, struct socktg *sk, char *ubuf) {
     return 0;
 }
 
-static int req_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
-    int rc;
-    struct xmsg *msg = 0;
-    struct xcmsg ent = {};
-    struct rrr rt = {};
+static int req_ep_send(struct epbase *ep, char *ubuf) {
+    int rc = -1;
     struct rrhdr *rr_hdr = 0;
+    struct rrr rt = {};
+    struct socktg *tg = 0;
+    struct xcmsg ent = {};
     
-    DEBUG_OFF("ep %d XPOLLOUT", ep->eid);
     mutex_lock(&ep->lock);
-    if (list_empty(&ep->snd.head)) {
-	mutex_unlock(&ep->lock);
-	return -1;
-    }
-    BUG_ON(!(msg = list_first(&ep->snd.head, struct xmsg, item)));
-    list_del_init(&msg->item);
-    *ubuf = msg->vec.xiov_base;
-    ep->snd.size -= xubuflen(*ubuf);
-    BUG_ON(ep->snd.waiters < 0);
-    if (ep->snd.waiters)
-	condition_broadcast(&ep->cond);
+    get_socktg_if(tg, &ep->connectors, 1);
+    if (tg)
+	list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
-
-    uuid_copy(rt.uuid, sk->uuid);
+    uuid_copy(rt.uuid, tg->uuid);
     rr_hdr = rqhdr_first(&rt);
     ent.outofband = (char *)rr_hdr;
-    BUG_ON((rc = xmsgctl(*ubuf, XMSG_ADDCMSG, &ent)));
-    DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, *ubuf, sk->fd);
-    return 0;
+    BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
+    DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
+    rc = xsend(tg->fd, ubuf);
+    return rc;
+}
+
+static int req_ep_rm(struct epbase *ep, struct socktg *sk, char **ubuf) {
+    int rc = -1;
+    return rc;
 }
 
 static int req_ep_join(struct epbase *ep, struct socktg *sk, int nfd) {
@@ -144,6 +140,7 @@ struct epbase_vfptr req_epbase = {
     .sp_type = SP_REQ,
     .alloc = req_ep_alloc,
     .destroy = req_ep_destroy,
+    .send = req_ep_send,
     .add = req_ep_add,
     .rm = req_ep_rm,
     .join = req_ep_join,
