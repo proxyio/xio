@@ -1,12 +1,16 @@
 #include <utils/modstat.h>
 
-static void s_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val) {
+static void s_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val)
+{
 }
-static void m_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val) {
+static void m_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val)
+{
 }
-static void h_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val) {
+static void h_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val)
+{
 }
-static void d_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val) {
+static void d_warn(modstat_t *self, int sl, int key, int64_t ts, int64_t val)
+{
 }
 
 enum {
@@ -18,7 +22,8 @@ enum {
 DEFINE_MODSTAT(ut, UT_KEYRANGE);
 
 
-static int modstat_test() {
+static int modstat_test()
+{
     int i;
     ut_modstat_t utms = {};
     modstat_t *ms = &utms.self;
@@ -37,19 +42,21 @@ static int modstat_test() {
     modstat_set_threshold(ms, MSL_H, SEND, 300);
     modstat_set_threshold(ms, MSL_D, SEND, 500);
     for (i = 0; i < 1000; i++) {
-	modstat_incrkey(ms, SEND);
-	modstat_incrkey(ms, RECV);
-	modstat_update_timestamp(ms, gettimeofms());
+        modstat_incrkey(ms, SEND);
+        modstat_incrkey(ms, RECV);
+        modstat_update_timestamp(ms, gettimeofms());
     }
     return 0;
 }
 
 
-static int gtip(const char *str, const char *item, int *tr, int *v) {
+static int gtip(const char *str, const char *item, int *tr, int *v)
+{
     return generic_parse_modstat_item(str, item, tr, v);
 }
 
-static int modstat_item_parse_test() {
+static int modstat_item_parse_test()
+{
     int tr = 0;
     int v = 0;
     BUG_ON(gtip(";;RECONNECT:m:1;SEND_BYTES:m:1;", "RECONNECT", &tr, &v));
@@ -78,7 +85,8 @@ static int modstat_item_parse_test() {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     modstat_test();
     modstat_item_parse_test();
     return 0;

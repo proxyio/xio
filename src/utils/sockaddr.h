@@ -25,7 +25,7 @@
 
 #include "base.h"
 
-/* SOCKADDR example : 
+/* SOCKADDR example :
  * ipc    group@ipc://tmp/ipc.sock
  * net    group@net://182.33.49.10:8080
  * inproc group@inproc://inproc.sock

@@ -23,33 +23,36 @@
 #include <stdio.h>
 #include "xgb.h"
 
-int xcpu_alloc() {
+int xcpu_alloc()
+{
     int cpu_no;
 
     mutex_lock(&xgb.lock);
     BUG_ON(xgb.ncpus >= XIO_MAX_CPUS);
     cpu_no = xgb.cpu_unused[xgb.ncpus++];
     if (xgb.ncpus <= xgb.ncpus_low)
-	xgb.ncpus_low = xgb.ncpus;
+        xgb.ncpus_low = xgb.ncpus;
     if (xgb.ncpus >= xgb.ncpus_high)
-	xgb.ncpus_high = xgb.ncpus;
+        xgb.ncpus_high = xgb.ncpus;
     mutex_unlock(&xgb.lock);
     return cpu_no;
 }
 
-int xcpu_choosed(int fd) {
+int xcpu_choosed(int fd)
+{
     if (xgb.ncpus == 0)
-	sleep(0xfffffff);
+        sleep(0xfffffff);
     return fd % xgb.ncpus;
 }
 
-void xcpu_free(int cpu_no) {
+void xcpu_free(int cpu_no)
+{
     mutex_lock(&xgb.lock);
     xgb.cpu_unused[--xgb.ncpus] = cpu_no;
     if (xgb.ncpus <= xgb.ncpus_low)
-	xgb.ncpus_low = xgb.ncpus;
+        xgb.ncpus_low = xgb.ncpus;
     if (xgb.ncpus >= xgb.ncpus_high)
-	xgb.ncpus_high = xgb.ncpus;
+        xgb.ncpus_high = xgb.ncpus;
     mutex_unlock(&xgb.lock);
 }
 

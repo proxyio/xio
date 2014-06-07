@@ -23,13 +23,14 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int sp_getopt(int eid, int opt, void *optval, int *optlen) {
+int sp_getopt(int eid, int opt, void *optval, int *optlen)
+{
     int rc;
     struct epbase *ep = eid_get(eid);
 
     if (!ep) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     rc = ep->vfptr.getopt(ep, opt, optval, optlen);
     eid_put(eid);

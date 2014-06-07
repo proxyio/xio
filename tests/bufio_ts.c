@@ -3,7 +3,8 @@
 
 char buf1[PAGE_SIZE * 4] = {}, buf2[PAGE_SIZE * 4] = {};
 
-static void bufio_test() {
+static void bufio_test()
+{
     struct bio b = {};
     int i;
     int64_t rlen = rand() % PAGE_SIZE + 3 * PAGE_SIZE;
@@ -11,7 +12,7 @@ static void bufio_test() {
     bio_init(&b);
     randstr(buf1, sizeof(buf1));
     for (i = 0; i < rlen; i++)
-	BUG_ON(1 != bio_write(&b, buf1 + i, 1));
+        BUG_ON(1 != bio_write(&b, buf1 + i, 1));
     BUG_ON(b.bsize != rlen);
     BUG_ON(rlen != bio_copy(&b, buf2, 4 * PAGE_SIZE));
     BUG_ON(rlen != bio_read(&b, buf2, 4 * PAGE_SIZE));
@@ -27,18 +28,19 @@ struct test_io {
     struct io io_ops;
 };
 
-static int64_t test_io_read(struct io *ops, char *buff, int64_t sz) {
+static int64_t test_io_read(struct io *ops, char *buff, int64_t sz)
+{
     struct test_io *tio = cont_of(ops, struct test_io, io_ops);
     int64_t len = rand() % PAGE_SIZE;
 
     /* Don't overload buf1 here */
     if (rand() % 2 == 0 || tio->ridx >= 4 * PAGE_SIZE) {
-	errno = EAGAIN;
-	return -1;
+        errno = EAGAIN;
+        return -1;
     }
     len = len > sz ? sz : len;
     if (len + tio->ridx >= 4 * PAGE_SIZE)
-	len = 4 * PAGE_SIZE - tio->ridx;
+        len = 4 * PAGE_SIZE - tio->ridx;
     BUG_ON(tio->ridx > 4 * PAGE_SIZE);
     BUG_ON(len < 0);
     memcpy(buff, buf1 + tio->ridx, len);
@@ -46,18 +48,19 @@ static int64_t test_io_read(struct io *ops, char *buff, int64_t sz) {
     return len;
 }
 
-static int64_t test_io_write(struct io *ops, char *buff, int64_t sz) {
+static int64_t test_io_write(struct io *ops, char *buff, int64_t sz)
+{
     struct test_io *tio = cont_of(ops, struct test_io, io_ops);
     int64_t len = rand() % PAGE_SIZE;
 
     /* Don't overload buf2 here */
     if (rand() % 2 == 0 || tio->widx >= 4 * PAGE_SIZE) {
-	errno = EAGAIN;
-	return -1;
+        errno = EAGAIN;
+        return -1;
     }
     len = len > sz ? sz : len;
     if (len + tio->widx >= 4 * PAGE_SIZE)
-	len = 4 * PAGE_SIZE - tio->widx;
+        len = 4 * PAGE_SIZE - tio->widx;
     BUG_ON(tio->widx > 4 * PAGE_SIZE);
     BUG_ON(len < 0);
     memcpy(buf2 + tio->widx, buff, len);
@@ -65,7 +68,8 @@ static int64_t test_io_write(struct io *ops, char *buff, int64_t sz) {
     return len;
 }
 
-static void bufio_fetch_flush_test() {
+static void bufio_fetch_flush_test()
+{
     struct bio b = {};
     int i;
     struct test_io tio = {};
@@ -77,8 +81,8 @@ static void bufio_fetch_flush_test() {
     tio.io_ops.write = test_io_write;
     randstr(buf1, sizeof(buf1));
     for (i = 0; i < 4; i++) {
-	if ((rc =  bio_prefetch(&b, &tio.io_ops)) > 0)
-	    nbytes += rc;
+        if ((rc =  bio_prefetch(&b, &tio.io_ops)) > 0)
+            nbytes += rc;
     }
     BUG_ON(tio.ridx > 4 * PAGE_SIZE);
     BUG_ON(nbytes != tio.ridx);
@@ -89,8 +93,8 @@ static void bufio_fetch_flush_test() {
     BUG_ON(memcmp(buf1, buf2, nbytes) != 0);
     BUG_ON(b.bsize != nbytes);
     while (nbytes > 0) {
-	if ((rc =  bio_flush(&b, &tio.io_ops)) > 0)
-	    nbytes -= rc;
+        if ((rc =  bio_flush(&b, &tio.io_ops)) > 0)
+            nbytes -= rc;
     }
     BUG_ON(tio.widx > 4 * PAGE_SIZE);
     BUG_ON(b.bsize != 0);
@@ -99,7 +103,8 @@ static void bufio_fetch_flush_test() {
     bio_destroy(&b);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     bufio_test();
     bufio_fetch_flush_test();
     return 0;

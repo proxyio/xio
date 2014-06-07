@@ -26,33 +26,37 @@
 #include "xmessage.h"
 
 
-u32 xmsg_iovlen(struct xmsg *msg) {
+u32 xmsg_iovlen(struct xmsg *msg)
+{
     return sizeof(msg->vec) + msg->vec.xiov_len;
 }
 
-u32 xmsg_iovlens(struct xmsg *msg) {
+u32 xmsg_iovlens(struct xmsg *msg)
+{
     struct xmsg *cmsg, *ncmsg;
     u32 iovlen = xmsg_iovlen(msg);
 
     walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
-	iovlen += xmsg_iovlens(cmsg);
+        iovlen += xmsg_iovlens(cmsg);
     }
     return iovlen;
 }
 
-char *xmsg_iovbase(struct xmsg *msg) {
+char *xmsg_iovbase(struct xmsg *msg)
+{
     return (char *)&msg->vec;
 }
 
-int xmsg_serialize(struct xmsg *msg, struct list_head *head) {
+int xmsg_serialize(struct xmsg *msg, struct list_head *head)
+{
     int rc = 0;
     struct xmsg *cmsg, *ncmsg;
 
     rc++;
     list_add_tail(&msg->item, head);
     walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
-	list_del_init(&cmsg->item);
-	rc += xmsg_serialize(cmsg, head);
+        list_del_init(&cmsg->item);
+        rc += xmsg_serialize(cmsg, head);
     }
     return rc;
 }
@@ -60,41 +64,46 @@ int xmsg_serialize(struct xmsg *msg, struct list_head *head) {
 struct xmsg *xallocmsg(int size) {
     struct xmsg *msg = (struct xmsg *)mem_zalloc(sizeof(*msg) + size);
     if (!msg)
-	return 0;
+        return 0;
     INIT_LIST_HEAD(&msg->item);
     INIT_LIST_HEAD(&msg->cmsg_head);
     msg->vec.xiov_len = size;
     msg->vec.checksum = crc16((char *)&msg->vec.xiov_len, sizeof(msg->vec) -
-			      sizeof(u16));
+                              sizeof(u16));
     return msg;
 }
 
-char *xallocubuf(int size) {
+char *xallocubuf(int size)
+{
     struct xmsg *msg = xallocmsg(size);
     if (!msg)
-	return 0;
+        return 0;
     return msg->vec.xiov_base;
 }
 
-void xfreemsg(struct xmsg *msg) {
+void xfreemsg(struct xmsg *msg)
+{
     struct xmsg *cmsg, *ncmsg;
     walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
-	list_del_init(&cmsg->item);
-	xfreemsg(cmsg);
+        list_del_init(&cmsg->item);
+        xfreemsg(cmsg);
     }
     mem_free(msg, sizeof(*msg) + msg->vec.xiov_len);
 }
 
-void xfreeubuf(char *ubuf) {
+void xfreeubuf(char *ubuf)
+{
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     xfreemsg(msg);
 }
 
-int xmsglen(struct xmsg *msg) {
+int xmsglen(struct xmsg *msg)
+{
     return msg->vec.xiov_len;
 }
 
-int xubuflen(char *ubuf) {
+int xubuflen(char *ubuf)
+{
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     return xmsglen(msg);
 }
@@ -103,41 +112,44 @@ int xubuflen(char *ubuf) {
 
 typedef int (*msgctl) (char *xmsg, void *optval);
 
-static int msgctl_cmsgnum(char *ubuf, void *optval) {
+static int msgctl_cmsgnum(char *ubuf, void *optval)
+{
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     *(int *)optval = msg->vec.cmsg_num;
     return 0;
 }
 
-static int msgctl_getcmsg(char *ubuf, void *optval) {
+static int msgctl_getcmsg(char *ubuf, void *optval)
+{
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct xcmsg *ent = (struct xcmsg *)optval;
     int pos;
     struct xmsg *cmsg, *ncmsg;
 
     if ((pos = ent->idx) >= msg->vec.cmsg_num) {
-	errno = ENOENT;
-	return -1;
+        errno = ENOENT;
+        return -1;
     }
     walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
-	if (pos--)
-	    continue;
-	ent->outofband = cmsg->vec.xiov_base;
-	return 0;
+        if (pos--)
+            continue;
+        ent->outofband = cmsg->vec.xiov_base;
+        return 0;
     }
     BUG_ON(1);
     return -1;
 }
 
-static int msgctl_addcmsg(char *ubuf, void *optval) {
+static int msgctl_addcmsg(char *ubuf, void *optval)
+{
     struct xcmsg *ent = (struct xcmsg *)optval;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct xmsg *new = cont_of(ent->outofband, struct xmsg, vec.xiov_base);
 
     if (msg->vec.cmsg_num == XMSG_CMSGNUMMARK ||
-	msg->vec.cmsg_length + xmsg_iovlens(new) > XMSG_CMSGLENMARK) {
-	errno = EFBIG;
-	return -1;
+            msg->vec.cmsg_length + xmsg_iovlens(new) > XMSG_CMSGLENMARK) {
+        errno = EFBIG;
+        return -1;
     }
     msg->vec.cmsg_num++;
     msg->vec.cmsg_length += xmsg_iovlens(new);
@@ -145,14 +157,15 @@ static int msgctl_addcmsg(char *ubuf, void *optval) {
     return 0;
 }
 
-static int msgctl_rmcmsg(char *ubuf, void *optval) {
+static int msgctl_rmcmsg(char *ubuf, void *optval)
+{
     int rc;
     struct xcmsg *ent = (struct xcmsg *)optval;
     struct xmsg *rm;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
 
     if ((rc = msgctl_getcmsg(ubuf, optval)))
-	return rc;
+        return rc;
     rm = cont_of(ent->outofband, struct xmsg, vec.xiov_base);
     msg->vec.cmsg_num--;
     msg->vec.cmsg_length -= xmsg_iovlens(rm);
@@ -168,12 +181,13 @@ static const msgctl msgctl_vfptr[] = {
 };
 
 
-int xmsgctl(char *ubuf, int opt, void *optval) {
+int xmsgctl(char *ubuf, int opt, void *optval)
+{
     int rc;
 
     if (opt < 0 || opt >= NELEM(msgctl_vfptr, msgctl)) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     rc = msgctl_vfptr[opt] (ubuf, optval);
     return rc;

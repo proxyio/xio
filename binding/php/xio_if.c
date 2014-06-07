@@ -35,200 +35,221 @@
 #define ZPARSE_ARGS(fmt, ...)						\
     zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, fmt, ##__VA_ARGS__)
 
-PHP_FUNCTION(xallocubuf) {
+PHP_FUNCTION(xallocubuf)
+{
     int rc;
     char *str;
     int str_sz;
     char *ubuf;
-    
+
     if ((rc = ZPARSE_ARGS("s", &str, &str_sz)) == FAILURE)
-	return;
+        return;
     ubuf = xallocubuf(str_sz);
     memcpy(ubuf, str, str_sz);
     RETURN_LONG((long)ubuf);
 }
 
-PHP_FUNCTION(xfreeubuf) {
+PHP_FUNCTION(xfreeubuf)
+{
     int rc;
     char *ubuf = 0;
 
     if ((rc = ZPARSE_ARGS("l", &ubuf)) == FAILURE)
-	return;
+        return;
     xfreeubuf(ubuf);
     RETURN_NULL();
 }
 
-PHP_FUNCTION(xubuflen) {
+PHP_FUNCTION(xubuflen)
+{
     int rc;
     char *ubuf = 0;
 
     if ((rc = ZPARSE_ARGS("l", &ubuf)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xubuflen(ubuf));
 }
 
 
-PHP_FUNCTION(xsocket) {
+PHP_FUNCTION(xsocket)
+{
     int rc;
     long pf = 0, socktype = 0;
-    
+
     if ((rc = ZPARSE_ARGS("ll", &pf, &socktype)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xsocket((int)pf, (int)socktype));
 }
 
-PHP_FUNCTION(xbind) {
+PHP_FUNCTION(xbind)
+{
     int rc;
     long fd = 0;
     const char *sockaddr = 0;
     int socklen = 0;
-    
+
     if ((rc = ZPARSE_ARGS("ls", &fd, &sockaddr, &socklen)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xbind((int)fd, sockaddr));
 }
 
-PHP_FUNCTION(xaccept) {
+PHP_FUNCTION(xaccept)
+{
     int rc;
     long fd = 0;
 
     if ((rc = ZPARSE_ARGS("l", &fd)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xaccept((int)fd));
 }
 
 
-PHP_FUNCTION(xlisten) {
+PHP_FUNCTION(xlisten)
+{
     int rc;
     const char *sockaddr = 0;
     int socklen = 0;
 
     if ((rc = ZPARSE_ARGS("s", &sockaddr, &socklen)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xlisten(sockaddr));
 }
 
 
-PHP_FUNCTION(xconnect) {
+PHP_FUNCTION(xconnect)
+{
     int rc;
     const char *sockaddr = 0;
     int socklen = 0;
 
     if ((rc = ZPARSE_ARGS("s", &sockaddr, &socklen)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xconnect(sockaddr));
 }
 
 
-PHP_FUNCTION(xrecv) {
+PHP_FUNCTION(xrecv)
+{
     int rc;
     long fd = 0;
     char *ubuf = 0;
 
     if ((rc = ZPARSE_ARGS("l", &fd)) == FAILURE)
-	return;
+        return;
     xrecv((int)fd, &ubuf);
     RETURN_LONG((long)ubuf);
 }
 
 
-PHP_FUNCTION(xsend) {
+PHP_FUNCTION(xsend)
+{
     int rc;
     long fd = 0;
     char *ubuf = 0;
 
     if ((rc = ZPARSE_ARGS("ll", &fd, &ubuf)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xsend((int)fd, ubuf));
 }
 
-PHP_FUNCTION(xclose) {
+PHP_FUNCTION(xclose)
+{
     int rc;
     long fd = 0;
 
     if ((rc = ZPARSE_ARGS("l", &fd)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(xclose((int)fd));
 }
 
-PHP_FUNCTION(xsetopt) {
+PHP_FUNCTION(xsetopt)
+{
     RETURN_NULL();
 }
 
-PHP_FUNCTION(xgetopt) {
+PHP_FUNCTION(xgetopt)
+{
     RETURN_NULL();
 }
 
-PHP_FUNCTION(sp_endpoint) {
+PHP_FUNCTION(sp_endpoint)
+{
     int rc;
     int eid = 0;
     long sp_family = 0;
     long sp_type = 0;
 
     if ((rc = ZPARSE_ARGS("ll", &sp_family, &sp_type)) == FAILURE)
-	return;
+        return;
     eid = sp_endpoint((int)sp_family, (int)sp_type);
     RETURN_LONG(eid);
 }
 
-PHP_FUNCTION(sp_close) {
+PHP_FUNCTION(sp_close)
+{
     int rc;
     long eid = 0;
 
     if ((rc = ZPARSE_ARGS("l", &eid)) == FAILURE)
-	return;
+        return;
     rc = sp_close((int)eid);
     RETURN_LONG(rc);
 }
 
-PHP_FUNCTION(sp_send) {
+PHP_FUNCTION(sp_send)
+{
     int rc;
     long eid = 0;
     char *ubuf = 0;
 
     if ((rc = ZPARSE_ARGS("ll", &eid, &ubuf)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(sp_send((int)eid, ubuf));
 }
 
-PHP_FUNCTION(sp_recv) {
+PHP_FUNCTION(sp_recv)
+{
     int rc;
     long eid = 0;
     char *ubuf = 0;
 
     if ((rc = ZPARSE_ARGS("l", &eid)) == FAILURE)
-	return;
+        return;
     sp_recv((int)eid, &ubuf);
     RETURN_LONG((long)ubuf);
 }
 
-PHP_FUNCTION(sp_listen) {
+PHP_FUNCTION(sp_listen)
+{
     int rc;
     long eid = 0;
     const char *sockaddr = 0;
     int socklen = 0;
 
     if ((rc = ZPARSE_ARGS("ls", &eid, &sockaddr, &socklen)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(sp_listen((int)eid, sockaddr));
 }
 
-PHP_FUNCTION(sp_connect) {
+PHP_FUNCTION(sp_connect)
+{
     int rc;
     long eid = 0;
     const char *sockaddr = 0;
     int socklen = 0;
 
     if ((rc = ZPARSE_ARGS("ls", &eid, &sockaddr, &socklen)) == FAILURE)
-	return;
+        return;
     RETURN_LONG(sp_connect((int)eid, sockaddr));
 }
 
-PHP_FUNCTION(sp_setopt) {
+PHP_FUNCTION(sp_setopt)
+{
     RETURN_NULL();
 }
 
-PHP_FUNCTION(sp_getopt) {
+PHP_FUNCTION(sp_getopt)
+{
     RETURN_NULL();
 }
 
@@ -254,8 +275,9 @@ static function_entry xio_functions[] = {
     PHP_FE(sp_listen,    0)
     PHP_FE(sp_connect,   0)
     PHP_FE(sp_setopt,    0)
-    PHP_FE(sp_getopt,    0)
-    {0, 0, 0}
+    PHP_FE(sp_getopt,    0) {
+        0, 0, 0
+    }
 };
 
 struct xsymbol {
@@ -307,20 +329,22 @@ static struct xsymbol const_symbols[] = {
     zend_register_long_constant((name), strlen(name) + 1, (lval),	\
 				(flags), module_number TSRMLS_CC)
 
-PHP_MINIT_FUNCTION(xio) {
+PHP_MINIT_FUNCTION(xio)
+{
     int i;
     struct xsymbol *sb;
 
     assert (sizeof(long) == sizeof(void *));
 
     for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++) {
-	sb = &const_symbols[i];
-	DEBUG_OFF("register constant %s as %d", sb->name, sb->value);
-	XREGISTER_LONG_CONSTANT(sb->name, sb->value, CONST_CS | CONST_PERSISTENT);
+        sb = &const_symbols[i];
+        DEBUG_OFF("register constant %s as %d", sb->name, sb->value);
+        XREGISTER_LONG_CONSTANT(sb->name, sb->value, CONST_CS | CONST_PERSISTENT);
     }
 }
 
-PHP_MINFO_FUNCTION(xio) {
+PHP_MINFO_FUNCTION(xio)
+{
     php_info_print_table_start();
     php_info_print_table_header(2, "xio support", "enabled");
     php_info_print_table_end();

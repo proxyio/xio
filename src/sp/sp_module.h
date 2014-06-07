@@ -175,8 +175,8 @@ struct epbase_vfptr *epbase_vfptr_lookup(int sp_family, int sp_type) {
     struct epbase_vfptr *vfptr, *tmp;
 
     walk_epbase_vfptr(vfptr, tmp, &sg.epbase_head) {
-	if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type)
-	    return vfptr;
+        if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type)
+            return vfptr;
     }
     return 0;
 }

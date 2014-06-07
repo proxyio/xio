@@ -43,7 +43,8 @@ typedef struct thread {
     int res;
 } thread_t;
 
-static inline thread_t *thread_new() {
+static inline thread_t *thread_new()
+{
     thread_t *tt = (thread_t *)mem_zalloc(sizeof(*tt));
     return tt;
 }

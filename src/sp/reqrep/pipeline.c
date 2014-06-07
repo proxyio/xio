@@ -23,12 +23,14 @@
 #include "req_ep.h"
 #include "rep_ep.h"
 
-static void dlock(struct epbase *ep1, struct epbase *ep2) {
+static void dlock(struct epbase *ep1, struct epbase *ep2)
+{
     mutex_lock(&ep1->lock);
     mutex_lock(&ep2->lock);
 }
 
-static void dunlock(struct epbase *ep1, struct epbase *ep2) {
+static void dunlock(struct epbase *ep1, struct epbase *ep2)
+{
     mutex_unlock(&ep2->lock);
     mutex_unlock(&ep1->lock);
 }
@@ -49,14 +51,15 @@ static struct socktg *route_backward(struct epbase *ep, char *ubuf) {
     return tg;
 }
 
-static int receiver_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
+static int receiver_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+{
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
     struct socktg *target = rrbin_forward(peer, ubuf);
 
     if (uuid_compare(r->uuid, tg->uuid))
-	uuid_copy(tg->uuid, r->uuid);
+        uuid_copy(tg->uuid, r->uuid);
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
     __socktg_try_enable_out(target);
@@ -64,12 +67,13 @@ static int receiver_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
     return 0;
 }
 
-static int dispatcher_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
+static int dispatcher_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+{
     struct xmsg *msg;
     struct rrr rt = {};
 
     if (list_empty(&tg->snd_cache))
-	return -1;
+        return -1;
     uuid_copy(rt.uuid, tg->uuid);
     msg = list_first(&tg->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
@@ -81,14 +85,15 @@ static int dispatcher_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
 }
 
 
-static int dispatcher_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
+static int dispatcher_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+{
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
     struct socktg *target = route_backward(peer, ubuf);
 
     if (!target)
-	return -1;
+        return -1;
     rr_hdr->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
@@ -97,11 +102,12 @@ static int dispatcher_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
     return 0;
 }
 
-static int receiver_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
+static int receiver_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+{
     struct xmsg *msg = 0;
 
     if (list_empty(&tg->snd_cache))
-	return -1;
+        return -1;
     msg = list_first(&tg->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
     list_del_init(&msg->item);
@@ -110,20 +116,21 @@ static int receiver_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
     return 0;
 }
 
-int epbase_proxyto(struct epbase *rep_ep, struct epbase *req_ep) {
+int epbase_proxyto(struct epbase *rep_ep, struct epbase *req_ep)
+{
     struct rep_ep *frontend = cont_of(rep_ep, struct rep_ep, base);
     struct req_ep *backend = cont_of(req_ep, struct req_ep, base);
 
     dlock(rep_ep, req_ep);
     if (!list_empty(&rep_ep->connectors) || !list_empty(&rep_ep->bad_socks)) {
-	errno = EINVAL;
-	dunlock(rep_ep, req_ep);
-	return -1;
+        errno = EINVAL;
+        dunlock(rep_ep, req_ep);
+        return -1;
     }
     if (!list_empty(&req_ep->connectors) || !list_empty(&req_ep->bad_socks)) {
-	errno = EINVAL;
-	dunlock(rep_ep, req_ep);
-	return -1;
+        errno = EINVAL;
+        dunlock(rep_ep, req_ep);
+        return -1;
     }
     frontend->peer = backend;
     backend->peer = frontend;

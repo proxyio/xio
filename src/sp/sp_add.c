@@ -29,41 +29,42 @@ struct socktg *sp_generic_join(struct epbase *ep, int fd) {
     struct socktg *tg = socktg_new();
 
     if (!tg)
-	return 0;
+        return 0;
     BUG_ON(xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen));
     tg->fd = fd;
     tg->owner = ep;
     tg->ent.fd = fd;
     tg->ent.self = tg;
     tg->ent.events = (socktype == XLISTENER) ?
-	XPOLLIN|XPOLLERR : XPOLLIN|XPOLLOUT|XPOLLERR;
+                     XPOLLIN|XPOLLERR : XPOLLIN|XPOLLOUT|XPOLLERR;
     mutex_lock(&ep->lock);
     switch (socktype) {
     case XLISTENER:
-	list_add_tail(&tg->item, &ep->listeners);
-	ep->listener_num++;
-	break;
+        list_add_tail(&tg->item, &ep->listeners);
+        ep->listener_num++;
+        break;
     case XCONNECTOR:
-	list_add_tail(&tg->item, &ep->connectors);
-	ep->connector_num++;
-	break;
+        list_add_tail(&tg->item, &ep->connectors);
+        ep->connector_num++;
+        break;
     default:
-	BUG_ON(1);
+        BUG_ON(1);
     }
     mutex_unlock(&ep->lock);
     sg_add_tg(tg);
     return tg;
 }
 
-int sp_add(int eid, int fd) {
+int sp_add(int eid, int fd)
+{
     struct epbase *ep = eid_get(eid);
     int rc, on = 1;
     int optlen = sizeof(on);
 
     if (!ep) {
-	errno = EBADF;
-	eid_put(eid);
-	return -1;
+        errno = EBADF;
+        eid_put(eid);
+        return -1;
     }
     BUG_ON(xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen));
     rc = ep->vfptr.join(ep, 0, fd);

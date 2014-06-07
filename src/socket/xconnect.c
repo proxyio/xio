@@ -29,20 +29,21 @@
 #include <utils/sockaddr.h>
 #include "xgb.h"
 
-int xconnect(const char *peer) {
+int xconnect(const char *peer)
+{
     int fd;
     int pf = sockaddr_pf(peer);
     char sockaddr[TP_SOCKADDRLEN] = {};
 
     if (pf < 0 || sockaddr_addr(peer, sockaddr, sizeof(sockaddr)) != 0) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     if ((fd = xsocket(pf, XCONNECTOR)) < 0)
-	return -1;
+        return -1;
     if (xbind(fd, sockaddr) < 0) {
-	xclose(fd);
-	return -1;
+        xclose(fd);
+        return -1;
     }
     return fd;
 }

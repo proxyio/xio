@@ -80,7 +80,8 @@ struct pollbase {
     walk_each_entry_s(pb, npb, head, struct pollbase, link)
 
 static inline
-void pollbase_init(struct pollbase *pb, struct pollbase_vfptr *vfptr) {
+void pollbase_init(struct pollbase *pb, struct pollbase_vfptr *vfptr)
+{
     pb->vfptr = vfptr;
     INIT_LIST_HEAD(&pb->link);
 }
@@ -96,9 +97,9 @@ struct sockbase_vfptr {
     int   (*bind)   (struct sockbase *sb, const char *sock);
     void  (*notify) (struct sockbase *sb, int type, u32 events);
     int   (*setopt) (struct sockbase *sb, int level, int opt, void *optval,
-		     int optlen);
+                     int optlen);
     int   (*getopt) (struct sockbase *sb, int level, int opt, void *optval,
-		     int *optlen);
+                     int *optlen);
     struct list_head link;
 };
 
@@ -119,24 +120,24 @@ struct sockbase {
     struct list_head sib_link;
 
     struct {
-	int waiters;
-	int wnd;
-	int buf;
-	struct list_head head;
+        int waiters;
+        int wnd;
+        int buf;
+        struct list_head head;
     } rcv;
 
     struct {
-	int waiters;
-	int wnd;
-	int buf;
-	struct list_head head;
+        int waiters;
+        int wnd;
+        int buf;
+        struct list_head head;
     } snd;
 
     struct {
-	condition_t cond;
-	int waiters;
-	struct list_head head;
-	struct list_head link;
+        condition_t cond;
+        int waiters;
+        struct list_head head;
+        struct list_head link;
     } acceptq;
 
     struct xtask shutdown;
@@ -147,11 +148,13 @@ struct sockbase {
     walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 
 /* We guarantee that we can push one massage at least. */
-static inline int can_send(struct sockbase *sb) {
+static inline int can_send(struct sockbase *sb)
+{
     return list_empty(&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
 }
 
-static inline int can_recv(struct sockbase *sb) {
+static inline int can_recv(struct sockbase *sb)
+{
     return list_empty(&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
 }
 
@@ -173,12 +176,13 @@ int acceptq_rm(struct sockbase *sb, struct sockbase **new);
 int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new);
 
 
-static inline int add_pollbase(int fd, struct pollbase *pb) {
+static inline int add_pollbase(int fd, struct pollbase *pb)
+{
     struct sockbase *sb = xget(fd);
 
     if (!sb) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     mutex_lock(&sb->lock);
     BUG_ON(attached(&pb->link));

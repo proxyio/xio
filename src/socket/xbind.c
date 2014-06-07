@@ -28,18 +28,20 @@
 #include <utils/taskpool.h>
 #include "xgb.h"
 
-int xsocket(int pf, int socktype) {
+int xsocket(int pf, int socktype)
+{
     int rc = xalloc(pf, socktype);
     return rc;
 }
 
-int xbind(int fd, const char *addr) {
+int xbind(int fd, const char *addr)
+{
     int rc;
     struct sockbase *self = xget(fd);
 
     if (!self) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     BUG_ON(!self->vfptr);
     rc = self->vfptr->bind(self, addr);

@@ -28,29 +28,30 @@
 #include <utils/taskpool.h>
 #include "xgb.h"
 
-int xclose(int fd) {
+int xclose(int fd)
+{
     struct sockbase *sb = xget(fd);
     struct pollbase *pb, *npb;
     struct list_head poll_entries = {};
-    
+
     if (!sb) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     INIT_LIST_HEAD(&poll_entries);
     mutex_lock(&sb->lock);
     sb->fepipe = true;
     if (sb->rcv.waiters || sb->snd.waiters)
-	condition_broadcast(&sb->cond);
+        condition_broadcast(&sb->cond);
     if (sb->acceptq.waiters)
-	condition_broadcast(&sb->acceptq.cond);
+        condition_broadcast(&sb->acceptq.cond);
     list_splice(&sb->poll_entries, &poll_entries);
     mutex_unlock(&sb->lock);
 
     walk_pollbase_s(pb, npb, &poll_entries) {
-	list_del_init(&pb->link);
-	BUG_ON(!pb->vfptr);
-	pb->vfptr->close(pb);
+        list_del_init(&pb->link);
+        BUG_ON(!pb->vfptr);
+        pb->vfptr->close(pb);
     }
     BUG_ON(!list_empty(&poll_entries));
     xput(fd);

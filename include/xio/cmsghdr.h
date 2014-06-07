@@ -34,7 +34,7 @@
 struct xcmsg {
     uint8_t idx;
     char *outofband;
-};    
+};
 int xmsgctl(char *ubuf, int opt, void *optval);
 
 

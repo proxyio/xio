@@ -22,7 +22,8 @@
 
 #include "base.h"
 
-int gettid() {
+int gettid()
+{
     return syscall(__NR_gettid);
 }
 
@@ -31,7 +32,8 @@ extern void transport_module_init();
 extern void xpoll_module_init();
 extern void sp_module_init();
 
-void __attribute__ ((constructor)) __modules_init(void) {
+void __attribute__ ((constructor)) __modules_init(void)
+{
     transport_module_init();
     xsocket_module_init();
     xpoll_module_init();
@@ -44,7 +46,8 @@ extern void transport_module_exit();
 extern void sp_module_exit();
 extern void xpoll_module_exit();
 
-void __attribute__((destructor)) __modules_exit(void) {
+void __attribute__((destructor)) __modules_exit(void)
+{
     sp_module_exit();
     xpoll_module_exit();
     xsocket_module_exit();

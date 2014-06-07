@@ -33,38 +33,41 @@ extern struct io default_xops;
  *  request_socks events trigger.
  ***************************************************************************/
 
-static void request_socks_full(struct sockbase *sb) {
+static void request_socks_full(struct sockbase *sb)
+{
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if ((self->et.events & EPOLLIN)) {
-	self->et.events &= ~EPOLLIN;
-	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
+        self->et.events &= ~EPOLLIN;
+        BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
     }
 }
 
-static void request_socks_nonfull(struct sockbase *sb) {
+static void request_socks_nonfull(struct sockbase *sb)
+{
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     // Enable POLLOUT event when snd_head isn't empty
     if (!(self->et.events & EPOLLIN)) {
-	self->et.events |= EPOLLIN;
-	BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
+        self->et.events |= EPOLLIN;
+        BUG_ON(eloop_mod(&cpu->el, &self->et) != 0);
     }
 }
 
 static int xio_listener_hndl(eloop_t *el, ev_t *et);
 
-static int xio_listener_bind(struct sockbase *sb, const char *sock) {
+static int xio_listener_bind(struct sockbase *sb, const char *sock)
+{
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int sys_fd, on = 1;
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     BUG_ON(!(self->vtp = transport_lookup(sb->vfptr->pf)));
     if ((sys_fd = self->vtp->bind(sock)) < 0)
-	return -1;
+        return -1;
     strncpy(sb->addr, sock, TP_SOCKADDRLEN);
     self->vtp->setopt(sys_fd, TP_NOBLOCK, &on, sizeof(on));
 
@@ -77,11 +80,12 @@ static int xio_listener_bind(struct sockbase *sb, const char *sock) {
     return 0;
 }
 
-static void xio_listener_close(struct sockbase *sb) {
+static void xio_listener_close(struct sockbase *sb)
+{
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     struct xcpu *cpu = xcpuget(sb->cpu_no);
     struct sockbase *nsb;
-    
+
     BUG_ON(!self->vtp);
 
     /* Detach xsock low-level file descriptor from poller */
@@ -97,7 +101,7 @@ static void xio_listener_close(struct sockbase *sb) {
 
     /* Destroy acceptq's connection */
     while (acceptq_rm_nohup(sb, &nsb) == 0) {
-	xclose(nsb->fd);
+        xclose(nsb->fd);
     }
 
     /* Destroy the xsock base and free xsockid. */
@@ -105,26 +109,29 @@ static void xio_listener_close(struct sockbase *sb) {
     mem_free(self, sizeof(*self));
 }
 
-static void request_socks_notify(struct sockbase *sb, u32 events) {
+static void request_socks_notify(struct sockbase *sb, u32 events)
+{
     if (events & XMQ_FULL)
-	request_socks_full(sb);
+        request_socks_full(sb);
     else if (events & XMQ_NONFULL)
-	request_socks_nonfull(sb);
+        request_socks_nonfull(sb);
 }
 
-static void xio_listener_notify(struct sockbase *sb, int type, uint32_t events) {
+static void xio_listener_notify(struct sockbase *sb, int type, uint32_t events)
+{
     switch (type) {
     case SOCKS_REQ:
-	request_socks_notify(sb, events);
-	break;
+        request_socks_notify(sb, events);
+        break;
     default:
-	BUG_ON(1);
+        BUG_ON(1);
     }
 }
 
 extern int xio_connector_hndl(eloop_t *el, ev_t *et);
 
-static int xio_listener_hndl(eloop_t *el, ev_t *et) {
+static int xio_listener_hndl(eloop_t *el, ev_t *et)
+{
     struct tcpipc_sock *self = cont_of(et, struct tcpipc_sock, et);
     int sys_fd;
     struct sockbase *sb = &self->base;
@@ -135,20 +142,20 @@ static int xio_listener_hndl(eloop_t *el, ev_t *et) {
     struct tcpipc_sock *nself = 0;
 
     if ((et->happened & EPOLLERR) && !(et->happened & EPOLLIN)) {
-	mutex_lock(&sb->lock);
-	sb->fepipe = true;
-	if (sb->acceptq.waiters)
-	    condition_broadcast(&sb->acceptq.cond);
-	mutex_unlock(&sb->lock);
-	return -1;
+        mutex_lock(&sb->lock);
+        sb->fepipe = true;
+        if (sb->acceptq.waiters)
+            condition_broadcast(&sb->acceptq.cond);
+        mutex_unlock(&sb->lock);
+        return -1;
     }
     BUG_ON(!self->vtp);
     if ((sys_fd = self->vtp->accept(self->sys_fd)) < 0) {
-	return -1;
+        return -1;
     }
     if ((nfd = xalloc(sb->vfptr->pf, XCONNECTOR)) < 0) {
-	self->vtp->close(sys_fd);
-	return -1;
+        self->vtp->close(sys_fd);
+        return -1;
     }
     nsb = xgb.sockbases[nfd];
     cpu = xcpuget(nsb->cpu_no);

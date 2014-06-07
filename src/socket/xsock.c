@@ -43,17 +43,18 @@ const char *pf_str[] = {
 int default_sndbuf = 10485760;
 int default_rcvbuf = 10485760;
 
-int xalloc(int family, int socktype) {
+int xalloc(int family, int socktype)
+{
     struct sockbase_vfptr *vfptr = sockbase_vfptr_lookup(family, socktype);
     struct sockbase *sb;
 
     if (!vfptr) {
-	errno = EPROTO;
-	return -1;
+        errno = EPROTO;
+        return -1;
     }
     BUG_ON(!vfptr->alloc);
     if (!(sb = vfptr->alloc())) {
-	return -1;
+        return -1;
     }
     sb->vfptr = vfptr;
     mutex_lock(&xgb.lock);
@@ -71,8 +72,8 @@ struct sockbase *xget(int fd) {
     struct sockbase *sb;
     mutex_lock(&xgb.lock);
     if (!(sb = xgb.sockbases[fd])) {
-	mutex_unlock(&xgb.lock);
-	return 0;
+        mutex_unlock(&xgb.lock);
+        return 0;
     }
     BUG_ON(!atomic_read(&sb->ref));
     atomic_inc(&sb->ref);
@@ -80,33 +81,36 @@ struct sockbase *xget(int fd) {
     return sb;
 }
 
-void xput(int fd) {
+void xput(int fd)
+{
     struct sockbase *sb = xgb.sockbases[fd];
     struct xcpu *cpu = xcpuget(sb->cpu_no);
 
     BUG_ON(fd != sb->fd);
     mutex_lock(&xgb.lock);
     if (atomic_dec(&sb->ref) == 1) {
-	xgb.sockbases[sb->fd] = 0;
-	xgb.unused[--xgb.nsockbases] = sb->fd;
-	DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+        xgb.sockbases[sb->fd] = 0;
+        xgb.unused[--xgb.nsockbases] = sb->fd;
+        DEBUG_OFF("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
-	mutex_lock(&cpu->lock);
+        mutex_lock(&cpu->lock);
         while (efd_signal(&cpu->efd) < 0)
             mutex_relock(&cpu->lock);
         list_add_tail(&sb->shutdown.link, &cpu->shutdown_socks);
-	mutex_unlock(&cpu->lock);
-	
+        mutex_unlock(&cpu->lock);
+
     }
     mutex_unlock(&xgb.lock);
 }
 
-static void xshutdown_task_f(struct xtask *ts) {
+static void xshutdown_task_f(struct xtask *ts)
+{
     struct sockbase *sb = cont_of(ts, struct sockbase, shutdown);
     sb->vfptr->close(sb);
 }
 
-void xsock_init(struct sockbase *sb) {
+void xsock_init(struct sockbase *sb)
+{
     mutex_init(&sb->lock);
     condition_init(&sb->cond);
     ZERO(sb->addr);
@@ -139,7 +143,8 @@ void xsock_init(struct sockbase *sb) {
     INIT_LIST_HEAD(&sb->acceptq.link);
 }
 
-void xsock_exit(struct sockbase *sb) {
+void xsock_exit(struct sockbase *sb)
+{
     struct list_head head = {};
     struct xmsg *msg, *nmsg;
 
@@ -152,7 +157,7 @@ void xsock_exit(struct sockbase *sb) {
     sb->owner = 0;
     BUG_ON(!list_empty(&sb->sub_socks));
     BUG_ON(attached(&sb->sib_link));
-    
+
     sb->fd = -1;
     sb->cpu_no = -1;
 
@@ -169,7 +174,7 @@ void xsock_exit(struct sockbase *sb) {
     list_splice(&sb->snd.head, &head);
 
     walk_msg_s(msg, nmsg, &head) {
-	xfreemsg(msg);
+        xfreemsg(msg);
     }
 
     /* It's possible that user call xclose() and xpoll_add()

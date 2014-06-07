@@ -8,7 +8,8 @@
 #include <xio/cmsghdr.h>
 #include "testutil.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     int oob_count = -1;
     struct xcmsg ent = {};
     char *xbuf = xallocubuf(12);

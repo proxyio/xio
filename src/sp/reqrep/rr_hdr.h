@@ -90,7 +90,8 @@ static inline struct rrr *rt_prev(char *ubuf) {
     return __rt_prev(rr_hdr);
 }
 
-static inline char *__rt_append(char *hdr, struct rrr *r) {
+static inline char *__rt_append(char *hdr, struct rrr *r)
+{
     u32 hlen = xubuflen(hdr);
     char *nhdr = xallocubuf(hlen + sizeof(*r));
     memcpy(nhdr, hdr, hlen);
@@ -100,7 +101,8 @@ static inline char *__rt_append(char *hdr, struct rrr *r) {
     return nhdr;
 }
 
-static inline void rt_append(char *ubuf, struct rrr *r) {
+static inline void rt_append(char *ubuf, struct rrr *r)
+{
     int rc;
     struct xcmsg ent = { 0, 0 };
 

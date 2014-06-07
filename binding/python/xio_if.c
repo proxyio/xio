@@ -36,7 +36,8 @@ typedef struct {
 } Message;
 
 static PyObject *Message_new(PyTypeObject *type, PyObject *args,
-			     PyObject *kwds) {
+                             PyObject *kwds)
+{
     PyErr_Format(PyExc_TypeError,
                  "cannot create '%.100s' instances us xallocubuf instead",
                  type->tp_name);
@@ -52,16 +53,8 @@ static PyMethodDef Message_methods[] = {
 };
 
 
-static int Message_getreadbuffer(Message *self, int segment, void **ptrptr) {
-    if (segment != 0 || self->ubuf == NULL) {
-	PyErr_BadInternalCall();
-	return -1;
-    }
-    *ptrptr = ((Message *)self)->ubuf;
-    return xubuflen(((Message *)self)->ubuf);
-}
-
-static int Message_getwritebuffer(Message *self, int segment, void **ptrptr) {
+static int Message_getreadbuffer(Message *self, int segment, void **ptrptr)
+{
     if (segment != 0 || self->ubuf == NULL) {
         PyErr_BadInternalCall();
         return -1;
@@ -70,7 +63,18 @@ static int Message_getwritebuffer(Message *self, int segment, void **ptrptr) {
     return xubuflen(((Message *)self)->ubuf);
 }
 
-static int Message_getsegcountproc(PyObject *self, int *lenp) {
+static int Message_getwritebuffer(Message *self, int segment, void **ptrptr)
+{
+    if (segment != 0 || self->ubuf == NULL) {
+        PyErr_BadInternalCall();
+        return -1;
+    }
+    *ptrptr = ((Message *)self)->ubuf;
+    return xubuflen(((Message *)self)->ubuf);
+}
+
+static int Message_getsegcountproc(PyObject *self, int *lenp)
+{
     if (lenp != NULL)
         *lenp = xubuflen(((Message *)self)->ubuf);
     return 1;
@@ -83,12 +87,14 @@ static PyBufferProcs Message_bufferproces = {
     NULL
 };
 
-static PyObject *Message_repr(Message *self) {
+static PyObject *Message_repr(Message *self)
+{
     return PyUnicode_FromFormat("<_xio_cpy.Message size %zu, address %p >",
-				xubuflen(self->ubuf), self->ubuf);
+                                xubuflen(self->ubuf), self->ubuf);
 }
 
-static PyObject *Message_str(Message * self) {
+static PyObject *Message_str(Message * self)
+{
     return PyBytes_FromStringAndSize(self->ubuf, xubuflen(self->ubuf));
 }
 
@@ -135,7 +141,8 @@ static PyTypeObject MessageType = {
     Message_new,                 /* tp_new */
 };
 
-static PyObject *cpy_xallocubuf(PyObject *self, PyObject *args) {
+static PyObject *cpy_xallocubuf(PyObject *self, PyObject *args)
+{
     int size = 0;
     Message *message = 0;
 
@@ -149,22 +156,25 @@ static PyObject *cpy_xallocubuf(PyObject *self, PyObject *args) {
     return (PyObject*)message;
 }
 
-static PyObject *cpy_xfreeubuf(PyObject *self, PyObject *args) {
+static PyObject *cpy_xfreeubuf(PyObject *self, PyObject *args)
+{
     Message *message = 0;
 
     if (!PyArg_ParseTuple(args, "O", &message))
-	return 0;
+        return 0;
     xfreeubuf(message->ubuf);
     Py_RETURN_NONE;
 }
 
 
-static PyObject *cpy_xubuflen (PyObject *self, PyObject *args) {
+static PyObject *cpy_xubuflen (PyObject *self, PyObject *args)
+{
     Message *message = (Message *)self;
     return Py_BuildValue("i", xubuflen(message->ubuf));
 }
 
-static PyObject *cpy_xsocket(PyObject *self, PyObject *args) {
+static PyObject *cpy_xsocket(PyObject *self, PyObject *args)
+{
     int pf = 0;
     int socktype = 0;
 
@@ -173,7 +183,8 @@ static PyObject *cpy_xsocket(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", xsocket(pf, socktype));
 }
 
-static PyObject *cpy_xbind(PyObject *self, PyObject *args) {
+static PyObject *cpy_xbind(PyObject *self, PyObject *args)
+{
     int fd = 0;
     const char *sockaddr = 0;
 
@@ -182,7 +193,8 @@ static PyObject *cpy_xbind(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", xbind(fd, sockaddr));
 }
 
-static PyObject *cpy_xaccept(PyObject *self, PyObject *args) {
+static PyObject *cpy_xaccept(PyObject *self, PyObject *args)
+{
     int fd = 0;
 
     if (!PyArg_ParseTuple(args, "i", &fd))
@@ -190,7 +202,8 @@ static PyObject *cpy_xaccept(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", xaccept(fd));
 }
 
-static PyObject *cpy_xlisten(PyObject *self, PyObject *args) {
+static PyObject *cpy_xlisten(PyObject *self, PyObject *args)
+{
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "s", &sockaddr))
@@ -198,7 +211,8 @@ static PyObject *cpy_xlisten(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", xlisten(sockaddr));
 }
 
-static PyObject *cpy_xconnect(PyObject *self, PyObject *args) {
+static PyObject *cpy_xconnect(PyObject *self, PyObject *args)
+{
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "s", &sockaddr))
@@ -206,7 +220,8 @@ static PyObject *cpy_xconnect(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", xconnect(sockaddr));
 }
 
-static PyObject *cpy_xrecv(PyObject *self, PyObject *args) {
+static PyObject *cpy_xrecv(PyObject *self, PyObject *args)
+{
     PyObject *tuple = PyTuple_New(2);
     Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
     int fd = 0;
@@ -214,32 +229,34 @@ static PyObject *cpy_xrecv(PyObject *self, PyObject *args) {
     char *ubuf = 0;
 
     if (!PyArg_ParseTuple(args, "i", &fd))
-	return 0;
+        return 0;
     if ((rc = xrecv(fd, &ubuf)) == 0)
-	message->ubuf = ubuf;
+        message->ubuf = ubuf;
     PyTuple_SetItem(tuple, 0, Py_BuildValue("i", rc));
     PyTuple_SetItem(tuple, 1, (PyObject *)message);
     return tuple;
 }
 
-static PyObject *cpy_xsend(PyObject *self, PyObject *args) {
+static PyObject *cpy_xsend(PyObject *self, PyObject *args)
+{
     int fd = 0;
     int rc;
     Message *message = 0;
 
     if (!PyArg_ParseTuple(args, "iO", &fd, &message))
-	return 0;
+        return 0;
     if (!message->ubuf) {
-	PyErr_BadInternalCall();
-	return 0;
+        PyErr_BadInternalCall();
+        return 0;
     }
     if ((rc = xsend(fd, message->ubuf)) == 0) {
-	message->ubuf = 0;
+        message->ubuf = 0;
     }
     return Py_BuildValue("i", rc);
 }
 
-static PyObject *cpy_xclose(PyObject *self, PyObject *args) {
+static PyObject *cpy_xclose(PyObject *self, PyObject *args)
+{
     int fd = 0;
 
     if (!PyArg_ParseTuple(args, "i", &fd))
@@ -247,15 +264,18 @@ static PyObject *cpy_xclose(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", xclose(fd));
 }
 
-static PyObject *cpy_xsetopt(PyObject *self, PyObject *args) {
+static PyObject *cpy_xsetopt(PyObject *self, PyObject *args)
+{
     return 0;
 }
 
-static PyObject *cpy_xgetopt(PyObject *self, PyObject *args) {
+static PyObject *cpy_xgetopt(PyObject *self, PyObject *args)
+{
     return 0;
 }
 
-static PyObject *cpy_sp_endpoint(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_endpoint(PyObject *self, PyObject *args)
+{
     int sp_family = 0;
     int sp_type = 0;
 
@@ -264,7 +284,8 @@ static PyObject *cpy_sp_endpoint(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", sp_endpoint(sp_family, sp_type));
 }
 
-static PyObject *cpy_sp_close(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_close(PyObject *self, PyObject *args)
+{
     int eid = 0;
 
     if (!PyArg_ParseTuple(args, "i", &eid))
@@ -272,24 +293,26 @@ static PyObject *cpy_sp_close(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", sp_close(eid));
 }
 
-static PyObject *cpy_sp_send(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_send(PyObject *self, PyObject *args)
+{
     int eid = 0;
     int rc = 0;
     Message *message = 0;
 
     if (!PyArg_ParseTuple(args, "iO", &eid, &message))
-	return 0;
+        return 0;
     if (!message->ubuf) {
-	PyErr_BadInternalCall();
-	return 0;
+        PyErr_BadInternalCall();
+        return 0;
     }
     if ((rc = sp_send(eid, message->ubuf)) == 0) {
-	message->ubuf = 0;
+        message->ubuf = 0;
     }
     return Py_BuildValue("i", rc);
 }
 
-static PyObject *cpy_sp_recv(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_recv(PyObject *self, PyObject *args)
+{
     PyObject *tuple = PyTuple_New(2);
     Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
     int eid = 0;
@@ -297,15 +320,16 @@ static PyObject *cpy_sp_recv(PyObject *self, PyObject *args) {
     char *ubuf = 0;
 
     if (!PyArg_ParseTuple(args, "i", &eid))
-	return 0;
+        return 0;
     if ((rc = sp_recv(eid, &ubuf)) == 0)
-	message->ubuf = ubuf;
+        message->ubuf = ubuf;
     PyTuple_SetItem(tuple, 0, Py_BuildValue("i", rc));
     PyTuple_SetItem(tuple, 1, (PyObject *)message);
     return tuple;
 }
 
-static PyObject *cpy_sp_add(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_add(PyObject *self, PyObject *args)
+{
     int eid = 0;
     int sockfd = 0;
 
@@ -314,7 +338,8 @@ static PyObject *cpy_sp_add(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", sp_add(eid, sockfd));
 }
 
-static PyObject *cpy_sp_rm(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_rm(PyObject *self, PyObject *args)
+{
     int eid = 0;
     int sockfd = 0;
 
@@ -323,31 +348,35 @@ static PyObject *cpy_sp_rm(PyObject *self, PyObject *args) {
     return Py_BuildValue("i", sp_rm(eid, sockfd));
 }
 
-static PyObject *cpy_sp_setopt(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_setopt(PyObject *self, PyObject *args)
+{
     return 0;
 }
 
 
-static PyObject *cpy_sp_getopt(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_getopt(PyObject *self, PyObject *args)
+{
     return 0;
 }
 
-static PyObject *cpy_sp_listen(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_listen(PyObject *self, PyObject *args)
+{
     int eid = 0;
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "is", &eid, &sockaddr))
-	return 0;
+        return 0;
     return Py_BuildValue("i", sp_listen(eid, sockaddr));
 }
 
 
-static PyObject *cpy_sp_connect(PyObject *self, PyObject *args) {
+static PyObject *cpy_sp_connect(PyObject *self, PyObject *args)
+{
     int eid = 0;
     const char *sockaddr = 0;
 
     if (!PyArg_ParseTuple(args, "is", &eid, &sockaddr))
-	return 0;
+        return 0;
     return Py_BuildValue("i", sp_connect(eid, sockaddr));
 }
 
@@ -422,7 +451,8 @@ static struct xsymbol const_symbols[] = {
     {"SP_PROXY",     SP_PROXY},
 };
 
-PyMODINIT_FUNC initxio() {
+PyMODINIT_FUNC initxio()
+{
     PyObject *pyxio = Py_InitModule("xio", module_methods);
     int i;
     struct xsymbol *sb;
@@ -431,7 +461,7 @@ PyMODINIT_FUNC initxio() {
     Py_INCREF(&MessageType);
     PyModule_AddObject(pyxio, "Message", (PyObject *)&MessageType);
     for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++) {
-	sb = &const_symbols[i];
-	PyModule_AddIntConstant(pyxio, sb->name, sb->value);
+        sb = &const_symbols[i];
+        PyModule_AddIntConstant(pyxio, sb->name, sb->value);
     }
 }

@@ -2,21 +2,25 @@
 
 static int entries_cnt = 0;
 
-static void my_walkfn(const char *path, void *data) {
+static void my_walkfn(const char *path, void *data)
+{
     entries_cnt++;
 }
 
-static void test_ffp(char *ptr, const char *dst) {
+static void test_ffp(char *ptr, const char *dst)
+{
     BUG_ON(strcmp(ptr, dst) != 0);
     free(ptr);
 }
 
-static void test_fp(const char *ptr, const char *dst) {
+static void test_fp(const char *ptr, const char *dst)
+{
     BUG_ON(strcmp(ptr, dst) != 0);
 }
 
 
-static int path_func_test() {
+static int path_func_test()
+{
     char *p;
     test_ffp(fp_dir(""), ".");
     test_ffp(fp_dir("gtest.h"), ".");
@@ -37,7 +41,8 @@ static int path_func_test() {
     return 0;
 }
 
-static int path_walk_test() {
+static int path_walk_test()
+{
     filepath_t fp = {};
 
     filepath_init(&fp, "");
@@ -48,7 +53,8 @@ static int path_walk_test() {
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     path_walk_test();
     path_func_test();
     return 0;

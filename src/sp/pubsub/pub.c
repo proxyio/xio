@@ -26,37 +26,42 @@ static struct epbase *pub_ep_alloc() {
     struct pub_ep *pub_ep = (struct pub_ep *)mem_zalloc(sizeof(*pub_ep));
 
     if (pub_ep) {
-	epbase_init(&pub_ep->base);
+        epbase_init(&pub_ep->base);
     }
     return &pub_ep->base;
 }
 
-static void pub_ep_destroy(struct epbase *ep) {
+static void pub_ep_destroy(struct epbase *ep)
+{
     struct pub_ep *pub_ep = cont_of(ep, struct pub_ep, base);
     epbase_exit(ep);
     mem_free(pub_ep, sizeof(*pub_ep));
 }
 
-static int pub_ep_send(struct epbase *ep, char *ubuf) {
+static int pub_ep_send(struct epbase *ep, char *ubuf)
+{
     int rc = 0;
     return rc;
 }
 
-static int pub_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
+static int pub_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+{
     int rc = 0;
     return rc;
 }
 
-static int pub_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
+static int pub_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+{
     int rc = 0;
     return rc;
 }
 
-static int pub_ep_join(struct epbase *ep, struct socktg *tg, int nfd) {
+static int pub_ep_join(struct epbase *ep, struct socktg *tg, int nfd)
+{
     struct socktg *_tg = sp_generic_join(ep, nfd);
 
     if (!_tg)
-	return -1;
+        return -1;
     uuid_generate(_tg->uuid);
     return 0;
 }
@@ -69,21 +74,23 @@ static const ep_getopt getopt_vfptr[] = {
     0,
 };
 
-static int pub_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {
+static int pub_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
+{
     int rc;
     if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     rc = setopt_vfptr[opt] (ep, optval, optlen);
     return rc;
 }
 
-static int pub_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen) {
+static int pub_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
+{
     int rc;
     if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     rc = getopt_vfptr[opt] (ep, optval, optlen);
     return rc;

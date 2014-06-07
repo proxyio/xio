@@ -41,24 +41,27 @@ typedef struct filepath {
     int mask, cur_deep, max_deep;
 } filepath_t;
 
-static inline filepath_t *filepath_new() {
+static inline filepath_t *filepath_new()
+{
     filepath_t *fp = (filepath_t *)mem_zalloc(sizeof(*fp));
     return fp;
 }
 
-static inline int filepath_init(filepath_t *fp, const char *root) {
+static inline int filepath_init(filepath_t *fp, const char *root)
+{
     const char *cr = ".";
 
     if (strlen(root) == 0 || !root)
-	root = cr;
+        root = cr;
     if (!(fp->root = strdup(root)))
-	return -1;
+        return -1;
     return 0;
 }
 
-static inline void filepath_destroy(filepath_t *fp) {
+static inline void filepath_destroy(filepath_t *fp)
+{
     if (fp->root)
-	mem_free(fp->root, strlen(fp->root));
+        mem_free(fp->root, strlen(fp->root));
 }
 
 enum {
@@ -68,29 +71,35 @@ enum {
 
 int filepath_walk(filepath_t *fp, walkFn f, void *args, int mask, int deep);
 
-static inline int fp_walk(filepath_t *fp, walkFn f, void *args) {
+static inline int fp_walk(filepath_t *fp, walkFn f, void *args)
+{
     return filepath_walk(fp, f, args, W_FILE|W_DIR, 1);
 }
 
-static inline int fp_dwalk(filepath_t *fp, walkFn f, void *args, int deep) {
+static inline int fp_dwalk(filepath_t *fp, walkFn f, void *args, int deep)
+{
     return filepath_walk(fp, f, args, W_FILE|W_DIR, deep);
 }
 
 
-static inline int fp_walkfile(filepath_t *fp, walkFn f, void *args) {
+static inline int fp_walkfile(filepath_t *fp, walkFn f, void *args)
+{
     return filepath_walk(fp, f, args, W_FILE, 1);
 }
 
-static inline int fp_dwalkfile(filepath_t *fp, walkFn f, void *args, int deep) {
+static inline int fp_dwalkfile(filepath_t *fp, walkFn f, void *args, int deep)
+{
     return filepath_walk(fp, f, args, W_FILE, deep);
 }
 
 
-static inline int fp_walkdir(filepath_t *fp, walkFn f, void *args) {
+static inline int fp_walkdir(filepath_t *fp, walkFn f, void *args)
+{
     return filepath_walk(fp, f, args, W_DIR, 1);
 }
 
-static inline int fp_dwalkdir(filepath_t *fp, walkFn f, void *args, int deep) {
+static inline int fp_dwalkdir(filepath_t *fp, walkFn f, void *args, int deep)
+{
     return filepath_walk(fp, f, args, W_DIR, deep);
 }
 

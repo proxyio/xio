@@ -33,59 +33,67 @@
 #include "ipc.h"
 #include "../list.h"
 
-static int set_linger(int fd, void *optval, int optlen) {
+static int set_linger(int fd, void *optval, int optlen)
+{
     errno = EOPNOTSUPP;
     return -1;
 }
 
-static int set_sndbuf(int fd, void *optval, int optlen) {
+static int set_sndbuf(int fd, void *optval, int optlen)
+{
     int rc;
     int buf = *(int *)optval;
 
     if (buf <= 0)
-	buf = TP_RCVBUFLEN;
+        buf = TP_RCVBUFLEN;
     rc = setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof(buf));
     return rc;
 }
 
-static int set_rcvbuf(int fd, void *optval, int optlen) {
+static int set_rcvbuf(int fd, void *optval, int optlen)
+{
     int rc;
     int buf = *(int *)optval;
 
     if (buf <= 0)
-	buf = TP_SNDBUFLEN;
+        buf = TP_SNDBUFLEN;
     rc = setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof(buf));
     return rc;
 }
 
-static int set_noblock(int fd, void *optval, int optlen) {
+static int set_noblock(int fd, void *optval, int optlen)
+{
     int rc;
     int flags;
     int on = *((int *)optval);
 
     if ((flags = fcntl(fd, F_GETFL, 0)) < 0)
-	flags = 0;
+        flags = 0;
     flags = on ? (flags | O_NONBLOCK) : (flags & ~O_NONBLOCK);
     rc = fcntl(fd, F_SETFL, flags);
     return rc;
 }
 
-static int set_nodelay(int fd, void *optval, int optlen) {
+static int set_nodelay(int fd, void *optval, int optlen)
+{
     errno = EOPNOTSUPP;
     return -1;
 }
 
-static int set_sndtimeo(int fd, void *optval, int optlen) {
+static int set_sndtimeo(int fd, void *optval, int optlen)
+{
     errno = EOPNOTSUPP;
     return -1;
 }
 
-static int set_rcvtimeo(int fd, void *optval, int optlen) {
+static int set_rcvtimeo(int fd, void *optval, int optlen)
+{
     errno = EOPNOTSUPP;
     return -1;
 }
 
-static int set_reuseaddr(int fd, void *optval, int optlen) {
+static int set_reuseaddr(int fd, void *optval, int optlen)
+{
     errno = EOPNOTSUPP;
     return -1;
 }
@@ -102,12 +110,13 @@ static const tp_setopt setopt_vfptr[] = {
     set_reuseaddr,
 };
 
-int ipc_setopt(int fd, int opt, void *optval, int optlen) {
+int ipc_setopt(int fd, int opt, void *optval, int optlen)
+{
     int rc;
 
     if (opt >= NELEM(setopt_vfptr, tp_setopt) || !setopt_vfptr[opt]) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     rc = setopt_vfptr[opt] (fd, optval, optlen);
     return rc;

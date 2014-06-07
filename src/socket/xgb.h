@@ -52,13 +52,13 @@ struct xglobal {
 
     /* Number of actual socks. */
     size_t nsockbases;
-    
+
 
     struct xcpu cpus[XIO_MAX_CPUS];
 
     /* Stack of unused xsock descriptors.  */
     int cpu_unused[XIO_MAX_CPUS];
-    
+
     /* Number of actual runner poller.  */
     size_t ncpus;
     size_t ncpus_low;
@@ -82,11 +82,13 @@ struct sockbase_vfptr *sockbase_vfptr_lookup(int pf, int type);
 
 extern struct xglobal xgb;
 
-static inline void xglobal_lock() {
+static inline void xglobal_lock()
+{
     mutex_lock(&xgb.lock);
 }
 
-static inline void xglobal_unlock() {
+static inline void xglobal_unlock()
+{
     mutex_unlock(&xgb.lock);
 }
 

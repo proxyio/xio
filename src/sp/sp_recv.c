@@ -23,24 +23,25 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int sp_recv(int eid, char **ubuf) {
+int sp_recv(int eid, char **ubuf)
+{
     struct epbase *ep = eid_get(eid);
     struct xmsg *msg = 0;
-    
+
     if (!ep) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     mutex_lock(&ep->lock);
     while (!ep->shutdown && list_empty(&ep->rcv.head)) {
-	ep->rcv.waiters++;
-	condition_wait(&ep->cond, &ep->lock);
-	ep->rcv.waiters--;
+        ep->rcv.waiters++;
+        condition_wait(&ep->cond, &ep->lock);
+        ep->rcv.waiters--;
     }
     if (ep->shutdown) {
-	mutex_unlock(&ep->lock);
-	errno = EBADF;
-	return -1;
+        mutex_unlock(&ep->lock);
+        errno = EBADF;
+        return -1;
     }
     msg = list_first(&ep->rcv.head, struct xmsg, item);
     list_del_init(&msg->item);

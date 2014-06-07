@@ -1,7 +1,7 @@
 /*
   Red Black Trees
   (C) 1999  Andrea Arcangeli <andrea@suse.de>
-  
+
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
@@ -43,14 +43,14 @@
 	    (type *)((char *)ptr - __offsetof(type, member)); })
 
 struct rb_node {
-	unsigned long  __rb_parent_color;
-	struct rb_node *rb_right;
-	struct rb_node *rb_left;
+    unsigned long  __rb_parent_color;
+    struct rb_node *rb_right;
+    struct rb_node *rb_left;
 } __attribute__((aligned(sizeof(long))));
-    /* The alignment might seem pointless, but allegedly CRIS needs it */
+/* The alignment might seem pointless, but allegedly CRIS needs it */
 
 struct rb_root {
-	struct rb_node *rb_node;
+    struct rb_node *rb_node;
 };
 
 
@@ -81,16 +81,16 @@ extern struct rb_node *rb_first(const struct rb_root *);
 extern struct rb_node *rb_last(const struct rb_root *);
 
 /* Fast replacement of a single node without remove/rebalance/add/rebalance */
-extern void rb_replace_node(struct rb_node *victim, struct rb_node *_new, 
-			    struct rb_root *root);
+extern void rb_replace_node(struct rb_node *victim, struct rb_node *_new,
+                            struct rb_root *root);
 
 static inline void rb_link_node(struct rb_node * node, struct rb_node * parent,
-				struct rb_node ** rb_link)
+                                struct rb_node ** rb_link)
 {
-	node->__rb_parent_color = (unsigned long)parent;
-	node->rb_left = node->rb_right = NULL;
+    node->__rb_parent_color = (unsigned long)parent;
+    node->rb_left = node->rb_right = NULL;
 
-	*rb_link = node;
+    *rb_link = node;
 }
 
 

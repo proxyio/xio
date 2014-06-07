@@ -28,15 +28,17 @@
 struct xp_global pg;
 
 
-void xpoll_module_init() {
+void xpoll_module_init()
+{
     int pollid;
-    
+
     spin_init(&pg.lock);
     for (pollid = 0; pollid < XIO_MAX_POLLS; pollid++)
-	pg.unused[pollid] = pollid;
+        pg.unused[pollid] = pollid;
 }
 
-void xpoll_module_exit() {
+void xpoll_module_exit()
+{
     spin_destroy(&pg.lock);
     BUG_ON(pg.npolls > 0);
 }
@@ -44,15 +46,16 @@ void xpoll_module_exit() {
 struct xpitem *xpitem_alloc() {
     struct xpitem *itm = (struct xpitem *)mem_zalloc(sizeof(*itm));
     if (itm) {
-	INIT_LIST_HEAD(&itm->lru_link);
-	spin_init(&itm->lock);
-	itm->ref = 0;
-	pollbase_init(&itm->base, &xpollbase_vfptr);
+        INIT_LIST_HEAD(&itm->lru_link);
+        spin_init(&itm->lock);
+        itm->ref = 0;
+        pollbase_init(&itm->base, &xpollbase_vfptr);
     }
     return itm;
 }
 
-static void xpitem_destroy(struct xpitem *itm) {
+static void xpitem_destroy(struct xpitem *itm)
+{
     struct xpoll_t *self = itm->poll;
 
     BUG_ON(itm->ref != 0);
@@ -62,7 +65,8 @@ static void xpitem_destroy(struct xpitem *itm) {
 }
 
 
-int xpitem_get(struct xpitem *itm) {
+int xpitem_get(struct xpitem *itm)
+{
     int ref;
     spin_lock(&itm->lock);
     ref = itm->ref++;
@@ -70,7 +74,8 @@ int xpitem_get(struct xpitem *itm) {
     return ref;
 }
 
-int xpitem_put(struct xpitem *itm) {
+int xpitem_put(struct xpitem *itm)
+{
     int ref;
 
     spin_lock(&itm->lock);
@@ -78,8 +83,8 @@ int xpitem_put(struct xpitem *itm) {
     BUG_ON(itm->ref < 0);
     spin_unlock(&itm->lock);
     if (ref == 1) {
-	BUG_ON(attached(&itm->lru_link));
-	xpitem_destroy(itm);
+        BUG_ON(attached(&itm->lru_link));
+        xpitem_destroy(itm);
     }
     return ref;
 }
@@ -87,12 +92,12 @@ int xpitem_put(struct xpitem *itm) {
 struct xpoll_t *xpoll_new() {
     struct xpoll_t *self = (struct xpoll_t *)mem_zalloc(sizeof(*self));
     if (self) {
-	self->uwaiters = 0;
-	atomic_init(&self->ref);
-	self->size = 0;
-	mutex_init(&self->lock);
-	condition_init(&self->cond);
-	INIT_LIST_HEAD(&self->lru_head);
+        self->uwaiters = 0;
+        atomic_init(&self->ref);
+        self->size = 0;
+        mutex_init(&self->lock);
+        condition_init(&self->cond);
+        INIT_LIST_HEAD(&self->lru_head);
     }
     return self;
 }
@@ -108,7 +113,8 @@ struct xpoll_t *poll_alloc() {
     return self;
 }
 
-static void xpoll_destroy(struct xpoll_t *self) {
+static void xpoll_destroy(struct xpoll_t *self)
+{
     mutex_destroy(&self->lock);
     mem_free(self, sizeof(struct xpoll_t));
 }
@@ -118,21 +124,22 @@ struct xpoll_t *pget(int pollid) {
 
     spin_lock(&pg.lock);
     if (!(self = pg.polls[pollid])) {
-	spin_unlock(&pg.lock);
-	return 0;
+        spin_unlock(&pg.lock);
+        return 0;
     }
     atomic_inc(&self->ref);
     spin_unlock(&pg.lock);
     return self;
 }
 
-void pput(int pollid) {
+void pput(int pollid)
+{
     struct xpoll_t *self = pg.polls[pollid];
 
     atomic_dec_and_lock(&self->ref, spin, pg.lock) {
-	pg.unused[--pg.npolls] = pollid;
-	xpoll_destroy(self);
-	spin_unlock(&pg.lock);
+        pg.unused[--pg.npolls] = pollid;
+        xpoll_destroy(self);
+        spin_unlock(&pg.lock);
     }
 }
 
@@ -141,8 +148,8 @@ struct xpitem *ffd(struct xpoll_t *self, int fd) {
     struct xpitem *itm, *nitm;
 
     walk_xpitem_s(itm, nitm, &self->lru_head) {
-	if (itm->base.ent.fd == fd || fd == XPOLL_HEADFD)
-	    return itm;
+        if (itm->base.ent.fd == fd || fd == XPOLL_HEADFD)
+            return itm;
     }
     return 0;
 }
@@ -152,7 +159,7 @@ struct xpitem *getfd(struct xpoll_t *self, int fd) {
     struct xpitem *itm = 0;
     mutex_lock(&self->lock);
     if ((itm = ffd(self, fd)))
-	xpitem_get(itm);
+        xpitem_get(itm);
     mutex_unlock(&self->lock);
     return itm;
 }
@@ -165,14 +172,14 @@ struct xpitem *addfd(struct xpoll_t *self, int fd) {
 
     mutex_lock(&self->lock);
     if ((itm = ffd(self, fd))) {
-	mutex_unlock(&self->lock);
-	errno = EEXIST;
-	return 0;
+        mutex_unlock(&self->lock);
+        errno = EEXIST;
+        return 0;
     }
     if (!(itm = xpitem_alloc())) {
-	mutex_unlock(&self->lock);
-	errno = ENOMEM;
-	return 0;
+        mutex_unlock(&self->lock);
+        errno = ENOMEM;
+        return 0;
     }
 
     /* One reference for back for caller */
@@ -192,14 +199,15 @@ struct xpitem *addfd(struct xpoll_t *self, int fd) {
 }
 
 /* Remove the xpitem if the fd's xpitem exist. */
-int rmfd(struct xpoll_t *self, int fd) {
+int rmfd(struct xpoll_t *self, int fd)
+{
     struct xpitem *itm;
 
     mutex_lock(&self->lock);
     if (!(itm = ffd(self, fd))) {
-	mutex_unlock(&self->lock);
-	errno = ENOENT;
-	return -1;
+        mutex_unlock(&self->lock);
+        errno = ENOENT;
+        return -1;
     }
     BUG_ON(!attached(&itm->lru_link));
     self->size--;

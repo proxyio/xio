@@ -8,7 +8,8 @@
 #include <utils/thread.h>
 #include "testutil.h"
 
-static void tcp_client() {
+static void tcp_client()
+{
     int sfd;
     int64_t nbytes;
     char buf[1024] = {};
@@ -20,34 +21,37 @@ static void tcp_client() {
     close(sfd);
 }
 
-static int tcp_client_thread(void *arg) {
+static int tcp_client_thread(void *arg)
+{
     tcp_client();
     tcp_client();
     return 0;
 }
 
-int tcp_client_event_handler(eloop_t *el, ev_t *et) {
+int tcp_client_event_handler(eloop_t *el, ev_t *et)
+{
     char buf[1024] = {};
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	BUG_ON(sizeof(buf) != tcp_recv(et->fd, buf, sizeof(buf)));
-	BUG_ON(sizeof(buf) != tcp_send(et->fd, buf, sizeof(buf)));
+        BUG_ON(sizeof(buf) != tcp_recv(et->fd, buf, sizeof(buf)));
+        BUG_ON(sizeof(buf) != tcp_send(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
-	eloop_del(el, et);
-	close(et->fd);
+        eloop_del(el, et);
+        close(et->fd);
     }
     return 0;
 }
 
 
-static void tcp_server_thread() {
+static void tcp_server_thread()
+{
     int afd, sfd;
     thread_t cli_thread = {};
     eloop_t el = {};
     ev_t et = {};
-    
+
     eloop_init(&el, 1024, 100, 10);
 
     BUG_ON((afd = tcp_bind("*:18894")) <= 0);
@@ -75,47 +79,51 @@ static void tcp_server_thread() {
 }
 
 
-static void ipc_client() {
+static void ipc_client()
+{
     int sfd;
     int64_t nbytes;
     char buf[1024] = {};
 
     if ((sfd = ipc_connect("pio_ipc_socket")) < 0)
-	BUG_ON(1);
+        BUG_ON(1);
     randstr(buf, 1024);
     BUG_ON(sizeof(buf) != (nbytes = ipc_send(sfd, buf, sizeof(buf))));
     BUG_ON(nbytes != ipc_recv(sfd, buf, nbytes));
     close(sfd);
 }
 
-static int ipc_client_thread(void *arg) {
+static int ipc_client_thread(void *arg)
+{
     ipc_client();
     ipc_client();
     return 0;
 }
 
-int ipc_client_event_handler(eloop_t *el, ev_t *et) {
+int ipc_client_event_handler(eloop_t *el, ev_t *et)
+{
     char buf[1024] = {};
 
     randstr(buf, sizeof(buf));
     if (et->happened & EPOLLIN) {
-	BUG_ON(sizeof(buf) != ipc_recv(et->fd, buf, sizeof(buf)));
-	BUG_ON(sizeof(buf) != ipc_send(et->fd, buf, sizeof(buf)));
+        BUG_ON(sizeof(buf) != ipc_recv(et->fd, buf, sizeof(buf)));
+        BUG_ON(sizeof(buf) != ipc_send(et->fd, buf, sizeof(buf)));
     }
     if (et->happened & EPOLLRDHUP) {
-	eloop_del(el, et);
-	close(et->fd);
+        eloop_del(el, et);
+        close(et->fd);
     }
     return 0;
 }
 
 
-static void ipc_server_thread() {
+static void ipc_server_thread()
+{
     int afd, sfd;
     thread_t cli_thread = {};
     eloop_t el = {};
     ev_t et = {};
-    
+
     eloop_init(&el, 1024, 100, 10);
 
     BUG_ON((afd = ipc_bind("pio_ipc_socket")) <= 0);
@@ -141,7 +149,8 @@ static void ipc_server_thread() {
     close(afd);
 }
 
-static void tcp_test_sock_opt(int sfd) {
+static void tcp_test_sock_opt(int sfd)
+{
     int on;
     int optlen = 0;
 
@@ -168,7 +177,8 @@ static void tcp_test_sock_opt(int sfd) {
 
 static int can_exit = 0;
 
-static int server_thread(void *args) {
+static int server_thread(void *args)
+{
     waitgroup_t *wg = (waitgroup_t *)args;
     int afd = tcp_bind("*:18893");
     int sfd;
@@ -184,7 +194,7 @@ static int server_thread(void *args) {
     BUG_ON(tcp_setopt(afd, TP_NOBLOCK, &on, sizeof(on)));
     BUG_ON(tcp_getopt(afd, TP_NOBLOCK, &on, &optlen));
     BUG_ON(on != 0);
-    
+
     BUG_ON(afd < 0);
     waitgroup_done(wg);
     sfd = tcp_accept(afd);
@@ -192,13 +202,14 @@ static int server_thread(void *args) {
     tcp_test_sock_opt(sfd);
 
     while (!can_exit)
-	usleep(20000);
+        usleep(20000);
     tcp_close(sfd);
     tcp_close(afd);
     return 0;
 }
 
-static void tcp_option() {
+static void tcp_option()
+{
     waitgroup_t wg;
     int sfd;
     thread_t t;
@@ -216,11 +227,13 @@ static void tcp_option() {
     tcp_close(sfd);
 }
 
-static void ipc_option() {
+static void ipc_option()
+{
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     ipc_server_thread();
     tcp_server_thread();
     tcp_option();

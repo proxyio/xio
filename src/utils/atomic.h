@@ -81,9 +81,9 @@ typedef struct atomic {
 		    locktype##_lock(&ext_lock);			\
 		__old;						\
 	    }) == 1)
-    
 
-    
+
+
 
 
 

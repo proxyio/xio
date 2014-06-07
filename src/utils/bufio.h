@@ -42,11 +42,13 @@ struct bio {
 };
 
 struct bio *bio_new();
-static inline void bio_init(struct bio *b) {
+static inline void bio_init(struct bio *b)
+{
     INIT_LIST_HEAD(&b->page_head);
 }
 
-static inline int64_t bio_size(struct bio *b) {
+static inline int64_t bio_size(struct bio *b)
+{
     return b->bsize;
 }
 

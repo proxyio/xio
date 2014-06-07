@@ -44,8 +44,8 @@ struct sphdr {
     u16 timeout;
     i64 sendstamp;
     union {
-	u64 __align[2];
-	struct list_head link;
+        u64 __align[2];
+        struct list_head link;
     } u;
 };
 
@@ -58,7 +58,8 @@ static inline struct sphdr *get_sphdr(char *ubuf) {
     return (struct sphdr *)ent.outofband;
 }
 
-static inline int sphdr_timeout(struct sphdr *h) {
+static inline int sphdr_timeout(struct sphdr *h)
+{
     return h->timeout && (h->sendstamp + h->timeout < gettimeofms());
 }
 

@@ -24,22 +24,23 @@
 #include "sp_module.h"
 
 
-int sp_rm(int eid, int fd) {
+int sp_rm(int eid, int fd)
+{
     struct epbase *ep = eid_get(eid);
     struct socktg *tg = 0;
 
     if (!ep) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     /* BUG */
     mutex_lock(&ep->lock);
     if ((tg = rm_socktg_if(tg, &ep->listeners, tg->fd == fd)))
-	ep->listener_num--;
+        ep->listener_num--;
     if ((tg = rm_socktg_if(tg, &ep->connectors, tg->fd == fd)))
-	ep->connector_num--;
+        ep->connector_num--;
     if ((tg = rm_socktg_if(tg, &ep->connectors, tg->fd == fd)))
-	ep->bad_num--;
+        ep->bad_num--;
     mutex_lock(&ep->lock);
     return 0;
 }

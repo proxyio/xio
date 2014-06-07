@@ -9,7 +9,8 @@
 
 static int cnt = 10;
 
-static void xclient(const char *pf) {
+static void xclient(const char *pf)
+{
     int sfd, i;
     int64_t nbytes;
     char buf[1024] = {};
@@ -20,26 +21,28 @@ static void xclient(const char *pf) {
     randstr(buf, 1024);
     BUG_ON((sfd = xconnect(host)) < 0);
     for (i = 0; i < cnt; i++) {
-	nbytes = rand() % 1024;
-	ubuf = xallocubuf(nbytes);
-	memcpy(ubuf, buf, nbytes);
-	BUG_ON(0 != xsend(sfd, ubuf));
-	BUG_ON(0 != xrecv(sfd, &ubuf));
-	DEBUG_OFF("%d recv response", sfd);
-	assert(memcmp(ubuf, buf, nbytes) == 0);
-	xfreeubuf(ubuf);
+        nbytes = rand() % 1024;
+        ubuf = xallocubuf(nbytes);
+        memcpy(ubuf, buf, nbytes);
+        BUG_ON(0 != xsend(sfd, ubuf));
+        BUG_ON(0 != xrecv(sfd, &ubuf));
+        DEBUG_OFF("%d recv response", sfd);
+        assert(memcmp(ubuf, buf, nbytes) == 0);
+        xfreeubuf(ubuf);
     }
     xclose(sfd);
 }
 
-static int xclient_thread(void *arg) {
+static int xclient_thread(void *arg)
+{
     xclient("tcp");
     xclient("ipc");
     xclient("inproc");
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     int i, j;
     char *ubuf = 0;
     int afd, sfd, tmp;
@@ -52,11 +55,11 @@ int main(int argc, char **argv) {
     for (j = 0; j < 3; j++) {
         BUG_ON((sfd = xaccept(afd)) < 0);
         for (i = 0; i < cnt; i++) {
-	    while (xselect(XPOLLIN, 1, &sfd, 1, &tmp) <= 0)
-	        usleep(10000);
-	    BUG_ON(tmp != sfd);
-	    BUG_ON(0 != xrecv(sfd, &ubuf));
-	    BUG_ON(0 != xsend(sfd, ubuf));
+            while (xselect(XPOLLIN, 1, &sfd, 1, &tmp) <= 0)
+                usleep(10000);
+            BUG_ON(tmp != sfd);
+            BUG_ON(0 != xrecv(sfd, &ubuf));
+            BUG_ON(0 != xsend(sfd, ubuf));
         }
         xclose(sfd);
     }

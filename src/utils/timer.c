@@ -24,7 +24,8 @@
 #include <sys/time.h>
 #include "timer.h"
 
-i64 gettimeofms() {
+i64 gettimeofms()
+{
     struct timeval tv;
     i64 ct;
 
@@ -34,7 +35,8 @@ i64 gettimeofms() {
     return ct;
 }
 
-i64 gettimeofus() {
+i64 gettimeofus()
+{
     struct timeval tv;
     i64 ct;
 
@@ -44,7 +46,8 @@ i64 gettimeofus() {
     return ct;
 }
 
-i64 gettimeofns() {
+i64 gettimeofns()
+{
     struct timeval tv;
     i64 ct;
 

@@ -8,7 +8,8 @@
 
 #define cnt 1000
 
-static int cmpint64(const void *p1, const void *p2) {
+static int cmpint64(const void *p1, const void *p2)
+{
     /* The actual arguments to this function are "pointers to
        pointers to char", but strcmp(3) arguments are "pointers
        to char", hence the following cast plus dereference */
@@ -16,7 +17,8 @@ static int cmpint64(const void *p1, const void *p2) {
 }
 
 
-static int skrb_test_single() {
+static int skrb_test_single()
+{
     int i;
     int64_t allval[cnt] = {}, *allval_ptr = &allval[0];
     int64_t min_val = 0;
@@ -26,27 +28,28 @@ static int skrb_test_single() {
     skrb_init(&tree);
 
     for (i = 0; i < cnt; i++) {
-	BUG_ON((node = (skrb_node_t *)mem_zalloc(sizeof(skrb_node_t))) == NULL);
-	node->key = rand() + 1;
-	if (min_val == 0 || node->key < min_val)
-	    min_val = node->key;
-	*allval_ptr++ = node->key;
-	skrb_insert(&tree, node);
-	min_node = skrb_min(&tree);
-	BUG_ON(min_node->key != min_val);
+        BUG_ON((node = (skrb_node_t *)mem_zalloc(sizeof(skrb_node_t))) == NULL);
+        node->key = rand() + 1;
+        if (min_val == 0 || node->key < min_val)
+            min_val = node->key;
+        *allval_ptr++ = node->key;
+        skrb_insert(&tree, node);
+        min_node = skrb_min(&tree);
+        BUG_ON(min_node->key != min_val);
     }
     qsort(allval, allval_ptr - allval, sizeof(int64_t), cmpint64);
     for (i = 0; allval + i < allval_ptr; i++) {
-	min_node = skrb_min(&tree);
-	BUG_ON(min_node->key != allval[i]);
-	skrb_delete(&tree, min_node);
-	free(min_node);
+        min_node = skrb_min(&tree);
+        BUG_ON(min_node->key != allval[i]);
+        skrb_delete(&tree, min_node);
+        free(min_node);
     }
     return 0;
 }
 
 
-static int map_test_single() {
+static int map_test_single()
+{
     struct ssmap_node n[5];
     ssmap_t map;
 
@@ -72,7 +75,7 @@ static int map_test_single() {
     BUG_ON(ssmap_max(&map) != &n[1]);
 
     BUG_ON(ssmap_find(&map, n[0].key, n[0].keylen) != &n[0]);
-    BUG_ON(ssmap_find(&map, n[1].key, n[1].keylen) != &n[1]);    
+    BUG_ON(ssmap_find(&map, n[1].key, n[1].keylen) != &n[1]);
     BUG_ON(ssmap_find(&map, n[2].key, n[2].keylen) != &n[2]);
     BUG_ON(ssmap_find(&map, n[3].key, n[3].keylen) != &n[3]);
     BUG_ON(ssmap_find(&map, n[4].key, n[4].keylen) != &n[4]);
@@ -81,7 +84,8 @@ static int map_test_single() {
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     skrb_test_single();
     map_test_single();
     return 0;

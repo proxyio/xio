@@ -36,43 +36,44 @@ struct xmsg *recvq_rm(struct sockbase *sb) {
 
     mutex_lock(&sb->lock);
     while (!sb->fepipe && list_empty(&sb->rcv.head) && !sb->fasync) {
-	sb->rcv.waiters++;
-	condition_wait(&sb->cond, &sb->lock);
-	sb->rcv.waiters--;
+        sb->rcv.waiters++;
+        condition_wait(&sb->cond, &sb->lock);
+        sb->rcv.waiters--;
     }
     if (!list_empty(&sb->rcv.head)) {
-	DEBUG_OFF("%d", sb->fd);
-	msg = list_first(&sb->rcv.head, struct xmsg, item);
-	list_del_init(&msg->item);
-	msgsz = xmsg_iovlen(msg);
-	sb->rcv.buf -= msgsz;
-	events |= XMQ_POP;
-	if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
-	    events |= XMQ_NONFULL;
-	if (list_empty(&sb->rcv.head)) {
-	    BUG_ON(sb->rcv.buf);
-	    events |= XMQ_EMPTY;
-	}
+        DEBUG_OFF("%d", sb->fd);
+        msg = list_first(&sb->rcv.head, struct xmsg, item);
+        list_del_init(&msg->item);
+        msgsz = xmsg_iovlen(msg);
+        sb->rcv.buf -= msgsz;
+        events |= XMQ_POP;
+        if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
+            events |= XMQ_NONFULL;
+        if (list_empty(&sb->rcv.head)) {
+            BUG_ON(sb->rcv.buf);
+            events |= XMQ_EMPTY;
+        }
     }
 
     if (events && vfptr->notify)
-	vfptr->notify(sb, RECV_Q, events);
+        vfptr->notify(sb, RECV_Q, events);
 
     __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
     return msg;
 }
 
-int recvq_add(struct sockbase *sb, struct xmsg *msg) {
+int recvq_add(struct sockbase *sb, struct xmsg *msg)
+{
     struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
     i64 msgsz = xmsg_iovlen(msg);
 
     mutex_lock(&sb->lock);
     if (list_empty(&sb->rcv.head))
-	events |= XMQ_NONEMPTY;
+        events |= XMQ_NONEMPTY;
     if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
-	events |= XMQ_FULL;
+        events |= XMQ_FULL;
     events |= XMQ_PUSH;
     sb->rcv.buf += msgsz;
     list_add_tail(&msg->item, &sb->rcv.head);
@@ -80,34 +81,35 @@ int recvq_add(struct sockbase *sb, struct xmsg *msg) {
 
     /* Wakeup the blocking waiters. */
     if (sb->rcv.waiters > 0)
-	condition_broadcast(&sb->cond);
+        condition_broadcast(&sb->cond);
 
     if (events && vfptr->notify)
-	vfptr->notify(sb, RECV_Q, events);
+        vfptr->notify(sb, RECV_Q, events);
 
     __emit_pollevents(sb);
     mutex_unlock(&sb->lock);
     return 0;
 }
 
-int xrecv(int fd, char **ubuf) {
+int xrecv(int fd, char **ubuf)
+{
     int rc = 0;
     struct xmsg *msg = 0;
     struct sockbase *sb;
-    
+
     if (!ubuf) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     if (!(sb = xget(fd))) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     if (!(msg = recvq_rm(sb))) {
-	errno = sb->fepipe ? EPIPE : EAGAIN;
-	rc = -1;
+        errno = sb->fepipe ? EPIPE : EAGAIN;
+        rc = -1;
     } else {
-	*ubuf = msg->vec.xiov_base;
+        *ubuf = msg->vec.xiov_base;
     }
     xput(fd);
     return rc;

@@ -1,14 +1,16 @@
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
 
-static int worker(void *args) {
+static int worker(void *args)
+{
     waitgroup_t *wg = (waitgroup_t *)args;
     usleep(10000);
     waitgroup_done(wg);
     return 0;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     taskpool_t tp = {};
     waitgroup_t wg = {};
 

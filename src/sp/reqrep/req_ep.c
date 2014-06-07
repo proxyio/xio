@@ -26,20 +26,22 @@ static struct epbase *req_ep_alloc() {
     struct req_ep *req_ep = (struct req_ep *)mem_zalloc(sizeof(*req_ep));
 
     if (req_ep) {
-	epbase_init(&req_ep->base);
-	req_ep->peer = 0;
+        epbase_init(&req_ep->base);
+        req_ep->peer = 0;
     }
     return &req_ep->base;
 }
 
-static void req_ep_destroy(struct epbase *ep) {
+static void req_ep_destroy(struct epbase *ep)
+{
     struct req_ep *req_ep = cont_of(ep, struct req_ep, base);
     BUG_ON(!req_ep);
     epbase_exit(ep);
     mem_free(req_ep, sizeof(*req_ep));
 }
 
-static int req_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
+static int req_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+{
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
 
@@ -50,22 +52,23 @@ static int req_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf) {
     ep->rcv.size += xubuflen(ubuf);
     BUG_ON(ep->rcv.waiters < 0);
     if (ep->rcv.waiters)
-	condition_broadcast(&ep->cond);
+        condition_broadcast(&ep->cond);
     mutex_unlock(&ep->lock);
     return 0;
 }
 
-static int req_ep_send(struct epbase *ep, char *ubuf) {
+static int req_ep_send(struct epbase *ep, char *ubuf)
+{
     int rc = -1;
     struct rrhdr *rr_hdr = 0;
     struct rrr rt = {};
     struct socktg *tg = 0;
     struct xcmsg ent = {};
-    
+
     mutex_lock(&ep->lock);
     get_socktg_if(tg, &ep->connectors, 1);
     if (tg)
-	list_move_tail(&tg->item, &ep->connectors);
+        list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
     uuid_copy(rt.uuid, tg->uuid);
     rr_hdr = rqhdr_first(&rt);
@@ -76,28 +79,31 @@ static int req_ep_send(struct epbase *ep, char *ubuf) {
     return rc;
 }
 
-static int req_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf) {
+static int req_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+{
     int rc = -1;
     return rc;
 }
 
-static int req_ep_join(struct epbase *ep, struct socktg *tg, int nfd) {
+static int req_ep_join(struct epbase *ep, struct socktg *tg, int nfd)
+{
     struct socktg *_tg = sp_generic_join(ep, nfd);
 
     if (!_tg)
-	return -1;
+        return -1;
     uuid_generate(_tg->uuid);
     return 0;
 }
 
 
-static int set_proxyto(struct epbase *ep, void *optval, int optlen) {
+static int set_proxyto(struct epbase *ep, void *optval, int optlen)
+{
     int rc, front_eid = *(int *)optval;
     struct epbase *peer = eid_get(front_eid);
 
     if (!peer) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     rc = epbase_proxyto(peer, ep);
     eid_put(front_eid);
@@ -115,21 +121,23 @@ static const ep_getopt getopt_vfptr[] = {
     0,
 };
 
-static int req_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen) {
+static int req_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
+{
     int rc;
     if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     rc = setopt_vfptr[opt] (ep, optval, optlen);
     return rc;
 }
 
-static int req_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen) {
+static int req_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
+{
     int rc;
     if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
-	errno = EINVAL;
-	return -1;
+        errno = EINVAL;
+        return -1;
     }
     rc = getopt_vfptr[opt] (ep, optval, optlen);
     return rc;

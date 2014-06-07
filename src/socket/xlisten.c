@@ -27,16 +27,17 @@
 #include <utils/sockaddr.h>
 #include "xgb.h"
 
-int acceptq_add(struct sockbase *sb, struct sockbase *new) {
+int acceptq_add(struct sockbase *sb, struct sockbase *new)
+{
     int rc = 0;
 
     /* Compatible for multi_listener */
     if (sb->owner)
-	sb = sb->owner;
+        sb = sb->owner;
 
     mutex_lock(&sb->lock);
     if (list_empty(&sb->acceptq.head) && sb->acceptq.waiters > 0) {
-	condition_broadcast(&sb->acceptq.cond);
+        condition_broadcast(&sb->acceptq.cond);
     }
     list_add_tail(&new->acceptq.link, &sb->acceptq.head);
     __emit_pollevents(sb);
@@ -45,16 +46,18 @@ int acceptq_add(struct sockbase *sb, struct sockbase *new) {
 }
 
 
-int __acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new) {
+int __acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new)
+{
     if (!list_empty(&sb->acceptq.head)) {
-	*new = list_first(&sb->acceptq.head, struct sockbase, acceptq.link);
-	list_del_init(&(*new)->acceptq.link);
-	return 0;
+        *new = list_first(&sb->acceptq.head, struct sockbase, acceptq.link);
+        list_del_init(&(*new)->acceptq.link);
+        return 0;
     }
     return -1;
 }
 
-int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new) {
+int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new)
+{
     int rc;
     mutex_lock(&sb->lock);
     rc = __acceptq_rm_nohup(sb, new);
@@ -63,14 +66,15 @@ int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new) {
 }
 
 
-int acceptq_rm(struct sockbase *sb, struct sockbase **new) {
+int acceptq_rm(struct sockbase *sb, struct sockbase **new)
+{
     int rc = -1;
 
     mutex_lock(&sb->lock);
     while (list_empty(&sb->acceptq.head) && !sb->fasync) {
-	sb->acceptq.waiters++;
-	condition_wait(&sb->acceptq.cond, &sb->lock);
-	sb->acceptq.waiters--;
+        sb->acceptq.waiters++;
+        condition_wait(&sb->acceptq.cond, &sb->lock);
+        sb->acceptq.waiters--;
     }
     rc = __acceptq_rm_nohup(sb, new);
     __emit_pollevents(sb);
@@ -78,43 +82,46 @@ int acceptq_rm(struct sockbase *sb, struct sockbase **new) {
     return rc;
 }
 
-int xaccept(int fd) {
+int xaccept(int fd)
+{
     struct sockbase *new = 0;
     struct sockbase *sb = xget(fd);
 
     if (!sb) {
-	errno = EBADF;
-	return -1;
+        errno = EBADF;
+        return -1;
     }
     if (acceptq_rm(sb, &new) < 0) {
-	xput(fd);
-	errno = EAGAIN;
-	return -1;
+        xput(fd);
+        errno = EAGAIN;
+        return -1;
     }
     xput(fd);
     return new->fd;
 }
 
-int _xlisten(int pf, const char *addr) {
+int _xlisten(int pf, const char *addr)
+{
     int fd;
 
     if ((fd = xsocket(pf, XLISTENER)) < 0)
-	return -1;
+        return -1;
     if (xbind(fd, addr) != 0) {
-	xclose(fd);
-	return -1;
+        xclose(fd);
+        return -1;
     }
     return fd;
 }
 
 
-int xlisten(const char *addr) {
+int xlisten(const char *addr)
+{
     int pf = sockaddr_pf(addr);
     char sockaddr[TP_SOCKADDRLEN] = {};
 
     if (pf < 0 || sockaddr_addr(addr, sockaddr, sizeof(sockaddr)) != 0) {
-	errno = EPROTO;
-	return -1;
+        errno = EPROTO;
+        return -1;
     }
     return _xlisten(pf, sockaddr);
 }
