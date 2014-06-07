@@ -91,7 +91,7 @@ static void xmul_listener_close(struct sockbase *sb)
 }
 
 static struct sockbase *xmul_alloc() {
-    struct sockbase *sb = (struct sockbase *)mem_zalloc(sizeof(*sb));
+    struct sockbase *sb = TNEW(struct sockbase);
 
     if (sb)
         xsock_init(sb);

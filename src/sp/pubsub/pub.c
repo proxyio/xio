@@ -23,7 +23,7 @@
 #include "pub.h"
 
 static struct epbase *pub_ep_alloc() {
-    struct pub_ep *pub_ep = (struct pub_ep *)mem_zalloc(sizeof(*pub_ep));
+    struct pub_ep *pub_ep = TNEW(struct pub_ep);
 
     if (pub_ep) {
         epbase_init(&pub_ep->base);

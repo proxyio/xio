@@ -70,13 +70,13 @@ typedef struct eloop {
 
 static inline ev_t *ev_new()
 {
-    ev_t *ev = (ev_t *)mem_zalloc(sizeof(*ev));
+    ev_t *ev = TNEW(ev_t);
     return ev;
 }
 
 static inline eloop_t *eloop_new()
 {
-    eloop_t *el = (eloop_t *)mem_zalloc(sizeof(*el));
+    eloop_t *el = TNEW(eloop_t);
     return el;
 }
 
@@ -84,9 +84,8 @@ static inline int eloop_init(eloop_t *el, int size, int max_io_events, int max_t
 {
     if ((el->efd = epoll_create(size)) < 0)
         return -1;
-    if (!(el->ev_buf =
-                (struct epoll_event *)mem_zalloc(sizeof(*el->ev_buf) * max_io_events))) {
-        close(el->efd);
+    if (!(el->ev_buf = NTNEW(struct epoll_event, max_io_events))) {
+	close(el->efd);
         return -1;
     }
     el->max_to = max_to;

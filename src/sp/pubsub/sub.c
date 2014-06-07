@@ -23,7 +23,7 @@
 #include "sub.h"
 
 static struct epbase *sub_ep_alloc() {
-    struct sub_ep *sub_ep = (struct sub_ep *)mem_zalloc(sizeof(*sub_ep));
+    struct sub_ep *sub_ep = TNEW(struct sub_ep);
 
     if (sub_ep) {
         epbase_init(&sub_ep->base);

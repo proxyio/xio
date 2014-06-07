@@ -43,7 +43,7 @@ typedef struct filepath {
 
 static inline filepath_t *filepath_new()
 {
-    filepath_t *fp = (filepath_t *)mem_zalloc(sizeof(*fp));
+    filepath_t *fp = TNEW(filepath_t);
     return fp;
 }
 

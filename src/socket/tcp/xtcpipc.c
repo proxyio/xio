@@ -127,8 +127,7 @@ static void rcv_head_nonfull(struct sockbase *sb)
 int xio_connector_hndl(eloop_t *el, ev_t *et);
 
 struct sockbase *xio_alloc() {
-    struct tcpipc_sock *self =
-        (struct tcpipc_sock *)mem_zalloc(sizeof(*self));
+    struct tcpipc_sock *self = TNEW(struct tcpipc_sock);
 
     if (self) {
         xsock_init(&self->base);
@@ -367,7 +366,7 @@ static int xio_connector_sg(struct sockbase *sb)
         if (self->iov_length <= NELEM(self->iov, struct iovec)) {
             self->biov = &self->iov[0];
         } else {
-            self->biov = mem_zalloc(self->iov_length * sizeof(struct iovec));
+            self->biov = NTNEW(struct iovec, self->iov_length);
             BUG_ON(!self->biov);
         }
         iov = self->biov;

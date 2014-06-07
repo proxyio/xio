@@ -44,7 +44,7 @@ void xpoll_module_exit()
 }
 
 struct xpitem *xpitem_alloc() {
-    struct xpitem *itm = (struct xpitem *)mem_zalloc(sizeof(*itm));
+    struct xpitem *itm = TNEW(struct xpitem);
     if (itm) {
         INIT_LIST_HEAD(&itm->lru_link);
         spin_init(&itm->lock);
@@ -90,7 +90,7 @@ int xpitem_put(struct xpitem *itm)
 }
 
 struct xpoll_t *xpoll_new() {
-    struct xpoll_t *self = (struct xpoll_t *)mem_zalloc(sizeof(*self));
+    struct xpoll_t *self = TNEW(struct xpoll_t);
     if (self) {
         self->uwaiters = 0;
         atomic_init(&self->ref);

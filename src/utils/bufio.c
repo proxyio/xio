@@ -53,7 +53,7 @@ static inline bio_page_t *bio_last(struct bio *b)
 
 static inline bio_page_t *bio_page_new()
 {
-    bio_page_t *bp = (bio_page_t *)mem_zalloc(sizeof(*bp));
+    bio_page_t *bp = TNEW(bio_page_t);
     return bp;
 }
 
@@ -101,10 +101,8 @@ bio_page_write(bio_page_t *bp, const char *buff, int64_t sz)
     return sz;
 }
 
-
-
 struct bio *bio_new() {
-    struct bio *b = (struct bio *)mem_zalloc(sizeof(*b));
+    struct bio *b = TNEW(struct bio);
     return b;
 }
 

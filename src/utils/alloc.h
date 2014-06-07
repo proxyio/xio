@@ -34,10 +34,12 @@ typedef struct {
     int64_t free_size;
 } mem_stat_t;
 
-
-
 void *mem_alloc(uint32_t size);
 void *mem_zalloc(uint32_t size);
+
+#define TNEW(type) (type *)mem_zalloc(sizeof(type))
+#define NTNEW(type, n) (type *)mem_zalloc(sizeof(type) * n)
+
 void *mem_realloc(void *ptr, uint32_t size);
 void mem_free(void *ptr, uint32_t size);
 void *mem_align(uint32_t alignment, uint32_t size);

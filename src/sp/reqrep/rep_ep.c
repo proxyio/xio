@@ -23,7 +23,7 @@
 #include "rep_ep.h"
 
 static struct epbase *rep_ep_alloc() {
-    struct rep_ep *rep_ep = (struct rep_ep *)mem_zalloc(sizeof(*rep_ep));
+    struct rep_ep *rep_ep = TNEW(struct rep_ep);
 
     if (rep_ep) {
         epbase_init(&rep_ep->base);

@@ -23,7 +23,7 @@
 #include "req_ep.h"
 
 static struct epbase *req_ep_alloc() {
-    struct req_ep *req_ep = (struct req_ep *)mem_zalloc(sizeof(*req_ep));
+    struct req_ep *req_ep = TNEW(struct req_ep);
 
     if (req_ep) {
         epbase_init(&req_ep->base);

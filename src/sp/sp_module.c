@@ -283,7 +283,7 @@ void eid_put(int eid)
 }
 
 struct tgtd *tgtd_new() {
-    struct tgtd *tg = (struct tgtd *)mem_zalloc(sizeof(*tg));
+    struct tgtd *tg = TNEW(struct tgtd);
     if (tg) {
         INIT_LIST_HEAD(&tg->snd_cache);
     }

@@ -82,7 +82,7 @@ static void rmlistener(struct ssmap_node *node)
  ******************************************************************************/
 
 static struct sockbase *xinp_alloc() {
-    struct inproc_sock *self = (struct inproc_sock *)mem_zalloc(sizeof(*self));
+    struct inproc_sock *self = TNEW(struct inproc_sock);
 
     if (self) {
         xsock_init(&self->base);

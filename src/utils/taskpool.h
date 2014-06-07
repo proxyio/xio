@@ -41,7 +41,7 @@ typedef struct taskpool {
 
 static inline taskpool_t *taskpool_new()
 {
-    taskpool_t *tp = (taskpool_t *)mem_zalloc(sizeof(*tp));
+    taskpool_t *tp = TNEW(taskpool_t);
     return tp;
 }
 
@@ -58,7 +58,7 @@ static inline int taskpool_init(taskpool_t *tp, int w)
     tp->stopping = true;
     tp->tasks = 0;
     tp->workers = w;
-    if (!(tp->threads = (thread_t **)mem_zalloc(sizeof(thread_t *) * w)))
+    if (!(tp->threads = NTNEW(thread_t *, w)))
         return -1;
     mutex_init(&tp->mutex);
     condition_init(&tp->cond);

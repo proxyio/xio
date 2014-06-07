@@ -32,7 +32,7 @@ struct __task {
 };
 
 static inline struct __task *__task_new() {
-    struct __task *te = (struct __task *)mem_zalloc(sizeof(*te));
+    struct __task *te = TNEW(struct __task);
     return te;
 }
 
