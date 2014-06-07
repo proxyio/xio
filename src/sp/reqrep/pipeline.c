@@ -36,38 +36,38 @@ static void dunlock(struct epbase *ep1, struct epbase *ep2)
 }
 
 
-static struct socktg *rrbin_forward(struct epbase *ep, char *ubuf) {
-    struct socktg *tg = list_first(&ep->connectors, struct socktg, item);
+static struct tgtd *rrbin_forward(struct epbase *ep, char *ubuf) {
+    struct tgtd *tg = list_first(&ep->connectors, struct tgtd, item);
 
     list_move_tail(&tg->item, &ep->connectors);
     return tg;
 }
 
-static struct socktg *route_backward(struct epbase *ep, char *ubuf) {
+static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
     struct rrr *rt = rt_prev(ubuf);
-    struct socktg *tg = 0;
+    struct tgtd *tg = 0;
 
-    get_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    get_tgtd_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
     return tg;
 }
 
-static int receiver_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
-    struct socktg *target = rrbin_forward(peer, ubuf);
+    struct tgtd *target = rrbin_forward(peer, ubuf);
 
     if (uuid_compare(r->uuid, tg->uuid))
         uuid_copy(tg->uuid, r->uuid);
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
-    __socktg_try_enable_out(target);
+    __tgtd_try_enable_out(target);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
 }
 
-static int dispatcher_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct xmsg *msg;
     struct rrr rt = {};
@@ -85,24 +85,24 @@ static int dispatcher_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
 }
 
 
-static int dispatcher_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
-    struct socktg *target = route_backward(peer, ubuf);
+    struct tgtd *target = route_backward(peer, ubuf);
 
     if (!target)
         return -1;
     rr_hdr->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
-    __socktg_try_enable_out(target);
+    __tgtd_try_enable_out(target);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
 }
 
-static int receiver_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct xmsg *msg = 0;
 

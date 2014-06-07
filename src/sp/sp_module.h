@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SP_MODULE_
-#define _XIO_SP_MODULE_
+#ifndef _SP_MODULE_
+#define _SP_MODULE_
 
 #include <uuid/uuid.h>
 #include <utils/list.h>
@@ -37,24 +37,24 @@
 
 
 struct epbase;
-struct socktg;
+struct tgtd;
 struct epbase_vfptr {
     int sp_family;
     int sp_type;
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
     int  (*send)     (struct epbase *ep, char *ubuf);
-    int  (*rm)      (struct epbase *ep, struct socktg *tg, char **ubuf);
-    int  (*add)     (struct epbase *ep, struct socktg *tg, char *ubuf);
-    int  (*join)    (struct epbase *ep, struct socktg *tg, int fd);
+    int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
+    int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
+    int  (*join)    (struct epbase *ep, struct tgtd *tg, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
 };
 
-struct socktg *sp_generic_join(struct epbase *ep, int fd);
+struct tgtd *sp_generic_join(struct epbase *ep, int fd);
 
-struct socktg {
+struct tgtd {
     struct epbase *owner;
     struct poll_ent ent;
     int fd;
@@ -64,12 +64,12 @@ struct socktg {
     struct list_head snd_cache;
 };
 
-struct socktg *socktg_new();
-void socktg_free(struct socktg *tg);
-void sg_add_tg(struct socktg *tg);
-void sg_rm_tg(struct socktg *tg);
-void sg_update_tg(struct socktg *tg, u32 ev);
-void __socktg_try_enable_out(struct socktg *tg);
+struct tgtd *tgtd_new();
+void tgtd_free(struct tgtd *tg);
+void sg_add_tg(struct tgtd *tg);
+void sg_rm_tg(struct tgtd *tg);
+void sg_update_tg(struct tgtd *tg, u32 ev);
+void __tgtd_try_enable_out(struct tgtd *tg);
 
 
 struct skbuf {
@@ -103,15 +103,15 @@ struct epbase {
 void epbase_init(struct epbase *ep);
 void epbase_exit(struct epbase *ep);
 
-#define walk_socktg(tg, head)				\
-    walk_each_entry(tg, head, struct socktg, item)
+#define walk_tgtd(tg, head)				\
+    walk_each_entry(tg, head, struct tgtd, item)
 
-#define walk_socktg_s(tg, tmp, head)				\
-    walk_each_entry_s(tg, tmp, head, struct socktg, item)
+#define walk_tgtd_s(tg, tmp, head)			\
+    walk_each_entry_s(tg, tmp, head, struct tgtd, item)
 
-#define get_socktg_if(tg, head, cond) ({			\
+#define get_tgtd_if(tg, head, cond) ({				\
 	    int ok = false;					\
-	    walk_each_entry(tg, head, struct socktg, item) {	\
+	    walk_each_entry(tg, head, struct tgtd, item) {	\
 		if (cond) {					\
 		    ok = true;					\
 		    break;					\
@@ -122,22 +122,22 @@ void epbase_exit(struct epbase *ep);
 	    tg;							\
 	})
 
-#define rm_socktg_if(tg, head, cond) ({			\
-	    if ((tg = get_socktg_if(tg, head, cond)))	\
+#define rm_tgtd_if(tg, head, cond) ({			\
+	    if ((tg = get_tgtd_if(tg, head, cond)))	\
 		list_del_init(&tg->item);		\
 	    tg;						\
 	})
 
 
 #define walk_disable_out_tg(tg, head)			\
-    walk_each_entry(tg, head, struct socktg, out_item)
+    walk_each_entry(tg, head, struct tgtd, out_item)
 
 #define walk_disable_out_tg_s(tg, tmp, head)			\
-    walk_each_entry_s(tg, tmp, head, struct socktg, out_item)
+    walk_each_entry_s(tg, tmp, head, struct tgtd, out_item)
 
 
 
-#define XIO_MAX_ENDPOINTS 10240
+#define MAX_ENDPOINTS 10240
 
 struct sp_global {
     int exiting;
@@ -148,10 +148,10 @@ struct sp_global {
      * find out whether context is initialised. If it is null, context is
      * uninitialised.
      */
-    struct epbase *endpoints[XIO_MAX_ENDPOINTS];
+    struct epbase *endpoints[MAX_ENDPOINTS];
 
     /* Stack of unused ep descriptors.  */
-    int unused[XIO_MAX_ENDPOINTS];
+    int unused[MAX_ENDPOINTS];
 
     /* Number of actual ep. */
     size_t nendpoints;

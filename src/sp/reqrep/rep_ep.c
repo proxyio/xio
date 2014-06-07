@@ -45,10 +45,10 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
     int rc = -1;
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
     struct rrr *rt = rt_cur(ubuf);
-    struct socktg *tg = 0;
+    struct tgtd *tg = 0;
 
     mutex_lock(&ep->lock);
-    get_socktg_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    get_tgtd_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
     if (tg)
         list_move(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
@@ -63,7 +63,7 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
     return rc;
 }
 
-static int rep_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrr *r = rt_cur(ubuf);
@@ -81,15 +81,15 @@ static int rep_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf)
     return 0;
 }
 
-static int rep_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     int rc = -1;
     return rc;
 }
 
-static int rep_ep_join(struct epbase *ep, struct socktg *tg, int nfd)
+static int rep_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
 {
-    struct socktg *_tg = sp_generic_join(ep, nfd);
+    struct tgtd *_tg = sp_generic_join(ep, nfd);
 
     if (!_tg)
         return -1;

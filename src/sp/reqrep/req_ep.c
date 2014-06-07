@@ -40,7 +40,7 @@ static void req_ep_destroy(struct epbase *ep)
     mem_free(req_ep, sizeof(*req_ep));
 }
 
-static int req_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
@@ -62,11 +62,11 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     int rc = -1;
     struct rrhdr *rr_hdr = 0;
     struct rrr rt = {};
-    struct socktg *tg = 0;
+    struct tgtd *tg = 0;
     struct xcmsg ent = {};
 
     mutex_lock(&ep->lock);
-    get_socktg_if(tg, &ep->connectors, 1);
+    get_tgtd_if(tg, &ep->connectors, 1);
     if (tg)
         list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
@@ -79,15 +79,15 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     return rc;
 }
 
-static int req_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+static int req_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     int rc = -1;
     return rc;
 }
 
-static int req_ep_join(struct epbase *ep, struct socktg *tg, int nfd)
+static int req_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
 {
-    struct socktg *_tg = sp_generic_join(ep, nfd);
+    struct tgtd *_tg = sp_generic_join(ep, nfd);
 
     if (!_tg)
         return -1;

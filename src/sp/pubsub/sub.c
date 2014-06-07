@@ -44,21 +44,21 @@ static int sub_ep_send(struct epbase *ep, char *ubuf)
     return rc;
 }
 
-static int sub_ep_add(struct epbase *ep, struct socktg *tg, char *ubuf)
+static int sub_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     int rc = 0;
     return rc;
 }
 
-static int sub_ep_rm(struct epbase *ep, struct socktg *tg, char **ubuf)
+static int sub_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     int rc = 0;
     return rc;
 }
 
-static int sub_ep_join(struct epbase *ep, struct socktg *tg, int nfd)
+static int sub_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
 {
-    struct socktg *_tg = sp_generic_join(ep, nfd);
+    struct tgtd *_tg = sp_generic_join(ep, nfd);
 
     if (!_tg)
         return -1;

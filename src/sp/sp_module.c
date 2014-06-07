@@ -33,13 +33,13 @@ static int SP_RCVWND = 1048576000;
 void ep_traceback(int eid)
 {
     struct epbase *ep = sg.endpoints[eid];
-    struct socktg *tg;
+    struct tgtd *tg;
 
     DEBUG_ON("%d sndQ %d rcvQ %d", ep->eid, ep->snd.size, ep->rcv.size);
-    walk_socktg(tg, &ep->connectors) {
+    walk_tgtd(tg, &ep->connectors) {
         DEBUG_ON("connector %d sndQ %d", tg->fd, list_empty(&tg->snd_cache));
     }
-    walk_socktg(tg, &ep->listeners) {
+    walk_tgtd(tg, &ep->listeners) {
         DEBUG_ON("listener %d", tg->fd);
     }
     walk_disable_out_tg(tg, &ep->disable_pollout_socks) {
@@ -47,7 +47,7 @@ void ep_traceback(int eid)
     }
 }
 
-static void socktg_bad_status(struct socktg *tg)
+static void tgtd_bad_status(struct tgtd *tg)
 {
     struct epbase *ep = tg->owner;
 
@@ -61,16 +61,16 @@ static void socktg_bad_status(struct socktg *tg)
     ep->bad_num++;
     mutex_unlock(&ep->lock);
     DEBUG_OFF("ep %d socket %d bad status", ep->eid, tg->fd);
-    socktg_free(tg);
+    tgtd_free(tg);
 }
 
-static void socktg_try_disable_out(struct socktg *tg)
+static void tgtd_try_disable_out(struct tgtd *tg)
 {
     struct epbase *ep = tg->owner;
 
     mutex_lock(&ep->lock);
     if (list_empty(&ep->snd.head) && list_empty(&tg->snd_cache)
-            && !attached(&tg->out_item)) {
+	&& !attached(&tg->out_item)) {
         BUG_ON(!(tg->ent.events & XPOLLOUT));
         sg_update_tg(tg, tg->ent.events & ~XPOLLOUT);
         list_move(&tg->out_item, &ep->disable_pollout_socks);
@@ -81,7 +81,7 @@ static void socktg_try_disable_out(struct socktg *tg)
 }
 
 /* WARNING: ep->lock must be hold */
-void __socktg_try_enable_out(struct socktg *tg)
+void __tgtd_try_enable_out(struct tgtd *tg)
 {
     struct epbase *ep = tg->owner;
 
@@ -94,23 +94,23 @@ void __socktg_try_enable_out(struct socktg *tg)
     }
 }
 
-void socktg_try_enable_out(struct socktg *tg)
+void tgtd_try_enable_out(struct tgtd *tg)
 {
     struct epbase *ep = tg->owner;
 
     mutex_lock(&ep->lock);
-    __socktg_try_enable_out(tg);
+    __tgtd_try_enable_out(tg);
     mutex_unlock(&ep->lock);
 }
 
-void sg_add_tg(struct socktg *tg)
+void sg_add_tg(struct tgtd *tg)
 {
     int rc;
     rc = xpoll_ctl(sg.pollid, XPOLL_ADD, &tg->ent);
     BUG_ON(rc);
 }
 
-void sg_update_tg(struct socktg *tg, u32 ev)
+void sg_update_tg(struct tgtd *tg, u32 ev)
 {
     int rc;
     tg->ent.events = ev;
@@ -118,7 +118,7 @@ void sg_update_tg(struct socktg *tg, u32 ev)
     BUG_ON(rc);
 }
 
-static void connector_event_hndl(struct socktg *tg)
+static void connector_event_hndl(struct tgtd *tg)
 {
     struct epbase *ep = tg->owner;
     int rc;
@@ -149,16 +149,16 @@ static void connector_event_hndl(struct socktg *tg)
             } else
                 DEBUG_OFF("ep %d socket %d send ok", ep->eid, tg->fd);
         } else {
-            socktg_try_disable_out(tg);
+            tgtd_try_disable_out(tg);
         }
     }
     if (happened & XPOLLERR) {
         DEBUG_OFF("ep %d connector %d epipe", ep->eid, tg->fd);
-        socktg_bad_status(tg);
+        tgtd_bad_status(tg);
     }
 }
 
-static void listener_event_hndl(struct socktg *tg)
+static void listener_event_hndl(struct tgtd *tg)
 {
     int rc, nfd, happened;
     int on, optlen = sizeof(on);
@@ -180,7 +180,7 @@ static void listener_event_hndl(struct socktg *tg)
     }
     if (happened & XPOLLERR) {
         DEBUG_OFF("ep %d listener %d epipe", ep->eid, tg->fd);
-        socktg_bad_status(tg);
+        tgtd_bad_status(tg);
     }
 }
 
@@ -188,7 +188,7 @@ static void event_hndl(struct poll_ent *ent)
 {
     int socktype = 0;
     int optlen;
-    struct socktg *tg = (struct socktg *)ent->self;
+    struct tgtd *tg = (struct tgtd *)ent->self;
 
     BUG_ON(tg->fd != tg->ent.fd);
     tg->ent.happened = ent->happened;
@@ -244,7 +244,7 @@ static int po_routine_worker(void *args)
             DEBUG_OFF("socket %d with events %s", ent[i].fd, estr);
             event_hndl(&ent[i]);
         }
-SD_EPBASE:
+    SD_EPBASE:
         shutdown_epbase();
     }
     shutdown_epbase();
@@ -265,7 +265,7 @@ void sp_module_init()
     mutex_init(&sg.lock);
     sg.pollid = xpoll_create();
     BUG_ON(sg.pollid < 0);
-    for (eid = 0; eid < XIO_MAX_ENDPOINTS; eid++) {
+    for (eid = 0; eid < MAX_ENDPOINTS; eid++) {
         sg.unused[eid] = eid;
     }
     sg.nendpoints = 0;
@@ -303,7 +303,7 @@ int eid_alloc(int sp_family, int sp_type)
         return -1;
     ep->vfptr = *vfptr;
     mutex_lock(&sg.lock);
-    BUG_ON(sg.nendpoints >= XIO_MAX_ENDPOINTS);
+    BUG_ON(sg.nendpoints >= MAX_ENDPOINTS);
     eid = sg.unused[sg.nendpoints++];
     ep->eid = eid;
     sg.endpoints[eid] = ep;
@@ -336,8 +336,8 @@ void eid_put(int eid)
     }
 }
 
-struct socktg *socktg_new() {
-    struct socktg *tg = (struct socktg *)mem_zalloc(sizeof(*tg));
+struct tgtd *tgtd_new() {
+    struct tgtd *tg = (struct tgtd *)mem_zalloc(sizeof(*tg));
     if (tg) {
         INIT_LIST_HEAD(&tg->out_item);
         INIT_LIST_HEAD(&tg->snd_cache);
@@ -345,7 +345,7 @@ struct socktg *socktg_new() {
     return tg;
 }
 
-void socktg_free(struct socktg *tg)
+void tgtd_free(struct tgtd *tg)
 {
     mem_free(tg, sizeof(*tg));
 }
@@ -380,7 +380,7 @@ void epbase_init(struct epbase *ep)
 void epbase_exit(struct epbase *ep)
 {
     struct xmsg *msg, *nmsg;
-    struct socktg *tg, *ntg;
+    struct tgtd *tg, *ntg;
     struct list_head closed_head;
 
     INIT_LIST_HEAD(&closed_head);
@@ -396,11 +396,11 @@ void epbase_exit(struct epbase *ep)
     list_splice(&ep->connectors, &closed_head);
     list_splice(&ep->bad_socks, &closed_head);
 
-    walk_socktg_s(tg, ntg, &closed_head) {
+    walk_tgtd_s(tg, ntg, &closed_head) {
         list_del_init(&tg->item);
         xclose(tg->fd);
         DEBUG_OFF("ep %d close socket %d", ep->eid, tg->fd);
-        socktg_free(tg);
+        tgtd_free(tg);
     }
 
     BUG_ON(atomic_read(&ep->ref));
