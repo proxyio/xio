@@ -42,26 +42,6 @@ void ep_traceback(int eid)
     walk_tgtd(tg, &ep->listeners) {
         DEBUG_ON("listener %d", tg->fd);
     }
-    walk_disable_out_tg(tg, &ep->disable_pollout_socks) {
-        DEBUG_ON("no-out connector %d sndQ %d", tg->fd, list_empty(&tg->snd_cache));
-    }
-}
-
-static void tgtd_bad_status(struct tgtd *tg)
-{
-    struct epbase *ep = tg->owner;
-
-    mutex_lock(&ep->lock);
-    xclose(tg->fd);
-    list_del_init(&tg->item);
-    if (attached(&tg->out_item)) {
-        ep->disable_out_num--;
-        list_del_init(&tg->out_item);
-    }
-    ep->bad_num++;
-    mutex_unlock(&ep->lock);
-    DEBUG_OFF("ep %d socket %d bad status", ep->eid, tg->fd);
-    tgtd_free(tg);
 }
 
 static void tgtd_try_disable_out(struct tgtd *tg)
@@ -69,27 +49,21 @@ static void tgtd_try_disable_out(struct tgtd *tg)
     struct epbase *ep = tg->owner;
 
     mutex_lock(&ep->lock);
-    if (list_empty(&ep->snd.head) && list_empty(&tg->snd_cache)
-	&& !attached(&tg->out_item)) {
-        BUG_ON(!(tg->ent.events & XPOLLOUT));
+    if (list_empty(&ep->snd.head) && list_empty(&tg->snd_cache) &&
+	(tg->ent.events & XPOLLOUT)) {
         sg_update_tg(tg, tg->ent.events & ~XPOLLOUT);
-        list_move(&tg->out_item, &ep->disable_pollout_socks);
-        ep->disable_out_num++;
         DEBUG_OFF("ep %d socket %d disable pollout", ep->eid, tg->fd);
     }
     mutex_unlock(&ep->lock);
 }
 
-/* WARNING: ep->lock must be hold */
+/* WARNING: the owner's lock must be hold */
 void __tgtd_try_enable_out(struct tgtd *tg)
 {
     struct epbase *ep = tg->owner;
 
-    if (attached(&tg->out_item)) {
-        list_del_init(&tg->out_item);
-        BUG_ON(tg->ent.events & XPOLLOUT);
+    if (!(tg->ent.events & XPOLLOUT)) {
         sg_update_tg(tg, tg->ent.events | XPOLLOUT);
-        ep->disable_out_num--;
         DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, tg->fd);
     }
 }
@@ -154,7 +128,7 @@ static void connector_event_hndl(struct tgtd *tg)
     }
     if (happened & XPOLLERR) {
         DEBUG_OFF("ep %d connector %d epipe", ep->eid, tg->fd);
-        tgtd_bad_status(tg);
+	ep->vfptr.term (ep, tg, tg->fd);
     }
 }
 
@@ -180,7 +154,25 @@ static void listener_event_hndl(struct tgtd *tg)
     }
     if (happened & XPOLLERR) {
         DEBUG_OFF("ep %d listener %d epipe", ep->eid, tg->fd);
-        tgtd_bad_status(tg);
+	ep->vfptr.term (ep, tg, tg->fd);
+    }
+}
+
+
+static void epbase_cleanup_bad_tgtds(struct epbase *ep)
+{
+    struct list_head bad_tgtds = {};
+    struct tgtd *tg, *tmp;
+    
+    INIT_LIST_HEAD(&bad_tgtds);
+    mutex_lock(&ep->lock);
+    list_splice(&ep->bad_socks, &bad_tgtds);
+    mutex_unlock(&ep->lock);
+
+    walk_tgtd_s(tg, tmp, &bad_tgtds) {
+	xclose(tg->fd);
+	DEBUG_OFF("ep %d socket %d bad status", ep->eid, tg->fd);
+        tgtd_free(tg);
     }
 }
 
@@ -204,6 +196,10 @@ static void event_hndl(struct poll_ent *ent)
     default:
         BUG_ON(1);
     }
+
+    /* We do the bad_status tgtd cleanup work here */
+    epbase_cleanup_bad_tgtds(tg->owner);
+
     DEBUG_OFF(sleep(1));
 }
 
@@ -339,7 +335,6 @@ void eid_put(int eid)
 struct tgtd *tgtd_new() {
     struct tgtd *tg = (struct tgtd *)mem_zalloc(sizeof(*tg));
     if (tg) {
-        INIT_LIST_HEAD(&tg->out_item);
         INIT_LIST_HEAD(&tg->snd_cache);
     }
     return tg;
@@ -381,29 +376,20 @@ void epbase_exit(struct epbase *ep)
 {
     struct xmsg *msg, *nmsg;
     struct tgtd *tg, *ntg;
-    struct list_head closed_head;
 
-    INIT_LIST_HEAD(&closed_head);
-    list_splice(&ep->snd.head, &closed_head);
-    list_splice(&ep->rcv.head, &closed_head);
-    walk_msg_s(msg, nmsg, &closed_head) {
+    BUG_ON(atomic_read(&ep->ref));
+
+    list_splice(&ep->snd.head, &ep->rcv.head);
+    walk_msg_s(msg, nmsg, &ep->rcv.head) {
         list_del_init(&msg->item);
         xfreemsg(msg);
     }
-    BUG_ON(!list_empty(&closed_head));
-    INIT_LIST_HEAD(&closed_head);
-    list_splice(&ep->listeners, &closed_head);
-    list_splice(&ep->connectors, &closed_head);
-    list_splice(&ep->bad_socks, &closed_head);
+    BUG_ON(!list_empty(&ep->rcv.head));
 
-    walk_tgtd_s(tg, ntg, &closed_head) {
-        list_del_init(&tg->item);
-        xclose(tg->fd);
-        DEBUG_OFF("ep %d close socket %d", ep->eid, tg->fd);
-        tgtd_free(tg);
-    }
+    list_splice(&ep->listeners, &ep->bad_socks);
+    list_splice(&ep->connectors, &ep->bad_socks);
+    epbase_cleanup_bad_tgtds(ep);
 
-    BUG_ON(atomic_read(&ep->ref));
     atomic_destroy(&ep->ref);
     mutex_destroy(&ep->lock);
     condition_destroy(&ep->cond);

@@ -24,26 +24,23 @@
 #include "sp_module.h"
 
 struct tgtd *sp_generic_join(struct epbase *ep, int fd) {
-    int socktype;
-    int optlen = sizeof(socktype);
     struct tgtd *tg = tgtd_new();
+    int socktype = get_socktype(fd);
 
-    if (!tg)
-        return 0;
-    BUG_ON(xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen));
+    BUG_ON(!tg);
     tg->fd = fd;
     tg->owner = ep;
     tg->ent.fd = fd;
     tg->ent.self = tg;
-    tg->ent.events = (socktype == XLISTENER) ?
-                     XPOLLIN|XPOLLERR : XPOLLIN|XPOLLOUT|XPOLLERR;
     mutex_lock(&ep->lock);
     switch (socktype) {
     case XLISTENER:
+	tg->ent.events = XPOLLIN|XPOLLERR;
         list_add_tail(&tg->item, &ep->listeners);
         ep->listener_num++;
         break;
     case XCONNECTOR:
+	tg->ent.events = XPOLLIN|XPOLLOUT|XPOLLERR;
         list_add_tail(&tg->item, &ep->connectors);
         ep->connector_num++;
         break;
@@ -63,11 +60,10 @@ int sp_add(int eid, int fd)
 
     if (!ep) {
         errno = EBADF;
-        eid_put(eid);
         return -1;
     }
-    BUG_ON(xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen));
-    rc = ep->vfptr.join(ep, 0, fd);
+    if ((rc = ep->vfptr.join(ep, 0, fd)) == 0)
+	xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen);
     eid_put(eid);
     return rc;
 }

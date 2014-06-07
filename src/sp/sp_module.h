@@ -35,6 +35,14 @@
 #include <xio/sp_reqrep.h>
 #include "sp_hdr.h"
 
+static inline int get_socktype(int fd) {
+    int socktype = 0, rc;
+    int optlen = sizeof(socktype);
+
+    rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
+    BUG_ON(rc);
+    return socktype;
+}
 
 struct epbase;
 struct tgtd;
@@ -46,7 +54,8 @@ struct epbase_vfptr {
     int  (*send)     (struct epbase *ep, char *ubuf);
     int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
     int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
-    int  (*join)    (struct epbase *ep, struct tgtd *tg, int fd);
+    int  (*join)    (struct epbase *ep, struct tgtd *parent, int fd);
+    int  (*term)    (struct epbase *ep, struct tgtd *me, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
@@ -57,10 +66,10 @@ struct tgtd *sp_generic_join(struct epbase *ep, int fd);
 struct tgtd {
     struct epbase *owner;
     struct poll_ent ent;
+    u32 bad_status:1;
     int fd;
     uuid_t uuid;
     struct list_head item;
-    struct list_head out_item;
     struct list_head snd_cache;
 };
 
@@ -70,6 +79,9 @@ void sg_add_tg(struct tgtd *tg);
 void sg_rm_tg(struct tgtd *tg);
 void sg_update_tg(struct tgtd *tg, u32 ev);
 void __tgtd_try_enable_out(struct tgtd *tg);
+
+int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
+int sp_generic_term_by_fd(struct epbase *ep, int fd);
 
 
 struct skbuf {
@@ -128,15 +140,6 @@ void epbase_exit(struct epbase *ep);
 	    tg;						\
 	})
 
-
-#define walk_disable_out_tg(tg, head)			\
-    walk_each_entry(tg, head, struct tgtd, out_item)
-
-#define walk_disable_out_tg_s(tg, tmp, head)			\
-    walk_each_entry_s(tg, tmp, head, struct tgtd, out_item)
-
-
-
 #define MAX_ENDPOINTS 10240
 
 struct sp_global {
@@ -144,10 +147,9 @@ struct sp_global {
     mutex_t lock;
 
     /* The global table of existing ep. The descriptor representing
-     * the ep is the index to this table. This pointer is also used to
-     * find out whether context is initialised. If it is null, context is
-     * uninitialised.
-     */
+       the ep is the index to this table. This pointer is also used to
+       find out whether context is initialised. If it is null, context is
+       uninitialised. */
     struct epbase *endpoints[MAX_ENDPOINTS];
 
     /* Stack of unused ep descriptors.  */

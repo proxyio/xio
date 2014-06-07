@@ -85,9 +85,15 @@ static int req_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static int req_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
+static int req_ep_term(struct epbase *ep, struct tgtd *tg, int fd)
 {
-    struct tgtd *_tg = sp_generic_join(ep, nfd);
+    int rc = tg ? sp_generic_term_by_tgtd(ep, tg) : sp_generic_term_by_fd(ep, fd);
+    return rc;
+}
+
+static int req_ep_join(struct epbase *ep, struct tgtd *tg, int fd)
+{
+    struct tgtd *_tg = sp_generic_join(ep, fd);
 
     if (!_tg)
         return -1;
@@ -152,6 +158,7 @@ struct epbase_vfptr req_epbase = {
     .add = req_ep_add,
     .rm = req_ep_rm,
     .join = req_ep_join,
+    .term = req_ep_term,
     .setopt = req_ep_setopt,
     .getopt = req_ep_getopt,
 };

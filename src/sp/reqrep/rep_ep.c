@@ -87,14 +87,21 @@ static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static int rep_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
+static int rep_ep_join(struct epbase *ep, struct tgtd *parent, int fd)
 {
-    struct tgtd *_tg = sp_generic_join(ep, nfd);
+    struct tgtd *_tg = sp_generic_join(ep, fd);
 
     if (!_tg)
         return -1;
     return 0;
 }
+
+static int rep_ep_term(struct epbase *ep, struct tgtd *tg, int fd)
+{
+    int rc = tg ? sp_generic_term_by_tgtd(ep, tg) : sp_generic_term_by_fd(ep, fd);
+    return rc;
+}
+
 
 static int set_proxyto(struct epbase *ep, void *optval, int optlen)
 {
@@ -151,6 +158,7 @@ struct epbase_vfptr rep_epbase = {
     .add = rep_ep_add,
     .rm = rep_ep_rm,
     .join = rep_ep_join,
+    .term = rep_ep_term,
     .setopt = rep_ep_setopt,
     .getopt = rep_ep_getopt,
 };
