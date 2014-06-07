@@ -39,8 +39,7 @@ static inline int get_socktype(int fd) {
     int socktype = 0, rc;
     int optlen = sizeof(socktype);
 
-    rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
-    BUG_ON(rc);
+    BUG_ON((rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen)));
     return socktype;
 }
 
@@ -51,11 +50,11 @@ struct epbase_vfptr {
     int sp_type;
     struct epbase *(*alloc) ();
     void (*destroy) (struct epbase *ep);
-    int  (*send)     (struct epbase *ep, char *ubuf);
+    int  (*send)    (struct epbase *ep, char *ubuf);
     int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
     int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
     int  (*join)    (struct epbase *ep, struct tgtd *parent, int fd);
-    int  (*term)    (struct epbase *ep, struct tgtd *me, int fd);
+    int  (*term)    (struct epbase *ep, struct tgtd *tg, int fd);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
@@ -68,17 +67,17 @@ struct tgtd {
     struct poll_ent ent;
     u32 bad_status:1;
     int fd;
-    uuid_t uuid;
     struct list_head item;
+    uuid_t uuid;
     struct list_head snd_cache;
 };
 
 struct tgtd *tgtd_new();
 void tgtd_free(struct tgtd *tg);
+
 void sg_add_tg(struct tgtd *tg);
 void sg_rm_tg(struct tgtd *tg);
 void sg_update_tg(struct tgtd *tg, u32 ev);
-void __tgtd_try_enable_out(struct tgtd *tg);
 
 int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd(struct epbase *ep, int fd);
@@ -105,11 +104,9 @@ struct epbase {
     u64 listener_num;
     u64 connector_num;
     u64 bad_num;
-    u64 disable_out_num;
     struct list_head listeners;
     struct list_head connectors;
     struct list_head bad_socks;
-    struct list_head disable_pollout_socks;
 };
 
 void epbase_init(struct epbase *ep);

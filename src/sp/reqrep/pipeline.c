@@ -72,8 +72,10 @@ static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     struct xmsg *msg;
     struct rrr rt = {};
 
-    if (list_empty(&tg->snd_cache))
-        return -1;
+    if (list_empty(&tg->snd_cache)) {
+	__tgtd_try_disable_out(tg);
+	return -1;
+    }
     uuid_copy(rt.uuid, tg->uuid);
     msg = list_first(&tg->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
@@ -106,8 +108,10 @@ static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct xmsg *msg = 0;
 
-    if (list_empty(&tg->snd_cache))
+    if (list_empty(&tg->snd_cache)) {
+	__tgtd_try_disable_out(tg);
         return -1;
+    }
     msg = list_first(&tg->snd_cache, struct xmsg, item);
     *ubuf = msg->vec.xiov_base;
     list_del_init(&msg->item);

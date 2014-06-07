@@ -84,6 +84,8 @@ static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     int rc = -1;
+    if (tg->ent.events & XPOLLOUT)
+	sg_update_tg(tg, tg->ent.events & ~XPOLLOUT);	    
     return rc;
 }
 

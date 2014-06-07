@@ -29,54 +29,6 @@ struct sp_global sg;
 static int SP_SNDWND = 1048576000;
 static int SP_RCVWND = 1048576000;
 
-
-void ep_traceback(int eid)
-{
-    struct epbase *ep = sg.endpoints[eid];
-    struct tgtd *tg;
-
-    DEBUG_ON("%d sndQ %d rcvQ %d", ep->eid, ep->snd.size, ep->rcv.size);
-    walk_tgtd(tg, &ep->connectors) {
-        DEBUG_ON("connector %d sndQ %d", tg->fd, list_empty(&tg->snd_cache));
-    }
-    walk_tgtd(tg, &ep->listeners) {
-        DEBUG_ON("listener %d", tg->fd);
-    }
-}
-
-static void tgtd_try_disable_out(struct tgtd *tg)
-{
-    struct epbase *ep = tg->owner;
-
-    mutex_lock(&ep->lock);
-    if (list_empty(&ep->snd.head) && list_empty(&tg->snd_cache) &&
-	(tg->ent.events & XPOLLOUT)) {
-        sg_update_tg(tg, tg->ent.events & ~XPOLLOUT);
-        DEBUG_OFF("ep %d socket %d disable pollout", ep->eid, tg->fd);
-    }
-    mutex_unlock(&ep->lock);
-}
-
-/* WARNING: the owner's lock must be hold */
-void __tgtd_try_enable_out(struct tgtd *tg)
-{
-    struct epbase *ep = tg->owner;
-
-    if (!(tg->ent.events & XPOLLOUT)) {
-        sg_update_tg(tg, tg->ent.events | XPOLLOUT);
-        DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, tg->fd);
-    }
-}
-
-void tgtd_try_enable_out(struct tgtd *tg)
-{
-    struct epbase *ep = tg->owner;
-
-    mutex_lock(&ep->lock);
-    __tgtd_try_enable_out(tg);
-    mutex_unlock(&ep->lock);
-}
-
 void sg_add_tg(struct tgtd *tg)
 {
     int rc;
@@ -122,8 +74,6 @@ static void connector_event_hndl(struct tgtd *tg)
                           tg->fd, errno);
             } else
                 DEBUG_OFF("ep %d socket %d send ok", ep->eid, tg->fd);
-        } else {
-            tgtd_try_disable_out(tg);
         }
     }
     if (happened & XPOLLERR) {
@@ -134,19 +84,19 @@ static void connector_event_hndl(struct tgtd *tg)
 
 static void listener_event_hndl(struct tgtd *tg)
 {
-    int rc, nfd, happened;
+    int rc, fd, happened;
     int on, optlen = sizeof(on);
     struct epbase *ep = tg->owner;
 
     happened = tg->ent.happened;
     if (happened & XPOLLIN) {
-        while ((nfd = xaccept(tg->fd)) >= 0) {
-            rc = xsetopt(nfd, XL_SOCKET, XNOBLOCK, &on, optlen);
+        while ((fd = xaccept(tg->fd)) >= 0) {
+            rc = xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen);
             BUG_ON(rc);
-            DEBUG_OFF("%d join fd %d begin", ep->eid, nfd);
-            if ((rc = ep->vfptr.join(ep, tg, nfd)) < 0) {
-                xclose(nfd);
-                DEBUG_OFF("%d join fd %d with errno %d", ep->eid, nfd, errno);
+            DEBUG_OFF("%d join fd %d begin", ep->eid, fd);
+            if ((rc = ep->vfptr.join(ep, tg, fd)) < 0) {
+                xclose(fd);
+                DEBUG_OFF("%d join fd %d with errno %d", ep->eid, fd, errno);
             }
         }
         if (errno != EAGAIN)
@@ -365,11 +315,9 @@ void epbase_init(struct epbase *ep)
     ep->listener_num = 0;
     ep->connector_num = 0;
     ep->bad_num = 0;
-    ep->disable_out_num = 0;
     INIT_LIST_HEAD(&ep->listeners);
     INIT_LIST_HEAD(&ep->connectors);
     INIT_LIST_HEAD(&ep->bad_socks);
-    INIT_LIST_HEAD(&ep->disable_pollout_socks);
 }
 
 void epbase_exit(struct epbase *ep)

@@ -114,4 +114,32 @@ static inline void rt_append(char *ubuf, struct rrr *r)
 
 
 
+struct rr_tgtd {
+    struct tgtd base;
+    uuid_t uuid;
+    struct list_head snd_cache;
+};
+
+static inline void __tgtd_try_enable_out(struct tgtd *tg)
+{
+    struct epbase *ep = tg->owner;
+
+    if (!(tg->ent.events & XPOLLOUT)) {
+        sg_update_tg(tg, tg->ent.events | XPOLLOUT);
+        DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, tg->fd);
+    }
+}
+
+static inline void __tgtd_try_disable_out(struct tgtd *tg)
+{
+    struct epbase *ep = tg->owner;
+
+    if ((tg->ent.events & XPOLLOUT)) {
+	sg_update_tg(tg, tg->ent.events & ~XPOLLOUT);
+        DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, tg->fd);
+    }
+}
+
+
+
 #endif

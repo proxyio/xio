@@ -40,6 +40,7 @@ int sp_recv(int eid, char **ubuf)
     }
     if (ep->shutdown) {
         mutex_unlock(&ep->lock);
+	eid_put(eid);
         errno = EBADF;
         return -1;
     }
