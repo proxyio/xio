@@ -123,8 +123,8 @@ struct skbuf_head {
 
 
 /* Default snd/rcv buffer size = 1G */
-static int SP_SNDWND = 1048576000;
-static int SP_RCVWND = 1048576000;
+#define SP_SNDWND 1048576000
+#define SP_RCVWND 1048576000
 
 struct epbase {
     struct epbase_vfptr vfptr;
