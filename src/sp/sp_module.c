@@ -292,8 +292,8 @@ void epbase_init(struct epbase *ep)
     mutex_init(&ep->lock);
     condition_init(&ep->cond);
 
-    skb_fifo_init(&ep->rcv, SP_RCVWND);
-    skb_fifo_init(&ep->snd, SP_SNDWND);
+    skbuf_head_init(&ep->rcv, SP_RCVWND);
+    skbuf_head_init(&ep->snd, SP_SNDWND);
 
     ep->listener_num = 0;
     ep->connector_num = 0;

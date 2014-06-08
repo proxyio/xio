@@ -59,7 +59,7 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 
     if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))
         uuid_copy(get_rrtgtd(tg)->uuid, rt->uuid);
-    skb_fifo_in(&get_rrtgtd(go)->snd, ubuf);
+    skbuf_head_in(&get_rrtgtd(go)->snd, ubuf);
     __tgtd_try_enable_out(go);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
@@ -68,12 +68,12 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct rtentry rt = {};
-    if (skb_fifo_empty(&get_rrtgtd(tg)->snd)) {
+    if (skbuf_head_empty(&get_rrtgtd(tg)->snd)) {
 	__tgtd_try_disable_out(tg);
 	return -1;
     }
     uuid_copy(rt.uuid, get_rrtgtd(tg)->uuid);
-    skb_fifo_out(&get_rrtgtd(tg)->snd, *ubuf);
+    skbuf_head_out(&get_rrtgtd(tg)->snd, *ubuf);
     rt_append(*ubuf, &rt);
     DEBUG_OFF("ep %d req %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
     return 0;
@@ -89,7 +89,7 @@ static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
     if (!back)
         return -1;
     pg->ttl--;
-    skb_fifo_in(&get_rrtgtd(back)->snd, ubuf);
+    skbuf_head_in(&get_rrtgtd(back)->snd, ubuf);
     __tgtd_try_enable_out(back);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
@@ -97,11 +97,11 @@ static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-    if (skb_fifo_empty(&get_rrtgtd(tg)->snd)) {
+    if (skbuf_head_empty(&get_rrtgtd(tg)->snd)) {
 	__tgtd_try_disable_out(tg);
         return -1;
     }
-    skb_fifo_out(&get_rrtgtd(tg)->snd, *ubuf);
+    skbuf_head_out(&get_rrtgtd(tg)->snd, *ubuf);
     DEBUG_OFF("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
     return 0;
 }

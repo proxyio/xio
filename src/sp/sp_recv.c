@@ -51,7 +51,7 @@ int sp_recv(int eid, char **ubuf)
         errno = EBADF;
         return -1;
     }
-    skb_fifo_out(&ep->rcv, *ubuf);
+    skbuf_head_out(&ep->rcv, *ubuf);
 
     mutex_unlock(&ep->lock);
     eid_put(eid);

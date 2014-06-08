@@ -50,7 +50,7 @@ static int reqep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
     pg->ttl--;
     DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
-    skb_fifo_in(&ep->rcv, ubuf);
+    skbuf_head_in(&ep->rcv, ubuf);
     BUG_ON(ep->rcv.waiters < 0);
     if (ep->rcv.waiters)
         condition_broadcast(&ep->cond);
@@ -96,7 +96,7 @@ static struct tgtd *reqep_join(struct epbase *ep, int fd)
     struct rrtgtd *rr_tg = TNEW(struct rrtgtd);
 
     if (rr_tg) {
-	skb_fifo_init(&rr_tg->snd, SP_SNDWND);
+	skbuf_head_init(&rr_tg->snd, SP_SNDWND);
 	uuid_generate(rr_tg->uuid);
 	generic_tgtd_init(ep, &rr_tg->tg, fd);
     }

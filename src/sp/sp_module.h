@@ -88,26 +88,26 @@ void sg_update_tg(struct tgtd *tg, u32 ev);
 int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd(struct epbase *ep, int fd);
 
-struct skb_fifo {
+struct skbuf_head {
     int wnd;
     int size;
     int waiters;
     struct list_head head;
 };
 
-#define skb_fifo_init(q, windows) do {		\
+#define skbuf_head_init(q, windows) do {	\
 	(q)->wnd = windows;			\
 	(q)->size = 0;				\
 	(q)->waiters = 0;			\
 	INIT_LIST_HEAD(&(q)->head);		\
     } while (0)
 
-#define skb_fifo_empty(q) ({					\
+#define skbuf_head_empty(q) ({					\
 	    BUG_ON(list_empty(&(q)->head) && (q)->size != 0);	\
 	    list_empty(&(q)->head);				\
 	})
 
-#define skb_fifo_out(q, ubuf) do {				\
+#define skbuf_head_out(q, ubuf) do {				\
 	struct skbuf *msg = 0;					\
 	msg = list_first(&(q)->head, struct skbuf, item);	\
 	list_del_init(&msg->item);				\
@@ -115,7 +115,7 @@ struct skb_fifo {
 	(q)->size -= xubuflen(ubuf);				\
     } while (0)
 
-#define skb_fifo_in(q, ubuf) do {		\
+#define skbuf_head_in(q, ubuf) do {		\
 	struct skbuf *msg = get_skbuf(ubuf);	\
 	list_add_tail(&msg->item, &(q)->head);	\
 	(q)->size += xubuflen(ubuf);		\
@@ -134,8 +134,8 @@ struct epbase {
     mutex_t lock;
     condition_t cond;
     struct poll_ent ent;
-    struct skb_fifo rcv;
-    struct skb_fifo snd;
+    struct skbuf_head rcv;
+    struct skbuf_head snd;
     struct list_head item;
     u64 listener_num;
     u64 connector_num;
