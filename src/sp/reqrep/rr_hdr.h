@@ -26,12 +26,12 @@
 #include <sp/sp_hdr.h>
 
 /* The sphdr looks like this:
- * +-------+---------+-------+--------+
- * | sphdr |  rrr[]  |  uhdr |  ubuf  |
- * +-------+---------+-------+--------+
+ * +-------+-------------+-------+--------+
+ * | sphdr |  rtentry[]  |  uhdr |  ubuf  |
+ * +-------+-------------+-------+--------+
  */
 
-struct rrr {
+struct rtentry {
     uuid_t uuid;
     u8 ip[4];
     u16 port;
@@ -45,10 +45,10 @@ struct rrhdr {
     u16 ttl:4;
     u16 end_ttl:4;
     u16 go:1;
-    struct rrr rt[0];
+    struct rtentry rt[0];
 };
 
-static inline struct rrhdr *rqhdr_first(struct rrr *r) {
+static inline struct rrhdr *rqhdr_first(struct rtentry *r) {
     struct sphdr *sp_hdr = 0;
     struct rrhdr *rr_hdr = 0;
 
@@ -70,27 +70,27 @@ static inline struct rrhdr *get_rrhdr(char *ubuf) {
     return (struct rrhdr *)get_sphdr(ubuf);
 }
 
-static inline struct rrr *__rt_cur(struct rrhdr *rr_hdr) {
+static inline struct rtentry *__rt_cur(struct rrhdr *rr_hdr) {
     BUG_ON(rr_hdr->ttl < 1);
     return &rr_hdr->rt[rr_hdr->ttl - 1];
 }
 
-static inline struct rrr *rt_cur(char *ubuf) {
+static inline struct rtentry *rt_cur(char *ubuf) {
     struct rrhdr *rr_hdr = (struct rrhdr *)get_sphdr(ubuf);
     return __rt_cur(rr_hdr);
 }
 
-static inline struct rrr *__rt_prev(struct rrhdr *rr_hdr) {
+static inline struct rtentry *__rt_prev(struct rrhdr *rr_hdr) {
     BUG_ON(rr_hdr->ttl < 2);
     return &rr_hdr->rt[rr_hdr->ttl - 2];
 }
 
-static inline struct rrr *rt_prev(char *ubuf) {
+static inline struct rtentry *rt_prev(char *ubuf) {
     struct rrhdr *rr_hdr = (struct rrhdr *)get_sphdr(ubuf);
     return __rt_prev(rr_hdr);
 }
 
-static inline char *__rt_append(char *hdr, struct rrr *r)
+static inline char *__rt_append(char *hdr, struct rtentry *r)
 {
     u32 hlen = xubuflen(hdr);
     char *nhdr = xallocubuf(hlen + sizeof(*r));
@@ -101,7 +101,7 @@ static inline char *__rt_append(char *hdr, struct rrr *r)
     return nhdr;
 }
 
-static inline void rt_append(char *ubuf, struct rrr *r)
+static inline void rt_append(char *ubuf, struct rtentry *r)
 {
     int rc;
     struct xcmsg ent = { 0, 0 };

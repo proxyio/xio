@@ -44,7 +44,7 @@ static struct tgtd *rrbin_forward(struct epbase *ep, char *ubuf) {
 }
 
 static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
-    struct rrr *rt = rt_prev(ubuf);
+    struct rtentry *rt = rt_prev(ubuf);
     struct tgtd *tg = 0;
 
     get_tgtd_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
@@ -55,7 +55,7 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct rrr *r = rt_cur(ubuf);
+    struct rtentry *r = rt_cur(ubuf);
     struct tgtd *target = rrbin_forward(peer, ubuf);
 
     if (uuid_compare(r->uuid, tg->uuid))
@@ -70,7 +70,7 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct xmsg *msg;
-    struct rrr rt = {};
+    struct rtentry rt = {};
 
     if (list_empty(&tg->snd_cache)) {
 	__tgtd_try_disable_out(tg);

@@ -45,7 +45,7 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
     struct rrhdr *rr_hdr = get_rrhdr(ubuf);
-    struct rrr *rt = rt_cur(ubuf);
+    struct rtentry *rt = rt_cur(ubuf);
     struct tgtd *tg = 0;
 
     mutex_lock(&ep->lock);
@@ -67,7 +67,7 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
 static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct rrr *r = rt_cur(ubuf);
+    struct rtentry *r = rt_cur(ubuf);
 
     if (uuid_compare(r->uuid, tg->uuid))
         uuid_copy(tg->uuid, r->uuid);

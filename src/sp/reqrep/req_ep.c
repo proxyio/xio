@@ -62,7 +62,7 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
     struct rrhdr *rr_hdr = 0;
-    struct rrr rt = {};
+    struct rtentry rt = {};
     struct tgtd *tg = 0;
     struct xcmsg ent = {};
 
