@@ -28,8 +28,9 @@ static struct epbase *req_ep_alloc() {
     if (req_ep) {
         epbase_init(&req_ep->base);
         req_ep->peer = 0;
+	return &req_ep->base;
     }
-    return &req_ep->base;
+    return 0;
 }
 
 static void req_ep_destroy(struct epbase *ep)
