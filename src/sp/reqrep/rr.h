@@ -48,26 +48,26 @@ struct rr_package {
     struct rtentry rt[0];
 };
 
-static inline struct rr_package *rqhdr_first(struct rtentry *r) {
-    struct sphdr *sp_hdr = 0;
+static inline struct rr_package *get_rr_package(char *ubuf) {
+    return (struct rr_package *)get_sphdr(ubuf);
+}
+
+static inline struct rr_package *new_rr_package(struct rtentry *r) {
+    struct sphdr *sh = 0;
     struct rr_package *pg = 0;
 
     pg = (struct rr_package *)xallocubuf(sizeof(*pg) + sizeof(*r));
     BUG_ON(!pg);
-    sp_hdr = &pg->sh;
-    sp_hdr->protocol = SP_REQREP;
-    sp_hdr->version = SP_REQREP_VERSION;
-    sp_hdr->timeout = 0;
-    sp_hdr->sendstamp = 0;
+    sh = &pg->sh;
+    sh->protocol = SP_REQREP;
+    sh->version = SP_REQREP_VERSION;
+    sh->timeout = 0;
+    sh->sendstamp = 0;
     pg->go = 1;
     pg->ttl = 1;
     pg->end_ttl = 0;
     pg->rt[0] = *r;
     return pg;
-}
-
-static inline struct rr_package *get_rr_package(char *ubuf) {
-    return (struct rr_package *)get_sphdr(ubuf);
 }
 
 static inline struct rtentry *__rt_cur(struct rr_package *pg) {

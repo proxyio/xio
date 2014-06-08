@@ -72,7 +72,7 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
         list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
     uuid_copy(rt.uuid, tg->uuid);
-    pg = rqhdr_first(&rt);
+    pg = new_rr_package(&rt);
     ent.outofband = (char *)pg;
     BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);

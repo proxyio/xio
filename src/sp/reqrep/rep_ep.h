@@ -24,7 +24,7 @@
 #define _SP_REP_
 
 #include <sp/sp_module.h>
-#include "rr_hdr.h"
+#include "rr.h"
 
 struct req_ep;
 

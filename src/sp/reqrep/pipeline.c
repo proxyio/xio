@@ -91,12 +91,12 @@ static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct rr_package *rr_hdr = get_rr_package(ubuf);
+    struct rr_package *pg = get_rr_package(ubuf);
     struct tgtd *target = route_backward(peer, ubuf);
 
     if (!target)
         return -1;
-    rr_hdr->ttl--;
+    pg->ttl--;
     list_add_tail(&msg->item, &target->snd_cache);
     peer->snd.size += xubuflen(ubuf);
     __tgtd_try_enable_out(target);
