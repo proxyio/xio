@@ -44,23 +44,23 @@ static struct tgtd *rrbin_forward(struct epbase *ep, char *ubuf) {
 }
 
 static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
-    struct rt_entry *rt = rt_prev(ubuf);
+    struct rtentry *rt = rt_prev(ubuf);
     struct tgtd *tg = 0;
 
-    get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rr_tgtd(tg)->uuid, rt->uuid));
+    get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rrtgtd(tg)->uuid, rt->uuid));
     return tg;
 }
 
 static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
+    struct epbase *peer = &(cont_of(ep, struct repep, base)->peer)->base;
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-    struct rt_entry *rt = rt_cur(ubuf);
+    struct rtentry *rt = rt_cur(ubuf);
     struct tgtd *go = rrbin_forward(peer, ubuf);
 
-    if (uuid_compare(rt->uuid, get_rr_tgtd(tg)->uuid))
-        uuid_copy(get_rr_tgtd(tg)->uuid, rt->uuid);
-    list_add_tail(&msg->item, &get_rr_tgtd(go)->sndq);
+    if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))
+        uuid_copy(get_rrtgtd(tg)->uuid, rt->uuid);
+    list_add_tail(&msg->item, &get_rrtgtd(go)->sndq);
     peer->snd.size += xubuflen(ubuf);
     __tgtd_try_enable_out(go);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
@@ -70,14 +70,14 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct skbuf *msg;
-    struct rt_entry rt = {};
+    struct rtentry rt = {};
 
-    if (list_empty(&get_rr_tgtd(tg)->sndq)) {
+    if (list_empty(&get_rrtgtd(tg)->sndq)) {
 	__tgtd_try_disable_out(tg);
 	return -1;
     }
-    uuid_copy(rt.uuid, get_rr_tgtd(tg)->uuid);
-    msg = list_first(&get_rr_tgtd(tg)->sndq, struct skbuf, item);
+    uuid_copy(rt.uuid, get_rrtgtd(tg)->uuid);
+    msg = list_first(&get_rrtgtd(tg)->sndq, struct skbuf, item);
     *ubuf = msg->chunk.iov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);
@@ -89,15 +89,15 @@ static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
+    struct epbase *peer = &(cont_of(ep, struct reqep, base)->peer)->base;
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-    struct rr_package *pg = get_rr_package(ubuf);
+    struct rrhdr *pg = get_rrhdr(ubuf);
     struct tgtd *back = route_backward(peer, ubuf);
 
     if (!back)
         return -1;
     pg->ttl--;
-    list_add_tail(&msg->item, &get_rr_tgtd(back)->sndq);
+    list_add_tail(&msg->item, &get_rrtgtd(back)->sndq);
     peer->snd.size += xubuflen(ubuf);
     __tgtd_try_enable_out(back);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
@@ -108,11 +108,11 @@ static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct skbuf *msg = 0;
 
-    if (list_empty(&get_rr_tgtd(tg)->sndq)) {
+    if (list_empty(&get_rrtgtd(tg)->sndq)) {
 	__tgtd_try_disable_out(tg);
         return -1;
     }
-    msg = list_first(&get_rr_tgtd(tg)->sndq, struct skbuf, item);
+    msg = list_first(&get_rrtgtd(tg)->sndq, struct skbuf, item);
     *ubuf = msg->chunk.iov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);
@@ -120,30 +120,30 @@ static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return 0;
 }
 
-int epbase_proxyto(struct epbase *rep_ep, struct epbase *req_ep)
+int epbase_proxyto(struct epbase *repep, struct epbase *reqep)
 {
-    struct rep_ep *frontend = cont_of(rep_ep, struct rep_ep, base);
-    struct req_ep *backend = cont_of(req_ep, struct req_ep, base);
+    struct repep *frontend = cont_of(repep, struct repep, base);
+    struct reqep *backend = cont_of(reqep, struct reqep, base);
 
-    dlock(rep_ep, req_ep);
-    if (!list_empty(&rep_ep->connectors) || !list_empty(&rep_ep->bad_socks)) {
+    dlock(repep, reqep);
+    if (!list_empty(&repep->connectors) || !list_empty(&repep->bad_socks)) {
         errno = EINVAL;
-        dunlock(rep_ep, req_ep);
+        dunlock(repep, reqep);
         return -1;
     }
-    if (!list_empty(&req_ep->connectors) || !list_empty(&req_ep->bad_socks)) {
+    if (!list_empty(&reqep->connectors) || !list_empty(&reqep->bad_socks)) {
         errno = EINVAL;
-        dunlock(rep_ep, req_ep);
+        dunlock(repep, reqep);
         return -1;
     }
     frontend->peer = backend;
     backend->peer = frontend;
 
-    rep_ep->vfptr.add = receiver_add;
-    rep_ep->vfptr.rm = receiver_rm;
-    req_ep->vfptr.add = dispatcher_add;
-    req_ep->vfptr.rm = dispatcher_rm;
+    repep->vfptr.add = receiver_add;
+    repep->vfptr.rm = receiver_rm;
+    reqep->vfptr.add = dispatcher_add;
+    reqep->vfptr.rm = dispatcher_rm;
 
-    dunlock(rep_ep, req_ep);
+    dunlock(repep, reqep);
     return 0;
 }

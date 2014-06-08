@@ -22,34 +22,34 @@
 
 #include "rep_ep.h"
 
-static struct epbase *rep_ep_alloc() {
-    struct rep_ep *rep_ep = TNEW(struct rep_ep);
+static struct epbase *repep_alloc() {
+    struct repep *repep = TNEW(struct repep);
 
-    if (rep_ep) {
-        epbase_init(&rep_ep->base);
-        rep_ep->peer = 0;
-	return &rep_ep->base;
+    if (repep) {
+        epbase_init(&repep->base);
+        repep->peer = 0;
+	return &repep->base;
     }
     return 0;
 }
 
-static void rep_ep_destroy(struct epbase *ep)
+static void repep_destroy(struct epbase *ep)
 {
-    struct rep_ep *rep_ep = cont_of(ep, struct rep_ep, base);
-    BUG_ON(!rep_ep);
+    struct repep *repep = cont_of(ep, struct repep, base);
+    BUG_ON(!repep);
     epbase_exit(ep);
-    mem_free(rep_ep, sizeof(*rep_ep));
+    mem_free(repep, sizeof(*repep));
 }
 
-static int rep_ep_send(struct epbase *ep, char *ubuf)
+static int repep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
-    struct rr_package *pg = get_rr_package(ubuf);
-    struct rt_entry *rt = rt_cur(ubuf);
+    struct rrhdr *pg = get_rrhdr(ubuf);
+    struct rtentry *rt = rt_cur(ubuf);
     struct tgtd *tg = 0;
 
     mutex_lock(&ep->lock);
-    get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rr_tgtd(tg)->uuid, rt->uuid));
+    get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rrtgtd(tg)->uuid, rt->uuid));
     if (tg)
         list_move(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
@@ -64,13 +64,13 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
     return rc;
 }
 
-static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
+static int repep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-    struct rt_entry *rt = rt_cur(ubuf);
+    struct rtentry *rt = rt_cur(ubuf);
 
-    if (uuid_compare(rt->uuid, get_rr_tgtd(tg)->uuid))
-        uuid_copy(get_rr_tgtd(tg)->uuid, rt->uuid);
+    if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))
+        uuid_copy(get_rrtgtd(tg)->uuid, rt->uuid);
     DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
@@ -82,7 +82,7 @@ static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
     return 0;
 }
 
-static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
+static int repep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     int rc = -1;
     if (tg->ent.events & XPOLLOUT)
@@ -90,9 +90,9 @@ static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static struct tgtd *rep_ep_join(struct epbase *ep, int fd)
+static struct tgtd *repep_join(struct epbase *ep, int fd)
 {
-    struct rr_tgtd *rr_tg = TNEW(struct rr_tgtd);
+    struct rrtgtd *rr_tg = TNEW(struct rrtgtd);
 
     if (rr_tg) {
 	INIT_LIST_HEAD(&rr_tg->sndq);
@@ -101,7 +101,7 @@ static struct tgtd *rep_ep_join(struct epbase *ep, int fd)
     return &rr_tg->tg;
 }
 
-static void rep_ep_term(struct epbase *ep, struct tgtd *tg)
+static void repep_term(struct epbase *ep, struct tgtd *tg)
 {
     tgtd_free(tg);
 }
@@ -131,7 +131,7 @@ static const ep_getopt getopt_vfptr[] = {
     0,
 };
 
-static int rep_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
+static int repep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
 {
     int rc;
     if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
@@ -142,7 +142,7 @@ static int rep_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
     return rc;
 }
 
-static int rep_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
+static int repep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
 {
     int rc;
     if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
@@ -153,21 +153,21 @@ static int rep_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
     return rc;
 }
 
-struct epbase_vfptr rep_epbase = {
+struct epbase_vfptr repep = {
     .sp_family = SP_REQREP,
     .sp_type = SP_REP,
-    .alloc = rep_ep_alloc,
-    .destroy = rep_ep_destroy,
-    .send = rep_ep_send,
-    .add = rep_ep_add,
-    .rm = rep_ep_rm,
-    .join = rep_ep_join,
-    .term = rep_ep_term,
-    .setopt = rep_ep_setopt,
-    .getopt = rep_ep_getopt,
+    .alloc = repep_alloc,
+    .destroy = repep_destroy,
+    .send = repep_send,
+    .add = repep_add,
+    .rm = repep_rm,
+    .join = repep_join,
+    .term = repep_term,
+    .setopt = repep_setopt,
+    .getopt = repep_getopt,
 };
 
-struct epbase_vfptr *rep_epbase_vfptr = &rep_epbase;
+struct epbase_vfptr *repep_vfptr = &repep;
 
 
 

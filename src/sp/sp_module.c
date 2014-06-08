@@ -199,8 +199,8 @@ static int po_routine_worker(void *args)
     return 0;
 }
 
-extern struct epbase_vfptr *req_epbase_vfptr;
-extern struct epbase_vfptr *rep_epbase_vfptr;
+extern struct epbase_vfptr *reqep_vfptr;
+extern struct epbase_vfptr *repep_vfptr;
 
 void sp_module_init()
 {
@@ -218,8 +218,8 @@ void sp_module_init()
     }
     sg.nendpoints = 0;
     INIT_LIST_HEAD(&sg.epbase_head);
-    list_add_tail(&req_epbase_vfptr->item, &sg.epbase_head);
-    list_add_tail(&rep_epbase_vfptr->item, &sg.epbase_head);
+    list_add_tail(&reqep_vfptr->item, &sg.epbase_head);
+    list_add_tail(&repep_vfptr->item, &sg.epbase_head);
     INIT_LIST_HEAD(&sg.shutdown_head);
 
     waitgroup_add(&wg);

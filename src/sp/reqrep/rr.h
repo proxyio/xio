@@ -31,7 +31,7 @@
  * +-------+-------------+-------+--------+
  */
 
-struct rt_entry {
+struct rtentry {
     uuid_t uuid;
     u8 ip[4];
     u16 port;
@@ -40,23 +40,23 @@ struct rt_entry {
     u16 stay[2];
 };
 
-struct rr_package {
+struct rrhdr {
     struct sphdr sh;
     u16 ttl:4;
     u16 end_ttl:4;
     u16 go:1;
-    struct rt_entry rt[0];
+    struct rtentry rt[0];
 };
 
-static inline struct rr_package *get_rr_package(char *ubuf) {
-    return (struct rr_package *)get_sphdr(ubuf);
+static inline struct rrhdr *get_rrhdr(char *ubuf) {
+    return (struct rrhdr *)get_sphdr(ubuf);
 }
 
-static inline struct rr_package *new_rr_package(struct rt_entry *rt) {
+static inline struct rrhdr *new_rrhdr(struct rtentry *rt) {
     struct sphdr *sh = 0;
-    struct rr_package *pg = 0;
+    struct rrhdr *pg = 0;
 
-    pg = (struct rr_package *)xallocubuf(sizeof(*pg) + sizeof(*rt));
+    pg = (struct rrhdr *)xallocubuf(sizeof(*pg) + sizeof(*rt));
     BUG_ON(!pg);
     sh = &pg->sh;
     sh->protocol = SP_REQREP;
@@ -70,38 +70,38 @@ static inline struct rr_package *new_rr_package(struct rt_entry *rt) {
     return pg;
 }
 
-static inline struct rt_entry *__rt_cur(struct rr_package *pg) {
+static inline struct rtentry *__rt_cur(struct rrhdr *pg) {
     BUG_ON(pg->ttl < 1);
     return &pg->rt[pg->ttl - 1];
 }
 
-static inline struct rt_entry *rt_cur(char *ubuf) {
-    struct rr_package *pg = (struct rr_package *)get_sphdr(ubuf);
+static inline struct rtentry *rt_cur(char *ubuf) {
+    struct rrhdr *pg = (struct rrhdr *)get_sphdr(ubuf);
     return __rt_cur(pg);
 }
 
-static inline struct rt_entry *__rt_prev(struct rr_package *pg) {
+static inline struct rtentry *__rt_prev(struct rrhdr *pg) {
     BUG_ON(pg->ttl < 2);
     return &pg->rt[pg->ttl - 2];
 }
 
-static inline struct rt_entry *rt_prev(char *ubuf) {
-    struct rr_package *pg = (struct rr_package *)get_sphdr(ubuf);
+static inline struct rtentry *rt_prev(char *ubuf) {
+    struct rrhdr *pg = (struct rrhdr *)get_sphdr(ubuf);
     return __rt_prev(pg);
 }
 
-static inline char *__rt_append(char *hdr, struct rt_entry *rt)
+static inline char *__rt_append(char *hdr, struct rtentry *rt)
 {
     u32 hlen = xubuflen(hdr);
     char *nhdr = xallocubuf(hlen + sizeof(*rt));
     memcpy(nhdr, hdr, hlen);
     xfreeubuf(hdr);
-    ((struct rr_package *)nhdr)->ttl++;
-    *__rt_cur((struct rr_package *)nhdr) = *rt;
+    ((struct rrhdr *)nhdr)->ttl++;
+    *__rt_cur((struct rrhdr *)nhdr) = *rt;
     return nhdr;
 }
 
-static inline void rt_append(char *ubuf, struct rt_entry *rt)
+static inline void rt_append(char *ubuf, struct rtentry *rt)
 {
     char *sh_ubuf = ubufctl_first(ubuf);
 
@@ -110,17 +110,15 @@ static inline void rt_append(char *ubuf, struct rt_entry *rt)
     ubufctl_add(ubuf, sh_ubuf);
 }
 
-
-
-struct rr_tgtd {
+struct rrtgtd {
     struct tgtd tg;
     uuid_t uuid;
     struct list_head sndq;
 };
 
-static inline struct rr_tgtd *get_rr_tgtd(struct tgtd *tg)
+static inline struct rrtgtd *get_rrtgtd(struct tgtd *tg)
 {
-    return cont_of(tg, struct rr_tgtd, tg);
+    return cont_of(tg, struct rrtgtd, tg);
 }
 
 static inline void __tgtd_try_enable_out(struct tgtd *tg)

@@ -26,14 +26,14 @@
 #include <sp/sp_module.h>
 #include "rr.h"
 
-struct req_ep;
+struct reqep;
 
-struct rep_ep {
+struct repep {
     struct epbase base;
-    struct req_ep *peer;
+    struct reqep *peer;
 };
 
 
-extern int epbase_proxyto(struct epbase *rep_ep, struct epbase *req_ep);
+extern int epbase_proxyto(struct epbase *repep, struct epbase *reqep);
 
 #endif

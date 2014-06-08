@@ -22,29 +22,29 @@
 
 #include "req_ep.h"
 
-static struct epbase *req_ep_alloc() {
-    struct req_ep *req_ep = TNEW(struct req_ep);
+static struct epbase *reqep_alloc() {
+    struct reqep *reqep = TNEW(struct reqep);
 
-    if (req_ep) {
-        epbase_init(&req_ep->base);
-        req_ep->peer = 0;
-	return &req_ep->base;
+    if (reqep) {
+        epbase_init(&reqep->base);
+        reqep->peer = 0;
+	return &reqep->base;
     }
     return 0;
 }
 
-static void req_ep_destroy(struct epbase *ep)
+static void reqep_destroy(struct epbase *ep)
 {
-    struct req_ep *req_ep = cont_of(ep, struct req_ep, base);
-    BUG_ON(!req_ep);
+    struct reqep *reqep = cont_of(ep, struct reqep, base);
+    BUG_ON(!reqep);
     epbase_exit(ep);
-    mem_free(req_ep, sizeof(*req_ep));
+    mem_free(reqep, sizeof(*reqep));
 }
 
-static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
+static int reqep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-    struct rr_package *pg = get_rr_package(ubuf);
+    struct rrhdr *pg = get_rrhdr(ubuf);
 
     pg->ttl--;
     DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
@@ -58,11 +58,11 @@ static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
     return 0;
 }
 
-static int req_ep_send(struct epbase *ep, char *ubuf)
+static int reqep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
-    struct rr_package *pg = 0;
-    struct rt_entry rt = {};
+    struct rrhdr *pg = 0;
+    struct rtentry rt = {};
     struct tgtd *tg = 0;
 
     mutex_lock(&ep->lock);
@@ -70,15 +70,15 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     if (tg)
         list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
-    uuid_copy(rt.uuid, get_rr_tgtd(tg)->uuid);
-    pg = new_rr_package(&rt);
+    uuid_copy(rt.uuid, get_rrtgtd(tg)->uuid);
+    pg = new_rrhdr(&rt);
     ubufctl_add(ubuf, (char *)pg);
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
     rc = xsend(tg->fd, ubuf);
     return rc;
 }
 
-static int req_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
+static int reqep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     int rc = -1;
     if (tg->ent.events & XPOLLOUT)
@@ -86,14 +86,14 @@ static int req_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static void req_ep_term(struct epbase *ep, struct tgtd *tg)
+static void reqep_term(struct epbase *ep, struct tgtd *tg)
 {
     tgtd_free(tg);
 }
 
-static struct tgtd *req_ep_join(struct epbase *ep, int fd)
+static struct tgtd *reqep_join(struct epbase *ep, int fd)
 {
-    struct rr_tgtd *rr_tg = TNEW(struct rr_tgtd);
+    struct rrtgtd *rr_tg = TNEW(struct rrtgtd);
 
     if (rr_tg) {
 	INIT_LIST_HEAD(&rr_tg->sndq);
@@ -129,7 +129,7 @@ static const ep_getopt getopt_vfptr[] = {
     0,
 };
 
-static int req_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
+static int reqep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
 {
     int rc;
     if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
@@ -140,7 +140,7 @@ static int req_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
     return rc;
 }
 
-static int req_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
+static int reqep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
 {
     int rc;
     if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
@@ -151,19 +151,19 @@ static int req_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
     return rc;
 }
 
-struct epbase_vfptr req_epbase = {
+struct epbase_vfptr reqep = {
     .sp_family = SP_REQREP,
     .sp_type = SP_REQ,
-    .alloc = req_ep_alloc,
-    .destroy = req_ep_destroy,
-    .send = req_ep_send,
-    .add = req_ep_add,
-    .rm = req_ep_rm,
-    .join = req_ep_join,
-    .term = req_ep_term,
-    .setopt = req_ep_setopt,
-    .getopt = req_ep_getopt,
+    .alloc = reqep_alloc,
+    .destroy = reqep_destroy,
+    .send = reqep_send,
+    .add = reqep_add,
+    .rm = reqep_rm,
+    .join = reqep_join,
+    .term = reqep_term,
+    .setopt = reqep_setopt,
+    .getopt = reqep_getopt,
 };
 
-struct epbase_vfptr *req_epbase_vfptr = &req_epbase;
+struct epbase_vfptr *reqep_vfptr = &reqep;
 
