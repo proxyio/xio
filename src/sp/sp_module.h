@@ -39,6 +39,10 @@ static inline struct skbuf *get_skbuf(char *ubuf) {
     return cont_of(ubuf, struct skbuf, chunk.iov_base);
 }
 
+static inline char *get_ubuf(struct skbuf *skb) {
+    return skb->chunk.iov_base;
+}
+
 static inline int get_socktype(int fd) {
     int socktype = 0, rc;
     int optlen = sizeof(socktype);
@@ -84,6 +88,44 @@ void sg_update_tg(struct tgtd *tg, u32 ev);
 int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd(struct epbase *ep, int fd);
 
+struct skb_fifo {
+    int wnd;
+    int size;
+    int waiters;
+    struct list_head head;
+};
+
+#define skb_fifo_init(q, windows) do {		\
+	(q)->wnd = windows;			\
+	(q)->size = 0;				\
+	(q)->waiters = 0;			\
+	INIT_LIST_HEAD(&(q)->head);		\
+    } while (0)
+
+#define skb_fifo_empty(q) ({					\
+	    BUG_ON(list_empty(&(q)->head) && (q)->size != 0);	\
+	    list_empty(&(q)->head);				\
+	})
+
+#define skb_fifo_out(q, ubuf) do {				\
+	struct skbuf *msg = 0;					\
+	msg = list_first(&(q)->head, struct skbuf, item);	\
+	list_del_init(&msg->item);				\
+	ubuf = get_ubuf(msg);					\
+	(q)->size -= xubuflen(ubuf);				\
+    } while (0)
+
+#define skb_fifo_in(q, ubuf) do {		\
+	struct skbuf *msg = get_skbuf(ubuf);	\
+	list_add_tail(&msg->item, &(q)->head);	\
+	(q)->size += xubuflen(ubuf);		\
+    } while (0)
+
+
+/* Default snd/rcv buffer size = 1G */
+static int SP_SNDWND = 1048576000;
+static int SP_RCVWND = 1048576000;
+
 struct epbase {
     struct epbase_vfptr vfptr;
     u32 shutdown:1;
@@ -92,12 +134,8 @@ struct epbase {
     mutex_t lock;
     condition_t cond;
     struct poll_ent ent;
-    struct {
-	int wnd;
-	int size;
-	int waiters;
-	struct list_head head;
-    } rcv, snd;
+    struct skb_fifo rcv;
+    struct skb_fifo snd;
     struct list_head item;
     u64 listener_num;
     u64 connector_num;

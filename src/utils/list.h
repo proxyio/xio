@@ -83,7 +83,6 @@ struct list_link {
     cont_of((head)->prev, type, member)
 
 
-
 // Insert a new entry between two known consecutive entries
 // this is only for internal list manipulation where we know
 // the prev/next entries already!
@@ -206,7 +205,6 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 #define list_entry(ptr, type, member) cont_of(ptr, type, member)
 
 #define list_next(pos) (pos)->next
-
 
 // Interate over a list
 // @param pos        the &struct list_head to use as a loop conter.

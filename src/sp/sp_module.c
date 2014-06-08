@@ -25,10 +25,6 @@
 
 struct sp_global sg;
 
-/* Default snd/rcv buffer size = 1G */
-static int SP_SNDWND = 1048576000;
-static int SP_RCVWND = 1048576000;
-
 void sg_add_tg(struct tgtd *tg)
 {
     int rc;
@@ -296,15 +292,8 @@ void epbase_init(struct epbase *ep)
     mutex_init(&ep->lock);
     condition_init(&ep->cond);
 
-    ep->rcv.wnd = SP_RCVWND;
-    ep->rcv.size = 0;
-    ep->rcv.waiters = 0;
-    INIT_LIST_HEAD(&ep->rcv.head);
-
-    ep->snd.wnd = SP_SNDWND;
-    ep->snd.size = 0;
-    ep->snd.waiters = 0;
-    INIT_LIST_HEAD(&ep->snd.head);
+    skb_fifo_init(&ep->rcv, SP_RCVWND);
+    skb_fifo_init(&ep->snd, SP_SNDWND);
 
     ep->listener_num = 0;
     ep->connector_num = 0;

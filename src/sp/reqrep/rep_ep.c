@@ -66,15 +66,13 @@ static int repep_send(struct epbase *ep, char *ubuf)
 
 static int repep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct skbuf *msg = get_skbuf(ubuf);
     struct rtentry *rt = rt_cur(ubuf);
 
     if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))
         uuid_copy(get_rrtgtd(tg)->uuid, rt->uuid);
     DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
-    list_add_tail(&msg->item, &ep->rcv.head);
-    ep->rcv.size += xubuflen(ubuf);
+    skb_fifo_in(&ep->rcv, ubuf);
     BUG_ON(ep->rcv.waiters < 0);
     if (ep->rcv.waiters)
         condition_broadcast(&ep->cond);
@@ -95,7 +93,7 @@ static struct tgtd *repep_join(struct epbase *ep, int fd)
     struct rrtgtd *rr_tg = TNEW(struct rrtgtd);
 
     if (rr_tg) {
-	INIT_LIST_HEAD(&rr_tg->sndq);
+	skb_fifo_init(&rr_tg->snd, SP_SNDWND);
 	generic_tgtd_init(ep, &rr_tg->tg, fd);
     }
     return &rr_tg->tg;

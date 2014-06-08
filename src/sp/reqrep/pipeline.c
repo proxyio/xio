@@ -54,14 +54,12 @@ static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
 static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = peer_repep(ep);
-    struct skbuf *msg = get_skbuf(ubuf);
     struct rtentry *rt = rt_cur(ubuf);
     struct tgtd *go = rrbin_forward(peer, ubuf);
 
     if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))
         uuid_copy(get_rrtgtd(tg)->uuid, rt->uuid);
-    list_add_tail(&msg->item, &get_rrtgtd(go)->sndq);
-    peer->snd.size += xubuflen(ubuf);
+    skb_fifo_in(&get_rrtgtd(go)->snd, ubuf);
     __tgtd_try_enable_out(go);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
@@ -69,18 +67,13 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-    struct skbuf *msg;
     struct rtentry rt = {};
-
-    if (list_empty(&get_rrtgtd(tg)->sndq)) {
+    if (skb_fifo_empty(&get_rrtgtd(tg)->snd)) {
 	__tgtd_try_disable_out(tg);
 	return -1;
     }
     uuid_copy(rt.uuid, get_rrtgtd(tg)->uuid);
-    msg = list_first(&get_rrtgtd(tg)->sndq, struct skbuf, item);
-    *ubuf = msg->chunk.iov_base;
-    list_del_init(&msg->item);
-    ep->snd.size -= xubuflen(*ubuf);
+    skb_fifo_out(&get_rrtgtd(tg)->snd, *ubuf);
     rt_append(*ubuf, &rt);
     DEBUG_OFF("ep %d req %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
     return 0;
@@ -90,15 +83,13 @@ static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = peer_reqep(ep);
-    struct skbuf *msg = get_skbuf(ubuf);
     struct rrhdr *pg = get_rrhdr(ubuf);
     struct tgtd *back = route_backward(peer, ubuf);
 
     if (!back)
         return -1;
     pg->ttl--;
-    list_add_tail(&msg->item, &get_rrtgtd(back)->sndq);
-    peer->snd.size += xubuflen(ubuf);
+    skb_fifo_in(&get_rrtgtd(back)->snd, ubuf);
     __tgtd_try_enable_out(back);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
@@ -106,16 +97,11 @@ static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-    struct skbuf *msg = 0;
-
-    if (list_empty(&get_rrtgtd(tg)->sndq)) {
+    if (skb_fifo_empty(&get_rrtgtd(tg)->snd)) {
 	__tgtd_try_disable_out(tg);
         return -1;
     }
-    msg = list_first(&get_rrtgtd(tg)->sndq, struct skbuf, item);
-    *ubuf = msg->chunk.iov_base;
-    list_del_init(&msg->item);
-    ep->snd.size -= xubuflen(*ubuf);
+    skb_fifo_out(&get_rrtgtd(tg)->snd, *ubuf);
     DEBUG_OFF("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
     return 0;
 }

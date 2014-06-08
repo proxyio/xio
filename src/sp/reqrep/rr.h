@@ -113,7 +113,7 @@ static inline void rt_append(char *ubuf, struct rtentry *rt)
 struct rrtgtd {
     struct tgtd tg;
     uuid_t uuid;
-    struct list_head sndq;
+    struct skb_fifo snd;
 };
 
 static inline struct rrtgtd *get_rrtgtd(struct tgtd *tg)
