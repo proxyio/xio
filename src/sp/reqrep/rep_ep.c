@@ -28,8 +28,9 @@ static struct epbase *rep_ep_alloc() {
     if (rep_ep) {
         epbase_init(&rep_ep->base);
         rep_ep->peer = 0;
+	return &rep_ep->base;
     }
-    return &rep_ep->base;
+    return 0;
 }
 
 static void rep_ep_destroy(struct epbase *ep)
