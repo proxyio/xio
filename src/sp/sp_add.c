@@ -57,7 +57,7 @@ void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)
 int sp_add (int eid, int fd)
 {
 	struct epbase *ep = eid_get (eid);
-	int rc, on = 1;
+	int on = 1;
 	struct tgtd *tg;
 
 	if (!ep) {
@@ -69,5 +69,5 @@ int sp_add (int eid, int fd)
 		sg_add_tg (tg);
 	}
 	eid_put (eid);
-	return rc;
+	return 0;
 }
