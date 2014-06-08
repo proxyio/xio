@@ -111,7 +111,7 @@ static void listener_event_hndl(struct tgtd *tg)
 }
 
 
-static void epbase_cleanup_bad_tgtds(struct epbase *ep)
+static void epbase_close_bad_tgtds(struct epbase *ep)
 {
     struct list_head bad_tgtds = {};
     struct tgtd *tg, *tmp;
@@ -149,8 +149,8 @@ static void event_hndl(struct poll_ent *ent)
         BUG_ON(1);
     }
 
-    /* We do the bad_status tgtd cleanup work here */
-    epbase_cleanup_bad_tgtds(tg->owner);
+    /* We do the bad_status tgtd closing work here */
+    epbase_close_bad_tgtds(tg->owner);
 
     DEBUG_OFF(sleep(1));
 }
@@ -330,7 +330,7 @@ void epbase_exit(struct epbase *ep)
 
     list_splice(&ep->listeners, &ep->bad_socks);
     list_splice(&ep->connectors, &ep->bad_socks);
-    epbase_cleanup_bad_tgtds(ep);
+    epbase_close_bad_tgtds(ep);
 
     atomic_destroy(&ep->ref);
     mutex_destroy(&ep->lock);
