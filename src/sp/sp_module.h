@@ -35,6 +35,10 @@
 #include <xio/sp_reqrep.h>
 #include "sp_hdr.h"
 
+static inline struct skbuf *get_skbuf(char *ubuf) {
+    return cont_of(ubuf, struct skbuf, chunk.iov_base);
+}
+
 static inline int get_socktype(int fd) {
     int socktype = 0, rc;
     int optlen = sizeof(socktype);

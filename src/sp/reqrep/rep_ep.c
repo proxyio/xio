@@ -66,7 +66,7 @@ static int repep_send(struct epbase *ep, char *ubuf)
 
 static int repep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *msg = get_skbuf(ubuf);
     struct rtentry *rt = rt_cur(ubuf);
 
     if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))

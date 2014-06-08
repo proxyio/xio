@@ -33,6 +33,9 @@ struct reqep {
     struct repep *peer;
 };
 
+#define req_ep(ep) cont_of(ep, struct reqep, base)
+#define peer_repep(qep) &(cont_of(qep, struct reqep, base)->peer)->base
+
 extern int epbase_proxyto(struct epbase *repep, struct epbase *reqep);
 
 #endif

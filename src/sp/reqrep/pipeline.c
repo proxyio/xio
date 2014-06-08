@@ -53,8 +53,8 @@ static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
 
 static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct epbase *peer = &(cont_of(ep, struct repep, base)->peer)->base;
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct epbase *peer = peer_repep(ep);
+    struct skbuf *msg = get_skbuf(ubuf);
     struct rtentry *rt = rt_cur(ubuf);
     struct tgtd *go = rrbin_forward(peer, ubuf);
 
@@ -89,8 +89,8 @@ static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct epbase *peer = &(cont_of(ep, struct reqep, base)->peer)->base;
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct epbase *peer = peer_reqep(ep);
+    struct skbuf *msg = get_skbuf(ubuf);
     struct rrhdr *pg = get_rrhdr(ubuf);
     struct tgtd *back = route_backward(peer, ubuf);
 
@@ -122,8 +122,8 @@ static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 int epbase_proxyto(struct epbase *repep, struct epbase *reqep)
 {
-    struct repep *frontend = cont_of(repep, struct repep, base);
-    struct reqep *backend = cont_of(reqep, struct reqep, base);
+    struct repep *frontend = rep_ep(repep);
+    struct reqep *backend = req_ep(reqep);
 
     dlock(repep, reqep);
     if (!list_empty(&repep->connectors) || !list_empty(&repep->bad_socks)) {

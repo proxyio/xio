@@ -43,9 +43,11 @@ static void reqep_destroy(struct epbase *ep)
 
 static int reqep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *msg = get_skbuf(ubuf);
     struct rrhdr *pg = get_rrhdr(ubuf);
 
+    if (!pg)
+	return -1;
     pg->ttl--;
     DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
