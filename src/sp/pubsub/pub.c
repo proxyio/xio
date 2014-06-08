@@ -56,14 +56,10 @@ static int pub_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static int pub_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
+static struct tgtd *pub_ep_join(struct epbase *ep, int fd)
 {
-    struct tgtd *_tg = sp_generic_join(ep, nfd);
-
-    if (!_tg)
-        return -1;
-    uuid_generate(_tg->uuid);
-    return 0;
+    struct tgtd *tg = 0;
+    return tg;
 }
 
 static const ep_setopt setopt_vfptr[] = {

@@ -53,14 +53,14 @@ struct epbase_vfptr {
     int  (*send)    (struct epbase *ep, char *ubuf);
     int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
     int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
-    int  (*join)    (struct epbase *ep, struct tgtd *parent, int fd);
-    int  (*term)    (struct epbase *ep, struct tgtd *tg, int fd);
+    struct tgtd *(*join) (struct epbase *ep, int fd);
+    void  (*term)    (struct epbase *ep, struct tgtd *tg);
     int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
     int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
     struct list_head item;
 };
 
-struct tgtd *sp_generic_join(struct epbase *ep, int fd);
+
 
 struct tgtd {
     struct epbase *owner;
@@ -72,7 +72,7 @@ struct tgtd {
     struct list_head snd_cache;
 };
 
-struct tgtd *tgtd_new();
+void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd);
 void tgtd_free(struct tgtd *tg);
 
 void sg_add_tg(struct tgtd *tg);
@@ -128,10 +128,23 @@ void epbase_exit(struct epbase *ep);
 	})
 
 #define rm_tgtd_if(tg, head, cond) ({			\
-	    if ((tg = get_tgtd_if(tg, head, cond)))	\
-		list_del_init(&tg->item);		\
+	if ((tg = get_tgtd_if(tg, head, cond))) {	\
+	    list_del_init(&tg->item);			\
+	    switch (get_socktype(tg->fd)) {		\
+	    case XLISTENER:				\
+		ep->listener_num--;			\
+		break;					\
+	    case XCONNECTOR:				\
+		ep->connector_num--;			\
+		break;					\
+	    default:					\
+		BUG_ON(1);				\
+	    }						\
 	    tg;						\
 	})
+
+void epbase_add_tgtd(struct epbase *ep, struct tgtd *tg);
+
 
 #define MAX_ENDPOINTS 10240
 

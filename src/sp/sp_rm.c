@@ -66,13 +66,13 @@ int sp_generic_term_by_fd(struct epbase *ep, int fd)
 
 int sp_rm(int eid, int fd)
 {
-    struct epbase *ep = eid_get(eid);
+    struct epbase *ep = eid_get (eid);
     int rc;
 
     if (!ep) {
         errno = EBADF;
         return -1;
     }
-    rc = ep->vfptr.term (ep, 0, fd);
+    rc = sp_generic_term_by_fd (ep, fd);
     return rc;
 }

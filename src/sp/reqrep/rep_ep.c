@@ -90,19 +90,18 @@ static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static int rep_ep_join(struct epbase *ep, struct tgtd *parent, int fd)
+static struct tgtd *rep_ep_join(struct epbase *ep, int fd)
 {
-    struct tgtd *_tg = sp_generic_join(ep, fd);
+    struct tgtd *tg = TNEW(struct tgtd);
 
-    if (!_tg)
-        return -1;
-    return 0;
+    if (tg)
+	generic_tgtd_init(ep, tg, fd);
+    return tg;
 }
 
-static int rep_ep_term(struct epbase *ep, struct tgtd *tg, int fd)
+static void rep_ep_term(struct epbase *ep, struct tgtd *tg)
 {
-    int rc = tg ? sp_generic_term_by_tgtd(ep, tg) : sp_generic_term_by_fd(ep, fd);
-    return rc;
+    tgtd_free(tg);
 }
 
 

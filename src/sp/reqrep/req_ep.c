@@ -86,20 +86,20 @@ static int req_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static int req_ep_term(struct epbase *ep, struct tgtd *tg, int fd)
+static void req_ep_term(struct epbase *ep, struct tgtd *tg)
 {
-    int rc = tg ? sp_generic_term_by_tgtd(ep, tg) : sp_generic_term_by_fd(ep, fd);
-    return rc;
+    tgtd_free(tg);
 }
 
-static int req_ep_join(struct epbase *ep, struct tgtd *tg, int fd)
+static struct tgtd *req_ep_join(struct epbase *ep, int fd)
 {
-    struct tgtd *_tg = sp_generic_join(ep, fd);
+    struct tgtd *tg = TNEW(struct tgtd);
 
-    if (!_tg)
-        return -1;
-    uuid_generate(_tg->uuid);
-    return 0;
+    if (tg) {
+	generic_tgtd_init(ep, tg, fd);
+	uuid_generate(tg->uuid);
+    }
+    return tg;
 }
 
 

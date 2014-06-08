@@ -78,7 +78,7 @@ static void connector_event_hndl(struct tgtd *tg)
     }
     if (happened & XPOLLERR) {
         DEBUG_OFF("ep %d connector %d epipe", ep->eid, tg->fd);
-	ep->vfptr.term (ep, tg, tg->fd);
+	sp_generic_term_by_tgtd(ep, tg);
     }
 }
 
@@ -87,24 +87,26 @@ static void listener_event_hndl(struct tgtd *tg)
     int rc, fd, happened;
     int on, optlen = sizeof(on);
     struct epbase *ep = tg->owner;
-
+    struct tgtd *ntg;
+    
     happened = tg->ent.happened;
     if (happened & XPOLLIN) {
         while ((fd = xaccept(tg->fd)) >= 0) {
             rc = xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, optlen);
             BUG_ON(rc);
             DEBUG_OFF("%d join fd %d begin", ep->eid, fd);
-            if ((rc = ep->vfptr.join(ep, tg, fd)) < 0) {
+            if ((ntg = ep->vfptr.join(ep, fd)) < 0) {
                 xclose(fd);
                 DEBUG_OFF("%d join fd %d with errno %d", ep->eid, fd, errno);
-            }
+            } else
+		sg_add_tg(ntg);
         }
         if (errno != EAGAIN)
             happened |= XPOLLERR;
     }
     if (happened & XPOLLERR) {
         DEBUG_OFF("ep %d listener %d epipe", ep->eid, tg->fd);
-	ep->vfptr.term (ep, tg, tg->fd);
+	sp_generic_term_by_tgtd(ep, tg);
     }
 }
 
@@ -122,7 +124,7 @@ static void epbase_cleanup_bad_tgtds(struct epbase *ep)
     walk_tgtd_s(tg, tmp, &bad_tgtds) {
 	xclose(tg->fd);
 	DEBUG_OFF("ep %d socket %d bad status", ep->eid, tg->fd);
-        tgtd_free(tg);
+	ep->vfptr.term (ep, tg);
     }
 }
 

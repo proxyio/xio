@@ -56,13 +56,10 @@ static int sub_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     return rc;
 }
 
-static int sub_ep_join(struct epbase *ep, struct tgtd *tg, int nfd)
+static struct tgtd *sub_ep_join(struct epbase *ep, int fd)
 {
-    struct tgtd *_tg = sp_generic_join(ep, nfd);
-
-    if (!_tg)
-        return -1;
-    return 0;
+    struct tgtd *tg = 0;
+    return tg;
 }
 
 static const ep_setopt setopt_vfptr[] = {
