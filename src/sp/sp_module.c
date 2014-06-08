@@ -313,7 +313,7 @@ void epbase_exit (struct epbase *ep)
 	list_splice (&ep->snd.head, &ep->rcv.head);
 	walk_msg_s (msg, nmsg, &ep->rcv.head) {
 		list_del_init (&msg->item);
-		xfreemsg (msg);
+		xfree_skbuf (msg);
 	}
 	BUG_ON (!list_empty (&ep->rcv.head) );
 

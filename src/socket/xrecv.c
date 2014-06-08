@@ -43,7 +43,7 @@ struct skbuf *recvq_rm (struct sockbase *sb) {
 	if (!list_empty (&sb->rcv.head) ) {
 		msg = list_first (&sb->rcv.head, struct skbuf, item);
 		list_del_init (&msg->item);
-		sz = skbuf_iovlen (msg);
+		sz = skbuf_len (msg);
 		sb->rcv.buf -= sz;
 		events |= XMQ_POP;
 		if (sb->rcv.wnd - sb->rcv.buf <= sz)
@@ -66,7 +66,7 @@ int recvq_add (struct sockbase *sb, struct skbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	u32 events = 0;
-	i64 sz = skbuf_iovlen (msg);
+	i64 sz = skbuf_len (msg);
 
 	mutex_lock (&sb->lock);
 	if (list_empty (&sb->rcv.head) )

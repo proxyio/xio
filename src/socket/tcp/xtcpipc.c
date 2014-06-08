@@ -234,7 +234,7 @@ static int bufio_check_msg (struct bio *b)
 	if (b->bsize < sizeof (aim.chunk) )
 		return false;
 	bio_copy (b, (char *) (&aim.chunk), sizeof (aim.chunk) );
-	if (b->bsize < skbuf_iovlen (&aim) + (u32) aim.chunk.cmsg_length)
+	if (b->bsize < skbuf_len (&aim) + (u32) aim.chunk.cmsg_length)
 		return false;
 	return true;
 }
@@ -245,8 +245,8 @@ static void bufio_rm (struct bio *b, struct skbuf **msg)
 	struct skbuf one = {};
 
 	bio_copy (b, (char *) (&one.chunk), sizeof (one.chunk) );
-	*msg = xallocmsg (one.chunk.iov_len);
-	bio_read (b, skbuf_iovbase (*msg), skbuf_iovlen (*msg) );
+	*msg = xalloc_skbuf (one.chunk.iov_len);
+	bio_read (b, skbuf_base (*msg), skbuf_len (*msg) );
 }
 
 static int xio_connector_rcv (struct sockbase *sb)
@@ -285,8 +285,8 @@ static void bufio_add (struct bio *b, struct skbuf *msg)
 	skbuf_serialize (msg, &head);
 
 	walk_msg_s (msg, nmsg, &head) {
-		bio_write (b, skbuf_iovbase (msg), skbuf_iovlen (msg) );
-		xfreemsg (msg);
+		bio_write (b, skbuf_base (msg), skbuf_len (msg) );
+		xfree_skbuf (msg);
 	}
 }
 
@@ -320,7 +320,7 @@ static int sg_send (struct sockbase *sb)
 		rc -= iov->iov_len;
 		msg = cont_of (iov->iov_base, struct skbuf, chunk);
 		list_del_init (&msg->item);
-		xfreemsg (msg);
+		xfree_skbuf (msg);
 		iov++;
 	}
 	/* Cache the reset iovec into bufio  */
@@ -328,7 +328,7 @@ static int sg_send (struct sockbase *sb)
 		bio_write (&self->out, iov->iov_base + rc, iov->iov_len - rc);
 		msg = cont_of (iov->iov_base, struct skbuf, chunk);
 		list_del_init (&msg->item);
-		xfreemsg (msg);
+		xfree_skbuf (msg);
 		rc = 0;
 		iov++;
 	}
@@ -366,14 +366,15 @@ static int xio_connector_sg (struct sockbase *sb)
 		if (self->iov_length <= NELEM (self->iov, struct iovec) ) {
 			self->biov = &self->iov[0];
 		} else {
+			/* BUG here ? */
 			self->biov = NTNEW (struct iovec, self->iov_length);
 			BUG_ON (!self->biov);
 		}
 		iov = self->biov;
 		walk_msg_s (msg, nmsg, &self->sg_head) {
 			list_del_init (&msg->item);
-			iov->iov_base = skbuf_iovbase (msg);
-			iov->iov_len = skbuf_iovlen (msg);
+			iov->iov_base = skbuf_base (msg);
+			iov->iov_len = skbuf_len (msg);
 			iov++;
 		}
 	}

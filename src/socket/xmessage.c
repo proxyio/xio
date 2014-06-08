@@ -26,23 +26,23 @@
 #include "xmessage.h"
 
 
-u32 skbuf_iovlen (struct skbuf *msg)
+u32 skbuf_len (struct skbuf *msg)
 {
 	return sizeof (msg->chunk) + msg->chunk.iov_len;
 }
 
-u32 skbuf_iovlens (struct skbuf *msg)
+u32 skbuf_lens (struct skbuf *msg)
 {
 	struct skbuf *cmsg, *ncmsg;
-	u32 iovlen = skbuf_iovlen (msg);
+	u32 iovlen = skbuf_len (msg);
 
 	walk_msg_s (cmsg, ncmsg, &msg->cmsg_head) {
-		iovlen += skbuf_iovlens (cmsg);
+		iovlen += skbuf_lens (cmsg);
 	}
 	return iovlen;
 }
 
-char *skbuf_iovbase (struct skbuf *msg)
+char *skbuf_base (struct skbuf *msg)
 {
 	return (char *) &msg->chunk;
 }
@@ -61,7 +61,7 @@ int skbuf_serialize (struct skbuf *msg, struct list_head *head)
 	return rc;
 }
 
-struct skbuf *xallocmsg (int size) {
+struct skbuf *xalloc_skbuf (int size) {
 	struct skbuf *msg = (struct skbuf *) mem_zalloc (sizeof (*msg) + size);
 	if (!msg)
 		return 0;
@@ -75,18 +75,18 @@ struct skbuf *xallocmsg (int size) {
 
 char *xallocubuf (int size)
 {
-	struct skbuf *msg = xallocmsg (size);
+	struct skbuf *msg = xalloc_skbuf (size);
 	if (!msg)
 		return 0;
 	return msg->chunk.iov_base;
 }
 
-void xfreemsg (struct skbuf *msg)
+void xfree_skbuf (struct skbuf *msg)
 {
 	struct skbuf *cmsg, *ncmsg;
 	walk_msg_s (cmsg, ncmsg, &msg->cmsg_head) {
 		list_del_init (&cmsg->item);
-		xfreemsg (cmsg);
+		xfree_skbuf (cmsg);
 	}
 	mem_free (msg, sizeof (*msg) + msg->chunk.iov_len);
 }
@@ -94,18 +94,13 @@ void xfreemsg (struct skbuf *msg)
 void xfreeubuf (char *ubuf)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	xfreemsg (msg);
-}
-
-int skbuflen (struct skbuf *msg)
-{
-	return msg->chunk.iov_len;
+	xfree_skbuf (msg);
 }
 
 int xubuflen (char *ubuf)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	return skbuflen (msg);
+	return msg->chunk.iov_len;
 }
 
 
@@ -163,12 +158,12 @@ static int subuf_add (char *ubuf, void *optval)
 	struct skbuf *new = cont_of (optval, struct skbuf, chunk.iov_base);
 
 	if (msg->chunk.cmsg_num == SKBUF_SUBNUMMARK ||
-	    msg->chunk.cmsg_length + skbuf_iovlens (new) > SKBUF_CMSGLENMARK) {
+	    msg->chunk.cmsg_length + skbuf_lens (new) > SKBUF_CMSGLENMARK) {
 		errno = EFBIG;
 		return -1;
 	}
 	msg->chunk.cmsg_num++;
-	msg->chunk.cmsg_length += skbuf_iovlens (new);
+	msg->chunk.cmsg_length += skbuf_lens (new);
 	list_add_tail (&new->item, &msg->cmsg_head);
 	return 0;
 }
@@ -179,7 +174,7 @@ static int subuf_rm (char *ubuf, void *optval)
 	struct skbuf *rm = cont_of (optval, struct skbuf, chunk.iov_base);
 
 	msg->chunk.cmsg_num--;
-	msg->chunk.cmsg_length -= skbuf_iovlens (rm);
+	msg->chunk.cmsg_length -= skbuf_lens (rm);
 	list_del_init (&rm->item);
 	return 0;
 }

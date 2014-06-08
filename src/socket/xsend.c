@@ -39,7 +39,7 @@ struct skbuf *sendq_rm (struct sockbase *sb) {
 		DEBUG_OFF ("xsock %d", sb->fd);
 		msg = list_first (&sb->snd.head, struct skbuf, item);
 		list_del_init (&msg->item);
-		sz = skbuf_iovlen (msg);
+		sz = skbuf_len (msg);
 		sb->snd.buf -= sz;
 		events |= XMQ_POP;
 		if (sb->snd.wnd - sb->snd.buf <= sz)
@@ -67,7 +67,7 @@ int sendq_add (struct sockbase *sb, struct skbuf *msg)
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
 	u32 events = 0;
-	i64 sz = skbuf_iovlen (msg);
+	i64 sz = skbuf_len (msg);
 
 	mutex_lock (&sb->lock);
 	while (!sb->fepipe && !can_send (sb) && !sb->fasync) {

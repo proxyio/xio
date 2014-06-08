@@ -46,7 +46,11 @@ static int pub_ep_send (struct epbase *ep, char *ubuf)
 
 static int pub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
+	/* limited by the pubsub protocol, the sub endpoint can't send any
+	 * message to pub endpoint, if it do it, we can mark this socket on
+	 * bad status, or drop the message simply. */
 	int rc = 0;
+	xfreeubuf(ubuf);
 	return rc;
 }
 

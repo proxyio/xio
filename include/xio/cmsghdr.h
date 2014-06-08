@@ -27,12 +27,13 @@
 #include <xio/cplusplus_define.h>
 
 enum {
-    SNUM = 1,
-    SFIRST,
-    SNEXT,
-    SLAST,
-    SADD,
-    SRM,
+	SNUM = 1,
+	SFIRST,
+	SNEXT,
+	SLAST,
+	SADD,
+	SRM,
+	SCLONE,
 };
 
 int ubufctl (char *ubuf, int opt, void *optval);

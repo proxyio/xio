@@ -174,7 +174,7 @@ void xsock_exit (struct sockbase *sb)
 	list_splice (&sb->snd.head, &head);
 
 	walk_msg_s (msg, nmsg, &head) {
-		xfreemsg (msg);
+		xfree_skbuf (msg);
 	}
 
 	/* It's possible that user call xclose() and xpoll_add()
