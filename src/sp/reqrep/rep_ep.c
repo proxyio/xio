@@ -45,11 +45,11 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
     struct rr_package *pg = get_rr_package(ubuf);
-    struct rtentry *rt = rt_cur(ubuf);
+    struct rt_entry *rt = rt_cur(ubuf);
     struct tgtd *tg = 0;
 
     mutex_lock(&ep->lock);
-    get_tgtd_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rr_tgtd(tg)->uuid, rt->uuid));
     if (tg)
         list_move(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
@@ -67,10 +67,10 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
 static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-    struct rtentry *r = rt_cur(ubuf);
+    struct rt_entry *rt = rt_cur(ubuf);
 
-    if (uuid_compare(r->uuid, tg->uuid))
-        uuid_copy(tg->uuid, r->uuid);
+    if (uuid_compare(rt->uuid, get_rr_tgtd(tg)->uuid))
+        uuid_copy(get_rr_tgtd(tg)->uuid, rt->uuid);
     DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
@@ -92,11 +92,13 @@ static int rep_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static struct tgtd *rep_ep_join(struct epbase *ep, int fd)
 {
-    struct tgtd *tg = TNEW(struct tgtd);
+    struct rr_tgtd *rr_tg = TNEW(struct rr_tgtd);
 
-    if (tg)
-	generic_tgtd_init(ep, tg, fd);
-    return tg;
+    if (rr_tg) {
+	INIT_LIST_HEAD(&rr_tg->sndq);
+	generic_tgtd_init(ep, &rr_tg->tg, fd);
+    }
+    return &rr_tg->tg;
 }
 
 static void rep_ep_term(struct epbase *ep, struct tgtd *tg)

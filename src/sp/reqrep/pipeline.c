@@ -44,10 +44,10 @@ static struct tgtd *rrbin_forward(struct epbase *ep, char *ubuf) {
 }
 
 static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
-    struct rtentry *rt = rt_prev(ubuf);
+    struct rt_entry *rt = rt_prev(ubuf);
     struct tgtd *tg = 0;
 
-    get_tgtd_if(tg, &ep->connectors, !uuid_compare(tg->uuid, rt->uuid));
+    get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rr_tgtd(tg)->uuid, rt->uuid));
     return tg;
 }
 
@@ -55,14 +55,14 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-    struct rtentry *r = rt_cur(ubuf);
-    struct tgtd *target = rrbin_forward(peer, ubuf);
+    struct rt_entry *rt = rt_cur(ubuf);
+    struct tgtd *go = rrbin_forward(peer, ubuf);
 
-    if (uuid_compare(r->uuid, tg->uuid))
-        uuid_copy(tg->uuid, r->uuid);
-    list_add_tail(&msg->item, &target->snd_cache);
+    if (uuid_compare(rt->uuid, get_rr_tgtd(tg)->uuid))
+        uuid_copy(get_rr_tgtd(tg)->uuid, rt->uuid);
+    list_add_tail(&msg->item, &get_rr_tgtd(go)->sndq);
     peer->snd.size += xubuflen(ubuf);
-    __tgtd_try_enable_out(target);
+    __tgtd_try_enable_out(go);
     DEBUG_OFF("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
 }
@@ -70,14 +70,14 @@ static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct skbuf *msg;
-    struct rtentry rt = {};
+    struct rt_entry rt = {};
 
-    if (list_empty(&tg->snd_cache)) {
+    if (list_empty(&get_rr_tgtd(tg)->sndq)) {
 	__tgtd_try_disable_out(tg);
 	return -1;
     }
-    uuid_copy(rt.uuid, tg->uuid);
-    msg = list_first(&tg->snd_cache, struct skbuf, item);
+    uuid_copy(rt.uuid, get_rr_tgtd(tg)->uuid);
+    msg = list_first(&get_rr_tgtd(tg)->sndq, struct skbuf, item);
     *ubuf = msg->chunk.iov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);
@@ -92,14 +92,14 @@ static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
     struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
     struct rr_package *pg = get_rr_package(ubuf);
-    struct tgtd *target = route_backward(peer, ubuf);
+    struct tgtd *back = route_backward(peer, ubuf);
 
-    if (!target)
+    if (!back)
         return -1;
     pg->ttl--;
-    list_add_tail(&msg->item, &target->snd_cache);
+    list_add_tail(&msg->item, &get_rr_tgtd(back)->sndq);
     peer->snd.size += xubuflen(ubuf);
-    __tgtd_try_enable_out(target);
+    __tgtd_try_enable_out(back);
     DEBUG_OFF("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     return 0;
 }
@@ -108,11 +108,11 @@ static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
     struct skbuf *msg = 0;
 
-    if (list_empty(&tg->snd_cache)) {
+    if (list_empty(&get_rr_tgtd(tg)->sndq)) {
 	__tgtd_try_disable_out(tg);
         return -1;
     }
-    msg = list_first(&tg->snd_cache, struct skbuf, item);
+    msg = list_first(&get_rr_tgtd(tg)->sndq, struct skbuf, item);
     *ubuf = msg->chunk.iov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);

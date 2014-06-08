@@ -62,7 +62,7 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
     struct rr_package *pg = 0;
-    struct rtentry rt = {};
+    struct rt_entry rt = {};
     struct tgtd *tg = 0;
 
     mutex_lock(&ep->lock);
@@ -70,7 +70,7 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     if (tg)
         list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
-    uuid_copy(rt.uuid, tg->uuid);
+    uuid_copy(rt.uuid, get_rr_tgtd(tg)->uuid);
     pg = new_rr_package(&rt);
     ubufctl_add(ubuf, (char *)pg);
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
@@ -93,13 +93,14 @@ static void req_ep_term(struct epbase *ep, struct tgtd *tg)
 
 static struct tgtd *req_ep_join(struct epbase *ep, int fd)
 {
-    struct tgtd *tg = TNEW(struct tgtd);
+    struct rr_tgtd *rr_tg = TNEW(struct rr_tgtd);
 
-    if (tg) {
-	generic_tgtd_init(ep, tg, fd);
-	uuid_generate(tg->uuid);
+    if (rr_tg) {
+	INIT_LIST_HEAD(&rr_tg->sndq);
+	uuid_generate(rr_tg->uuid);
+	generic_tgtd_init(ep, &rr_tg->tg, fd);
     }
-    return tg;
+    return &rr_tg->tg;
 }
 
 

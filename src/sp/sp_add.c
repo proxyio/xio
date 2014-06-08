@@ -44,7 +44,6 @@ void epbase_add_tgtd(struct epbase *ep, struct tgtd *tg)
 void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd) {
     int socktype = get_socktype(fd);
 
-    INIT_LIST_HEAD(&tg->snd_cache);
     tg->fd = fd;
     tg->owner = ep;
     tg->ent.fd = fd;

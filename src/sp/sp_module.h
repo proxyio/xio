@@ -68,8 +68,6 @@ struct tgtd {
     u32 bad_status:1;
     int fd;
     struct list_head item;
-    uuid_t uuid;
-    struct list_head snd_cache;
 };
 
 void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd);

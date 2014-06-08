@@ -284,14 +284,6 @@ void eid_put(int eid)
     }
 }
 
-struct tgtd *tgtd_new() {
-    struct tgtd *tg = TNEW(struct tgtd);
-    if (tg) {
-        INIT_LIST_HEAD(&tg->snd_cache);
-    }
-    return tg;
-}
-
 void tgtd_free(struct tgtd *tg)
 {
     mem_free(tg, sizeof(*tg));
