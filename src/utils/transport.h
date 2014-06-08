@@ -47,20 +47,20 @@ typedef int (*tp_getopt) (int fd, void *optval, int *optlen);
 #define TP_SOCKADDRLEN    128
 
 struct transport {
-    const char *name;
-    int proto;
-    void (*init)     (void);
-    void (*exit)     (void);
-    void (*close)    (int fd);
-    int  (*bind)     (const char *sock);
-    int  (*accept)   (int fd);
-    int  (*connect)  (const char *peer);
-    i64  (*recv)     (int fd, char *buff, i64 size);
-    i64  (*send)     (int fd, const char *buff, i64 size);
-    i64  (*sendmsg)  (int fd, const struct msghdr *msg, int flags);
-    int  (*setopt)   (int fd, int opt, void *optval, int optlen);
-    int  (*getopt)   (int fd, int opt, void *optval, int *optlen);
-    struct list_head item;
+	const char *name;
+	int proto;
+	void (*init)     (void);
+	void (*exit)     (void);
+	void (*close)    (int fd);
+	int  (*bind)     (const char *sock);
+	int  (*accept)   (int fd);
+	int  (*connect)  (const char *peer);
+	i64  (*recv)     (int fd, char *buff, i64 size);
+	i64  (*send)     (int fd, const char *buff, i64 size);
+	i64  (*sendmsg)  (int fd, const struct msghdr *msg, int flags);
+	int  (*setopt)   (int fd, int opt, void *optval, int optlen);
+	int  (*getopt)   (int fd, int opt, void *optval, int *optlen);
+	struct list_head item;
 };
 
 struct transport *transport_lookup(int proto);

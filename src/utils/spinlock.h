@@ -26,7 +26,7 @@
 #include <pthread.h>
 
 typedef struct spin {
-    pthread_spinlock_t _spin;
+	pthread_spinlock_t _spin;
 } spin_t;
 
 int spin_init(spin_t *spin);

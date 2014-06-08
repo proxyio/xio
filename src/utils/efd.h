@@ -24,8 +24,8 @@
 #define _XIO_EVENTFD_
 
 struct efd {
-    int r;
-    int w;
+	int r;
+	int w;
 };
 
 int efd_init(struct efd *self);

@@ -33,26 +33,26 @@ struct xtask;
 typedef void (*xtask_func) (struct xtask *ts);
 
 struct xtask {
-    xtask_func f;
-    struct list_head link;
+	xtask_func f;
+	struct list_head link;
 };
 
 #define walk_task_s(ts, nt, head)			\
     walk_each_entry_s(ts, nt, head, struct xtask, link)
 
 struct xcpu {
-    //spin_t lock; // for release mode
+	//spin_t lock; // for release mode
 
-    mutex_t lock; // for debug mode
+	mutex_t lock; // for debug mode
 
-    /* Backend eventloop for cpu_worker. */
-    eloop_t el;
+	/* Backend eventloop for cpu_worker. */
+	eloop_t el;
 
-    ev_t efd_et;
-    struct efd efd;
+	ev_t efd_et;
+	struct efd efd;
 
-    /* Waiting for closed xsock will be attached here */
-    struct list_head shutdown_socks;
+	/* Waiting for closed xsock will be attached here */
+	struct list_head shutdown_socks;
 };
 
 int xcpu_alloc();

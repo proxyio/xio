@@ -25,35 +25,35 @@
 
 int sp_recv(int eid, char **ubuf)
 {
-    struct epbase *ep = eid_get(eid);
+	struct epbase *ep = eid_get(eid);
 
-    if (!ep) {
-        errno = EBADF;
-        return -1;
-    }
-    mutex_lock(&ep->lock);
+	if (!ep) {
+		errno = EBADF;
+		return -1;
+	}
+	mutex_lock(&ep->lock);
 
-    /* All the received message would saved in the rcv.head. if the endpoint
-     * status ok and the rcv.head is empty, we wait here. when the endpoint
-     * status is bad or has messages come, the wait return.
-     * TODO: can condition_wait support timeout.
-     */
-    while (!ep->shutdown && list_empty(&ep->rcv.head)) {
-        ep->rcv.waiters++;
-        condition_wait(&ep->cond, &ep->lock);
-        ep->rcv.waiters--;
-    }
+	/* All the received message would saved in the rcv.head. if the endpoint
+	 * status ok and the rcv.head is empty, we wait here. when the endpoint
+	 * status is bad or has messages come, the wait return.
+	 * TODO: can condition_wait support timeout.
+	 */
+	while (!ep->shutdown && list_empty(&ep->rcv.head)) {
+		ep->rcv.waiters++;
+		condition_wait(&ep->cond, &ep->lock);
+		ep->rcv.waiters--;
+	}
 
-    /* Check the endpoint status, maybe it's bad */
-    if (ep->shutdown) {
-        mutex_unlock(&ep->lock);
+	/* Check the endpoint status, maybe it's bad */
+	if (ep->shutdown) {
+		mutex_unlock(&ep->lock);
+		eid_put(eid);
+		errno = EBADF;
+		return -1;
+	}
+	skbuf_head_out(&ep->rcv, *ubuf);
+
+	mutex_unlock(&ep->lock);
 	eid_put(eid);
-        errno = EBADF;
-        return -1;
-    }
-    skbuf_head_out(&ep->rcv, *ubuf);
-
-    mutex_unlock(&ep->lock);
-    eid_put(eid);
-    return 0;
+	return 0;
 }

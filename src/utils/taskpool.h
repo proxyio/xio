@@ -30,64 +30,64 @@
 #include "thread.h"
 
 typedef struct taskpool {
-    int stopping;
-    int tasks;
-    int workers;
-    mutex_t mutex;
-    condition_t cond;
-    struct list_head task_head;
-    thread_t **threads;
+	int stopping;
+	int tasks;
+	int workers;
+	mutex_t mutex;
+	condition_t cond;
+	struct list_head task_head;
+	thread_t **threads;
 } taskpool_t;
 
 static inline taskpool_t *taskpool_new()
 {
-    taskpool_t *tp = TNEW(taskpool_t);
-    return tp;
+	taskpool_t *tp = TNEW(taskpool_t);
+	return tp;
 }
 
 static inline void taskpool_free(taskpool_t *tp)
 {
-    free(tp);
+	free(tp);
 }
 
 static inline int taskpool_init(taskpool_t *tp, int w)
 {
-    int i;
-    thread_t *tt = NULL, **tpos = NULL;
+	int i;
+	thread_t *tt = NULL, **tpos = NULL;
 
-    tp->stopping = true;
-    tp->tasks = 0;
-    tp->workers = w;
-    if (!(tp->threads = NTNEW(thread_t *, w)))
-        return -1;
-    mutex_init(&tp->mutex);
-    condition_init(&tp->cond);
-    INIT_LIST_HEAD(&tp->task_head);
-    if (tp->workers < 0)
-        tp->workers = 1;
-    tpos = tp->threads;
-    for (i = 0; i < tp->workers; i++) {
-        if ((tt = thread_new()) != NULL)
-            *tpos++ = tt;
-    }
-    if ((tp->workers = tpos - tp->threads) <= 0) {
-        mem_free(tp->threads, sizeof(*tp->threads) * tp->workers);
-        return -1;
-    }
-    return 0;
+	tp->stopping = true;
+	tp->tasks = 0;
+	tp->workers = w;
+	if (!(tp->threads = NTNEW(thread_t *, w)))
+		return -1;
+	mutex_init(&tp->mutex);
+	condition_init(&tp->cond);
+	INIT_LIST_HEAD(&tp->task_head);
+	if (tp->workers < 0)
+		tp->workers = 1;
+	tpos = tp->threads;
+	for (i = 0; i < tp->workers; i++) {
+		if ((tt = thread_new()) != NULL)
+			*tpos++ = tt;
+	}
+	if ((tp->workers = tpos - tp->threads) <= 0) {
+		mem_free(tp->threads, sizeof(*tp->threads) * tp->workers);
+		return -1;
+	}
+	return 0;
 }
 
 static inline int taskpool_destroy(taskpool_t *tp)
 {
-    thread_t **tpos = tp->threads;
+	thread_t **tpos = tp->threads;
 
-    while (tpos < (tp->threads + tp->workers))
-        free(*tpos++);
-    mem_free(tp->threads, tp->workers * sizeof(*tp->threads));
-    mutex_destroy(&tp->mutex);
-    condition_destroy(&tp->cond);
-    ZERO(*tp);
-    return 0;
+	while (tpos < (tp->threads + tp->workers))
+		free(*tpos++);
+	mem_free(tp->threads, tp->workers * sizeof(*tp->threads));
+	mutex_destroy(&tp->mutex);
+	condition_destroy(&tp->cond);
+	ZERO(*tp);
+	return 0;
 }
 
 int taskpool_run(taskpool_t *tp, thread_func tf, void *data);

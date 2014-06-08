@@ -30,21 +30,21 @@
 
 int xsocket(int pf, int socktype)
 {
-    int rc = xalloc(pf, socktype);
-    return rc;
+	int rc = xalloc(pf, socktype);
+	return rc;
 }
 
 int xbind(int fd, const char *addr)
 {
-    int rc;
-    struct sockbase *self = xget(fd);
+	int rc;
+	struct sockbase *self = xget(fd);
 
-    if (!self) {
-        errno = EBADF;
-        return -1;
-    }
-    BUG_ON(!self->vfptr);
-    rc = self->vfptr->bind(self, addr);
-    xput(fd);
-    return rc;
+	if (!self) {
+		errno = EBADF;
+		return -1;
+	}
+	BUG_ON(!self->vfptr);
+	rc = self->vfptr->bind(self, addr);
+	xput(fd);
+	return rc;
 }

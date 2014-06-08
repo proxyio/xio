@@ -43,14 +43,14 @@
 	    (type *)((char *)ptr - __offsetof(type, member)); })
 
 struct rb_node {
-    unsigned long  __rb_parent_color;
-    struct rb_node *rb_right;
-    struct rb_node *rb_left;
+	unsigned long  __rb_parent_color;
+	struct rb_node *rb_right;
+	struct rb_node *rb_left;
 } __attribute__((aligned(sizeof(long))));
 /* The alignment might seem pointless, but allegedly CRIS needs it */
 
 struct rb_root {
-    struct rb_node *rb_node;
+	struct rb_node *rb_node;
 };
 
 
@@ -87,10 +87,10 @@ extern void rb_replace_node(struct rb_node *victim, struct rb_node *_new,
 static inline void rb_link_node(struct rb_node * node, struct rb_node * parent,
                                 struct rb_node ** rb_link)
 {
-    node->__rb_parent_color = (unsigned long)parent;
-    node->rb_left = node->rb_right = NULL;
+	node->__rb_parent_color = (unsigned long)parent;
+	node->rb_left = node->rb_right = NULL;
 
-    *rb_link = node;
+	*rb_link = node;
 }
 
 

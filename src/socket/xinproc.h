@@ -26,14 +26,14 @@
 #include "xsock.h"
 
 struct inproc_sock {
-    struct sockbase base;
-    atomic_t ref;
+	struct sockbase base;
+	atomic_t ref;
 
-    /* For inproc-listener */
-    struct ssmap_node rb_link;
+	/* For inproc-listener */
+	struct ssmap_node rb_link;
 
-    /* For inproc-connector and inproc-accepter */
-    struct sockbase *peer;
+	/* For inproc-connector and inproc-accepter */
+	struct sockbase *peer;
 };
 
 extern struct sockbase_vfptr xinp_listener_spec;

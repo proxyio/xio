@@ -54,13 +54,13 @@ enum STAT_LEVEL {
 extern const char *stat_level_token[MSL_NUM];
 
 typedef struct modstat {
-    int kr;
-    int64_t slv[MSL_NUM];
-    int64_t *keys[MST_NUM][MSL_NUM];
-    int64_t *threshold[MSL_NUM];
-    int64_t timestamp[MSL_NUM];
-    int64_t trigger_counter[MSL_NUM];
-    threshold_warn *f;
+	int kr;
+	int64_t slv[MSL_NUM];
+	int64_t *keys[MST_NUM][MSL_NUM];
+	int64_t *threshold[MSL_NUM];
+	int64_t timestamp[MSL_NUM];
+	int64_t trigger_counter[MSL_NUM];
+	threshold_warn *f;
 } modstat_t;
 
 
@@ -95,31 +95,31 @@ typedef struct modstat {
 
 static inline void modstat_incrkey(modstat_t *ms, int key)
 {
-    int sl;
-    for (sl = 0; sl < MSL_NUM; sl++)
-        ms->keys[MST_NOW][sl][key] += 1;
+	int sl;
+	for (sl = 0; sl < MSL_NUM; sl++)
+		ms->keys[MST_NOW][sl][key] += 1;
 }
 
 static inline void modstat_incrskey(modstat_t *ms, int key, int val)
 {
-    int sl;
-    for (sl = 0; sl < MSL_NUM; sl++)
-        ms->keys[MST_NOW][sl][key] += val;
+	int sl;
+	for (sl = 0; sl < MSL_NUM; sl++)
+		ms->keys[MST_NOW][sl][key] += val;
 }
 
 static inline int64_t modstat_getkey(modstat_t *ms, int st, int sl, int key)
 {
-    return ms->keys[st][sl][key];
+	return ms->keys[st][sl][key];
 }
 
 static inline void modstat_set_warnf(modstat_t *ms, int sl, threshold_warn f)
 {
-    ms->f[sl] = f;
+	ms->f[sl] = f;
 }
 
 static inline void modstat_set_threshold(modstat_t *ms, int sl, int key, int64_t v)
 {
-    ms->threshold[sl][key] = v;
+	ms->threshold[sl][key] = v;
 }
 
 void modstat_update_timestamp(modstat_t *ms, int64_t timestamp);
@@ -127,11 +127,11 @@ int generic_parse_modstat_item(const char *str, const char *key, int *tr, int *v
 static inline int generic_init_modstat(modstat_t *self, int keyrange,
                                        const char **items, const char *ss)
 {
-    int i = 0, sl = 0, val = 0;
-    for (i = 1; i < keyrange; i++)
-        if ((generic_parse_modstat_item(ss, items[i], &sl, &val)) == 0)
-            modstat_set_threshold(self, sl, i, val);
-    return 0;
+	int i = 0, sl = 0, val = 0;
+	for (i = 1; i < keyrange; i++)
+		if ((generic_parse_modstat_item(ss, items[i], &sl, &val)) == 0)
+			modstat_set_threshold(self, sl, i, val);
+	return 0;
 }
 
 #endif

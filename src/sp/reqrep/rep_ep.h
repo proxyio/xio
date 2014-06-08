@@ -29,8 +29,8 @@
 struct reqep;
 
 struct repep {
-    struct epbase base;
-    struct reqep *peer;
+	struct epbase base;
+	struct reqep *peer;
 };
 
 #define rep_ep(ep) cont_of(ep, struct repep, base)

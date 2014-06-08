@@ -42,9 +42,9 @@
  */
 
 struct rb_augment_callbacks {
-    void (*propagate)(struct rb_node *node, struct rb_node *stop);
-    void (*copy)(struct rb_node *old, struct rb_node *_new);
-    void (*rotate)(struct rb_node *old, struct rb_node *_new);
+	void (*propagate)(struct rb_node *node, struct rb_node *stop);
+	void (*copy)(struct rb_node *old, struct rb_node *_new);
+	void (*rotate)(struct rb_node *old, struct rb_node *_new);
 };
 
 extern void __rb_insert_augmented(struct rb_node *node, struct rb_root *root,
@@ -53,7 +53,7 @@ static inline void
 rb_insert_augmented(struct rb_node *node, struct rb_root *root,
                     const struct rb_augment_callbacks *augment)
 {
-    __rb_insert_augmented(node, root, augment->rotate);
+	__rb_insert_augmented(node, root, augment->rotate);
 }
 
 #define RB_DECLARE_CALLBACKS(rbstatic, rbname, rbstruct, rbfield,	\
@@ -104,26 +104,26 @@ rbstatic const struct rb_augment_callbacks rbname = {			\
 
 static inline void rb_set_parent(struct rb_node *rb, struct rb_node *p)
 {
-    rb->__rb_parent_color = rb_color(rb) | (unsigned long)p;
+	rb->__rb_parent_color = rb_color(rb) | (unsigned long)p;
 }
 
 static inline void rb_set_parent_color(struct rb_node *rb,
                                        struct rb_node *p, int color)
 {
-    rb->__rb_parent_color = (unsigned long)p | color;
+	rb->__rb_parent_color = (unsigned long)p | color;
 }
 
 static inline void
 __rb_change_child(struct rb_node *old, struct rb_node *_new,
                   struct rb_node *parent, struct rb_root *root)
 {
-    if (parent) {
-        if (parent->rb_left == old)
-            parent->rb_left = _new;
-        else
-            parent->rb_right = _new;
-    } else
-        root->rb_node = _new;
+	if (parent) {
+		if (parent->rb_left == old)
+			parent->rb_left = _new;
+		else
+			parent->rb_right = _new;
+	} else
+		root->rb_node = _new;
 }
 
 extern void __rb_erase_color(struct rb_node *parent, struct rb_root *root,

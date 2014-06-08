@@ -32,10 +32,10 @@
 int xselect(int events, int nin, int *in_set, int nout, int *out_set);
 
 struct poll_ent {
-    int fd;
-    void *self;
-    int events;
-    int happened;
+	int fd;
+	void *self;
+	int events;
+	int happened;
 };
 
 int xpoll_create();

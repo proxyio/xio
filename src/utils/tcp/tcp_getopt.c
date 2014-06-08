@@ -35,108 +35,108 @@
 
 static int get_linger(int fd, void *optval, int *optlen)
 {
-    errno = EOPNOTSUPP;
-    return -1;
+	errno = EOPNOTSUPP;
+	return -1;
 }
 
 static int get_sndbuf(int fd, void *optval, int *optlen)
 {
-    int rc;
-    int buf = 0;
-    socklen_t koptlen = sizeof(buf);
+	int rc;
+	int buf = 0;
+	socklen_t koptlen = sizeof(buf);
 
-    rc = getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf, &koptlen);
-    if (rc == 0)
-        *(int *)optval = buf;
-    return rc;
+	rc = getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf, &koptlen);
+	if (rc == 0)
+		*(int *)optval = buf;
+	return rc;
 }
 
 static int get_rcvbuf(int fd, void *optval, int *optlen)
 {
-    int rc;
-    int buf = 0;
-    socklen_t koptlen = sizeof(buf);
+	int rc;
+	int buf = 0;
+	socklen_t koptlen = sizeof(buf);
 
-    rc = getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, &koptlen);
-    if (rc == 0)
-        *(int *)optval = buf;
-    return rc;
+	rc = getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf, &koptlen);
+	if (rc == 0)
+		*(int *)optval = buf;
+	return rc;
 }
 
 static int get_noblock(int fd, void *optval, int *optlen)
 {
-    int flags;
+	int flags;
 
-    if ((flags = fcntl(fd, F_GETFL, 0)) < 0)
-        flags = 0;
-    *(int *)optval = (flags & O_NONBLOCK) ? true : false;
-    return 0;
+	if ((flags = fcntl(fd, F_GETFL, 0)) < 0)
+		flags = 0;
+	*(int *)optval = (flags & O_NONBLOCK) ? true : false;
+	return 0;
 }
 
 static int get_nodelay(int fd, void *optval, int *optlen)
 {
-    errno = EOPNOTSUPP;
-    return -1;
+	errno = EOPNOTSUPP;
+	return -1;
 }
 
 static int get_sndtimeo(int fd, void *optval, int *optlen)
 {
-    int rc;
-    int to = *(int *)optval;
-    struct timeval tv = {
-        .tv_sec = to / 1000,
-        .tv_usec = (to % 1000) * 1000,
-    };
-    socklen_t koptlen = sizeof(tv);
+	int rc;
+	int to = *(int *)optval;
+	struct timeval tv = {
+		.tv_sec = to / 1000,
+		.tv_usec = (to % 1000) * 1000,
+	};
+	socklen_t koptlen = sizeof(tv);
 
-    rc = getsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, &koptlen);
-    if (rc == 0)
-        *(int *)optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-    return rc;
+	rc = getsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, &koptlen);
+	if (rc == 0)
+		*(int *)optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	return rc;
 }
 
 static int get_rcvtimeo(int fd, void *optval, int *optlen)
 {
-    int rc;
-    int to = *(int *)optval;
-    struct timeval tv = {
-        .tv_sec = to / 1000,
-        .tv_usec = (to % 1000) * 1000,
-    };
-    socklen_t koptlen = sizeof(tv);
+	int rc;
+	int to = *(int *)optval;
+	struct timeval tv = {
+		.tv_sec = to / 1000,
+		.tv_usec = (to % 1000) * 1000,
+	};
+	socklen_t koptlen = sizeof(tv);
 
-    rc = getsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &koptlen);
-    if (rc == 0)
-        *(int *)optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
-    return rc;
+	rc = getsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &koptlen);
+	if (rc == 0)
+		*(int *)optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	return rc;
 }
 
 static int get_reuseaddr(int fd, void *optval, int *optlen)
 {
-    errno = EOPNOTSUPP;
-    return -1;
+	errno = EOPNOTSUPP;
+	return -1;
 }
 
 static const tp_getopt getopt_vfptr[] = {
-    0,
-    get_linger,
-    get_sndbuf,
-    get_rcvbuf,
-    get_noblock,
-    get_nodelay,
-    get_rcvtimeo,
-    get_sndtimeo,
-    get_reuseaddr,
+	0,
+	get_linger,
+	get_sndbuf,
+	get_rcvbuf,
+	get_noblock,
+	get_nodelay,
+	get_rcvtimeo,
+	get_sndtimeo,
+	get_reuseaddr,
 };
 
 int tcp_getopt(int fd, int opt, void *optval, int *optlen)
 {
-    int rc;
+	int rc;
 
-    if (opt >= NELEM(getopt_vfptr, tp_getopt) || !getopt_vfptr[opt]) {
-        errno = EINVAL;
-        return -1;
-    }
-    rc = getopt_vfptr[opt] (fd, optval, optlen);
-    return rc;
+	if (opt >= NELEM(getopt_vfptr, tp_getopt) || !getopt_vfptr[opt]) {
+		errno = EINVAL;
+		return -1;
+	}
+	rc = getopt_vfptr[opt] (fd, optval, optlen);
+	return rc;
 }

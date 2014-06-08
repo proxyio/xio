@@ -27,9 +27,9 @@
 #include "condition.h"
 
 typedef struct waitgroup {
-    int ref;
-    condition_t cond;
-    mutex_t mutex;
+	int ref;
+	condition_t cond;
+	mutex_t mutex;
 } waitgroup_t;
 
 int waitgroup_init(waitgroup_t *wg);

@@ -32,11 +32,11 @@
 #include <socket/xsock.h>
 
 struct xpitem {
-    struct pollbase base;
-    spin_t lock;
-    struct list_head lru_link;
-    int ref;
-    struct xpoll_t *poll;
+	struct pollbase base;
+	spin_t lock;
+	struct list_head lru_link;
+	int ref;
+	struct xpoll_t *poll;
 };
 
 extern struct pollbase_vfptr xpollbase_vfptr;
@@ -50,14 +50,14 @@ int xpitem_put(struct xpitem *itm);
 
 
 struct xpoll_t {
-    mutex_t lock;
-    condition_t cond;
-    u64 shutdown_state:1;
-    int id;
-    atomic_t ref;
-    int uwaiters;
-    int size;
-    struct list_head lru_head;
+	mutex_t lock;
+	condition_t cond;
+	u64 shutdown_state:1;
+	int id;
+	atomic_t ref;
+	int uwaiters;
+	int size;
+	struct list_head lru_head;
 };
 
 struct xpoll_t *poll_alloc();
@@ -73,20 +73,20 @@ int rmfd(struct xpoll_t *poll, int fd);
 #define XIO_MAX_POLLS 10240
 
 struct xp_global {
-    spin_t lock;
+	spin_t lock;
 
-    /* The global table of existing xsock. The descriptor representing
-     * the xsock is the index to this table. This pointer is also used to
-     * find out whether context is initialised. If it is null, context is
-     * uninitialised.
-     */
-    struct xpoll_t *polls[XIO_MAX_POLLS];
+	/* The global table of existing xsock. The descriptor representing
+	 * the xsock is the index to this table. This pointer is also used to
+	 * find out whether context is initialised. If it is null, context is
+	 * uninitialised.
+	 */
+	struct xpoll_t *polls[XIO_MAX_POLLS];
 
-    /* Stack of unused xsock descriptors.  */
-    int unused[XIO_MAX_POLLS];
+	/* Stack of unused xsock descriptors.  */
+	int unused[XIO_MAX_POLLS];
 
-    /* Number of actual socks. */
-    size_t npolls;
+	/* Number of actual socks. */
+	size_t npolls;
 };
 
 extern struct xp_global pg;

@@ -42,17 +42,17 @@
 
 /* TODO: little endian and big endian */
 struct xiov {
-    u16 checksum;
-    u16 cmsg_num:4;
-    u16 cmsg_length:12;
-    u32 iov_len;
-    char iov_base[0];
+	u16 checksum;
+	u16 cmsg_num:4;
+	u16 cmsg_length:12;
+	u32 iov_len;
+	char iov_base[0];
 };
 
 struct skbuf {
-    struct list_head item;
-    struct list_head cmsg_head;
-    struct xiov chunk;
+	struct list_head item;
+	struct list_head cmsg_head;
+	struct xiov chunk;
 };
 
 u32 skbuf_iovlen(struct skbuf *msg);

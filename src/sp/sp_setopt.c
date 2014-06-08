@@ -25,14 +25,14 @@
 
 int sp_setopt(int eid, int opt, void *optval, int optlen)
 {
-    int rc;
-    struct epbase *ep = eid_get(eid);
+	int rc;
+	struct epbase *ep = eid_get(eid);
 
-    if (!ep) {
-        errno = EBADF;
-        return -1;
-    }
-    rc = ep->vfptr.setopt(ep, opt, optval, optlen);
-    eid_put(eid);
-    return rc;
+	if (!ep) {
+		errno = EBADF;
+		return -1;
+	}
+	rc = ep->vfptr.setopt(ep, opt, optval, optlen);
+	eid_put(eid);
+	return rc;
 }

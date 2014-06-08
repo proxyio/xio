@@ -30,20 +30,20 @@
 
 int check_pollevents(struct sockbase *self, int events)
 {
-    int happened = 0;
+	int happened = 0;
 
-    if (events & XPOLLIN) {
-        if (self->vfptr->type == XCONNECTOR)
-            happened |= !list_empty(&self->rcv.head) ? XPOLLIN : 0;
-        else if (self->vfptr->type == XLISTENER)
-            happened |= !list_empty(&self->acceptq.head) ? XPOLLIN : 0;
-    }
-    if (events & XPOLLOUT)
-        happened |= can_send(self) ? XPOLLOUT : 0;
-    if (events & XPOLLERR)
-        happened |= self->fepipe ? XPOLLERR : 0;
-    DEBUG_OFF("%d happen %s", self->fd, xpoll_str[happened]);
-    return happened;
+	if (events & XPOLLIN) {
+		if (self->vfptr->type == XCONNECTOR)
+			happened |= !list_empty(&self->rcv.head) ? XPOLLIN : 0;
+		else if (self->vfptr->type == XLISTENER)
+			happened |= !list_empty(&self->acceptq.head) ? XPOLLIN : 0;
+	}
+	if (events & XPOLLOUT)
+		happened |= can_send(self) ? XPOLLOUT : 0;
+	if (events & XPOLLERR)
+		happened |= self->fepipe ? XPOLLERR : 0;
+	DEBUG_OFF("%d happen %s", self->fd, xpoll_str[happened]);
+	return happened;
 }
 
 /* Generic xpoll_t notify function. always called by sockbase_vfptr
@@ -54,19 +54,19 @@ int check_pollevents(struct sockbase *self, int events)
  */
 void __emit_pollevents(struct sockbase *self)
 {
-    int happened = 0;
-    struct pollbase *pb, *npb;
+	int happened = 0;
+	struct pollbase *pb, *npb;
 
-    happened |= check_pollevents(self, XPOLLIN|XPOLLOUT|XPOLLERR);
-    walk_pollbase_s(pb, npb, &self->poll_entries) {
-        BUG_ON(!pb->vfptr);
-        pb->vfptr->emit(pb, happened & pb->ent.events);
-    }
+	happened |= check_pollevents(self, XPOLLIN|XPOLLOUT|XPOLLERR);
+	walk_pollbase_s(pb, npb, &self->poll_entries) {
+		BUG_ON(!pb->vfptr);
+		pb->vfptr->emit(pb, happened & pb->ent.events);
+	}
 }
 
 void emit_pollevents(struct sockbase *self)
 {
-    mutex_lock(&self->lock);
-    __emit_pollevents(self);
-    mutex_unlock(&self->lock);
+	mutex_lock(&self->lock);
+	__emit_pollevents(self);
+	mutex_unlock(&self->lock);
 }

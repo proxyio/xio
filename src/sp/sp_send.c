@@ -26,14 +26,14 @@
 
 int sp_send(int eid, char *ubuf)
 {
-    int rc;
-    struct epbase *ep = eid_get(eid);
+	int rc;
+	struct epbase *ep = eid_get(eid);
 
-    if (!ep || ep->shutdown) {
-        errno = EBADF;
-        return -1;
-    }
-    rc = ep->vfptr.send (ep, ubuf);
-    eid_put(eid);
-    return rc;
+	if (!ep || ep->shutdown) {
+		errno = EBADF;
+		return -1;
+	}
+	rc = ep->vfptr.send (ep, ubuf);
+	eid_put(eid);
+	return rc;
 }

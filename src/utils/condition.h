@@ -27,7 +27,7 @@
 #include "mutex.h"
 
 typedef struct condition {
-    pthread_cond_t _cond;
+	pthread_cond_t _cond;
 } condition_t;
 
 int condition_init(condition_t *cond);

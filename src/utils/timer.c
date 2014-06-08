@@ -26,33 +26,33 @@
 
 i64 gettimeofms()
 {
-    struct timeval tv;
-    i64 ct;
+	struct timeval tv;
+	i64 ct;
 
-    gettimeofday(&tv, NULL);
-    ct = (i64)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	gettimeofday(&tv, NULL);
+	ct = (i64)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
-    return ct;
+	return ct;
 }
 
 i64 gettimeofus()
 {
-    struct timeval tv;
-    i64 ct;
+	struct timeval tv;
+	i64 ct;
 
-    gettimeofday(&tv, NULL);
-    ct = (i64)tv.tv_sec * 1000000 + tv.tv_usec;
+	gettimeofday(&tv, NULL);
+	ct = (i64)tv.tv_sec * 1000000 + tv.tv_usec;
 
-    return ct;
+	return ct;
 }
 
 i64 gettimeofns()
 {
-    struct timeval tv;
-    i64 ct;
+	struct timeval tv;
+	i64 ct;
 
-    gettimeofday(&tv, NULL);
-    ct = (i64)tv.tv_sec * 1000000000 + (i64)tv.tv_usec * 1000;
+	gettimeofday(&tv, NULL);
+	ct = (i64)tv.tv_sec * 1000000000 + (i64)tv.tv_usec * 1000;
 
-    return ct;
+	return ct;
 }

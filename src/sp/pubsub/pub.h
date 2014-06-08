@@ -27,7 +27,7 @@
 #include <sp/sp_module.h>
 
 struct pub_ep {
-    struct epbase base;
+	struct epbase base;
 };
 
 #endif

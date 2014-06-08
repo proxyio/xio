@@ -25,48 +25,49 @@
 
 void epbase_add_tgtd(struct epbase *ep, struct tgtd *tg)
 {
-    mutex_lock(&ep->lock);
-    switch (get_socktype(tg->fd)) {
-    case XLISTENER:
-	list_add_tail(&tg->item, &ep->listeners);
-	ep->listener_num++;
-	break;
-    case XCONNECTOR:
-	list_add_tail(&tg->item, &ep->connectors);
-	ep->connector_num++;
-	break;
-    default:
-	BUG_ON(1);
-    }
-    mutex_unlock(&ep->lock);
+	mutex_lock(&ep->lock);
+	switch (get_socktype(tg->fd)) {
+	case XLISTENER:
+		list_add_tail(&tg->item, &ep->listeners);
+		ep->listener_num++;
+		break;
+	case XCONNECTOR:
+		list_add_tail(&tg->item, &ep->connectors);
+		ep->connector_num++;
+		break;
+	default:
+		BUG_ON(1);
+	}
+	mutex_unlock(&ep->lock);
 }
 
-void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd) {
-    int socktype = get_socktype(fd);
+void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd)
+{
+	int socktype = get_socktype(fd);
 
-    tg->fd = fd;
-    tg->owner = ep;
-    tg->ent.fd = fd;
-    tg->ent.self = tg;
-    tg->ent.events = XPOLLIN|XPOLLERR;
-    tg->ent.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
-    epbase_add_tgtd(ep, tg);
+	tg->fd = fd;
+	tg->owner = ep;
+	tg->ent.fd = fd;
+	tg->ent.self = tg;
+	tg->ent.events = XPOLLIN|XPOLLERR;
+	tg->ent.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
+	epbase_add_tgtd(ep, tg);
 }
 
 int sp_add(int eid, int fd)
 {
-    struct epbase *ep = eid_get(eid);
-    int rc, on = 1;
-    struct tgtd *tg;
-    
-    if (!ep) {
-        errno = EBADF;
-        return -1;
-    }
-    if ((tg = ep->vfptr.join(ep, fd))) {
-	xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, sizeof(on));
-	sg_add_tg(tg);
-    }
-    eid_put(eid);
-    return rc;
+	struct epbase *ep = eid_get(eid);
+	int rc, on = 1;
+	struct tgtd *tg;
+
+	if (!ep) {
+		errno = EBADF;
+		return -1;
+	}
+	if ((tg = ep->vfptr.join(ep, fd))) {
+		xsetopt(fd, XL_SOCKET, XNOBLOCK, &on, sizeof(on));
+		sg_add_tg(tg);
+	}
+	eid_put(eid);
+	return rc;
 }

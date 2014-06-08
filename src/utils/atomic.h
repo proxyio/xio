@@ -27,8 +27,8 @@
 #include "spinlock.h"
 
 typedef struct atomic {
-    int64_t val;
-    spin_t lock;
+	int64_t val;
+	spin_t lock;
 } atomic_t;
 
 #define atomic_init(at) do {			\

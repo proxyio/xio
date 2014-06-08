@@ -66,14 +66,14 @@ extern const char *pf_str[];
 
 struct pollbase;
 struct pollbase_vfptr {
-    void (*emit) (struct pollbase *pb, u32 events);
-    void (*close) (struct pollbase *pb);
+	void (*emit) (struct pollbase *pb, u32 events);
+	void (*close) (struct pollbase *pb);
 };
 
 struct pollbase {
-    struct pollbase_vfptr *vfptr;
-    struct poll_ent ent;
-    struct list_head link;
+	struct pollbase_vfptr *vfptr;
+	struct poll_ent ent;
+	struct list_head link;
 };
 
 #define walk_pollbase_s(pb, npb, head)				\
@@ -82,66 +82,66 @@ struct pollbase {
 static inline
 void pollbase_init(struct pollbase *pb, struct pollbase_vfptr *vfptr)
 {
-    pb->vfptr = vfptr;
-    INIT_LIST_HEAD(&pb->link);
+	pb->vfptr = vfptr;
+	INIT_LIST_HEAD(&pb->link);
 }
 
 
 
 struct sockbase;
 struct sockbase_vfptr {
-    int type;
-    int pf;
-    struct sockbase *(*alloc) ();
-    void  (*close)  (struct sockbase *sb);
-    int   (*bind)   (struct sockbase *sb, const char *sock);
-    void  (*notify) (struct sockbase *sb, int type, u32 events);
-    int   (*setopt) (struct sockbase *sb, int level, int opt, void *optval,
-                     int optlen);
-    int   (*getopt) (struct sockbase *sb, int level, int opt, void *optval,
-                     int *optlen);
-    struct list_head link;
+	int type;
+	int pf;
+	struct sockbase *(*alloc) ();
+	void  (*close)  (struct sockbase *sb);
+	int   (*bind)   (struct sockbase *sb, const char *sock);
+	void  (*notify) (struct sockbase *sb, int type, u32 events);
+	int   (*setopt) (struct sockbase *sb, int level, int opt, void *optval,
+	                 int optlen);
+	int   (*getopt) (struct sockbase *sb, int level, int opt, void *optval,
+	                 int *optlen);
+	struct list_head link;
 };
 
 struct sockbase {
-    struct sockbase_vfptr *vfptr;
-    mutex_t lock;
-    condition_t cond;
-    int fd;
-    atomic_t ref;
-    int cpu_no;
-    char addr[TP_SOCKADDRLEN];
-    char peer[TP_SOCKADDRLEN];
-    u64 fasync:1;
-    u64 fepipe:1;
+	struct sockbase_vfptr *vfptr;
+	mutex_t lock;
+	condition_t cond;
+	int fd;
+	atomic_t ref;
+	int cpu_no;
+	char addr[TP_SOCKADDRLEN];
+	char peer[TP_SOCKADDRLEN];
+	u64 fasync:1;
+	u64 fepipe:1;
 
-    struct sockbase *owner;
-    struct list_head sub_socks;
-    struct list_head sib_link;
+	struct sockbase *owner;
+	struct list_head sub_socks;
+	struct list_head sib_link;
 
-    struct {
-        int waiters;
-        int wnd;
-        int buf;
-        struct list_head head;
-    } rcv;
+	struct {
+		int waiters;
+		int wnd;
+		int buf;
+		struct list_head head;
+	} rcv;
 
-    struct {
-        int waiters;
-        int wnd;
-        int buf;
-        struct list_head head;
-    } snd;
+	struct {
+		int waiters;
+		int wnd;
+		int buf;
+		struct list_head head;
+	} snd;
 
-    struct {
-        condition_t cond;
-        int waiters;
-        struct list_head head;
-        struct list_head link;
-    } acceptq;
+	struct {
+		condition_t cond;
+		int waiters;
+		struct list_head head;
+		struct list_head link;
+	} acceptq;
 
-    struct xtask shutdown;
-    struct list_head poll_entries;
+	struct xtask shutdown;
+	struct list_head poll_entries;
 };
 
 #define walk_sub_sock(sub, nx, head)				\
@@ -150,12 +150,12 @@ struct sockbase {
 /* We guarantee that we can push one massage at least. */
 static inline int can_send(struct sockbase *sb)
 {
-    return list_empty(&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
+	return list_empty(&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
 }
 
 static inline int can_recv(struct sockbase *sb)
 {
-    return list_empty(&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
+	return list_empty(&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
 }
 
 int xalloc(int family, int socktype);
@@ -178,18 +178,18 @@ int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new);
 
 static inline int add_pollbase(int fd, struct pollbase *pb)
 {
-    struct sockbase *sb = xget(fd);
+	struct sockbase *sb = xget(fd);
 
-    if (!sb) {
-        errno = EBADF;
-        return -1;
-    }
-    mutex_lock(&sb->lock);
-    BUG_ON(attached(&pb->link));
-    list_add_tail(&pb->link, &sb->poll_entries);
-    mutex_unlock(&sb->lock);
-    xput(fd);
-    return 0;
+	if (!sb) {
+		errno = EBADF;
+		return -1;
+	}
+	mutex_lock(&sb->lock);
+	BUG_ON(attached(&pb->link));
+	list_add_tail(&pb->link, &sb->poll_entries);
+	mutex_unlock(&sb->lock);
+	xput(fd);
+	return 0;
 }
 
 int check_pollevents(struct sockbase *sb, int events);

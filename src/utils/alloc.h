@@ -26,12 +26,12 @@
 #include <inttypes.h>
 
 typedef struct {
-    int64_t alloc;
-    int64_t alloc_size;
-    int64_t memalign;
-    int64_t memalign_size;
-    int64_t free;
-    int64_t free_size;
+	int64_t alloc;
+	int64_t alloc_size;
+	int64_t memalign;
+	int64_t memalign_size;
+	int64_t free;
+	int64_t free_size;
 } mem_stat_t;
 
 void *mem_alloc(uint32_t size);

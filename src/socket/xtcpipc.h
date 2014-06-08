@@ -26,19 +26,19 @@
 #include "xsock.h"
 
 struct tcpipc_sock {
-    struct sockbase base;
-    ev_t et;
-    struct bio in;
-    struct bio out;
-    struct io ops;
-    int sys_fd;
-    struct iovec iov[100];
-    struct iovec *biov;
-    int iov_start;
-    int iov_end;
-    int iov_length;
-    struct list_head sg_head;
-    struct transport *vtp;
+	struct sockbase base;
+	ev_t et;
+	struct bio in;
+	struct bio out;
+	struct io ops;
+	int sys_fd;
+	struct iovec iov[100];
+	struct iovec *biov;
+	int iov_start;
+	int iov_end;
+	int iov_length;
+	struct list_head sg_head;
+	struct transport *vtp;
 };
 
 extern struct sockbase_vfptr xtcp_listener_spec;

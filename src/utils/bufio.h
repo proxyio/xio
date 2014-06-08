@@ -28,28 +28,28 @@
 #include "list.h"
 
 typedef struct bio_page {
-    uint64_t start;
-    uint64_t end;
-    char page[PAGE_SIZE];
-    struct list_head page_link;
+	uint64_t start;
+	uint64_t end;
+	char page[PAGE_SIZE];
+	struct list_head page_link;
 } bio_page_t;
 
 
 struct bio {
-    uint64_t bsize;
-    int64_t pno;
-    struct list_head page_head;
+	uint64_t bsize;
+	int64_t pno;
+	struct list_head page_head;
 };
 
 struct bio *bio_new();
 static inline void bio_init(struct bio *b)
 {
-    INIT_LIST_HEAD(&b->page_head);
+	INIT_LIST_HEAD(&b->page_head);
 }
 
 static inline int64_t bio_size(struct bio *b)
 {
-    return b->bsize;
+	return b->bsize;
 }
 
 void bio_destroy(struct bio *b);

@@ -37,42 +37,42 @@
 #define XIO_MAX_SOCKS 10240
 
 struct xglobal {
-    int exiting;
-    mutex_t lock;
+	int exiting;
+	mutex_t lock;
 
-    /* The global table of existing xsock. The descriptor representing
-     * the xsock is the index to this table. This pointer is also used to
-     * find out whether context is initialised. If it is null, context is
-     * uninitialised.
-     */
-    struct sockbase *sockbases[XIO_MAX_SOCKS];
+	/* The global table of existing xsock. The descriptor representing
+	 * the xsock is the index to this table. This pointer is also used to
+	 * find out whether context is initialised. If it is null, context is
+	 * uninitialised.
+	 */
+	struct sockbase *sockbases[XIO_MAX_SOCKS];
 
-    /* Stack of unused xsock descriptors.  */
-    int unused[XIO_MAX_SOCKS];
+	/* Stack of unused xsock descriptors.  */
+	int unused[XIO_MAX_SOCKS];
 
-    /* Number of actual socks. */
-    size_t nsockbases;
+	/* Number of actual socks. */
+	size_t nsockbases;
 
 
-    struct xcpu cpus[XIO_MAX_CPUS];
+	struct xcpu cpus[XIO_MAX_CPUS];
 
-    /* Stack of unused xsock descriptors.  */
-    int cpu_unused[XIO_MAX_CPUS];
+	/* Stack of unused xsock descriptors.  */
+	int cpu_unused[XIO_MAX_CPUS];
 
-    /* Number of actual runner poller.  */
-    size_t ncpus;
-    size_t ncpus_low;
-    size_t ncpus_high;
+	/* Number of actual runner poller.  */
+	size_t ncpus;
+	size_t ncpus_low;
+	size_t ncpus_high;
 
-    /* Backend cpu_cores and taskpool for cpu_worker.  */
-    int cpu_cores;
-    struct taskpool tpool;
+	/* Backend cpu_cores and taskpool for cpu_worker.  */
+	int cpu_cores;
+	struct taskpool tpool;
 
-    /* INPROC global listening address mapping */
-    struct ssmap inproc_listeners;
+	/* INPROC global listening address mapping */
+	struct ssmap inproc_listeners;
 
-    /* Sockbase_vfptr head */
-    struct list_head sockbase_vfptr_head;
+	/* Sockbase_vfptr head */
+	struct list_head sockbase_vfptr_head;
 };
 
 #define walk_sockbase_vfptr_s(pos, nx, head)				\
@@ -84,12 +84,12 @@ extern struct xglobal xgb;
 
 static inline void xglobal_lock()
 {
-    mutex_lock(&xgb.lock);
+	mutex_lock(&xgb.lock);
 }
 
 static inline void xglobal_unlock()
 {
-    mutex_unlock(&xgb.lock);
+	mutex_unlock(&xgb.lock);
 }
 
 

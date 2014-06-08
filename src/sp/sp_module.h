@@ -36,46 +36,48 @@
 #include "sp_hdr.h"
 
 static inline struct skbuf *get_skbuf(char *ubuf) {
-    return cont_of(ubuf, struct skbuf, chunk.iov_base);
+	return cont_of(ubuf, struct skbuf, chunk.iov_base);
 }
 
-static inline char *get_ubuf(struct skbuf *skb) {
-    return skb->chunk.iov_base;
+static inline char *get_ubuf(struct skbuf *skb)
+{
+	return skb->chunk.iov_base;
 }
 
-static inline int get_socktype(int fd) {
-    int socktype = 0, rc;
-    int optlen = sizeof(socktype);
+static inline int get_socktype(int fd)
+{
+	int socktype = 0, rc;
+	int optlen = sizeof(socktype);
 
-    BUG_ON((rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen)));
-    return socktype;
+	BUG_ON((rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen)));
+	return socktype;
 }
 
 struct epbase;
 struct tgtd;
 struct epbase_vfptr {
-    int sp_family;
-    int sp_type;
-    struct epbase *(*alloc) ();
-    void (*destroy) (struct epbase *ep);
-    int  (*send)    (struct epbase *ep, char *ubuf);
-    int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
-    int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
-    struct tgtd *(*join) (struct epbase *ep, int fd);
-    void  (*term)    (struct epbase *ep, struct tgtd *tg);
-    int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
-    int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
-    struct list_head item;
+	int sp_family;
+	int sp_type;
+	struct epbase *(*alloc) ();
+	void (*destroy) (struct epbase *ep);
+	int  (*send)    (struct epbase *ep, char *ubuf);
+	int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
+	int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
+	struct tgtd *(*join) (struct epbase *ep, int fd);
+	void  (*term)    (struct epbase *ep, struct tgtd *tg);
+	int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
+	int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
+	struct list_head item;
 };
 
 
 
 struct tgtd {
-    struct epbase *owner;
-    struct poll_ent ent;
-    u32 bad_status:1;
-    int fd;
-    struct list_head item;
+	struct epbase *owner;
+	struct poll_ent ent;
+	u32 bad_status:1;
+	int fd;
+	struct list_head item;
 };
 
 void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd);
@@ -89,10 +91,10 @@ int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd(struct epbase *ep, int fd);
 
 struct skbuf_head {
-    int wnd;
-    int size;
-    int waiters;
-    struct list_head head;
+	int wnd;
+	int size;
+	int waiters;
+	struct list_head head;
 };
 
 #define skbuf_head_init(q, windows) do {	\
@@ -127,22 +129,22 @@ struct skbuf_head {
 #define SP_RCVWND 1048576000
 
 struct epbase {
-    struct epbase_vfptr vfptr;
-    u32 shutdown:1;
-    atomic_t ref;
-    int eid;
-    mutex_t lock;
-    condition_t cond;
-    struct poll_ent ent;
-    struct skbuf_head rcv;
-    struct skbuf_head snd;
-    struct list_head item;
-    u64 listener_num;
-    u64 connector_num;
-    u64 bad_num;
-    struct list_head listeners;
-    struct list_head connectors;
-    struct list_head bad_socks;
+	struct epbase_vfptr vfptr;
+	u32 shutdown:1;
+	atomic_t ref;
+	int eid;
+	mutex_t lock;
+	condition_t cond;
+	struct poll_ent ent;
+	struct skbuf_head rcv;
+	struct skbuf_head snd;
+	struct list_head item;
+	u64 listener_num;
+	u64 connector_num;
+	u64 bad_num;
+	struct list_head listeners;
+	struct list_head connectors;
+	struct list_head bad_socks;
 };
 
 void epbase_init(struct epbase *ep);
@@ -189,25 +191,25 @@ void epbase_add_tgtd(struct epbase *ep, struct tgtd *tg);
 #define MAX_ENDPOINTS 10240
 
 struct sp_global {
-    int exiting;
-    mutex_t lock;
+	int exiting;
+	mutex_t lock;
 
-    /* The global table of existing ep. The descriptor representing
-       the ep is the index to this table. This pointer is also used to
-       find out whether context is initialised. If it is null, context is
-       uninitialised. */
-    struct epbase *endpoints[MAX_ENDPOINTS];
+	/* The global table of existing ep. The descriptor representing
+	   the ep is the index to this table. This pointer is also used to
+	   find out whether context is initialised. If it is null, context is
+	   uninitialised. */
+	struct epbase *endpoints[MAX_ENDPOINTS];
 
-    /* Stack of unused ep descriptors.  */
-    int unused[MAX_ENDPOINTS];
+	/* Stack of unused ep descriptors.  */
+	int unused[MAX_ENDPOINTS];
 
-    /* Number of actual ep. */
-    size_t nendpoints;
+	/* Number of actual ep. */
+	size_t nendpoints;
 
-    int pollid;
-    thread_t po_routine;
-    struct list_head epbase_head;
-    struct list_head shutdown_head;
+	int pollid;
+	thread_t po_routine;
+	struct list_head epbase_head;
+	struct list_head shutdown_head;
 };
 
 extern struct sp_global sg;
@@ -220,13 +222,13 @@ extern struct sp_global sg;
 
 static inline
 struct epbase_vfptr *epbase_vfptr_lookup(int sp_family, int sp_type) {
-    struct epbase_vfptr *vfptr, *tmp;
+	struct epbase_vfptr *vfptr, *tmp;
 
-    walk_epbase_vfptr(vfptr, tmp, &sg.epbase_head) {
-        if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type)
-            return vfptr;
-    }
-    return 0;
+	walk_epbase_vfptr(vfptr, tmp, &sg.epbase_head) {
+		if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type)
+			return vfptr;
+	}
+	return 0;
 }
 
 int eid_alloc(int sp_family, int sp_type);
