@@ -14,7 +14,7 @@ To build proxyio :
 	$ make check
     $ sudo make install
 
-## Python binding
+## Python
 
 To build proxyio for python language
 
@@ -23,7 +23,7 @@ To build proxyio for python language
 	$ make check
 	$ sudo make install
 
-## Lua binding
+## Lua
 
 To build proxyio for lua language
 
@@ -32,7 +32,7 @@ To build proxyio for lua language
 	$ make check
 	$ sudo make install
 
-## Golang binding
+## Golang
 
 To build proxyio for golang language
 
@@ -42,7 +42,7 @@ Building the proxyio in normal way, and then
 	$ go build
 	$ go test -v ./...
 
-## PHP binding
+## PHP
 
 To build proxyio for php language
 
@@ -54,7 +54,7 @@ To build proxyio for php language
 
 copy the xio.ini config file into /etc/php.d/
 
-## Ruby binding
+## Ruby
 
 To build proxyio for ruby language
 
