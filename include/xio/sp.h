@@ -30,32 +30,32 @@
 #define SP_BUS       2
 #define SP_PUBSUB    3
 
-int sp_endpoint(int sp_family, int sp_type);
-int sp_close(int eid);
-int sp_send(int eid, char *ubuf);
-int sp_recv(int eid, char **ubuf);
-int sp_add(int eid, int fd);
-int sp_rm(int eid, int fd);
-int sp_setopt(int eid, int opt, void *optval, int optlen);
-int sp_getopt(int eid, int opt, void *optval, int *optlen);
+int sp_endpoint (int sp_family, int sp_type);
+int sp_close (int eid);
+int sp_send (int eid, char *ubuf);
+int sp_recv (int eid, char **ubuf);
+int sp_add (int eid, int fd);
+int sp_rm (int eid, int fd);
+int sp_setopt (int eid, int opt, void *optval, int optlen);
+int sp_getopt (int eid, int opt, void *optval, int *optlen);
 
 
-static inline int sp_connect(int eid, const char *sockaddr)
+static inline int sp_connect (int eid, const char *sockaddr)
 {
-	int fd = xconnect(sockaddr);
+	int fd = xconnect (sockaddr);
 
 	if (fd < 0)
 		return -1;
-	return sp_add(eid, fd);
+	return sp_add (eid, fd);
 }
 
-static inline int sp_listen(int eid, const char *sockaddr)
+static inline int sp_listen (int eid, const char *sockaddr)
 {
-	int fd = xlisten(sockaddr);
+	int fd = xlisten (sockaddr);
 
 	if (fd < 0)
 		return -1;
-	return sp_add(eid, fd);
+	return sp_add (eid, fd);
 }
 
 

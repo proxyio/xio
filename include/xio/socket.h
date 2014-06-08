@@ -26,9 +26,9 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
-char *xallocubuf(int size);
-void xfreeubuf(char *ubuf);
-int xubuflen(char *ubuf);
+char *xallocubuf (int size);
+void xfreeubuf (char *ubuf);
+int xubuflen (char *ubuf);
 
 /* Following address family are provided */
 #define XPF_TCP        1
@@ -39,17 +39,17 @@ int xubuflen(char *ubuf);
 #define XLISTENER       1
 #define XCONNECTOR      2
 
-int xsocket(int pf, int socktype);
-int xbind(int fd, const char *addr);
+int xsocket (int pf, int socktype);
+int xbind (int fd, const char *addr);
 
 #define XSOCKADDRLEN 128
-int xlisten(const char *addr);
-int xaccept(int fd);
-int xconnect(const char *peer);
+int xlisten (const char *addr);
+int xaccept (int fd);
+int xconnect (const char *peer);
 
-int xrecv(int fd, char **ubuf);
-int xsend(int fd, char *ubuf);
-int xclose(int fd);
+int xrecv (int fd, char **ubuf);
+int xsend (int fd, char *ubuf);
+int xclose (int fd);
 
 /* Following sockopt-level are provided */
 #define XL_SOCKET          1
@@ -68,8 +68,8 @@ int xclose(int fd);
 #define XSOCKPROTO         10
 #define XTRACEDEBUG        11
 
-int xsetopt(int fd, int level, int opt, void *optval, int optlen);
-int xgetopt(int fd, int level, int opt, void *optval, int *optlen);
+int xsetopt (int fd, int level, int opt, void *optval, int optlen);
+int xgetopt (int fd, int level, int opt, void *optval, int *optlen);
 
 #include <xio/cplusplus_endif.h>
 #endif

@@ -23,98 +23,98 @@
 #include "rep_ep.h"
 
 static struct epbase *repep_alloc() {
-	struct repep *repep = TNEW(struct repep);
+	struct repep *repep = TNEW (struct repep);
 
 	if (repep) {
-		epbase_init(&repep->base);
+		epbase_init (&repep->base);
 		repep->peer = 0;
 		return &repep->base;
 	}
 	return 0;
 }
 
-static void repep_destroy(struct epbase *ep)
+static void repep_destroy (struct epbase *ep)
 {
-	struct repep *repep = cont_of(ep, struct repep, base);
-	BUG_ON(!repep);
-	epbase_exit(ep);
-	mem_free(repep, sizeof(*repep));
+	struct repep *repep = cont_of (ep, struct repep, base);
+	BUG_ON (!repep);
+	epbase_exit (ep);
+	mem_free (repep, sizeof (*repep) );
 }
 
-static int repep_send(struct epbase *ep, char *ubuf)
+static int repep_send (struct epbase *ep, char *ubuf)
 {
 	int rc = -1;
-	struct rrhdr *pg = get_rrhdr(ubuf);
-	struct rtentry *rt = rt_cur(ubuf);
+	struct rrhdr *pg = get_rrhdr (ubuf);
+	struct rtentry *rt = rt_cur (ubuf);
 	struct tgtd *tg = 0;
 
-	mutex_lock(&ep->lock);
-	get_tgtd_if(tg, &ep->connectors, !uuid_compare(get_rrtgtd(tg)->uuid, rt->uuid));
+	mutex_lock (&ep->lock);
+	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rrtgtd (tg)->uuid, rt->uuid) );
 	if (tg)
-		list_move(&tg->item, &ep->connectors);
-	mutex_unlock(&ep->lock);
+		list_move (&tg->item, &ep->connectors);
+	mutex_unlock (&ep->lock);
 
 	pg->go = 0;
 	pg->end_ttl = pg->ttl;
 
 	if (tg) {
-		rc = xsend(tg->fd, ubuf);
-		DEBUG_OFF("ep %d send resp %10.10s to socket %d", ep->eid, ubuf, tg->fd);
+		rc = xsend (tg->fd, ubuf);
+		DEBUG_OFF ("ep %d send resp %10.10s to socket %d", ep->eid, ubuf, tg->fd);
 	}
 	return rc;
 }
 
-static int repep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
+static int repep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-	struct rtentry *rt = rt_cur(ubuf);
+	struct rtentry *rt = rt_cur (ubuf);
 
-	if (uuid_compare(rt->uuid, get_rrtgtd(tg)->uuid))
-		uuid_copy(get_rrtgtd(tg)->uuid, rt->uuid);
-	DEBUG_OFF("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
-	mutex_lock(&ep->lock);
-	skbuf_head_in(&ep->rcv, ubuf);
-	BUG_ON(ep->rcv.waiters < 0);
+	if (uuid_compare (rt->uuid, get_rrtgtd (tg)->uuid) )
+		uuid_copy (get_rrtgtd (tg)->uuid, rt->uuid);
+	DEBUG_OFF ("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
+	mutex_lock (&ep->lock);
+	skbuf_head_in (&ep->rcv, ubuf);
+	BUG_ON (ep->rcv.waiters < 0);
 	if (ep->rcv.waiters)
-		condition_broadcast(&ep->cond);
-	mutex_unlock(&ep->lock);
+		condition_broadcast (&ep->cond);
+	mutex_unlock (&ep->lock);
 	return 0;
 }
 
-static int repep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
+static int repep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	int rc = -1;
 	if (tg->ent.events & XPOLLOUT)
-		sg_update_tg(tg, tg->ent.events & ~XPOLLOUT);
+		sg_update_tg (tg, tg->ent.events & ~XPOLLOUT);
 	return rc;
 }
 
-static struct tgtd *repep_join(struct epbase *ep, int fd) {
-	struct rrtgtd *rr_tg = TNEW(struct rrtgtd);
+static struct tgtd *repep_join (struct epbase *ep, int fd) {
+	struct rrtgtd *rr_tg = TNEW (struct rrtgtd);
 
 	if (rr_tg) {
-		skbuf_head_init(&rr_tg->snd, SP_SNDWND);
-		generic_tgtd_init(ep, &rr_tg->tg, fd);
+		skbuf_head_init (&rr_tg->snd, SP_SNDWND);
+		generic_tgtd_init (ep, &rr_tg->tg, fd);
 	}
 	return &rr_tg->tg;
 }
 
-static void repep_term(struct epbase *ep, struct tgtd *tg)
+static void repep_term (struct epbase *ep, struct tgtd *tg)
 {
-	tgtd_free(tg);
+	tgtd_free (tg);
 }
 
 
-static int set_proxyto(struct epbase *ep, void *optval, int optlen)
+static int set_proxyto (struct epbase *ep, void *optval, int optlen)
 {
-	int rc, backend_eid = *(int *)optval;
-	struct epbase *peer = eid_get(backend_eid);
+	int rc, backend_eid = * (int *) optval;
+	struct epbase *peer = eid_get (backend_eid);
 
 	if (!peer) {
 		errno = EBADF;
 		return -1;
 	}
-	rc = epbase_proxyto(ep, peer);
-	eid_put(backend_eid);
+	rc = epbase_proxyto (ep, peer);
+	eid_put (backend_eid);
 	return rc;
 }
 
@@ -128,10 +128,10 @@ static const ep_getopt getopt_vfptr[] = {
 	0,
 };
 
-static int repep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
+static int repep_setopt (struct epbase *ep, int opt, void *optval, int optlen)
 {
 	int rc;
-	if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
+	if (opt < 0 || opt >= NELEM (setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -139,10 +139,10 @@ static int repep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
 	return rc;
 }
 
-static int repep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
+static int repep_getopt (struct epbase *ep, int opt, void *optval, int *optlen)
 {
 	int rc;
-	if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
+	if (opt < 0 || opt >= NELEM (getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
 		errno = EINVAL;
 		return -1;
 	}

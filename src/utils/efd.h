@@ -28,13 +28,13 @@ struct efd {
 	int w;
 };
 
-int efd_init(struct efd *self);
+int efd_init (struct efd *self);
 
-void efd_destroy(struct efd *self);
+void efd_destroy (struct efd *self);
 
-int efd_signal(struct efd *self);
+int efd_signal (struct efd *self);
 
-void efd_unsignal(struct efd *self);
+void efd_unsignal (struct efd *self);
 
 
 

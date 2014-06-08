@@ -34,7 +34,7 @@
 
 
 
-typedef int (*thread_func)(void *);
+typedef int (*thread_func) (void *);
 typedef struct thread {
 	pid_t krid;
 	pthread_t tid;
@@ -45,12 +45,12 @@ typedef struct thread {
 
 static inline thread_t *thread_new()
 {
-	thread_t *tt = TNEW(thread_t);
+	thread_t *tt = TNEW (thread_t);
 	return tt;
 }
 
-int thread_start(thread_t *tt, thread_func f, void *args);
-int thread_stop(thread_t *tt);
+int thread_start (thread_t *tt, thread_func f, void *args);
+int thread_stop (thread_t *tt);
 
 
 

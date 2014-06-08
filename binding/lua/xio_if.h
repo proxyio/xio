@@ -25,6 +25,6 @@
 
 #include <lua.h>
 
-LUA_API int luaopen_xio(lua_State *L);
+LUA_API int luaopen_xio (lua_State *L);
 
 #endif

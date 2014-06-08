@@ -93,44 +93,44 @@ typedef struct modstat {
 	    self->timestamp[sl] = gettimeof(ms);			\
     } while (0)
 
-static inline void modstat_incrkey(modstat_t *ms, int key)
+static inline void modstat_incrkey (modstat_t *ms, int key)
 {
 	int sl;
 	for (sl = 0; sl < MSL_NUM; sl++)
 		ms->keys[MST_NOW][sl][key] += 1;
 }
 
-static inline void modstat_incrskey(modstat_t *ms, int key, int val)
+static inline void modstat_incrskey (modstat_t *ms, int key, int val)
 {
 	int sl;
 	for (sl = 0; sl < MSL_NUM; sl++)
 		ms->keys[MST_NOW][sl][key] += val;
 }
 
-static inline int64_t modstat_getkey(modstat_t *ms, int st, int sl, int key)
+static inline int64_t modstat_getkey (modstat_t *ms, int st, int sl, int key)
 {
 	return ms->keys[st][sl][key];
 }
 
-static inline void modstat_set_warnf(modstat_t *ms, int sl, threshold_warn f)
+static inline void modstat_set_warnf (modstat_t *ms, int sl, threshold_warn f)
 {
 	ms->f[sl] = f;
 }
 
-static inline void modstat_set_threshold(modstat_t *ms, int sl, int key, int64_t v)
+static inline void modstat_set_threshold (modstat_t *ms, int sl, int key, int64_t v)
 {
 	ms->threshold[sl][key] = v;
 }
 
-void modstat_update_timestamp(modstat_t *ms, int64_t timestamp);
-int generic_parse_modstat_item(const char *str, const char *key, int *tr, int *v);
-static inline int generic_init_modstat(modstat_t *self, int keyrange,
-                                       const char **items, const char *ss)
+void modstat_update_timestamp (modstat_t *ms, int64_t timestamp);
+int generic_parse_modstat_item (const char *str, const char *key, int *tr, int *v);
+static inline int generic_init_modstat (modstat_t *self, int keyrange,
+                                        const char **items, const char *ss)
 {
 	int i = 0, sl = 0, val = 0;
 	for (i = 1; i < keyrange; i++)
-		if ((generic_parse_modstat_item(ss, items[i], &sl, &val)) == 0)
-			modstat_set_threshold(self, sl, i, val);
+		if ( (generic_parse_modstat_item (ss, items[i], &sl, &val) ) == 0)
+			modstat_set_threshold (self, sl, i, val);
 	return 0;
 }
 

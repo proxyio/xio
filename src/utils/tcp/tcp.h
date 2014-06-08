@@ -26,19 +26,19 @@
 #include <inttypes.h>
 #include "../transport.h"
 
-void tcp_close(int fd);
-int tcp_bind(const char *sock);
-int tcp_accept(int fd);
-int tcp_connect(const char *peer);
+void tcp_close (int fd);
+int tcp_bind (const char *sock);
+int tcp_accept (int fd);
+int tcp_connect (const char *peer);
 
-int tcp_setopt(int fd, int opt, void *optval, int optlen);
-int tcp_getopt(int fd, int opt, void *optval, int *optlen);
+int tcp_setopt (int fd, int opt, void *optval, int optlen);
+int tcp_getopt (int fd, int opt, void *optval, int *optlen);
 
-i64 tcp_recv(int fd, char *buff, i64 size);
-i64 tcp_send(int fd, const char *buff, i64 size);
-i64 tcp_sendmsg(int fd, const struct msghdr *msg, int flags);
+i64 tcp_recv (int fd, char *buff, i64 size);
+i64 tcp_send (int fd, const char *buff, i64 size);
+i64 tcp_sendmsg (int fd, const struct msghdr *msg, int flags);
 
-int tcp_sockname(int fd, char *sockname, int size);
-int tcp_peername(int fd, char *peername, int size);
+int tcp_sockname (int fd, char *sockname, int size);
+int tcp_peername (int fd, char *peername, int size);
 
 #endif

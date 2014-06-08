@@ -28,74 +28,74 @@
 #include <utils/taskpool.h>
 #include "xgb.h"
 
-struct skbuf *sendq_rm(struct sockbase *sb) {
+struct skbuf *sendq_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct skbuf *msg = 0;
 	i64 sz;
 	u32 events = 0;
 
-	mutex_lock(&sb->lock);
-	if (!list_empty(&sb->snd.head)) {
-		DEBUG_OFF("xsock %d", sb->fd);
-		msg = list_first(&sb->snd.head, struct skbuf, item);
-		list_del_init(&msg->item);
-		sz = skbuf_iovlen(msg);
+	mutex_lock (&sb->lock);
+	if (!list_empty (&sb->snd.head) ) {
+		DEBUG_OFF ("xsock %d", sb->fd);
+		msg = list_first (&sb->snd.head, struct skbuf, item);
+		list_del_init (&msg->item);
+		sz = skbuf_iovlen (msg);
 		sb->snd.buf -= sz;
 		events |= XMQ_POP;
 		if (sb->snd.wnd - sb->snd.buf <= sz)
 			events |= XMQ_NONFULL;
-		if (list_empty(&sb->snd.head)) {
-			BUG_ON(sb->snd.buf);
+		if (list_empty (&sb->snd.head) ) {
+			BUG_ON (sb->snd.buf);
 			events |= XMQ_EMPTY;
 		}
 
 		/* Wakeup the blocking waiters */
 		if (sb->snd.waiters > 0)
-			condition_broadcast(&sb->cond);
+			condition_broadcast (&sb->cond);
 	}
 
 	if (events && vfptr->notify)
-		vfptr->notify(sb, SEND_Q, events);
+		vfptr->notify (sb, SEND_Q, events);
 
-	__emit_pollevents(sb);
-	mutex_unlock(&sb->lock);
+	__emit_pollevents (sb);
+	mutex_unlock (&sb->lock);
 	return msg;
 }
 
-int sendq_add(struct sockbase *sb, struct skbuf *msg)
+int sendq_add (struct sockbase *sb, struct skbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
 	u32 events = 0;
-	i64 sz = skbuf_iovlen(msg);
+	i64 sz = skbuf_iovlen (msg);
 
-	mutex_lock(&sb->lock);
-	while (!sb->fepipe && !can_send(sb) && !sb->fasync) {
+	mutex_lock (&sb->lock);
+	while (!sb->fepipe && !can_send (sb) && !sb->fasync) {
 		sb->snd.waiters++;
-		condition_wait(&sb->cond, &sb->lock);
+		condition_wait (&sb->cond, &sb->lock);
 		sb->snd.waiters--;
 	}
-	if (can_send(sb)) {
+	if (can_send (sb) ) {
 		rc = 0;
-		if (list_empty(&sb->snd.head))
+		if (list_empty (&sb->snd.head) )
 			events |= XMQ_NONEMPTY;
 		if (sb->snd.wnd - sb->snd.buf <= sz)
 			events |= XMQ_FULL;
 		events |= XMQ_PUSH;
 		sb->snd.buf += sz;
-		list_add_tail(&msg->item, &sb->snd.head);
-		DEBUG_OFF("xsock %d", sb->fd);
+		list_add_tail (&msg->item, &sb->snd.head);
+		DEBUG_OFF ("xsock %d", sb->fd);
 	}
 
 	if (events && vfptr->notify)
-		vfptr->notify(sb, SEND_Q, events);
+		vfptr->notify (sb, SEND_Q, events);
 
-	__emit_pollevents(sb);
-	mutex_unlock(&sb->lock);
+	__emit_pollevents (sb);
+	mutex_unlock (&sb->lock);
 	return rc;
 }
 
-int xsend(int fd, char *ubuf)
+int xsend (int fd, char *ubuf)
 {
 	int rc = 0;
 	struct skbuf *msg = 0;
@@ -105,15 +105,15 @@ int xsend(int fd, char *ubuf)
 		errno = EINVAL;
 		return -1;
 	}
-	if (!(sb = xget(fd))) {
+	if (! (sb = xget (fd) ) ) {
 		errno = EBADF;
 		return -1;
 	}
-	msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
-	if ((rc = sendq_add(sb, msg)) < 0) {
+	msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	if ( (rc = sendq_add (sb, msg) ) < 0) {
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 	}
-	xput(fd);
+	xput (fd);
 	return rc;
 }
 

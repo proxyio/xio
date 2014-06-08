@@ -31,16 +31,16 @@ typedef struct mutex {
 
 #define MUTEX_INITIALIZER { PTHREAD_MUTEX_INITIALIZER }
 
-int mutex_init(mutex_t *mutex);
-int mutex_lock(mutex_t *mutex);
-int mutex_trylock(mutex_t *mutex);
-int mutex_unlock(mutex_t *mutex);
-int mutex_destroy(mutex_t *mutex);
+int mutex_init (mutex_t *mutex);
+int mutex_lock (mutex_t *mutex);
+int mutex_trylock (mutex_t *mutex);
+int mutex_unlock (mutex_t *mutex);
+int mutex_destroy (mutex_t *mutex);
 
-static inline void mutex_relock(mutex_t *mutex)
+static inline void mutex_relock (mutex_t *mutex)
 {
-	mutex_unlock(mutex);
-	mutex_lock(mutex);
+	mutex_unlock (mutex);
+	mutex_lock (mutex);
 }
 
 #endif

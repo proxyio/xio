@@ -28,8 +28,8 @@
 #include "krb_augmented.h"
 
 struct rb_node *
-__rb_erase_augmented(struct rb_node *node, struct rb_root *root,
-                     const struct rb_augment_callbacks *augment) {
+__rb_erase_augmented (struct rb_node *node, struct rb_root *root,
+                      const struct rb_augment_callbacks *augment) {
 	struct rb_node *child = node->rb_right, *tmp = node->rb_left;
 	struct rb_node *parent, *rebalance;
 	unsigned long pc;
@@ -43,19 +43,19 @@ __rb_erase_augmented(struct rb_node *node, struct rb_root *root,
 		 * so as to bypass __rb_erase_color() later on.
 		 */
 		pc = node->__rb_parent_color;
-		parent = __rb_parent(pc);
-		__rb_change_child(node, child, parent, root);
+		parent = __rb_parent (pc);
+		__rb_change_child (node, child, parent, root);
 		if (child) {
 			child->__rb_parent_color = pc;
 			rebalance = NULL;
 		} else
-			rebalance = __rb_is_black(pc) ? parent : NULL;
+			rebalance = __rb_is_black (pc) ? parent : NULL;
 		tmp = parent;
 	} else if (!child) {
 		/* Still case 1, but this time the child is node->rb_left */
 		tmp->__rb_parent_color = pc = node->__rb_parent_color;
-		parent = __rb_parent(pc);
-		__rb_change_child(node, tmp, parent, root);
+		parent = __rb_parent (pc);
+		__rb_change_child (node, tmp, parent, root);
 		rebalance = NULL;
 		tmp = parent;
 	} else {
@@ -73,7 +73,7 @@ __rb_erase_augmented(struct rb_node *node, struct rb_root *root,
 			 */
 			parent = successor;
 			child2 = successor->rb_right;
-			augment->copy(node, successor);
+			augment->copy (node, successor);
 		} else {
 			/*
 			 * Case 3: node's successor is leftmost under
@@ -96,37 +96,37 @@ __rb_erase_augmented(struct rb_node *node, struct rb_root *root,
 			} while (tmp);
 			parent->rb_left = child2 = successor->rb_right;
 			successor->rb_right = child;
-			rb_set_parent(child, successor);
-			augment->copy(node, successor);
-			augment->propagate(parent, successor);
+			rb_set_parent (child, successor);
+			augment->copy (node, successor);
+			augment->propagate (parent, successor);
 		}
 
 		successor->rb_left = tmp = node->rb_left;
-		rb_set_parent(tmp, successor);
+		rb_set_parent (tmp, successor);
 
 		pc = node->__rb_parent_color;
-		tmp = __rb_parent(pc);
-		__rb_change_child(node, successor, tmp, root);
+		tmp = __rb_parent (pc);
+		__rb_change_child (node, successor, tmp, root);
 		if (child2) {
 			successor->__rb_parent_color = pc;
-			rb_set_parent_color(child2, parent, RB_BLACK);
+			rb_set_parent_color (child2, parent, RB_BLACK);
 			rebalance = NULL;
 		} else {
 			unsigned long pc2 = successor->__rb_parent_color;
 			successor->__rb_parent_color = pc;
-			rebalance = __rb_is_black(pc2) ? parent : NULL;
+			rebalance = __rb_is_black (pc2) ? parent : NULL;
 		}
 		tmp = successor;
 	}
 
-	augment->propagate(tmp, NULL);
+	augment->propagate (tmp, NULL);
 	return rebalance;
 }
 
-void rb_erase_augmented(struct rb_node *node, struct rb_root *root,
-                        const struct rb_augment_callbacks *augment)
+void rb_erase_augmented (struct rb_node *node, struct rb_root *root,
+                         const struct rb_augment_callbacks *augment)
 {
-	struct rb_node *rebalance = __rb_erase_augmented(node, root, augment);
+	struct rb_node *rebalance = __rb_erase_augmented (node, root, augment);
 	if (rebalance)
-		__rb_erase_color(rebalance, root, augment->rotate);
+		__rb_erase_color (rebalance, root, augment->rotate);
 }

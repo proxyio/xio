@@ -55,16 +55,16 @@ struct skbuf {
 	struct xiov chunk;
 };
 
-u32 skbuf_iovlen(struct skbuf *msg);
-char *skbuf_iovbase(struct skbuf *msg);
-struct skbuf *xallocmsg(int size);
-void xfreemsg(struct skbuf *msg);
-int skbuflen(struct skbuf *msg);
+u32 skbuf_iovlen (struct skbuf *msg);
+char *skbuf_iovbase (struct skbuf *msg);
+struct skbuf *xallocmsg (int size);
+void xfreemsg (struct skbuf *msg);
+int skbuflen (struct skbuf *msg);
 
 #define walk_msg_s(pos, next, head)				\
     walk_each_entry_s(pos, next, head, struct skbuf, item)
 
-int skbuf_serialize(struct skbuf *msg, struct list_head *head);
+int skbuf_serialize (struct skbuf *msg, struct list_head *head);
 
 
 

@@ -35,21 +35,21 @@
 #include <xio/sp_reqrep.h>
 #include "sp_hdr.h"
 
-static inline struct skbuf *get_skbuf(char *ubuf) {
-	return cont_of(ubuf, struct skbuf, chunk.iov_base);
+static inline struct skbuf *get_skbuf (char *ubuf) {
+	return cont_of (ubuf, struct skbuf, chunk.iov_base);
 }
 
-static inline char *get_ubuf(struct skbuf *skb)
+static inline char *get_ubuf (struct skbuf *skb)
 {
 	return skb->chunk.iov_base;
 }
 
-static inline int get_socktype(int fd)
+static inline int get_socktype (int fd)
 {
 	int socktype = 0, rc;
-	int optlen = sizeof(socktype);
+	int optlen = sizeof (socktype);
 
-	BUG_ON((rc = xgetopt(fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen)));
+	BUG_ON ( (rc = xgetopt (fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen) ) );
 	return socktype;
 }
 
@@ -58,12 +58,12 @@ struct tgtd;
 struct epbase_vfptr {
 	int sp_family;
 	int sp_type;
-	struct epbase *(*alloc) ();
+	struct epbase * (*alloc) ();
 	void (*destroy) (struct epbase *ep);
 	int  (*send)    (struct epbase *ep, char *ubuf);
 	int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
 	int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
-	struct tgtd *(*join) (struct epbase *ep, int fd);
+	struct tgtd * (*join) (struct epbase *ep, int fd);
 	void  (*term)    (struct epbase *ep, struct tgtd *tg);
 	int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
 	int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
@@ -80,15 +80,15 @@ struct tgtd {
 	struct list_head item;
 };
 
-void generic_tgtd_init(struct epbase *ep, struct tgtd *tg, int fd);
-void tgtd_free(struct tgtd *tg);
+void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd);
+void tgtd_free (struct tgtd *tg);
 
-void sg_add_tg(struct tgtd *tg);
-void sg_rm_tg(struct tgtd *tg);
-void sg_update_tg(struct tgtd *tg, u32 ev);
+void sg_add_tg (struct tgtd *tg);
+void sg_rm_tg (struct tgtd *tg);
+void sg_update_tg (struct tgtd *tg, u32 ev);
 
-int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
-int sp_generic_term_by_fd(struct epbase *ep, int fd);
+int sp_generic_term_by_tgtd (struct epbase *ep, struct tgtd *tg);
+int sp_generic_term_by_fd (struct epbase *ep, int fd);
 
 struct skbuf_head {
 	int wnd;
@@ -147,8 +147,8 @@ struct epbase {
 	struct list_head bad_socks;
 };
 
-void epbase_init(struct epbase *ep);
-void epbase_exit(struct epbase *ep);
+void epbase_init (struct epbase *ep);
+void epbase_exit (struct epbase *ep);
 
 #define walk_tgtd(tg, head)				\
     walk_each_entry(tg, head, struct tgtd, item)
@@ -185,7 +185,7 @@ void epbase_exit(struct epbase *ep);
 	    tg;						\
 	})
 
-void epbase_add_tgtd(struct epbase *ep, struct tgtd *tg);
+void epbase_add_tgtd (struct epbase *ep, struct tgtd *tg);
 
 
 #define MAX_ENDPOINTS 10240
@@ -221,19 +221,19 @@ extern struct sp_global sg;
     walk_each_entry_s(ep, tmp, head, struct epbase_vfptr, item)
 
 static inline
-struct epbase_vfptr *epbase_vfptr_lookup(int sp_family, int sp_type) {
+struct epbase_vfptr *epbase_vfptr_lookup (int sp_family, int sp_type) {
 	struct epbase_vfptr *vfptr, *tmp;
 
-	walk_epbase_vfptr(vfptr, tmp, &sg.epbase_head) {
+	walk_epbase_vfptr (vfptr, tmp, &sg.epbase_head) {
 		if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type)
 			return vfptr;
 	}
 	return 0;
 }
 
-int eid_alloc(int sp_family, int sp_type);
-struct epbase *eid_get(int eid);
-void eid_put(int eid);
+int eid_alloc (int sp_family, int sp_type);
+struct epbase *eid_get (int eid);
+void eid_put (int eid);
 
 
 typedef int (*ep_setopt) (struct epbase *ep, void *optval, int optlen);

@@ -45,8 +45,8 @@
 extern int default_sndbuf;
 extern int default_rcvbuf;
 
-int xsocket(int pf, int type);
-int xbind(int fd, const char *addr);
+int xsocket (int pf, int type);
+int xbind (int fd, const char *addr);
 
 /* Sockspec_vfptr notify types */
 #define RECV_Q           1
@@ -80,10 +80,10 @@ struct pollbase {
     walk_each_entry_s(pb, npb, head, struct pollbase, link)
 
 static inline
-void pollbase_init(struct pollbase *pb, struct pollbase_vfptr *vfptr)
+void pollbase_init (struct pollbase *pb, struct pollbase_vfptr *vfptr)
 {
 	pb->vfptr = vfptr;
-	INIT_LIST_HEAD(&pb->link);
+	INIT_LIST_HEAD (&pb->link);
 }
 
 
@@ -92,7 +92,7 @@ struct sockbase;
 struct sockbase_vfptr {
 	int type;
 	int pf;
-	struct sockbase *(*alloc) ();
+	struct sockbase * (*alloc) ();
 	void  (*close)  (struct sockbase *sb);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
 	void  (*notify) (struct sockbase *sb, int type, u32 events);
@@ -148,53 +148,53 @@ struct sockbase {
     walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 
 /* We guarantee that we can push one massage at least. */
-static inline int can_send(struct sockbase *sb)
+static inline int can_send (struct sockbase *sb)
 {
-	return list_empty(&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
+	return list_empty (&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
 }
 
-static inline int can_recv(struct sockbase *sb)
+static inline int can_recv (struct sockbase *sb)
 {
-	return list_empty(&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
+	return list_empty (&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
 }
 
-int xalloc(int family, int socktype);
-struct sockbase *xget(int fd);
-void xput(int fd);
-void xsock_init(struct sockbase *sb);
-void xsock_exit(struct sockbase *sb);
+int xalloc (int family, int socktype);
+struct sockbase *xget (int fd);
+void xput (int fd);
+void xsock_init (struct sockbase *sb);
+void xsock_exit (struct sockbase *sb);
 
-int recvq_add(struct sockbase *sb, struct skbuf *msg);
-struct skbuf *recvq_rm(struct sockbase *sb);
+int recvq_add (struct sockbase *sb, struct skbuf *msg);
+struct skbuf *recvq_rm (struct sockbase *sb);
 
-int sendq_add(struct sockbase *sb, struct skbuf *msg);
-struct skbuf *sendq_rm(struct sockbase *sb);
-
-
-int acceptq_add(struct sockbase *sb, struct sockbase *new);
-int acceptq_rm(struct sockbase *sb, struct sockbase **new);
-int acceptq_rm_nohup(struct sockbase *sb, struct sockbase **new);
+int sendq_add (struct sockbase *sb, struct skbuf *msg);
+struct skbuf *sendq_rm (struct sockbase *sb);
 
 
-static inline int add_pollbase(int fd, struct pollbase *pb)
+int acceptq_add (struct sockbase *sb, struct sockbase *new);
+int acceptq_rm (struct sockbase *sb, struct sockbase **new);
+int acceptq_rm_nohup (struct sockbase *sb, struct sockbase **new);
+
+
+static inline int add_pollbase (int fd, struct pollbase *pb)
 {
-	struct sockbase *sb = xget(fd);
+	struct sockbase *sb = xget (fd);
 
 	if (!sb) {
 		errno = EBADF;
 		return -1;
 	}
-	mutex_lock(&sb->lock);
-	BUG_ON(attached(&pb->link));
-	list_add_tail(&pb->link, &sb->poll_entries);
-	mutex_unlock(&sb->lock);
-	xput(fd);
+	mutex_lock (&sb->lock);
+	BUG_ON (attached (&pb->link) );
+	list_add_tail (&pb->link, &sb->poll_entries);
+	mutex_unlock (&sb->lock);
+	xput (fd);
 	return 0;
 }
 
-int check_pollevents(struct sockbase *sb, int events);
-void __emit_pollevents(struct sockbase *sb);
-void emit_pollevents(struct sockbase *sb);
+int check_pollevents (struct sockbase *sb, int events);
+void __emit_pollevents (struct sockbase *sb);
+void emit_pollevents (struct sockbase *sb);
 
 
 #endif

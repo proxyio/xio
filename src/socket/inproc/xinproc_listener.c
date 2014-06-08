@@ -31,23 +31,23 @@
  *  xsock's proc field operation.
  ******************************************************************************/
 
-struct sockbase *getlistener(const char *addr) {
+struct sockbase *getlistener (const char *addr) {
 	int refed = false;
-	u32 size = strlen(addr);
+	u32 size = strlen (addr);
 	struct ssmap_node *node;
 	struct sockbase *sb = 0;
 
 	if (size > TP_SOCKADDRLEN)
 		size = TP_SOCKADDRLEN;
 	xglobal_lock();
-	if ((node = ssmap_find(&xgb.inproc_listeners, addr, size))) {
-		sb = &(cont_of(node, struct inproc_sock, rb_link))->base;
-		mutex_lock(&sb->lock);
+	if ( (node = ssmap_find (&xgb.inproc_listeners, addr, size) ) ) {
+		sb = & (cont_of (node, struct inproc_sock, rb_link) )->base;
+		mutex_lock (&sb->lock);
 		if (!sb->fepipe) {
 			refed = true;
-			atomic_inc(&sb->ref);
+			atomic_inc (&sb->ref);
 		}
-		mutex_unlock(&sb->lock);
+		mutex_unlock (&sb->lock);
 		if (!refed)
 			sb = 0;
 	}
@@ -55,25 +55,25 @@ struct sockbase *getlistener(const char *addr) {
 	return sb;
 }
 
-static int addlistener(struct ssmap_node *node)
+static int addlistener (struct ssmap_node *node)
 {
 	int rc = -1;
 
 	xglobal_lock();
-	if (!ssmap_find(&xgb.inproc_listeners, node->key, node->keylen)) {
+	if (!ssmap_find (&xgb.inproc_listeners, node->key, node->keylen) ) {
 		rc = 0;
-		DEBUG_OFF("add listener %s", node->key);
-		ssmap_insert(&xgb.inproc_listeners, node);
+		DEBUG_OFF ("add listener %s", node->key);
+		ssmap_insert (&xgb.inproc_listeners, node);
 	}
 	xglobal_unlock();
 	return rc;
 }
 
 
-static void rmlistener(struct ssmap_node *node)
+static void rmlistener (struct ssmap_node *node)
 {
 	xglobal_lock();
-	ssmap_delete(&xgb.inproc_listeners, node);
+	ssmap_delete (&xgb.inproc_listeners, node);
 	xglobal_unlock();
 }
 
@@ -82,48 +82,48 @@ static void rmlistener(struct ssmap_node *node)
  ******************************************************************************/
 
 static struct sockbase *xinp_alloc() {
-	struct inproc_sock *self = TNEW(struct inproc_sock);
+	struct inproc_sock *self = TNEW (struct inproc_sock);
 
 	if (self) {
-		xsock_init(&self->base);
+		xsock_init (&self->base);
 		return &self->base;
 	}
 	return 0;
 }
 
-static int xinp_listener_bind(struct sockbase *sb, const char *sock)
+static int xinp_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct ssmap_node *node = 0;
-	struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
+	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
-	strncpy(sb->addr, sock, TP_SOCKADDRLEN);
+	strncpy (sb->addr, sock, TP_SOCKADDRLEN);
 	node = &self->rb_link;
 	node->key = sb->addr;
-	node->keylen = strlen(sb->addr);
-	if (addlistener(node)) {
+	node->keylen = strlen (sb->addr);
+	if (addlistener (node) ) {
 		errno = EADDRINUSE;
 		return -1;
 	}
 	return 0;
 }
 
-static void xinp_listener_close(struct sockbase *sb)
+static void xinp_listener_close (struct sockbase *sb)
 {
 	struct sockbase *nsb;
-	struct inproc_sock *self = cont_of(sb, struct inproc_sock, base);
+	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
 	/* Avoiding the new connectors */
-	rmlistener(&self->rb_link);
+	rmlistener (&self->rb_link);
 
 	/* Destroy acceptq's connection */
-	while (acceptq_rm_nohup(sb, &nsb) == 0) {
-		DEBUG_OFF("listener %d close unaccept socket %d", sb->fd, nsb->fd);
-		xclose(nsb->fd);
+	while (acceptq_rm_nohup (sb, &nsb) == 0) {
+		DEBUG_OFF ("listener %d close unaccept socket %d", sb->fd, nsb->fd);
+		xclose (nsb->fd);
 	}
 
 	/* Close the xsock and free xsock id. */
-	xsock_exit(sb);
-	mem_free(self, sizeof(*self));
+	xsock_exit (sb);
+	mem_free (self, sizeof (*self) );
 }
 
 struct sockbase_vfptr xinp_listener_spec = {

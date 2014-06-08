@@ -30,11 +30,11 @@
  * net    group@net://182.33.49.10:8080
  * inproc group@inproc://inproc.sock
  */
-int sockaddr_group(const char *url, char *buff, u32 size);
+int sockaddr_group (const char *url, char *buff, u32 size);
 
-int sockaddr_pf(const char *url);
+int sockaddr_pf (const char *url);
 
-int sockaddr_addr(const char *url, char *buff, u32 size);
+int sockaddr_addr (const char *url, char *buff, u32 size);
 
 
 

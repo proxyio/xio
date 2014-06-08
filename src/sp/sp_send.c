@@ -24,16 +24,16 @@
 #include "sp_module.h"
 
 
-int sp_send(int eid, char *ubuf)
+int sp_send (int eid, char *ubuf)
 {
 	int rc;
-	struct epbase *ep = eid_get(eid);
+	struct epbase *ep = eid_get (eid);
 
 	if (!ep || ep->shutdown) {
 		errno = EBADF;
 		return -1;
 	}
 	rc = ep->vfptr.send (ep, ubuf);
-	eid_put(eid);
+	eid_put (eid);
 	return rc;
 }

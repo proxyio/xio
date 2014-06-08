@@ -30,46 +30,46 @@
 
 typedef int (*sock_setopt) (struct sockbase *sb, void *optval, int optlen);
 
-static int set_noblock(struct sockbase *sb, void *optval, int optlen)
+static int set_noblock (struct sockbase *sb, void *optval, int optlen)
 {
-	mutex_lock(&sb->lock);
-	sb->fasync = *(int *)optval ? true : false;
-	mutex_unlock(&sb->lock);
+	mutex_lock (&sb->lock);
+	sb->fasync = * (int *) optval ? true : false;
+	mutex_unlock (&sb->lock);
 	return 0;
 }
 
-static int set_sndwin(struct sockbase *sb, void *optval, int optlen)
+static int set_sndwin (struct sockbase *sb, void *optval, int optlen)
 {
-	mutex_lock(&sb->lock);
-	sb->snd.wnd = (*(int *)optval);
-	mutex_unlock(&sb->lock);
+	mutex_lock (&sb->lock);
+	sb->snd.wnd = (* (int *) optval);
+	mutex_unlock (&sb->lock);
 	return 0;
 }
 
-static int set_rcvwin(struct sockbase *sb, void *optval, int optlen)
+static int set_rcvwin (struct sockbase *sb, void *optval, int optlen)
 {
-	mutex_lock(&sb->lock);
-	sb->rcv.wnd = (*(int *)optval);
-	mutex_unlock(&sb->lock);
+	mutex_lock (&sb->lock);
+	sb->rcv.wnd = (* (int *) optval);
+	mutex_unlock (&sb->lock);
 	return 0;
 }
 
-static int set_linger(struct sockbase *sb, void *optval, int optlen)
+static int set_linger (struct sockbase *sb, void *optval, int optlen)
 {
 	return -1;
 }
 
-static int set_sndtimeo(struct sockbase *sb, void *optval, int optlen)
+static int set_sndtimeo (struct sockbase *sb, void *optval, int optlen)
 {
 	return -1;
 }
 
-static int set_rcvtimeo(struct sockbase *sb, void *optval, int optlen)
+static int set_rcvtimeo (struct sockbase *sb, void *optval, int optlen)
 {
 	return -1;
 }
 
-static int set_reconnect(struct sockbase *sb, void *optval, int optlen)
+static int set_reconnect (struct sockbase *sb, void *optval, int optlen)
 {
 	return -1;
 }
@@ -88,10 +88,10 @@ const sock_setopt setopt_vfptr[] = {
 	0,
 };
 
-static int _setopt(struct sockbase *sb, int opt, void *optval, int optlen)
+static int _setopt (struct sockbase *sb, int opt, void *optval, int optlen)
 {
 	int rc;
-	if (opt >= NELEM(setopt_vfptr, sock_setopt) || !setopt_vfptr[opt]) {
+	if (opt >= NELEM (setopt_vfptr, sock_setopt) || !setopt_vfptr[opt]) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -99,22 +99,22 @@ static int _setopt(struct sockbase *sb, int opt, void *optval, int optlen)
 	return rc;
 }
 
-static int _tp_setopt(struct sockbase *sb, int level, int opt, void *optval,
-                      int optlen)
+static int _tp_setopt (struct sockbase *sb, int level, int opt, void *optval,
+                       int optlen)
 {
 	int rc;
 	if (!sb->vfptr->setopt) {
 		errno = EINVAL;
 		return -1;
 	}
-	rc = sb->vfptr->setopt(sb, level, opt, optval, optlen);
+	rc = sb->vfptr->setopt (sb, level, opt, optval, optlen);
 	return rc;
 }
 
-int xsetopt(int fd, int level, int opt, void *optval, int optlen)
+int xsetopt (int fd, int level, int opt, void *optval, int optlen)
 {
 	int rc;
-	struct sockbase *sb = xget(fd);
+	struct sockbase *sb = xget (fd);
 
 	if (!sb) {
 		errno = EBADF;
@@ -122,13 +122,13 @@ int xsetopt(int fd, int level, int opt, void *optval, int optlen)
 	}
 	switch (level) {
 	case XL_SOCKET:
-		rc = _setopt(sb, opt, optval, optlen);
+		rc = _setopt (sb, opt, optval, optlen);
 		break;
 	default:
-		rc = _tp_setopt(sb, level, opt, optval, optlen);
+		rc = _tp_setopt (sb, level, opt, optval, optlen);
 		break;
 	}
-	xput(fd);
+	xput (fd);
 	return rc;
 }
 

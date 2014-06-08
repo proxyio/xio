@@ -29,7 +29,7 @@
 #define XPOLLOUT  2
 #define XPOLLERR  4
 
-int xselect(int events, int nin, int *in_set, int nout, int *out_set);
+int xselect (int events, int nin, int *in_set, int nout, int *out_set);
 
 struct poll_ent {
 	int fd;
@@ -39,13 +39,13 @@ struct poll_ent {
 };
 
 int xpoll_create();
-int xpoll_close(int pollid);
+int xpoll_close (int pollid);
 
 #define XPOLL_ADD 1
 #define XPOLL_DEL 2
 #define XPOLL_MOD 3
-int xpoll_ctl(int pollid, int op, struct poll_ent *ent);
-int xpoll_wait(int pollid, struct poll_ent *ent, int n, int timeout);
+int xpoll_ctl (int pollid, int op, struct poll_ent *ent);
+int xpoll_wait (int pollid, struct poll_ent *ent, int n, int timeout);
 
 #include <xio/cplusplus_endif.h>
 #endif

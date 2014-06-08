@@ -70,8 +70,8 @@ int gettid();
 	    (type *)((char *)ptr - __offsetof(type, member)); })
 
 typedef struct io {
-	int64_t (*read)(struct io *c, char *buf, int64_t size);
-	int64_t (*write)(struct io *c, char *buf, int64_t size);
+	int64_t (*read) (struct io *c, char *buf, int64_t size);
+	int64_t (*write) (struct io *c, char *buf, int64_t size);
 } io_t;
 
 

@@ -31,76 +31,76 @@
 
 typedef int (*sock_getopt) (struct sockbase *self, void *optval, int *optlen);
 
-static int get_noblock(struct sockbase *self, void *optval, int *optlen)
+static int get_noblock (struct sockbase *self, void *optval, int *optlen)
 {
-	mutex_lock(&self->lock);
-	*(int *)optval = self->fasync ? true : false;
-	mutex_unlock(&self->lock);
+	mutex_lock (&self->lock);
+	* (int *) optval = self->fasync ? true : false;
+	mutex_unlock (&self->lock);
 	return 0;
 }
 
-static int get_sndwin(struct sockbase *self, void *optval, int *optlen)
+static int get_sndwin (struct sockbase *self, void *optval, int *optlen)
 {
-	mutex_lock(&self->lock);
-	*(int *)optval = self->snd.wnd;
-	mutex_unlock(&self->lock);
+	mutex_lock (&self->lock);
+	* (int *) optval = self->snd.wnd;
+	mutex_unlock (&self->lock);
 	return 0;
 }
 
-static int get_rcvwin(struct sockbase *self, void *optval, int *optlen)
+static int get_rcvwin (struct sockbase *self, void *optval, int *optlen)
 {
-	mutex_lock(&self->lock);
-	*(int *)optval = self->rcv.wnd;
-	mutex_unlock(&self->lock);
+	mutex_lock (&self->lock);
+	* (int *) optval = self->rcv.wnd;
+	mutex_unlock (&self->lock);
 	return 0;
 }
 
-static int get_sndbuf(struct sockbase *self, void *optval, int *optlen)
+static int get_sndbuf (struct sockbase *self, void *optval, int *optlen)
 {
-	mutex_lock(&self->lock);
-	*(int *)optval = self->snd.buf;
-	mutex_unlock(&self->lock);
+	mutex_lock (&self->lock);
+	* (int *) optval = self->snd.buf;
+	mutex_unlock (&self->lock);
 	return 0;
 }
 
-static int get_rcvbuf(struct sockbase *self, void *optval, int *optlen)
+static int get_rcvbuf (struct sockbase *self, void *optval, int *optlen)
 {
-	mutex_lock(&self->lock);
-	*(int *)optval = self->rcv.buf;
-	mutex_unlock(&self->lock);
+	mutex_lock (&self->lock);
+	* (int *) optval = self->rcv.buf;
+	mutex_unlock (&self->lock);
 	return 0;
 }
 
 
-static int get_linger(struct sockbase *self, void *optval, int *optlen)
+static int get_linger (struct sockbase *self, void *optval, int *optlen)
 {
 	return -1;
 }
 
-static int get_sndtimeo(struct sockbase *self, void *optval, int *optlen)
+static int get_sndtimeo (struct sockbase *self, void *optval, int *optlen)
 {
 	return -1;
 }
 
-static int get_rcvtimeo(struct sockbase *self, void *optval, int *optlen)
+static int get_rcvtimeo (struct sockbase *self, void *optval, int *optlen)
 {
 	return -1;
 }
 
-static int get_reconnect(struct sockbase *self, void *optval, int *optlen)
+static int get_reconnect (struct sockbase *self, void *optval, int *optlen)
 {
 	return -1;
 }
 
-static int get_socktype(struct sockbase *self, void *optval, int *optlen)
+static int get_socktype (struct sockbase *self, void *optval, int *optlen)
 {
-	*(int *)optval = self->vfptr->type;
+	* (int *) optval = self->vfptr->type;
 	return 0;
 }
 
-static int get_sockpf(struct sockbase *self, void *optval, int *optlen)
+static int get_sockpf (struct sockbase *self, void *optval, int *optlen)
 {
-	*(int *)optval = self->vfptr->pf;
+	* (int *) optval = self->vfptr->pf;
 	return 0;
 }
 
@@ -120,10 +120,10 @@ const sock_getopt getopt_vfptr[] = {
 
 
 
-static int _getopt(struct sockbase *sb, int opt, void *optval, int *optlen)
+static int _getopt (struct sockbase *sb, int opt, void *optval, int *optlen)
 {
 	int rc;
-	if (opt >= NELEM(getopt_vfptr, sock_getopt) || !getopt_vfptr[opt]) {
+	if (opt >= NELEM (getopt_vfptr, sock_getopt) || !getopt_vfptr[opt]) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -131,22 +131,22 @@ static int _getopt(struct sockbase *sb, int opt, void *optval, int *optlen)
 	return rc;
 }
 
-static int _tp_getopt(struct sockbase *sb, int level, int opt, void *optval,
-                      int *optlen)
+static int _tp_getopt (struct sockbase *sb, int level, int opt, void *optval,
+                       int *optlen)
 {
 	int rc;
 	if (!sb->vfptr->getopt) {
 		errno = EINVAL;
 		return -1;
 	}
-	rc = sb->vfptr->getopt(sb, level, opt, optval, optlen);
+	rc = sb->vfptr->getopt (sb, level, opt, optval, optlen);
 	return rc;
 }
 
-int xgetopt(int fd, int level, int opt, void *optval, int *optlen)
+int xgetopt (int fd, int level, int opt, void *optval, int *optlen)
 {
 	int rc;
-	struct sockbase *sb = xget(fd);
+	struct sockbase *sb = xget (fd);
 
 	if (!sb) {
 		errno = EBADF;
@@ -154,12 +154,12 @@ int xgetopt(int fd, int level, int opt, void *optval, int *optlen)
 	}
 	switch (level) {
 	case XL_SOCKET:
-		rc = _getopt(sb, opt, optval, optlen);
+		rc = _getopt (sb, opt, optval, optlen);
 		break;
 	default:
-		rc = _tp_getopt(sb, level, opt, optval, optlen);
+		rc = _tp_getopt (sb, level, opt, optval, optlen);
 		break;
 	}
-	xput(fd);
+	xput (fd);
 	return rc;
 }

@@ -45,8 +45,8 @@ extern struct pollbase_vfptr xpollbase_vfptr;
     walk_each_entry_s(itm, nitm, head, struct xpitem, lru_link)
 
 struct xpitem *xpitem_alloc();
-int xpitem_get(struct xpitem *itm);
-int xpitem_put(struct xpitem *itm);
+int xpitem_get (struct xpitem *itm);
+int xpitem_put (struct xpitem *itm);
 
 
 struct xpoll_t {
@@ -61,13 +61,13 @@ struct xpoll_t {
 };
 
 struct xpoll_t *poll_alloc();
-struct xpoll_t *pget(int pollid);
-void pput(int pollid);
+struct xpoll_t *pget (int pollid);
+void pput (int pollid);
 
 #define XPOLL_HEADFD -0x3654
-struct xpitem *getfd(struct xpoll_t *poll, int fd);
-struct xpitem *addfd(struct xpoll_t *poll, int fd);
-int rmfd(struct xpoll_t *poll, int fd);
+struct xpitem *getfd (struct xpoll_t *poll, int fd);
+struct xpitem *addfd (struct xpoll_t *poll, int fd);
+int rmfd (struct xpoll_t *poll, int fd);
 
 /* Max number of concurrent socks. */
 #define XIO_MAX_POLLS 10240

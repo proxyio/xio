@@ -23,40 +23,40 @@
 #include "sub.h"
 
 static struct epbase *sub_ep_alloc() {
-	struct sub_ep *sub_ep = TNEW(struct sub_ep);
+	struct sub_ep *sub_ep = TNEW (struct sub_ep);
 
 	if (sub_ep) {
-		epbase_init(&sub_ep->base);
+		epbase_init (&sub_ep->base);
 	}
 	return &sub_ep->base;
 }
 
-static void sub_ep_destroy(struct epbase *ep)
+static void sub_ep_destroy (struct epbase *ep)
 {
-	struct sub_ep *sub_ep = cont_of(ep, struct sub_ep, base);
-	epbase_exit(ep);
-	mem_free(sub_ep, sizeof(*sub_ep));
+	struct sub_ep *sub_ep = cont_of (ep, struct sub_ep, base);
+	epbase_exit (ep);
+	mem_free (sub_ep, sizeof (*sub_ep) );
 }
 
-static int sub_ep_send(struct epbase *ep, char *ubuf)
-{
-	int rc = 0;
-	return rc;
-}
-
-static int sub_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
+static int sub_ep_send (struct epbase *ep, char *ubuf)
 {
 	int rc = 0;
 	return rc;
 }
 
-static int sub_ep_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
+static int sub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	int rc = 0;
 	return rc;
 }
 
-static struct tgtd *sub_ep_join(struct epbase *ep, int fd) {
+static int sub_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
+{
+	int rc = 0;
+	return rc;
+}
+
+static struct tgtd *sub_ep_join (struct epbase *ep, int fd) {
 	struct tgtd *tg = 0;
 	return tg;
 }
@@ -69,10 +69,10 @@ static const ep_getopt getopt_vfptr[] = {
 	0,
 };
 
-static int sub_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
+static int sub_ep_setopt (struct epbase *ep, int opt, void *optval, int optlen)
 {
 	int rc;
-	if (opt < 0 || opt >= NELEM(setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
+	if (opt < 0 || opt >= NELEM (setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -80,10 +80,10 @@ static int sub_ep_setopt(struct epbase *ep, int opt, void *optval, int optlen)
 	return rc;
 }
 
-static int sub_ep_getopt(struct epbase *ep, int opt, void *optval, int *optlen)
+static int sub_ep_getopt (struct epbase *ep, int opt, void *optval, int *optlen)
 {
 	int rc;
-	if (opt < 0 || opt >= NELEM(getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
+	if (opt < 0 || opt >= NELEM (getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
 		errno = EINVAL;
 		return -1;
 	}

@@ -56,9 +56,9 @@ struct xcpu {
 };
 
 int xcpu_alloc();
-int xcpu_choosed(int fd);
-void xcpu_free(int cpu_no);
-struct xcpu *xcpuget(int cpu_no);
+int xcpu_choosed (int fd);
+void xcpu_free (int cpu_no);
+struct xcpu *xcpuget (int cpu_no);
 
 
 

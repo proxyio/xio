@@ -36,175 +36,175 @@ struct xsymbol {
 
 static int lua_xallocubuf (lua_State *L)
 {
-	const char *str = luaL_checkstring(L, 1);
-	char *ubuf = xallocubuf(strlen(str));
-	strncpy(ubuf, str, strlen(ubuf));
-	lua_pushlightuserdata(L, ubuf);
+	const char *str = luaL_checkstring (L, 1);
+	char *ubuf = xallocubuf (strlen (str) );
+	strncpy (ubuf, str, strlen (ubuf) );
+	lua_pushlightuserdata (L, ubuf);
 	return 1;
 }
 
 static int lua_xubuflen (lua_State *L)
 {
-	char *ubuf = (char *)lua_touserdata(L, 1);
-	luaL_argcheck(L, ubuf != NULL, 1, "`ubuf' expected");
-	lua_pushnumber(L, xubuflen(ubuf));
+	char *ubuf = (char *) lua_touserdata (L, 1);
+	luaL_argcheck (L, ubuf != NULL, 1, "`ubuf' expected");
+	lua_pushnumber (L, xubuflen (ubuf) );
 	return 1;
 }
 
 static int lua_xfreeubuf (lua_State *L)
 {
-	char *ubuf = (char *)lua_touserdata(L, 1);
-	xfreeubuf(ubuf);
+	char *ubuf = (char *) lua_touserdata (L, 1);
+	xfreeubuf (ubuf);
 	return 1;
 }
 
-static int lua_xsocket(lua_State *L)
+static int lua_xsocket (lua_State *L)
 {
-	int pf = luaL_checkint(L, 1);
-	int socktype = luaL_checkint(L, 2);
-	int fd = xsocket(pf, socktype);
-	lua_pushnumber(L, fd);
+	int pf = luaL_checkint (L, 1);
+	int socktype = luaL_checkint (L, 2);
+	int fd = xsocket (pf, socktype);
+	lua_pushnumber (L, fd);
 	return 1;
 }
 
-static int lua_xbind(lua_State *L)
+static int lua_xbind (lua_State *L)
 {
-	int fd = luaL_checkint(L, 1);
-	const char *addr = luaL_checkstring(L, 2);
-	lua_pushnumber(L, xbind(fd, addr));
+	int fd = luaL_checkint (L, 1);
+	const char *addr = luaL_checkstring (L, 2);
+	lua_pushnumber (L, xbind (fd, addr) );
 	return 1;
 }
 
-static int lua_xlisten(lua_State *L)
+static int lua_xlisten (lua_State *L)
 {
-	const char *addr = luaL_checkstring(L, 1);
-	lua_pushnumber(L, xlisten(addr));
+	const char *addr = luaL_checkstring (L, 1);
+	lua_pushnumber (L, xlisten (addr) );
 	return 1;
 }
 
-static int lua_xaccept(lua_State *L)
+static int lua_xaccept (lua_State *L)
 {
-	int fd = luaL_checkint(L, 1);
-	lua_pushnumber(L, xaccept(fd));
+	int fd = luaL_checkint (L, 1);
+	lua_pushnumber (L, xaccept (fd) );
 	return 1;
 }
 
-static int lua_xconnect(lua_State *L)
+static int lua_xconnect (lua_State *L)
 {
-	const char *addr = luaL_checkstring(L, 1);
-	lua_pushnumber(L, xconnect(addr));
+	const char *addr = luaL_checkstring (L, 1);
+	lua_pushnumber (L, xconnect (addr) );
 	return 1;
 }
 
-static int lua_xrecv(lua_State *L)
+static int lua_xrecv (lua_State *L)
 {
 	char *ubuf = 0;
-	int fd = luaL_checkint(L, 1);
-	lua_pushnumber(L, xrecv(fd, &ubuf));
-	lua_pushlightuserdata(L, ubuf);
+	int fd = luaL_checkint (L, 1);
+	lua_pushnumber (L, xrecv (fd, &ubuf) );
+	lua_pushlightuserdata (L, ubuf);
 	return 2;
 }
 
-static int lua_xsend(lua_State *L)
+static int lua_xsend (lua_State *L)
 {
-	int fd = luaL_checkint(L, 1);
-	char *ubuf = (char *)lua_touserdata(L, 2);
-	lua_pushnumber(L, xsend(fd, ubuf));
+	int fd = luaL_checkint (L, 1);
+	char *ubuf = (char *) lua_touserdata (L, 2);
+	lua_pushnumber (L, xsend (fd, ubuf) );
 	return 1;
 }
 
-static int lua_xclose(lua_State *L)
+static int lua_xclose (lua_State *L)
 {
-	int fd = luaL_checkint(L, 1);
-	lua_pushnumber(L, xclose(fd));
+	int fd = luaL_checkint (L, 1);
+	lua_pushnumber (L, xclose (fd) );
 	return 1;
 }
 
-static int lua_xsetopt(lua_State *L)
+static int lua_xsetopt (lua_State *L)
 {
 	return 0;
 }
 
-static int lua_xgetopt(lua_State *L)
+static int lua_xgetopt (lua_State *L)
 {
 	return 0;
 }
 
 
 
-static int lua_sp_endpoint(lua_State *L)
+static int lua_sp_endpoint (lua_State *L)
 {
-	int sp_family = luaL_checkint(L, 1);
-	int sp_type = luaL_checkint(L, 2);
-	lua_pushnumber(L, sp_endpoint(sp_family, sp_type));
+	int sp_family = luaL_checkint (L, 1);
+	int sp_type = luaL_checkint (L, 2);
+	lua_pushnumber (L, sp_endpoint (sp_family, sp_type) );
 	return 1;
 }
 
-static int lua_sp_close(lua_State *L)
+static int lua_sp_close (lua_State *L)
 {
-	int eid = luaL_checkint(L, 1);
-	lua_pushnumber(L, sp_close(eid));
+	int eid = luaL_checkint (L, 1);
+	lua_pushnumber (L, sp_close (eid) );
 	return 1;
 }
 
-static int lua_sp_send(lua_State *L)
+static int lua_sp_send (lua_State *L)
 {
-	int eid = luaL_checkint(L, 1);
-	char *ubuf = (char *)lua_touserdata(L, 2);
-	lua_pushnumber(L, sp_send(eid, ubuf));
+	int eid = luaL_checkint (L, 1);
+	char *ubuf = (char *) lua_touserdata (L, 2);
+	lua_pushnumber (L, sp_send (eid, ubuf) );
 	return 1;
 }
 
-static int lua_sp_recv(lua_State *L)
+static int lua_sp_recv (lua_State *L)
 {
 	char *ubuf = 0;
-	int fd = luaL_checkint(L, 1);
-	lua_pushnumber(L, sp_recv(fd, &ubuf));
-	lua_pushlightuserdata(L, ubuf);
+	int fd = luaL_checkint (L, 1);
+	lua_pushnumber (L, sp_recv (fd, &ubuf) );
+	lua_pushlightuserdata (L, ubuf);
 	return 2;
 }
 
-static int lua_sp_add(lua_State *L)
+static int lua_sp_add (lua_State *L)
 {
-	int eid = luaL_checkint(L, 1);
-	int sockfd = luaL_checkint(L, 2);
-	lua_pushnumber(L, sp_add(eid, sockfd));
+	int eid = luaL_checkint (L, 1);
+	int sockfd = luaL_checkint (L, 2);
+	lua_pushnumber (L, sp_add (eid, sockfd) );
 	return 1;
 }
 
-static int lua_sp_rm(lua_State *L)
+static int lua_sp_rm (lua_State *L)
 {
-	int eid = luaL_checkint(L, 1);
-	int sockfd = luaL_checkint(L, 2);
-	lua_pushnumber(L, sp_rm(eid, sockfd));
+	int eid = luaL_checkint (L, 1);
+	int sockfd = luaL_checkint (L, 2);
+	lua_pushnumber (L, sp_rm (eid, sockfd) );
 	return 1;
 }
 
-static int lua_sp_setopt(lua_State *L)
+static int lua_sp_setopt (lua_State *L)
 {
 	return 0;
 }
 
 
-static int lua_sp_getopt(lua_State *L)
+static int lua_sp_getopt (lua_State *L)
 {
 	return 0;
 }
 
-static int lua_sp_connect(lua_State *L)
+static int lua_sp_connect (lua_State *L)
 {
-	int eid = luaL_checkint(L, 1);
-	const char *sockaddr = luaL_checkstring(L, 2);
-	lua_pushnumber(L, sp_connect(eid, sockaddr));
+	int eid = luaL_checkint (L, 1);
+	const char *sockaddr = luaL_checkstring (L, 2);
+	lua_pushnumber (L, sp_connect (eid, sockaddr) );
 	return 1;
 }
 
 
-static int lua_sp_listen(lua_State *L)
+static int lua_sp_listen (lua_State *L)
 {
-	int eid = luaL_checkint(L, 1);
-	const char *sockaddr = luaL_checkstring(L, 2);
-	lua_pushnumber(L, sp_listen(eid, sockaddr));
+	int eid = luaL_checkint (L, 1);
+	const char *sockaddr = luaL_checkstring (L, 2);
+	lua_pushnumber (L, sp_listen (eid, sockaddr) );
 	return 1;
 }
 
@@ -284,12 +284,12 @@ static const struct xsymbol const_symbols [] = {
 	lua_setglobal(L, (cst).name );			\
     } while (0)
 
-LUA_API int luaopen_xio(lua_State *L)
+LUA_API int luaopen_xio (lua_State *L)
 {
 	int i;
-	for (i = 0; i < NELEM(api_symbols, struct luaL_reg); i++)
-		LUA_REGISTER_GLOBAL_FUNCTION(L, api_symbols[i]);
-	for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++)
-		LUA_REGISTER_GLOBAL_CONSTANT(L, const_symbols[i]);
+	for (i = 0; i < NELEM (api_symbols, struct luaL_reg); i++)
+		LUA_REGISTER_GLOBAL_FUNCTION (L, api_symbols[i]);
+	for (i = 0; i < NELEM (const_symbols, struct xsymbol); i++)
+		LUA_REGISTER_GLOBAL_CONSTANT (L, const_symbols[i]);
 	return 0;
 }

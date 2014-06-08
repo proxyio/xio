@@ -42,25 +42,25 @@ struct bio {
 };
 
 struct bio *bio_new();
-static inline void bio_init(struct bio *b)
+static inline void bio_init (struct bio *b)
 {
-	INIT_LIST_HEAD(&b->page_head);
+	INIT_LIST_HEAD (&b->page_head);
 }
 
-static inline int64_t bio_size(struct bio *b)
+static inline int64_t bio_size (struct bio *b)
 {
 	return b->bsize;
 }
 
-void bio_destroy(struct bio *b);
-void bio_reset(struct bio *b);
-int bio_empty(struct bio *b);
-int64_t bio_copy(struct bio *b, char *buff, int64_t sz);
-int64_t bio_read(struct bio *b, char *buff, int64_t sz);
-int64_t bio_write(struct bio *b, const char *buff, int64_t sz);
+void bio_destroy (struct bio *b);
+void bio_reset (struct bio *b);
+int bio_empty (struct bio *b);
+int64_t bio_copy (struct bio *b, char *buff, int64_t sz);
+int64_t bio_read (struct bio *b, char *buff, int64_t sz);
+int64_t bio_write (struct bio *b, const char *buff, int64_t sz);
 
-int64_t bio_flush(struct bio *b, struct io *io_ops);
-int64_t bio_prefetch(struct bio *b, struct io *io_ops);
+int64_t bio_flush (struct bio *b, struct io *io_ops);
+int64_t bio_prefetch (struct bio *b, struct io *io_ops);
 
 
 #endif

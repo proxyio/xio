@@ -46,7 +46,7 @@ typedef struct skrb {
 #define skrb_empty(tree) RB_EMPTY_ROOT(&(tree)->root)
 
 
-static inline skrb_node_t *skrb_min(skrb_t *tree)
+static inline skrb_node_t *skrb_min (skrb_t *tree)
 {
 	struct rb_root *root = &tree->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
@@ -55,13 +55,13 @@ static inline skrb_node_t *skrb_min(skrb_t *tree)
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_left;
-		_min = rb_entry(parent, skrb_node_t, rb);
+		_min = rb_entry (parent, skrb_node_t, rb);
 	}
 	return _min;
 }
 
 
-static inline skrb_node_t *skrb_max(skrb_t *tree)
+static inline skrb_node_t *skrb_max (skrb_t *tree)
 {
 	struct rb_root *root = &tree->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
@@ -70,12 +70,12 @@ static inline skrb_node_t *skrb_max(skrb_t *tree)
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_right;
-		_max = rb_entry(parent, skrb_node_t, rb);
+		_max = rb_entry (parent, skrb_node_t, rb);
 	}
 	return _max;
 }
 
-static inline void skrb_insert(skrb_t *tree, skrb_node_t *node)
+static inline void skrb_insert (skrb_t *tree, skrb_node_t *node)
 {
 	struct rb_root *root = &tree->root;
 	struct rb_node **np = &root->rb_node, *parent = NULL;
@@ -84,21 +84,21 @@ static inline void skrb_insert(skrb_t *tree, skrb_node_t *node)
 	tree->elem_size++;
 	while (*np) {
 		parent = *np;
-		if (key < rb_entry(parent, skrb_node_t, rb)->key)
+		if (key < rb_entry (parent, skrb_node_t, rb)->key)
 			np = &parent->rb_left;
 		else
 			np = &parent->rb_right;
 	}
 
-	rb_link_node(&node->rb, parent, np);
-	rb_insert_color(&node->rb, root);
+	rb_link_node (&node->rb, parent, np);
+	rb_insert_color (&node->rb, root);
 }
 
 
-static inline void skrb_delete(skrb_t *tree, skrb_node_t *node)
+static inline void skrb_delete (skrb_t *tree, skrb_node_t *node)
 {
 	tree->elem_size--;
-	rb_erase(&node->rb, &tree->root);
+	rb_erase (&node->rb, &tree->root);
 }
 
 #endif /* _H_SKRB_ */

@@ -35,12 +35,12 @@ typedef struct {
 	void *ubuf;
 } Message;
 
-static PyObject *Message_new(PyTypeObject *type, PyObject *args,
-                             PyObject *kwds)
+static PyObject *Message_new (PyTypeObject *type, PyObject *args,
+                              PyObject *kwds)
 {
-	PyErr_Format(PyExc_TypeError,
-	             "cannot create '%.100s' instances us xallocubuf instead",
-	             type->tp_name);
+	PyErr_Format (PyExc_TypeError,
+	              "cannot create '%.100s' instances us xallocubuf instead",
+	              type->tp_name);
 	return 0;
 }
 
@@ -53,30 +53,30 @@ static PyMethodDef Message_methods[] = {
 };
 
 
-static int Message_getreadbuffer(Message *self, int segment, void **ptrptr)
+static int Message_getreadbuffer (Message *self, int segment, void **ptrptr)
 {
 	if (segment != 0 || self->ubuf == NULL) {
 		PyErr_BadInternalCall();
 		return -1;
 	}
-	*ptrptr = ((Message *)self)->ubuf;
-	return xubuflen(((Message *)self)->ubuf);
+	*ptrptr = ( (Message *) self)->ubuf;
+	return xubuflen ( ( (Message *) self)->ubuf);
 }
 
-static int Message_getwritebuffer(Message *self, int segment, void **ptrptr)
+static int Message_getwritebuffer (Message *self, int segment, void **ptrptr)
 {
 	if (segment != 0 || self->ubuf == NULL) {
 		PyErr_BadInternalCall();
 		return -1;
 	}
-	*ptrptr = ((Message *)self)->ubuf;
-	return xubuflen(((Message *)self)->ubuf);
+	*ptrptr = ( (Message *) self)->ubuf;
+	return xubuflen ( ( (Message *) self)->ubuf);
 }
 
-static int Message_getsegcountproc(PyObject *self, int *lenp)
+static int Message_getsegcountproc (PyObject *self, int *lenp)
 {
 	if (lenp != NULL)
-		*lenp = xubuflen(((Message *)self)->ubuf);
+		*lenp = xubuflen ( ( (Message *) self)->ubuf);
 	return 1;
 }
 
@@ -87,34 +87,34 @@ static PyBufferProcs Message_bufferproces = {
 	NULL
 };
 
-static PyObject *Message_repr(Message *self)
+static PyObject *Message_repr (Message *self)
 {
-	return PyUnicode_FromFormat("<_xio_cpy.Message size %zu, address %p >",
-	                            xubuflen(self->ubuf), self->ubuf);
+	return PyUnicode_FromFormat ("<_xio_cpy.Message size %zu, address %p >",
+	                             xubuflen (self->ubuf), self->ubuf);
 }
 
-static PyObject *Message_str(Message * self)
+static PyObject *Message_str (Message * self)
 {
-	return PyBytes_FromStringAndSize(self->ubuf, xubuflen(self->ubuf));
+	return PyBytes_FromStringAndSize (self->ubuf, xubuflen (self->ubuf) );
 }
 
 static PyTypeObject MessageType = {
-	PyVarObject_HEAD_INIT(NULL, 0)
+	PyVarObject_HEAD_INIT (NULL, 0)
 	"_xio_cpy.Message",          /*tp_name*/
-	sizeof(Message),             /*tp_basicsize*/
+	sizeof (Message),            /*tp_basicsize*/
 	0,                           /*tp_itemsize*/
 	0,                           /*tp_dealloc*/
 	0,                           /*tp_print*/
 	0,                           /*tp_getattr*/
 	0,                           /*tp_setattr*/
 	0,                           /*tp_compare*/
-	(reprfunc)Message_repr,      /*tp_repr*/
+	(reprfunc) Message_repr,     /*tp_repr*/
 	0,                           /*tp_as_number*/
 	0,                           /*tp_as_sequence*/
 	0,                           /*tp_as_mapping*/
 	0,                           /*tp_hash */
 	0,                           /*tp_call*/
-	(reprfunc)Message_str,       /*tp_str*/
+	(reprfunc) Message_str,      /*tp_str*/
 	0,                           /*tp_getattro*/
 	0,                           /*tp_setattro*/
 	&Message_bufferproces,       /*tp_as_buffer*/
@@ -141,243 +141,243 @@ static PyTypeObject MessageType = {
 	Message_new,                 /* tp_new */
 };
 
-static PyObject *cpy_xallocubuf(PyObject *self, PyObject *args)
+static PyObject *cpy_xallocubuf (PyObject *self, PyObject *args)
 {
 	int size = 0;
 	Message *message = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &size))
+	if (!PyArg_ParseTuple (args, "i", &size) )
 		return 0;
-	message = (Message *)PyType_GenericAlloc(&MessageType, 0);
-	if ((message->ubuf = xallocubuf(size)) == NULL) {
-		Py_DECREF((PyObject*)message);
+	message = (Message *) PyType_GenericAlloc (&MessageType, 0);
+	if ( (message->ubuf = xallocubuf (size) ) == NULL) {
+		Py_DECREF ( (PyObject*) message);
 		Py_RETURN_NONE;
 	}
-	return (PyObject*)message;
+	return (PyObject*) message;
 }
 
-static PyObject *cpy_xfreeubuf(PyObject *self, PyObject *args)
+static PyObject *cpy_xfreeubuf (PyObject *self, PyObject *args)
 {
 	Message *message = 0;
 
-	if (!PyArg_ParseTuple(args, "O", &message))
+	if (!PyArg_ParseTuple (args, "O", &message) )
 		return 0;
-	xfreeubuf(message->ubuf);
+	xfreeubuf (message->ubuf);
 	Py_RETURN_NONE;
 }
 
 
 static PyObject *cpy_xubuflen (PyObject *self, PyObject *args)
 {
-	Message *message = (Message *)self;
-	return Py_BuildValue("i", xubuflen(message->ubuf));
+	Message *message = (Message *) self;
+	return Py_BuildValue ("i", xubuflen (message->ubuf) );
 }
 
-static PyObject *cpy_xsocket(PyObject *self, PyObject *args)
+static PyObject *cpy_xsocket (PyObject *self, PyObject *args)
 {
 	int pf = 0;
 	int socktype = 0;
 
-	if (!PyArg_ParseTuple(args, "ii", &pf, &socktype))
+	if (!PyArg_ParseTuple (args, "ii", &pf, &socktype) )
 		return 0;
-	return Py_BuildValue("i", xsocket(pf, socktype));
+	return Py_BuildValue ("i", xsocket (pf, socktype) );
 }
 
-static PyObject *cpy_xbind(PyObject *self, PyObject *args)
+static PyObject *cpy_xbind (PyObject *self, PyObject *args)
 {
 	int fd = 0;
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple(args, "is", &fd, &sockaddr))
+	if (!PyArg_ParseTuple (args, "is", &fd, &sockaddr) )
 		return 0;
-	return Py_BuildValue("i", xbind(fd, sockaddr));
+	return Py_BuildValue ("i", xbind (fd, sockaddr) );
 }
 
-static PyObject *cpy_xaccept(PyObject *self, PyObject *args)
+static PyObject *cpy_xaccept (PyObject *self, PyObject *args)
 {
 	int fd = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &fd))
+	if (!PyArg_ParseTuple (args, "i", &fd) )
 		return 0;
-	return Py_BuildValue("i", xaccept(fd));
+	return Py_BuildValue ("i", xaccept (fd) );
 }
 
-static PyObject *cpy_xlisten(PyObject *self, PyObject *args)
+static PyObject *cpy_xlisten (PyObject *self, PyObject *args)
 {
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple(args, "s", &sockaddr))
+	if (!PyArg_ParseTuple (args, "s", &sockaddr) )
 		return 0;
-	return Py_BuildValue("i", xlisten(sockaddr));
+	return Py_BuildValue ("i", xlisten (sockaddr) );
 }
 
-static PyObject *cpy_xconnect(PyObject *self, PyObject *args)
+static PyObject *cpy_xconnect (PyObject *self, PyObject *args)
 {
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple(args, "s", &sockaddr))
+	if (!PyArg_ParseTuple (args, "s", &sockaddr) )
 		return 0;
-	return Py_BuildValue("i", xconnect(sockaddr));
+	return Py_BuildValue ("i", xconnect (sockaddr) );
 }
 
-static PyObject *cpy_xrecv(PyObject *self, PyObject *args)
+static PyObject *cpy_xrecv (PyObject *self, PyObject *args)
 {
-	PyObject *tuple = PyTuple_New(2);
-	Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
+	PyObject *tuple = PyTuple_New (2);
+	Message *message = (Message *) PyType_GenericAlloc (&MessageType, 0);
 	int fd = 0;
 	int rc;
 	char *ubuf = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &fd))
+	if (!PyArg_ParseTuple (args, "i", &fd) )
 		return 0;
-	if ((rc = xrecv(fd, &ubuf)) == 0)
+	if ( (rc = xrecv (fd, &ubuf) ) == 0)
 		message->ubuf = ubuf;
-	PyTuple_SetItem(tuple, 0, Py_BuildValue("i", rc));
-	PyTuple_SetItem(tuple, 1, (PyObject *)message);
+	PyTuple_SetItem (tuple, 0, Py_BuildValue ("i", rc) );
+	PyTuple_SetItem (tuple, 1, (PyObject *) message);
 	return tuple;
 }
 
-static PyObject *cpy_xsend(PyObject *self, PyObject *args)
+static PyObject *cpy_xsend (PyObject *self, PyObject *args)
 {
 	int fd = 0;
 	int rc;
 	Message *message = 0;
 
-	if (!PyArg_ParseTuple(args, "iO", &fd, &message))
+	if (!PyArg_ParseTuple (args, "iO", &fd, &message) )
 		return 0;
 	if (!message->ubuf) {
 		PyErr_BadInternalCall();
 		return 0;
 	}
-	if ((rc = xsend(fd, message->ubuf)) == 0) {
+	if ( (rc = xsend (fd, message->ubuf) ) == 0) {
 		message->ubuf = 0;
 	}
-	return Py_BuildValue("i", rc);
+	return Py_BuildValue ("i", rc);
 }
 
-static PyObject *cpy_xclose(PyObject *self, PyObject *args)
+static PyObject *cpy_xclose (PyObject *self, PyObject *args)
 {
 	int fd = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &fd))
+	if (!PyArg_ParseTuple (args, "i", &fd) )
 		return 0;
-	return Py_BuildValue("i", xclose(fd));
+	return Py_BuildValue ("i", xclose (fd) );
 }
 
-static PyObject *cpy_xsetopt(PyObject *self, PyObject *args)
+static PyObject *cpy_xsetopt (PyObject *self, PyObject *args)
 {
 	return 0;
 }
 
-static PyObject *cpy_xgetopt(PyObject *self, PyObject *args)
+static PyObject *cpy_xgetopt (PyObject *self, PyObject *args)
 {
 	return 0;
 }
 
-static PyObject *cpy_sp_endpoint(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_endpoint (PyObject *self, PyObject *args)
 {
 	int sp_family = 0;
 	int sp_type = 0;
 
-	if (!PyArg_ParseTuple(args, "ii", &sp_family, &sp_type))
+	if (!PyArg_ParseTuple (args, "ii", &sp_family, &sp_type) )
 		return 0;
-	return Py_BuildValue("i", sp_endpoint(sp_family, sp_type));
+	return Py_BuildValue ("i", sp_endpoint (sp_family, sp_type) );
 }
 
-static PyObject *cpy_sp_close(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_close (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &eid))
+	if (!PyArg_ParseTuple (args, "i", &eid) )
 		return 0;
-	return Py_BuildValue("i", sp_close(eid));
+	return Py_BuildValue ("i", sp_close (eid) );
 }
 
-static PyObject *cpy_sp_send(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 	int rc = 0;
 	Message *message = 0;
 
-	if (!PyArg_ParseTuple(args, "iO", &eid, &message))
+	if (!PyArg_ParseTuple (args, "iO", &eid, &message) )
 		return 0;
 	if (!message->ubuf) {
 		PyErr_BadInternalCall();
 		return 0;
 	}
-	if ((rc = sp_send(eid, message->ubuf)) == 0) {
+	if ( (rc = sp_send (eid, message->ubuf) ) == 0) {
 		message->ubuf = 0;
 	}
-	return Py_BuildValue("i", rc);
+	return Py_BuildValue ("i", rc);
 }
 
-static PyObject *cpy_sp_recv(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 {
-	PyObject *tuple = PyTuple_New(2);
-	Message *message = (Message *)PyType_GenericAlloc(&MessageType, 0);
+	PyObject *tuple = PyTuple_New (2);
+	Message *message = (Message *) PyType_GenericAlloc (&MessageType, 0);
 	int eid = 0;
 	int rc = 0;
 	char *ubuf = 0;
 
-	if (!PyArg_ParseTuple(args, "i", &eid))
+	if (!PyArg_ParseTuple (args, "i", &eid) )
 		return 0;
-	if ((rc = sp_recv(eid, &ubuf)) == 0)
+	if ( (rc = sp_recv (eid, &ubuf) ) == 0)
 		message->ubuf = ubuf;
-	PyTuple_SetItem(tuple, 0, Py_BuildValue("i", rc));
-	PyTuple_SetItem(tuple, 1, (PyObject *)message);
+	PyTuple_SetItem (tuple, 0, Py_BuildValue ("i", rc) );
+	PyTuple_SetItem (tuple, 1, (PyObject *) message);
 	return tuple;
 }
 
-static PyObject *cpy_sp_add(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_add (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 	int sockfd = 0;
 
-	if (!PyArg_ParseTuple(args, "ii", &eid, &sockfd))
+	if (!PyArg_ParseTuple (args, "ii", &eid, &sockfd) )
 		return 0;
-	return Py_BuildValue("i", sp_add(eid, sockfd));
+	return Py_BuildValue ("i", sp_add (eid, sockfd) );
 }
 
-static PyObject *cpy_sp_rm(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_rm (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 	int sockfd = 0;
 
-	if (!PyArg_ParseTuple(args, "ii", &eid, &sockfd))
+	if (!PyArg_ParseTuple (args, "ii", &eid, &sockfd) )
 		return 0;
-	return Py_BuildValue("i", sp_rm(eid, sockfd));
+	return Py_BuildValue ("i", sp_rm (eid, sockfd) );
 }
 
-static PyObject *cpy_sp_setopt(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_setopt (PyObject *self, PyObject *args)
 {
 	return 0;
 }
 
 
-static PyObject *cpy_sp_getopt(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_getopt (PyObject *self, PyObject *args)
 {
 	return 0;
 }
 
-static PyObject *cpy_sp_listen(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_listen (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple(args, "is", &eid, &sockaddr))
+	if (!PyArg_ParseTuple (args, "is", &eid, &sockaddr) )
 		return 0;
-	return Py_BuildValue("i", sp_listen(eid, sockaddr));
+	return Py_BuildValue ("i", sp_listen (eid, sockaddr) );
 }
 
 
-static PyObject *cpy_sp_connect(PyObject *self, PyObject *args)
+static PyObject *cpy_sp_connect (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple(args, "is", &eid, &sockaddr))
+	if (!PyArg_ParseTuple (args, "is", &eid, &sockaddr) )
 		return 0;
-	return Py_BuildValue("i", sp_connect(eid, sockaddr));
+	return Py_BuildValue ("i", sp_connect (eid, sockaddr) );
 }
 
 static PyMethodDef module_methods[] = {
@@ -453,15 +453,15 @@ static struct xsymbol const_symbols[] = {
 
 PyMODINIT_FUNC initxio()
 {
-	PyObject *pyxio = Py_InitModule("xio", module_methods);
+	PyObject *pyxio = Py_InitModule ("xio", module_methods);
 	int i;
 	struct xsymbol *sb;
 
-	BUG_ON(PyType_Ready(&MessageType) < 0);
-	Py_INCREF(&MessageType);
-	PyModule_AddObject(pyxio, "Message", (PyObject *)&MessageType);
-	for (i = 0; i < NELEM(const_symbols, struct xsymbol); i++) {
+	BUG_ON (PyType_Ready (&MessageType) < 0);
+	Py_INCREF (&MessageType);
+	PyModule_AddObject (pyxio, "Message", (PyObject *) &MessageType);
+	for (i = 0; i < NELEM (const_symbols, struct xsymbol); i++) {
 		sb = &const_symbols[i];
-		PyModule_AddIntConstant(pyxio, sb->name, sb->value);
+		PyModule_AddIntConstant (pyxio, sb->name, sb->value);
 	}
 }

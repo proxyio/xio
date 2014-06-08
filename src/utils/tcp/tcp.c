@@ -35,123 +35,123 @@
 
 #define TP_TCP_BACKLOG 100
 
-void tcp_close(int fd)
+void tcp_close (int fd)
 {
-	close(fd);
+	close (fd);
 }
 
-int __unp_bind(const char *host, const char *serv)
+int __unp_bind (const char *host, const char *serv)
 {
 	int listenfd, n;
 	const int on = 1;
 	struct addrinfo hints, *res, *ressave;
 
-	ZERO(hints);
+	ZERO (hints);
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ((n = getaddrinfo(host, serv, &hints, &res)) != 0)
+	if ( (n = getaddrinfo (host, serv, &hints, &res) ) != 0)
 		return -1;
 	ressave = res;
 	do {
-		if ((listenfd = socket(res->ai_family, res->ai_socktype,
-		                       res->ai_protocol)) < 0)
+		if ( (listenfd = socket (res->ai_family, res->ai_socktype,
+		                         res->ai_protocol) ) < 0)
 			continue;
-		setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-		if (bind(listenfd, res->ai_addr, res->ai_addrlen) == 0)
+		setsockopt (listenfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on) );
+		if (bind (listenfd, res->ai_addr, res->ai_addrlen) == 0)
 			break;
-		close(listenfd);
+		close (listenfd);
 	} while ( (res = res->ai_next) != NULL);
-	freeaddrinfo(ressave);
+	freeaddrinfo (ressave);
 	return listenfd;
 }
 
-int tcp_bind(const char *sock)
+int tcp_bind (const char *sock)
 {
 	int afd;
 	char *host = NULL, *serv = NULL;
 
-	if (!(serv = strrchr(sock, ':'))
-	    || strlen(serv + 1) == 0 || !(host = strdup(sock)))
+	if (! (serv = strrchr (sock, ':') )
+	    || strlen (serv + 1) == 0 || ! (host = strdup (sock) ) )
 		return -1;
 	host[serv - sock] = '\0';
-	if (!(serv = strdup(serv + 1))) {
-		free(host);
+	if (! (serv = strdup (serv + 1) ) ) {
+		free (host);
 		return -1;
 	}
-	afd = __unp_bind(host, serv);
-	free(host);
-	free(serv);
-	if (afd < 0 || listen(afd, TP_TCP_BACKLOG) < 0) {
-		close(afd);
+	afd = __unp_bind (host, serv);
+	free (host);
+	free (serv);
+	if (afd < 0 || listen (afd, TP_TCP_BACKLOG) < 0) {
+		close (afd);
 		return -1;
 	}
 	return afd;
 }
 
-int tcp_accept(int afd)
+int tcp_accept (int afd)
 {
 	struct sockaddr_storage addr = {};
-	socklen_t addrlen = sizeof(addr);
-	int fd = accept(afd, (struct sockaddr *) &addr, &addrlen);
+	socklen_t addrlen = sizeof (addr);
+	int fd = accept (afd, (struct sockaddr *) &addr, &addrlen);
 
 	if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK
-	               || errno == EINTR || errno == ECONNABORTED)) {
+	               || errno == EINTR || errno == ECONNABORTED) ) {
 		errno = EAGAIN;
 		return -1;
 	}
 	return fd;
 }
 
-int __unp_connect(const char *host, const char *serv)
+int __unp_connect (const char *host, const char *serv)
 {
 	int sockfd, n;
 	struct addrinfo hints, *res, *ressave;
 
-	ZERO(hints);
+	ZERO (hints);
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-	if ((n = getaddrinfo(host, serv, &hints, &res)) != 0)
+	if ( (n = getaddrinfo (host, serv, &hints, &res) ) != 0)
 		return -1;
 	ressave = res;
 	do {
-		sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+		sockfd = socket (res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (sockfd < 0)
 			continue;
-		if (connect(sockfd, res->ai_addr, res->ai_addrlen) == 0)
+		if (connect (sockfd, res->ai_addr, res->ai_addrlen) == 0)
 			break;
-		close(sockfd);
+		close (sockfd);
 	} while ( (res = res->ai_next) != NULL);
-	freeaddrinfo(res);
+	freeaddrinfo (res);
 	return sockfd;
 }
 
-int tcp_connect(const char *peer)
+int tcp_connect (const char *peer)
 {
 	int fd = 0;
 	char *host = NULL, *serv = NULL;
 
-	if (!(serv = strrchr(peer, ':'))
-	    || strlen(serv + 1) == 0 || !(host = strdup(peer)))
+	if (! (serv = strrchr (peer, ':') )
+	    || strlen (serv + 1) == 0 || ! (host = strdup (peer) ) )
 		return -1;
 	host[serv - peer] = '\0';
-	if (!(serv = strdup(serv + 1))) {
-		free(host);
+	if (! (serv = strdup (serv + 1) ) ) {
+		free (host);
 		return -1;
 	}
-	fd = __unp_connect(host, serv);
-	free(host);
-	free(serv);
+	fd = __unp_connect (host, serv);
+	free (host);
+	free (serv);
 	return fd;
 }
 
 
-i64 tcp_recv(int sockfd, char *buf, i64 len)
+i64 tcp_recv (int sockfd, char *buf, i64 len)
 {
 	i64 rc;
-	rc = recv(sockfd, buf, len, 0);
+	rc = recv (sockfd, buf, len, 0);
 
 	//  Signalise peer failure.
 	if (rc == 0) {
@@ -162,16 +162,16 @@ i64 tcp_recv(int sockfd, char *buf, i64 len)
 	//  may not be able to read a single byte to the socket. Also, SIGSTOP
 	//  issued by a debugging tool can result in EINTR error.
 	if (rc == -1 &&
-	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) ) {
 		errno = EAGAIN;
 		return -1;
 	}
 	return rc;
 }
 
-i64 tcp_send(int sockfd, const char *buf, i64 len)
+i64 tcp_send (int sockfd, const char *buf, i64 len)
 {
-	i64 rc = send(sockfd, buf, len, 0);
+	i64 rc = send (sockfd, buf, len, 0);
 
 	//  Several errors are OK. When speculative write is being done we
 	//  may not be able to write a single byte to the socket. Also, SIGSTOP
@@ -188,9 +188,9 @@ i64 tcp_send(int sockfd, const char *buf, i64 len)
 	return rc;
 }
 
-i64 tcp_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+i64 tcp_sendmsg (int sockfd, const struct msghdr *msg, int flags)
 {
-	i64 rc = sendmsg(sockfd, msg, flags);
+	i64 rc = sendmsg (sockfd, msg, flags);
 
 	//  Several errors are OK. When speculative write is being done we
 	//  may not be able to write a single byte to the socket. Also, SIGSTOP
@@ -207,41 +207,41 @@ i64 tcp_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 	return rc;
 }
 
-int tcp_sockname(int fd, char *sock, int size)
+int tcp_sockname (int fd, char *sock, int size)
 {
 	struct sockaddr_storage addr = {};
-	socklen_t addrlen = sizeof(addr);
+	socklen_t addrlen = sizeof (addr);
 	struct sockaddr_in *sa_in;
 	char tcp_addr[TP_SOCKADDRLEN] = {};
 
-	if (-1 == getsockname(fd, (struct sockaddr *)&addr, &addrlen))
+	if (-1 == getsockname (fd, (struct sockaddr *) &addr, &addrlen) )
 		return -1;
-	sa_in = (struct sockaddr_in *)&addr;
-	inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
-	snprintf(tcp_addr + strlen(tcp_addr),
-	         sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
+	sa_in = (struct sockaddr_in *) &addr;
+	inet_ntop (AF_INET, (char *) &sa_in->sin_addr, tcp_addr, sizeof (tcp_addr) );
+	snprintf (tcp_addr + strlen (tcp_addr),
+	          sizeof (tcp_addr) - strlen (tcp_addr), ":%d", ntohs (sa_in->sin_port) );
 	size = size > TP_SOCKADDRLEN - 1 ? TP_SOCKADDRLEN - 1 : size;
 	sock[size] = '\0';
-	memcpy(sock, tcp_addr, size);
+	memcpy (sock, tcp_addr, size);
 	return 0;
 }
 
-int tcp_peername(int fd, char *peer, int size)
+int tcp_peername (int fd, char *peer, int size)
 {
 	struct sockaddr_storage addr = {};
-	socklen_t addrlen = sizeof(addr);
+	socklen_t addrlen = sizeof (addr);
 	struct sockaddr_in *sa_in;
 	char tcp_addr[TP_SOCKADDRLEN] = {};
 
-	if (-1 == getpeername(fd, (struct sockaddr *)&addr, &addrlen))
+	if (-1 == getpeername (fd, (struct sockaddr *) &addr, &addrlen) )
 		return -1;
-	sa_in = (struct sockaddr_in *)&addr;
-	inet_ntop(AF_INET, (char *)&sa_in->sin_addr, tcp_addr, sizeof(tcp_addr));
-	snprintf(tcp_addr + strlen(tcp_addr),
-	         sizeof(tcp_addr) - strlen(tcp_addr), ":%d", ntohs(sa_in->sin_port));
+	sa_in = (struct sockaddr_in *) &addr;
+	inet_ntop (AF_INET, (char *) &sa_in->sin_addr, tcp_addr, sizeof (tcp_addr) );
+	snprintf (tcp_addr + strlen (tcp_addr),
+	          sizeof (tcp_addr) - strlen (tcp_addr), ":%d", ntohs (sa_in->sin_port) );
 	size = size > TP_SOCKADDRLEN - 1 ? TP_SOCKADDRLEN - 1 : size;
 	peer[size] = '\0';
-	memcpy(peer, tcp_addr, size);
+	memcpy (peer, tcp_addr, size);
 	return 0;
 }
 

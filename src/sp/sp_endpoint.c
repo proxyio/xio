@@ -23,8 +23,8 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int sp_endpoint(int sp_family, int sp_type)
+int sp_endpoint (int sp_family, int sp_type)
 {
-	int eid = eid_alloc(sp_family, sp_type);
+	int eid = eid_alloc (sp_family, sp_type);
 	return eid;
 }

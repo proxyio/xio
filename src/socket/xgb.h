@@ -78,18 +78,18 @@ struct xglobal {
 #define walk_sockbase_vfptr_s(pos, nx, head)				\
     walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, link)
 
-struct sockbase_vfptr *sockbase_vfptr_lookup(int pf, int type);
+struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type);
 
 extern struct xglobal xgb;
 
 static inline void xglobal_lock()
 {
-	mutex_lock(&xgb.lock);
+	mutex_lock (&xgb.lock);
 }
 
 static inline void xglobal_unlock()
 {
-	mutex_unlock(&xgb.lock);
+	mutex_unlock (&xgb.lock);
 }
 
 

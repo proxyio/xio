@@ -63,7 +63,7 @@ struct transport {
 	struct list_head item;
 };
 
-struct transport *transport_lookup(int proto);
+struct transport *transport_lookup (int proto);
 
 
 #endif
