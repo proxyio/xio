@@ -34,7 +34,7 @@
 int eloop_add(eloop_t *el, ev_t *ev)
 {
     int rc = 0;
-    int64_t _cur_nsec = gettimeofns();
+    int64_t _cur_nsec = gettimeof(ns);
     struct epoll_event ee = {};
 
     if (ev->to_nsec > 0) {
@@ -54,7 +54,7 @@ int eloop_add(eloop_t *el, ev_t *ev)
 int eloop_mod(eloop_t *el, ev_t *ev)
 {
     int rc = 0;
-    int64_t _cur_nsec = gettimeofns();
+    int64_t _cur_nsec = gettimeof(ns);
     struct epoll_event ee = {};
 
     if (ev->to_nsec > 0) {
@@ -119,7 +119,7 @@ static int __eloop_wait(eloop_t *el)
     ev_t *ev = NULL;
     struct epoll_event *ev_buf = el->ev_buf;
     skrb_node_t *node = NULL;
-    int64_t to = 0, _cur_nsec = gettimeofns();
+    int64_t to = 0, _cur_nsec = gettimeof(ns);
 
     to = _cur_nsec + max_to * 1000000;
     max_to = eloop_find_timer(el, to);

@@ -58,9 +58,9 @@ static inline struct sphdr *get_sphdr(char *ubuf) {
     return (struct sphdr *)ent.outofband;
 }
 
-static inline int sphdr_timeout(struct sphdr *h)
+static inline int sphdr_timeout(struct sphdr *sh)
 {
-    return h->timeout && (h->sendstamp + h->timeout < gettimeofms());
+    return sh->timeout && (sh->sendstamp + sh->timeout < gettimeof(ms));
 }
 
 #endif

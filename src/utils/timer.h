@@ -29,6 +29,7 @@ i64 gettimeofms();
 i64 gettimeofus();
 i64 gettimeofns();
 
+#define gettimeof(token) gettimeof##token()
 
 
 

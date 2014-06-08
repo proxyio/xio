@@ -90,7 +90,7 @@ typedef struct modstat {
 	    self->threshold[sl] = (int64_t *)&ms.threshold[sl];		\
 	self->f = (threshold_warn *)&ms.f;				\
 	for (sl = 0; sl < MSL_NUM; sl++)				\
-	    self->timestamp[sl] = gettimeofms();			\
+	    self->timestamp[sl] = gettimeof(ms);			\
     } while (0)
 
 static inline void modstat_incrkey(modstat_t *ms, int key)

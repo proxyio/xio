@@ -41,7 +41,7 @@ struct rrr {
 };
 
 struct rrhdr {
-    struct sphdr sp_hdr;
+    struct sphdr sh;
     u16 ttl:4;
     u16 end_ttl:4;
     u16 go:1;
@@ -54,7 +54,7 @@ static inline struct rrhdr *rqhdr_first(struct rrr *r) {
 
     rr_hdr = (struct rrhdr *)xallocubuf(sizeof(*rr_hdr) + sizeof(*r));
     BUG_ON(!rr_hdr);
-    sp_hdr = &rr_hdr->sp_hdr;
+    sp_hdr = &rr_hdr->sh;
     sp_hdr->protocol = SP_REQREP;
     sp_hdr->version = SP_REQREP_VERSION;
     sp_hdr->timeout = 0;
