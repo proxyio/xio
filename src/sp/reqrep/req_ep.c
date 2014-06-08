@@ -44,9 +44,9 @@ static void req_ep_destroy(struct epbase *ep)
 static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
-    struct rrhdr *rr_hdr = get_rrhdr(ubuf);
+    struct rr_package *pg = get_rr_package(ubuf);
 
-    rr_hdr->ttl--;
+    pg->ttl--;
     DEBUG_OFF("ep %d recv resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
     mutex_lock(&ep->lock);
     list_add_tail(&msg->item, &ep->rcv.head);
@@ -61,7 +61,7 @@ static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int req_ep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
-    struct rrhdr *rr_hdr = 0;
+    struct rr_package *pg = 0;
     struct rtentry rt = {};
     struct tgtd *tg = 0;
     struct xcmsg ent = {};
@@ -72,8 +72,8 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
         list_move_tail(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
     uuid_copy(rt.uuid, tg->uuid);
-    rr_hdr = rqhdr_first(&rt);
-    ent.outofband = (char *)rr_hdr;
+    pg = rqhdr_first(&rt);
+    ent.outofband = (char *)pg;
     BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
     rc = xsend(tg->fd, ubuf);

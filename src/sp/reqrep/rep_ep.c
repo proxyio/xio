@@ -44,7 +44,7 @@ static void rep_ep_destroy(struct epbase *ep)
 static int rep_ep_send(struct epbase *ep, char *ubuf)
 {
     int rc = -1;
-    struct rrhdr *rr_hdr = get_rrhdr(ubuf);
+    struct rr_package *pg = get_rr_package(ubuf);
     struct rtentry *rt = rt_cur(ubuf);
     struct tgtd *tg = 0;
 
@@ -54,8 +54,8 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
         list_move(&tg->item, &ep->connectors);
     mutex_unlock(&ep->lock);
 
-    rr_hdr->go = 0;
-    rr_hdr->end_ttl = rr_hdr->ttl;
+    pg->go = 0;
+    pg->end_ttl = pg->ttl;
 
     if (tg) {
         rc = xsend(tg->fd, ubuf);
