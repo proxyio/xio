@@ -74,5 +74,6 @@ int sp_rm (int eid, int fd)
 		return -1;
 	}
 	rc = sp_generic_term_by_fd (ep, fd);
+	eid_put (eid);
 	return rc;
 }
