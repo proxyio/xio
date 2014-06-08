@@ -104,16 +104,16 @@ int xubuflen (char *ubuf)
 }
 
 
-typedef int (*msgctl) (char *skbuf, void *optval);
+typedef int (*skbuf_ctl) (char *skbuf, void *optval);
 
-static int subuf_num (char *ubuf, void *optval)
+static int sub_skbuf_num (char *ubuf, void *optval)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
 	* (int *) optval = msg->chunk.cmsg_num;
 	return 0;
 }
 
-static int subuf_first (char *ubuf, void *optval)
+static int sub_skbuf_first (char *ubuf, void *optval)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
 	struct skbuf *cur;
@@ -126,7 +126,7 @@ static int subuf_first (char *ubuf, void *optval)
 	return -1;
 }
 
-static int subuf_next (char *ubuf, void *optval)
+static int sub_skbuf_next (char *ubuf, void *optval)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
 	struct skbuf *cur = cont_of (optval, struct skbuf, chunk.iov_base);
@@ -139,7 +139,7 @@ static int subuf_next (char *ubuf, void *optval)
 	return -1;
 }
 
-static int subuf_tail (char *ubuf, void *optval)
+static int sub_skbuf_tail (char *ubuf, void *optval)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
 	struct skbuf *cur;
@@ -152,7 +152,7 @@ static int subuf_tail (char *ubuf, void *optval)
 	return -1;
 }
 
-static int subuf_add (char *ubuf, void *optval)
+static int sub_skbuf_add (char *ubuf, void *optval)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
 	struct skbuf *new = cont_of (optval, struct skbuf, chunk.iov_base);
@@ -168,7 +168,7 @@ static int subuf_add (char *ubuf, void *optval)
 	return 0;
 }
 
-static int subuf_rm (char *ubuf, void *optval)
+static int sub_skbuf_rm (char *ubuf, void *optval)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
 	struct skbuf *rm = cont_of (optval, struct skbuf, chunk.iov_base);
@@ -176,17 +176,18 @@ static int subuf_rm (char *ubuf, void *optval)
 	msg->chunk.cmsg_num--;
 	msg->chunk.cmsg_length -= skbuf_lens (rm);
 	list_del_init (&rm->item);
+	BUG_ON(msg->chunk.cmsg_num < 0 || msg->chunk.cmsg_length < 0);
 	return 0;
 }
 
-static const msgctl msgctl_vfptr[] = {
+static const skbuf_ctl skbuf_vfptr[] = {
 	0,
-	subuf_num,
-	subuf_first,
-	subuf_next,
-	subuf_tail,
-	subuf_add,
-	subuf_rm,
+	sub_skbuf_num,       /* the number of sub skbuf */
+	sub_skbuf_first,     /* the first sub skbuf of this ubuf*/
+	sub_skbuf_next,      /* the next sub skbuf specified by the second argument */
+	sub_skbuf_tail,      /* the last sub skbuf of this ubuf */
+	sub_skbuf_add,       /* insert one skbuf into children's head of the ubuf */
+	sub_skbuf_rm,        /* remove one skbuf from children's head of the ubuf */
 };
 
 
@@ -194,10 +195,10 @@ int ubufctl (char *ubuf, int opt, void *optval)
 {
 	int rc;
 
-	if (opt < 0 || opt >= NELEM (msgctl_vfptr, msgctl) ) {
+	if (opt < 0 || opt >= NELEM (skbuf_vfptr, skbuf_ctl) ) {
 		errno = EINVAL;
 		return -1;
 	}
-	rc = msgctl_vfptr[opt] (ubuf, optval);
+	rc = skbuf_vfptr[opt] (ubuf, optval);
 	return rc;
 }
