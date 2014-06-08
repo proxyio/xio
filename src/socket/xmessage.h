@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_XMSG_
-#define _XIO_XMSG_
+#ifndef _XIO_SKBUF_
+#define _XIO_SKBUF_
 
 #include <utils/base.h>
 #include <utils/list.h>
@@ -37,8 +37,8 @@
  */
 
 
-#define XMSG_CMSGNUMMARK 0xf           // 16
-#define XMSG_CMSGLENMARK 0xfff         // 4k
+#define SKBUF_CMSGNUMMARK 0xf           // 16
+#define SKBUF_CMSGLENMARK 0xfff         // 4k
 
 /* TODO: little endian and big endian */
 struct xiov {
@@ -49,22 +49,22 @@ struct xiov {
     char xiov_base[0];
 };
 
-struct xmsg {
+struct skbuf {
     struct list_head item;
     struct list_head cmsg_head;
     struct xiov vec;
 };
 
-u32 xmsg_iovlen(struct xmsg *msg);
-char *xmsg_iovbase(struct xmsg *msg);
-struct xmsg *xallocmsg(int size);
-void xfreemsg(struct xmsg *msg);
-int xmsglen(struct xmsg *msg);
+u32 skbuf_iovlen(struct skbuf *msg);
+char *skbuf_iovbase(struct skbuf *msg);
+struct skbuf *xallocmsg(int size);
+void xfreemsg(struct skbuf *msg);
+int skbuflen(struct skbuf *msg);
 
 #define walk_msg_s(pos, next, head)				\
-    walk_each_entry_s(pos, next, head, struct xmsg, item)
+    walk_each_entry_s(pos, next, head, struct skbuf, item)
 
-int xmsg_serialize(struct xmsg *msg, struct list_head *head);
+int skbuf_serialize(struct skbuf *msg, struct list_head *head);
 
 
 

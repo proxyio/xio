@@ -28,10 +28,10 @@
 #include <utils/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *recvq_rm(struct sockbase *sb) {
-    struct xmsg *msg = 0;
+struct skbuf *recvq_rm(struct sockbase *sb) {
+    struct skbuf *msg = 0;
     struct sockbase_vfptr *vfptr = sb->vfptr;
-    i64 msgsz;
+    i64 sz;
     u32 events = 0;
 
     mutex_lock(&sb->lock);
@@ -41,13 +41,12 @@ struct xmsg *recvq_rm(struct sockbase *sb) {
         sb->rcv.waiters--;
     }
     if (!list_empty(&sb->rcv.head)) {
-        DEBUG_OFF("%d", sb->fd);
-        msg = list_first(&sb->rcv.head, struct xmsg, item);
+        msg = list_first(&sb->rcv.head, struct skbuf, item);
         list_del_init(&msg->item);
-        msgsz = xmsg_iovlen(msg);
-        sb->rcv.buf -= msgsz;
+        sz = skbuf_iovlen(msg);
+        sb->rcv.buf -= sz;
         events |= XMQ_POP;
-        if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
+        if (sb->rcv.wnd - sb->rcv.buf <= sz)
             events |= XMQ_NONFULL;
         if (list_empty(&sb->rcv.head)) {
             BUG_ON(sb->rcv.buf);
@@ -63,21 +62,20 @@ struct xmsg *recvq_rm(struct sockbase *sb) {
     return msg;
 }
 
-int recvq_add(struct sockbase *sb, struct xmsg *msg)
+int recvq_add(struct sockbase *sb, struct skbuf *msg)
 {
     struct sockbase_vfptr *vfptr = sb->vfptr;
     u32 events = 0;
-    i64 msgsz = xmsg_iovlen(msg);
+    i64 sz = skbuf_iovlen(msg);
 
     mutex_lock(&sb->lock);
     if (list_empty(&sb->rcv.head))
         events |= XMQ_NONEMPTY;
-    if (sb->rcv.wnd - sb->rcv.buf <= msgsz)
+    if (sb->rcv.wnd - sb->rcv.buf <= sz)
         events |= XMQ_FULL;
     events |= XMQ_PUSH;
-    sb->rcv.buf += msgsz;
+    sb->rcv.buf += sz;
     list_add_tail(&msg->item, &sb->rcv.head);
-    DEBUG_OFF("%d", sb->fd);
 
     /* Wakeup the blocking waiters. */
     if (sb->rcv.waiters > 0)
@@ -94,8 +92,8 @@ int recvq_add(struct sockbase *sb, struct xmsg *msg)
 int xrecv(int fd, char **ubuf)
 {
     int rc = 0;
-    struct xmsg *msg = 0;
     struct sockbase *sb;
+    struct skbuf *msg = 0;
 
     if (!ubuf) {
         errno = EINVAL;

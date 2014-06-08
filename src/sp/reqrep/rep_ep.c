@@ -66,7 +66,7 @@ static int rep_ep_send(struct epbase *ep, char *ubuf)
 
 static int rep_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
     struct rtentry *r = rt_cur(ubuf);
 
     if (uuid_compare(r->uuid, tg->uuid))

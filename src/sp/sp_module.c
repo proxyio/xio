@@ -322,7 +322,7 @@ void epbase_init(struct epbase *ep)
 
 void epbase_exit(struct epbase *ep)
 {
-    struct xmsg *msg, *nmsg;
+    struct skbuf *msg, *nmsg;
     struct tgtd *tg, *ntg;
 
     BUG_ON(atomic_read(&ep->ref));

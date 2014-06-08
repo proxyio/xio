@@ -32,7 +32,7 @@ static void xclient(const char *pf)
             memcpy(oob, buf, nbytes);
 
             ent.outofband = oob;
-            BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent));
+            BUG_ON(ubufctl(xbuf, UBUF_ADDCMSG, &ent));
             BUG_ON(xsend(sfd, xbuf));
             DEBUG_OFF("%d send request %d", sfd, j);
         }
@@ -40,7 +40,7 @@ static void xclient(const char *pf)
             BUG_ON(0 != xrecv(sfd, &xbuf));
             DEBUG_OFF("%d recv response %d", sfd, j);
             BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
-            BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent));
+            BUG_ON(ubufctl(xbuf, UBUF_GETCMSG, &ent));
             BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
             xfreeubuf(xbuf);
         }

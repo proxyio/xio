@@ -26,7 +26,7 @@
 int sp_recv(int eid, char **ubuf)
 {
     struct epbase *ep = eid_get(eid);
-    struct xmsg *msg = 0;
+    struct skbuf *msg = 0;
 
     if (!ep) {
         errno = EBADF;
@@ -44,9 +44,9 @@ int sp_recv(int eid, char **ubuf)
         errno = EBADF;
         return -1;
     }
-    msg = list_first(&ep->rcv.head, struct xmsg, item);
+    msg = list_first(&ep->rcv.head, struct skbuf, item);
     list_del_init(&msg->item);
-    ep->rcv.size -= xmsglen(msg);
+    ep->rcv.size -= skbuflen(msg);
     *ubuf = msg->vec.xiov_base;
     mutex_unlock(&ep->lock);
     eid_put(eid);

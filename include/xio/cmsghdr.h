@@ -26,16 +26,17 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
-#define XMSG_CMSGNUM      0
-#define XMSG_GETCMSG      1
-#define XMSG_ADDCMSG      2
-#define XMSG_RMCMSG       3
+#define UBUF_CMSGNUM      0
+#define UBUF_GETCMSG      1
+#define UBUF_ADDCMSG      2
+#define UBUF_RMCMSG       3
 
 struct xcmsg {
     uint8_t idx;
     char *outofband;
 };
-int xmsgctl(char *ubuf, int opt, void *optval);
+
+int ubufctl(char *ubuf, int opt, void *optval);
 
 
 

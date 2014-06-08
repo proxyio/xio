@@ -25,26 +25,26 @@ int main(int argc, char **argv)
 
     ent.outofband = xallocubuf(sizeof(oob1));
     memcpy(ent.outofband, oob1, sizeof(oob1));
-    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent) != 0);
+    BUG_ON(ubufctl(xbuf, UBUF_ADDCMSG, &ent) != 0);
 
     ent.outofband = xallocubuf(sizeof(oob3));
     memcpy(ent.outofband, oob3, sizeof(oob3));
-    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent) != 0);
+    BUG_ON(ubufctl(xbuf, UBUF_ADDCMSG, &ent) != 0);
 
     ent.outofband = xallocubuf(sizeof(oob2));
     memcpy(ent.outofband, oob2, sizeof(oob2));
-    BUG_ON(xmsgctl(xbuf, XMSG_ADDCMSG, &ent) != 0);
+    BUG_ON(ubufctl(xbuf, UBUF_ADDCMSG, &ent) != 0);
 
     ent.idx = 2;
-    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
+    BUG_ON(ubufctl(xbuf, UBUF_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob2, sizeof(oob2)) != 0);
 
     ent.idx = 1;
-    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
+    BUG_ON(ubufctl(xbuf, UBUF_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob3, sizeof(oob3)) != 0);
 
     ent.idx = 0;
-    BUG_ON(xmsgctl(xbuf, XMSG_GETCMSG, &ent) != 0);
+    BUG_ON(ubufctl(xbuf, UBUF_GETCMSG, &ent) != 0);
     BUG_ON(memcmp(ent.outofband, oob1, sizeof(oob1)) != 0);
 
     xfreeubuf(xbuf);

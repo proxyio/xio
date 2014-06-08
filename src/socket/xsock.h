@@ -164,11 +164,11 @@ void xput(int fd);
 void xsock_init(struct sockbase *sb);
 void xsock_exit(struct sockbase *sb);
 
-int recvq_add(struct sockbase *sb, struct xmsg *msg);
-struct xmsg *recvq_rm(struct sockbase *sb);
+int recvq_add(struct sockbase *sb, struct skbuf *msg);
+struct skbuf *recvq_rm(struct sockbase *sb);
 
-int sendq_add(struct sockbase *sb, struct xmsg *msg);
-struct xmsg *sendq_rm(struct sockbase *sb);
+int sendq_add(struct sockbase *sb, struct skbuf *msg);
+struct skbuf *sendq_rm(struct sockbase *sb);
 
 
 int acceptq_add(struct sockbase *sb, struct sockbase *new);

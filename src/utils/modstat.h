@@ -73,11 +73,11 @@ typedef struct modstat {
     } name##_modstat_t
 
 
-#define INIT_MODSTAT(ms) do {						\
+#define INIT_MODSTAT(mst) do {						\
 	int sl, st;							\
-	modstat_t *self = &ms.self;					\
-	ZERO(ms);							\
-	self->kr = sizeof(ms.keys) /					\
+	modstat_t *self = &mst.self;					\
+	ZERO(mst);							\
+	self->kr = sizeof(mst.keys) /					\
 	    (MSL_NUM * MST_NUM * sizeof(int64_t));			\
 	self->slv[MSL_S] = 1000;					\
 	self->slv[MSL_M] = 60000;					\
@@ -85,10 +85,10 @@ typedef struct modstat {
 	self->slv[MSL_D] = 86400000;					\
 	for (st = 0; st < MST_NUM; st++)				\
 	    for (sl = 0; sl < MSL_NUM; sl++)				\
-		self->keys[st][sl] = (int64_t *)&ms.keys[st][sl];	\
+		self->keys[st][sl] = (int64_t *)&mst.keys[st][sl];	\
 	for (sl = 0; sl < MSL_NUM; sl++)				\
-	    self->threshold[sl] = (int64_t *)&ms.threshold[sl];		\
-	self->f = (threshold_warn *)&ms.f;				\
+	    self->threshold[sl] = (int64_t *)&mst.threshold[sl];	\
+	self->f = (threshold_warn *)&mst.f;				\
 	for (sl = 0; sl < MSL_NUM; sl++)				\
 	    self->timestamp[sl] = gettimeof(ms);			\
     } while (0)

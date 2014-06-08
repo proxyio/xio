@@ -229,24 +229,24 @@ static void xio_connector_notify(struct sockbase *sb, int type, u32 events)
 
 static int bufio_check_msg(struct bio *b)
 {
-    struct xmsg aim = {};
+    struct skbuf aim = {};
 
     if (b->bsize < sizeof(aim.vec))
         return false;
     bio_copy(b, (char *)(&aim.vec), sizeof(aim.vec));
-    if (b->bsize < xmsg_iovlen(&aim) + (u32)aim.vec.cmsg_length)
+    if (b->bsize < skbuf_iovlen(&aim) + (u32)aim.vec.cmsg_length)
         return false;
     return true;
 }
 
 
-static void bufio_rm(struct bio *b, struct xmsg **msg)
+static void bufio_rm(struct bio *b, struct skbuf **msg)
 {
-    struct xmsg one = {};
+    struct skbuf one = {};
 
     bio_copy(b, (char *)(&one.vec), sizeof(one.vec));
     *msg = xallocmsg(one.vec.xiov_len);
-    bio_read(b, xmsg_iovbase(*msg), xmsg_iovlen(*msg));
+    bio_read(b, skbuf_iovbase(*msg), skbuf_iovlen(*msg));
 }
 
 static int xio_connector_rcv(struct sockbase *sb)
@@ -254,7 +254,7 @@ static int xio_connector_rcv(struct sockbase *sb)
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc = 0;
     u16 cmsg_num;
-    struct xmsg *aim = 0, *cmsg = 0;
+    struct skbuf *aim = 0, *cmsg = 0;
 
     rc = bio_prefetch(&self->in, &self->ops);
     if (rc < 0 && errno != EAGAIN)
@@ -276,16 +276,16 @@ static int xio_connector_rcv(struct sockbase *sb)
     return rc;
 }
 
-static void bufio_add(struct bio *b, struct xmsg *msg)
+static void bufio_add(struct bio *b, struct skbuf *msg)
 {
     struct list_head head = {};
-    struct xmsg *nmsg;
+    struct skbuf *nmsg;
 
     INIT_LIST_HEAD(&head);
-    xmsg_serialize(msg, &head);
+    skbuf_serialize(msg, &head);
 
     walk_msg_s(msg, nmsg, &head) {
-        bio_write(b, xmsg_iovbase(msg), xmsg_iovlen(msg));
+        bio_write(b, skbuf_iovbase(msg), skbuf_iovlen(msg));
         xfreemsg(msg);
     }
 }
@@ -295,7 +295,7 @@ static int sg_send(struct sockbase *sb)
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc;
     struct iovec *iov;
-    struct xmsg *msg;
+    struct skbuf *msg;
     struct msghdr msghdr = {};
 
     /* First. sending the bufio caching */
@@ -318,7 +318,7 @@ static int sg_send(struct sockbase *sb)
     iov = &self->biov[self->iov_start];
     while (rc >= iov->iov_len && iov < &self->biov[self->iov_end]) {
         rc -= iov->iov_len;
-        msg = cont_of(iov->iov_base, struct xmsg, vec);
+        msg = cont_of(iov->iov_base, struct skbuf, vec);
         list_del_init(&msg->item);
         xfreemsg(msg);
         iov++;
@@ -326,7 +326,7 @@ static int sg_send(struct sockbase *sb)
     /* Cache the reset iovec into bufio  */
     if (rc > 0) {
         bio_write(&self->out, iov->iov_base + rc, iov->iov_len - rc);
-        msg = cont_of(iov->iov_base, struct xmsg, vec);
+        msg = cont_of(iov->iov_base, struct skbuf, vec);
         list_del_init(&msg->item);
         xfreemsg(msg);
         rc = 0;
@@ -349,7 +349,7 @@ static int xio_connector_sg(struct sockbase *sb)
 {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc;
-    struct xmsg *msg, *nmsg;
+    struct skbuf *msg, *nmsg;
     struct iovec *iov;
 
     while ((rc = sg_send(sb)) == 0) {
@@ -357,7 +357,7 @@ static int xio_connector_sg(struct sockbase *sb)
 
         /* Third. serialize the queue message for send */
         while ((msg = sendq_rm(sb)))
-            self->iov_length += xmsg_serialize(msg, &self->sg_head);
+            self->iov_length += skbuf_serialize(msg, &self->sg_head);
         if (self->iov_length <= 0) {
             errno = EAGAIN;
             return -1;
@@ -372,8 +372,8 @@ static int xio_connector_sg(struct sockbase *sb)
         iov = self->biov;
         walk_msg_s(msg, nmsg, &self->sg_head) {
             list_del_init(&msg->item);
-            iov->iov_base = xmsg_iovbase(msg);
-            iov->iov_len = xmsg_iovlen(msg);
+            iov->iov_base = skbuf_iovbase(msg);
+            iov->iov_len = skbuf_iovlen(msg);
             iov++;
         }
     }
@@ -384,7 +384,7 @@ static int xio_connector_snd(struct sockbase *sb)
 {
     struct tcpipc_sock *self = cont_of(sb, struct tcpipc_sock, base);
     int rc;
-    struct xmsg *msg;
+    struct skbuf *msg;
 
     if (self->vtp->sendmsg)
         return xio_connector_sg(sb);

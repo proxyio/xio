@@ -106,10 +106,10 @@ static inline void rt_append(char *ubuf, struct rtentry *r)
     int rc;
     struct xcmsg ent = { 0, 0 };
 
-    rc = xmsgctl(ubuf, XMSG_RMCMSG, &ent);
+    rc = ubufctl(ubuf, UBUF_RMCMSG, &ent);
     BUG_ON(rc || !ent.outofband);
     ent.outofband = __rt_append(ent.outofband, r);
-    BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
+    BUG_ON((rc = ubufctl(ubuf, UBUF_ADDCMSG, &ent)));
 }
 
 

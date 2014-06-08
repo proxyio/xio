@@ -43,7 +43,7 @@ static void req_ep_destroy(struct epbase *ep)
 
 static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct xmsg *msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
     struct rr_package *pg = get_rr_package(ubuf);
 
     pg->ttl--;
@@ -74,7 +74,7 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     uuid_copy(rt.uuid, tg->uuid);
     pg = new_rr_package(&rt);
     ent.outofband = (char *)pg;
-    BUG_ON((rc = xmsgctl(ubuf, XMSG_ADDCMSG, &ent)));
+    BUG_ON((rc = ubufctl(ubuf, UBUF_ADDCMSG, &ent)));
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
     rc = xsend(tg->fd, ubuf);
     return rc;

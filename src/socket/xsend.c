@@ -28,21 +28,21 @@
 #include <utils/taskpool.h>
 #include "xgb.h"
 
-struct xmsg *sendq_rm(struct sockbase *sb) {
+struct skbuf *sendq_rm(struct sockbase *sb) {
     struct sockbase_vfptr *vfptr = sb->vfptr;
-    struct xmsg *msg = 0;
-    i64 msgsz;
+    struct skbuf *msg = 0;
+    i64 sz;
     u32 events = 0;
 
     mutex_lock(&sb->lock);
     if (!list_empty(&sb->snd.head)) {
         DEBUG_OFF("xsock %d", sb->fd);
-        msg = list_first(&sb->snd.head, struct xmsg, item);
+        msg = list_first(&sb->snd.head, struct skbuf, item);
         list_del_init(&msg->item);
-        msgsz = xmsg_iovlen(msg);
-        sb->snd.buf -= msgsz;
+        sz = skbuf_iovlen(msg);
+        sb->snd.buf -= sz;
         events |= XMQ_POP;
-        if (sb->snd.wnd - sb->snd.buf <= msgsz)
+        if (sb->snd.wnd - sb->snd.buf <= sz)
             events |= XMQ_NONFULL;
         if (list_empty(&sb->snd.head)) {
             BUG_ON(sb->snd.buf);
@@ -62,12 +62,12 @@ struct xmsg *sendq_rm(struct sockbase *sb) {
     return msg;
 }
 
-int sendq_add(struct sockbase *sb, struct xmsg *msg)
+int sendq_add(struct sockbase *sb, struct skbuf *msg)
 {
     struct sockbase_vfptr *vfptr = sb->vfptr;
     int rc = -1;
     u32 events = 0;
-    i64 msgsz = xmsg_iovlen(msg);
+    i64 sz = skbuf_iovlen(msg);
 
     mutex_lock(&sb->lock);
     while (!sb->fepipe && !can_send(sb) && !sb->fasync) {
@@ -79,10 +79,10 @@ int sendq_add(struct sockbase *sb, struct xmsg *msg)
         rc = 0;
         if (list_empty(&sb->snd.head))
             events |= XMQ_NONEMPTY;
-        if (sb->snd.wnd - sb->snd.buf <= msgsz)
+        if (sb->snd.wnd - sb->snd.buf <= sz)
             events |= XMQ_FULL;
         events |= XMQ_PUSH;
-        sb->snd.buf += msgsz;
+        sb->snd.buf += sz;
         list_add_tail(&msg->item, &sb->snd.head);
         DEBUG_OFF("xsock %d", sb->fd);
     }
@@ -98,7 +98,7 @@ int sendq_add(struct sockbase *sb, struct xmsg *msg)
 int xsend(int fd, char *ubuf)
 {
     int rc = 0;
-    struct xmsg *msg = 0;
+    struct skbuf *msg = 0;
     struct sockbase *sb;
 
     if (!ubuf) {
@@ -109,7 +109,7 @@ int xsend(int fd, char *ubuf)
         errno = EBADF;
         return -1;
     }
-    msg = cont_of(ubuf, struct xmsg, vec.xiov_base);
+    msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
     if ((rc = sendq_add(sb, msg)) < 0) {
         errno = sb->fepipe ? EPIPE : EAGAIN;
     }

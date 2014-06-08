@@ -146,7 +146,7 @@ void xsock_init(struct sockbase *sb)
 void xsock_exit(struct sockbase *sb)
 {
     struct list_head head = {};
-    struct xmsg *msg, *nmsg;
+    struct skbuf *msg, *nmsg;
 
     mutex_destroy(&sb->lock);
     condition_destroy(&sb->cond);

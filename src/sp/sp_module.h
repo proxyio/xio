@@ -82,14 +82,6 @@ void sg_update_tg(struct tgtd *tg, u32 ev);
 int sp_generic_term_by_tgtd(struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd(struct epbase *ep, int fd);
 
-
-struct skbuf {
-    int wnd;
-    int size;
-    int waiters;
-    struct list_head head;
-};
-
 struct epbase {
     struct epbase_vfptr vfptr;
     u32 shutdown:1;
@@ -98,8 +90,12 @@ struct epbase {
     mutex_t lock;
     condition_t cond;
     struct poll_ent ent;
-    struct skbuf rcv;
-    struct skbuf snd;
+    struct {
+	int wnd;
+	int size;
+	int waiters;
+	struct list_head head;
+    } rcv, snd;
     struct list_head item;
     u64 listener_num;
     u64 connector_num;

@@ -104,7 +104,7 @@ int main(int argc, char **argv)
             usleep(1000);
         }
         DEBUG_OFF("comsumer recv %d requst: %10.10s", i, ubuf);
-        BUG_ON(xmsgctl(ubuf, XMSG_CMSGNUM, &cmsgnum));
+        BUG_ON(ubufctl(ubuf, UBUF_CMSGNUM, &cmsgnum));
         BUG_ON(cmsgnum != 1);
         BUG_ON(sp_send(eid, ubuf));
     }

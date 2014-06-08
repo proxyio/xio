@@ -44,7 +44,7 @@ static int modstat_test()
     for (i = 0; i < 1000; i++) {
         modstat_incrkey(ms, SEND);
         modstat_incrkey(ms, RECV);
-        modstat_update_timestamp(ms, gettimeofms());
+        modstat_update_timestamp(ms, gettimeof(ms));
     }
     return 0;
 }
