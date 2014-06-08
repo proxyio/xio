@@ -50,12 +50,7 @@ struct sphdr {
 };
 
 static inline struct sphdr *get_sphdr(char *ubuf) {
-    int rc;
-    struct xcmsg ent = { 0, 0 };
-
-    rc = ubufctl(ubuf, UBUF_GETCMSG, &ent);
-    BUG_ON(rc || !ent.outofband);
-    return (struct sphdr *)ent.outofband;
+    return (struct sphdr *)ubufctl_first(ubuf);
 }
 
 static inline int sphdr_timeout(struct sphdr *sh)

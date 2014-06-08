@@ -26,19 +26,47 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
-#define UBUF_CMSGNUM      0
-#define UBUF_GETCMSG      1
-#define UBUF_ADDCMSG      2
-#define UBUF_RMCMSG       3
-
-struct xcmsg {
-    uint8_t idx;
-    char *outofband;
+enum {
+    SNUM = 1,
+    SFIRST,
+    SNEXT,
+    SLAST,
+    SADD,
+    SRM,
 };
 
 int ubufctl(char *ubuf, int opt, void *optval);
 
+static inline int ubufctl_num(char *ubuf) {
+    int sub_num = 0;
+    ubufctl (ubuf, SNUM, &sub_num);
+    return sub_num;
+}
 
+static inline char *ubufctl_first(char *ubuf) {
+    char *first = 0;
+    ubufctl (ubuf, SFIRST, &first);
+    return first;
+}
+
+static inline char *ubufctl_next(char *ubuf) {
+    ubufctl (ubuf, SNEXT, &ubuf);
+    return ubuf;
+}
+
+static inline char *ubufctl_last(char *ubuf) {
+    char *last = 0;
+    ubufctl (ubuf, SLAST, &last);
+    return last;
+}
+
+static inline void ubufctl_add(char *ubuf, char *add) {
+    ubufctl (ubuf, SADD, add);
+}
+
+static inline void ubufctl_rm(char *ubuf, char *rm) {
+    ubufctl (ubuf, SRM, rm);
+}
 
 #include <xio/cplusplus_endif.h>
 #endif

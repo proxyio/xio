@@ -28,7 +28,7 @@
 
 u32 skbuf_iovlen(struct skbuf *msg)
 {
-    return sizeof(msg->vec) + msg->vec.xiov_len;
+    return sizeof(msg->chunk) + msg->chunk.iov_len;
 }
 
 u32 skbuf_iovlens(struct skbuf *msg)
@@ -44,7 +44,7 @@ u32 skbuf_iovlens(struct skbuf *msg)
 
 char *skbuf_iovbase(struct skbuf *msg)
 {
-    return (char *)&msg->vec;
+    return (char *)&msg->chunk;
 }
 
 int skbuf_serialize(struct skbuf *msg, struct list_head *head)
@@ -67,9 +67,9 @@ struct skbuf *xallocmsg(int size) {
         return 0;
     INIT_LIST_HEAD(&msg->item);
     INIT_LIST_HEAD(&msg->cmsg_head);
-    msg->vec.xiov_len = size;
-    msg->vec.checksum = crc16((char *)&msg->vec.xiov_len, sizeof(msg->vec) -
-                              sizeof(u16));
+    msg->chunk.iov_len = size;
+    msg->chunk.checksum = crc16((char *)&msg->chunk.iov_len, sizeof(msg->chunk) -
+				sizeof(u16));
     return msg;
 }
 
@@ -78,7 +78,7 @@ char *xallocubuf(int size)
     struct skbuf *msg = xallocmsg(size);
     if (!msg)
         return 0;
-    return msg->vec.xiov_base;
+    return msg->chunk.iov_base;
 }
 
 void xfreemsg(struct skbuf *msg)
@@ -88,96 +88,110 @@ void xfreemsg(struct skbuf *msg)
         list_del_init(&cmsg->item);
         xfreemsg(cmsg);
     }
-    mem_free(msg, sizeof(*msg) + msg->vec.xiov_len);
+    mem_free(msg, sizeof(*msg) + msg->chunk.iov_len);
 }
 
 void xfreeubuf(char *ubuf)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
     xfreemsg(msg);
 }
 
 int skbuflen(struct skbuf *msg)
 {
-    return msg->vec.xiov_len;
+    return msg->chunk.iov_len;
 }
 
 int xubuflen(char *ubuf)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
     return skbuflen(msg);
 }
 
 
-
 typedef int (*msgctl) (char *skbuf, void *optval);
 
-static int msgctl_cmsgnum(char *ubuf, void *optval)
+static int subuf_num(char *ubuf, void *optval)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
-    *(int *)optval = msg->vec.cmsg_num;
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    *(int *)optval = msg->chunk.cmsg_num;
     return 0;
 }
 
-static int msgctl_getcmsg(char *ubuf, void *optval)
+static int subuf_first(char *ubuf, void *optval)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
-    struct xcmsg *ent = (struct xcmsg *)optval;
-    int pos;
-    struct skbuf *cmsg, *ncmsg;
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *cur;
 
-    if ((pos = ent->idx) >= msg->vec.cmsg_num) {
-        errno = ENOENT;
-        return -1;
+    if (!list_empty(&msg->cmsg_head)) {
+	cur = list_first(&msg->cmsg_head, struct skbuf, item);
+	*(char **)optval = cur->chunk.iov_base;
+	return 0;
     }
-    walk_msg_s(cmsg, ncmsg, &msg->cmsg_head) {
-        if (pos--)
-            continue;
-        ent->outofband = cmsg->vec.xiov_base;
-        return 0;
-    }
-    BUG_ON(1);
     return -1;
 }
 
-static int msgctl_addcmsg(char *ubuf, void *optval)
+static int subuf_next(char *ubuf, void *optval)
 {
-    struct xcmsg *ent = (struct xcmsg *)optval;
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
-    struct skbuf *new = cont_of(ent->outofband, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *cur = cont_of(optval, struct skbuf, chunk.iov_base);
 
-    if (msg->vec.cmsg_num == SKBUF_CMSGNUMMARK ||
-            msg->vec.cmsg_length + skbuf_iovlens(new) > SKBUF_CMSGLENMARK) {
+    if (list_next(&cur->item) != &msg->cmsg_head) {
+	cur = cont_of(list_next(&cur->item), struct skbuf, chunk.iov_base);
+	*(char **)optval = cur->chunk.iov_base;
+	return 0;
+    }
+    return -1;
+}
+
+static int subuf_tail(char *ubuf, void *optval)
+{
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *cur;
+
+    if (!list_empty(&msg->cmsg_head)) {
+	cur = list_last(&msg->cmsg_head, struct skbuf, item);
+	*(char **)optval = cur->chunk.iov_base;
+	return 0;
+    }
+    return -1;
+}
+
+static int subuf_add(char *ubuf, void *optval)
+{
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *new = cont_of(optval, struct skbuf, chunk.iov_base);
+
+    if (msg->chunk.cmsg_num == SKBUF_SUBNUMMARK ||
+	msg->chunk.cmsg_length + skbuf_iovlens(new) > SKBUF_CMSGLENMARK) {
         errno = EFBIG;
         return -1;
     }
-    msg->vec.cmsg_num++;
-    msg->vec.cmsg_length += skbuf_iovlens(new);
+    msg->chunk.cmsg_num++;
+    msg->chunk.cmsg_length += skbuf_iovlens(new);
     list_add_tail(&new->item, &msg->cmsg_head);
     return 0;
 }
 
-static int msgctl_rmcmsg(char *ubuf, void *optval)
+static int subuf_rm(char *ubuf, void *optval)
 {
-    int rc;
-    struct xcmsg *ent = (struct xcmsg *)optval;
-    struct skbuf *rm;
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
+    struct skbuf *rm = cont_of(optval, struct skbuf, chunk.iov_base);
 
-    if ((rc = msgctl_getcmsg(ubuf, optval)))
-        return rc;
-    rm = cont_of(ent->outofband, struct skbuf, vec.xiov_base);
-    msg->vec.cmsg_num--;
-    msg->vec.cmsg_length -= skbuf_iovlens(rm);
+    msg->chunk.cmsg_num--;
+    msg->chunk.cmsg_length -= skbuf_iovlens(rm);
     list_del_init(&rm->item);
     return 0;
 }
 
 static const msgctl msgctl_vfptr[] = {
-    msgctl_cmsgnum,
-    msgctl_getcmsg,
-    msgctl_addcmsg,
-    msgctl_rmcmsg,
+    0,
+    subuf_num,
+    subuf_first,
+    subuf_next,
+    subuf_tail,
+    subuf_add,
+    subuf_rm,
 };
 
 

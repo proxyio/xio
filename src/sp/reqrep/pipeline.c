@@ -54,7 +54,7 @@ static struct tgtd *route_backward(struct epbase *ep, char *ubuf) {
 static int receiver_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct rep_ep, base)->peer)->base;
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
     struct rtentry *r = rt_cur(ubuf);
     struct tgtd *target = rrbin_forward(peer, ubuf);
 
@@ -78,7 +78,7 @@ static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
     }
     uuid_copy(rt.uuid, tg->uuid);
     msg = list_first(&tg->snd_cache, struct skbuf, item);
-    *ubuf = msg->vec.xiov_base;
+    *ubuf = msg->chunk.iov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);
     rt_append(*ubuf, &rt);
@@ -90,7 +90,7 @@ static int dispatcher_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
 static int dispatcher_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
     struct epbase *peer = &(cont_of(ep, struct req_ep, base)->peer)->base;
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
     struct rr_package *pg = get_rr_package(ubuf);
     struct tgtd *target = route_backward(peer, ubuf);
 
@@ -113,7 +113,7 @@ static int receiver_rm(struct epbase *ep, struct tgtd *tg, char **ubuf)
         return -1;
     }
     msg = list_first(&tg->snd_cache, struct skbuf, item);
-    *ubuf = msg->vec.xiov_base;
+    *ubuf = msg->chunk.iov_base;
     list_del_init(&msg->item);
     ep->snd.size -= xubuflen(*ubuf);
     DEBUG_OFF("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, tg->fd);

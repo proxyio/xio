@@ -43,7 +43,7 @@ static void req_ep_destroy(struct epbase *ep)
 
 static int req_ep_add(struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-    struct skbuf *msg = cont_of(ubuf, struct skbuf, vec.xiov_base);
+    struct skbuf *msg = cont_of(ubuf, struct skbuf, chunk.iov_base);
     struct rr_package *pg = get_rr_package(ubuf);
 
     pg->ttl--;
@@ -64,7 +64,6 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     struct rr_package *pg = 0;
     struct rtentry rt = {};
     struct tgtd *tg = 0;
-    struct xcmsg ent = {};
 
     mutex_lock(&ep->lock);
     get_tgtd_if(tg, &ep->connectors, 1);
@@ -73,8 +72,7 @@ static int req_ep_send(struct epbase *ep, char *ubuf)
     mutex_unlock(&ep->lock);
     uuid_copy(rt.uuid, tg->uuid);
     pg = new_rr_package(&rt);
-    ent.outofband = (char *)pg;
-    BUG_ON((rc = ubufctl(ubuf, UBUF_ADDCMSG, &ent)));
+    ubufctl_add(ubuf, (char *)pg);
     DEBUG_OFF("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
     rc = xsend(tg->fd, ubuf);
     return rc;

@@ -205,6 +205,7 @@ static inline void list_splice(struct list_head *head1, struct list_head *head2)
 // @param member      the name of the list_struct within the sturct.
 #define list_entry(ptr, type, member) cont_of(ptr, type, member)
 
+#define list_next(pos) (pos)->next
 
 
 // Interate over a list

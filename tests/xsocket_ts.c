@@ -15,7 +15,6 @@ static void xclient(const char *pf)
     int sfd, i, j;
     int64_t nbytes;
     char buf[1024] = {};
-    struct xcmsg ent = {};
     char *xbuf, *oob;
     char host[1024];
 
@@ -31,8 +30,7 @@ static void xclient(const char *pf)
             oob = xallocubuf(nbytes);
             memcpy(oob, buf, nbytes);
 
-            ent.outofband = oob;
-            BUG_ON(ubufctl(xbuf, UBUF_ADDCMSG, &ent));
+	    ubufctl_add(xbuf, oob);
             BUG_ON(xsend(sfd, xbuf));
             DEBUG_OFF("%d send request %d", sfd, j);
         }
@@ -40,8 +38,8 @@ static void xclient(const char *pf)
             BUG_ON(0 != xrecv(sfd, &xbuf));
             DEBUG_OFF("%d recv response %d", sfd, j);
             BUG_ON(memcmp(xbuf, buf, nbytes) != 0);
-            BUG_ON(ubufctl(xbuf, UBUF_GETCMSG, &ent));
-            BUG_ON(memcmp(ent.outofband, buf, nbytes) != 0);
+	    oob = ubufctl_first(xbuf);
+            BUG_ON(memcmp(oob, buf, nbytes) != 0);
             xfreeubuf(xbuf);
         }
     }

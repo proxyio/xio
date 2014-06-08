@@ -103,13 +103,11 @@ static inline char *__rt_append(char *hdr, struct rtentry *r)
 
 static inline void rt_append(char *ubuf, struct rtentry *r)
 {
-    int rc;
-    struct xcmsg ent = { 0, 0 };
+    char *sh_ubuf = ubufctl_first(ubuf);
 
-    rc = ubufctl(ubuf, UBUF_RMCMSG, &ent);
-    BUG_ON(rc || !ent.outofband);
-    ent.outofband = __rt_append(ent.outofband, r);
-    BUG_ON((rc = ubufctl(ubuf, UBUF_ADDCMSG, &ent)));
+    ubufctl_rm(ubuf, sh_ubuf);
+    sh_ubuf = __rt_append(sh_ubuf, r);
+    ubufctl_add(ubuf, sh_ubuf);
 }
 
 

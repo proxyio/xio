@@ -83,7 +83,6 @@ int main(int argc, char **argv)
     };
     int s;
     int eid;
-    int cmsgnum;
     char *ubuf;
 
     thread_start(&pyt, proxy_thread, 0);
@@ -104,8 +103,7 @@ int main(int argc, char **argv)
             usleep(1000);
         }
         DEBUG_OFF("comsumer recv %d requst: %10.10s", i, ubuf);
-        BUG_ON(ubufctl(ubuf, UBUF_CMSGNUM, &cmsgnum));
-        BUG_ON(cmsgnum != 1);
+        BUG_ON(ubufctl_num(ubuf) != 1);
         BUG_ON(sp_send(eid, ubuf));
     }
 

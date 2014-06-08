@@ -231,10 +231,10 @@ static int bufio_check_msg(struct bio *b)
 {
     struct skbuf aim = {};
 
-    if (b->bsize < sizeof(aim.vec))
+    if (b->bsize < sizeof(aim.chunk))
         return false;
-    bio_copy(b, (char *)(&aim.vec), sizeof(aim.vec));
-    if (b->bsize < skbuf_iovlen(&aim) + (u32)aim.vec.cmsg_length)
+    bio_copy(b, (char *)(&aim.chunk), sizeof(aim.chunk));
+    if (b->bsize < skbuf_iovlen(&aim) + (u32)aim.chunk.cmsg_length)
         return false;
     return true;
 }
@@ -244,8 +244,8 @@ static void bufio_rm(struct bio *b, struct skbuf **msg)
 {
     struct skbuf one = {};
 
-    bio_copy(b, (char *)(&one.vec), sizeof(one.vec));
-    *msg = xallocmsg(one.vec.xiov_len);
+    bio_copy(b, (char *)(&one.chunk), sizeof(one.chunk));
+    *msg = xallocmsg(one.chunk.iov_len);
     bio_read(b, skbuf_iovbase(*msg), skbuf_iovlen(*msg));
 }
 
@@ -263,7 +263,7 @@ static int xio_connector_rcv(struct sockbase *sb)
         aim = 0;
         bufio_rm(&self->in, &aim);
         BUG_ON(!aim);
-        cmsg_num = aim->vec.cmsg_num;
+        cmsg_num = aim->chunk.cmsg_num;
         while (cmsg_num--) {
             cmsg = 0;
             bufio_rm(&self->in, &cmsg);
@@ -318,7 +318,7 @@ static int sg_send(struct sockbase *sb)
     iov = &self->biov[self->iov_start];
     while (rc >= iov->iov_len && iov < &self->biov[self->iov_end]) {
         rc -= iov->iov_len;
-        msg = cont_of(iov->iov_base, struct skbuf, vec);
+        msg = cont_of(iov->iov_base, struct skbuf, chunk);
         list_del_init(&msg->item);
         xfreemsg(msg);
         iov++;
@@ -326,7 +326,7 @@ static int sg_send(struct sockbase *sb)
     /* Cache the reset iovec into bufio  */
     if (rc > 0) {
         bio_write(&self->out, iov->iov_base + rc, iov->iov_len - rc);
-        msg = cont_of(iov->iov_base, struct skbuf, vec);
+        msg = cont_of(iov->iov_base, struct skbuf, chunk);
         list_del_init(&msg->item);
         xfreemsg(msg);
         rc = 0;
