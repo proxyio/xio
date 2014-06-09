@@ -31,7 +31,7 @@
 int xclose (int fd)
 {
 	struct sockbase *sb = xget (fd);
-	struct pollbase *pb, *npb;
+	struct pollbase *pb, *tmp;
 	struct list_head poll_entries = {};
 
 	if (!sb) {
@@ -48,7 +48,7 @@ int xclose (int fd)
 	list_splice (&sb->poll_entries, &poll_entries);
 	mutex_unlock (&sb->lock);
 
-	walk_pollbase_s (pb, npb, &poll_entries) {
+	walk_pollbase_s (pb, tmp, &poll_entries) {
 		list_del_init (&pb->link);
 		BUG_ON (!pb->vfptr);
 		pb->vfptr->close (pb);
