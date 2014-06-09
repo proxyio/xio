@@ -157,6 +157,10 @@ struct epbase {
 	struct skbuf_head snd;          /* send buffer */
 	struct list_head item;
 
+	/*
+	 * The next six fields are touched by walk_tgtd.  place them together
+	 * so they all fit in a cache line.
+	 */
 	struct list_head listeners;
 	u64 nlisteners;
 	struct list_head connectors;
