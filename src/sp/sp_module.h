@@ -130,7 +130,10 @@ struct skbuf_head {
 
 struct epbase {
 	struct epbase_vfptr vfptr;
-	u32 shutdown:1;
+	union {
+		u32 shutdown:1;
+		u32 bad;
+	} status;
 	atomic_t ref;
 	int eid;
 	mutex_t lock;

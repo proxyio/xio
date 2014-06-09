@@ -29,7 +29,7 @@ int sp_send (int eid, char *ubuf)
 	int rc;
 	struct epbase *ep = eid_get (eid);
 
-	if (!ep || ep->shutdown) {
+	if (!ep || ep->status.shutdown) {
 		errno = EBADF;
 		return -1;
 	}
