@@ -88,17 +88,18 @@ static int reqep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static void reqep_term (struct epbase *ep, struct tgtd *tg)
 {
-	tgtd_free (tg);
+	rrtgtd_free (get_rrtgtd (tg) );
 }
 
 static struct tgtd *reqep_join (struct epbase *ep, int fd) {
+	int rc;
 	struct rrtgtd *rr_tg = TNEW (struct rrtgtd);
 
-	if (rr_tg) {
-		skbuf_head_init (&rr_tg->snd, SP_SNDWND);
-		uuid_generate (rr_tg->uuid);
-		generic_tgtd_init (ep, &rr_tg->tg, fd);
-	}
+	if (!rr_tg)
+		return 0;
+	skbuf_head_init (&rr_tg->snd, SP_SNDWND);
+	uuid_generate (rr_tg->uuid);
+	generic_tgtd_init (ep, &rr_tg->tg, fd);
 	return &rr_tg->tg;
 }
 

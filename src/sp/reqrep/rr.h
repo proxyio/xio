@@ -116,6 +116,10 @@ struct rrtgtd {
 	struct skbuf_head snd;
 };
 
+static inline void rrtgtd_free(struct rrtgtd *rr_tg) {
+	mem_free (rr_tg, sizeof (struct rrtgtd) );
+}
+
 static inline struct rrtgtd *get_rrtgtd (struct tgtd *tg) {
 	return cont_of (tg, struct rrtgtd, tg);
 }

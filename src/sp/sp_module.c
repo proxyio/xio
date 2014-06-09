@@ -87,15 +87,18 @@ static void listener_event_hndl (struct tgtd *tg)
 
 	happened = tg->ent.happened;
 	if (happened & XPOLLIN) {
-		while ( (fd = xaccept (tg->fd) ) >= 0) {
+		while ((fd = xaccept (tg->fd)) >= 0) {
 			rc = xsetopt (fd, XL_SOCKET, XNOBLOCK, &on, optlen);
 			BUG_ON (rc);
 			DEBUG_OFF ("%d join fd %d begin", ep->eid, fd);
 			if ( (ntg = ep->vfptr.join (ep, fd) ) < 0) {
 				xclose (fd);
 				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
-			} else
-				sg_add_tg (ntg);
+			} else if ((rc = epbase_add_tgtd (ep, ntg))) {
+				xclose (fd);
+				ep->vfptr.term (ep, tg);
+				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
+			}
 		}
 		if (errno != EAGAIN)
 			happened |= XPOLLERR;

@@ -81,7 +81,6 @@ struct tgtd {
 };
 
 void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd);
-void tgtd_free (struct tgtd *tg);
 
 void sg_add_tg (struct tgtd *tg);
 void sg_rm_tg (struct tgtd *tg);
@@ -188,7 +187,7 @@ void epbase_exit (struct epbase *ep);
 	    tg;						\
 	})
 
-void epbase_add_tgtd (struct epbase *ep, struct tgtd *tg);
+int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg);
 
 
 #define MAX_ENDPOINTS 10240

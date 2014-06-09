@@ -23,9 +23,17 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-void epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
+int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
 {
 	mutex_lock (&ep->lock);
+
+	/* Don't attach any target socket into bad status endpoint.
+	 * we check the endpoint status here, for example, the endpoint
+	 * was closed */
+	if (ep->status.bad) {
+		mutex_unlock(&ep->lock);
+		return -1;
+	}
 	switch (get_socktype (tg->fd) ) {
 	case XLISTENER:
 		list_add_tail (&tg->item, &ep->listeners);
@@ -38,6 +46,7 @@ void epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
 	default:
 		BUG_ON (1);
 	}
+	sg_add_tg (tg);
 	mutex_unlock (&ep->lock);
 }
 
@@ -51,12 +60,12 @@ void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)
 	tg->ent.self = tg;
 	tg->ent.events = XPOLLIN|XPOLLERR;
 	tg->ent.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
-	epbase_add_tgtd (ep, tg);
 }
 
 int sp_add (int eid, int fd)
 {
 	struct epbase *ep = eid_get (eid);
+	int rc;
 	int on = 1;
 	struct tgtd *tg;
 
@@ -65,9 +74,13 @@ int sp_add (int eid, int fd)
 		return -1;
 	}
 	if ( (tg = ep->vfptr.join (ep, fd) ) ) {
-		xsetopt (fd, XL_SOCKET, XNOBLOCK, &on, sizeof (on) );
-		sg_add_tg (tg);
+		if ((rc = epbase_add_tgtd (ep, tg))) {
+			ep->vfptr.term (ep, tg);
+			eid_put (eid);
+			return -1;
+		}
 	}
+	xsetopt (fd, XL_SOCKET, XNOBLOCK, &on, sizeof (on) );
 	eid_put (eid);
 	return 0;
 }
