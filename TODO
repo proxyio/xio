@@ -2,3 +2,4 @@
 2. skbuf protect by reference
 3. PUBSUB scalability protocol
 4. BUS scalability protocol
+5. little endian/big endian for network transmit
