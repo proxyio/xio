@@ -209,6 +209,8 @@ void sp_module_init()
 	mutex_init (&sg.lock);
 	sg.pollid = xpoll_create();
 	BUG_ON (sg.pollid < 0);
+
+	/* initialize the unused list */
 	for (eid = 0; eid < MAX_ENDPOINTS; eid++) {
 		sg.unused[eid] = eid;
 	}
@@ -220,6 +222,7 @@ void sp_module_init()
 
 	waitgroup_add (&wg);
 	thread_start (&sg.runner, sp_runner, &wg);
+	/* waiting the sp_runner finished startup */
 	waitgroup_wait (&wg);
 }
 
@@ -303,13 +306,11 @@ void epbase_init (struct epbase *ep)
 
 void epbase_exit (struct epbase *ep)
 {
-	struct skbuf *msg, *nmsg;
-	struct tgtd *tg, *ntg;
-
+	struct skbuf *msg, *tmp;
 	BUG_ON (atomic_read (&ep->ref) );
 
 	list_splice (&ep->snd.head, &ep->rcv.head);
-	walk_msg_s (msg, nmsg, &ep->rcv.head) {
+	walk_msg_s (msg, tmp, &ep->rcv.head) {
 		list_del_init (&msg->item);
 		xfree_skbuf (msg);
 	}
