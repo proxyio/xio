@@ -43,10 +43,6 @@ struct sphdr {
 	u8 version;                     /* scalability protocol version */
 	u16 timeout;                    /* message timeout by ms */
 	i64 sendstamp;                  /* the timestamp when massage first send */
-	union {
-		u64 __align[2];
-		struct list_head link;
-	} u;
 };
 
 /* scalability protocol's header is saved in cmsg_head of ubuf and must be
