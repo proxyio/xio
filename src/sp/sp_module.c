@@ -259,8 +259,12 @@ int eid_alloc (int sp_family, int sp_type)
 	return eid;
 }
 
+/* Get a reference to an endpoint.
+   Given a endpoint id increment the reference count if appropriate
+   and return the epbase. eid_get() should never be
+   called for endpoints with zero reference counter. */
 struct epbase *eid_get (int eid) {
-	struct epbase *ep;
+	struct epbase *ep = 0;
 	mutex_lock (&sg.lock);
 	if (! (ep = sg.endpoints[eid]) ) {
 		mutex_unlock (&sg.lock);

@@ -58,25 +58,41 @@ struct tgtd;
 struct epbase_vfptr {
 	int sp_family;
 	int sp_type;
+
+	/* Alloc scalability protocol's specified endpoint and return the epbase pointer */
 	struct epbase * (*alloc) ();
-	void (*destroy) (struct epbase *ep);
-	int  (*send)    (struct epbase *ep, char *ubuf);
-	int  (*rm)      (struct epbase *ep, struct tgtd *tg, char **ubuf);
-	int  (*add)     (struct epbase *ep, struct tgtd *tg, char *ubuf);
-	struct tgtd * (*join) (struct epbase *ep, int fd);
-	void  (*term)    (struct epbase *ep, struct tgtd *tg);
-	int  (*setopt)  (struct epbase *ep, int opt, void *optval, int optlen);
-	int  (*getopt)  (struct epbase *ep, int opt, void *optval, int *optlen);
+
+	/* Destroy endpoint, sp_module doesn't use it anymore */
+	void            (*destroy) (struct epbase *ep);
+
+	/* Call by sp_send() API, have message need send */
+	int             (*send)    (struct epbase *ep, char *ubuf);
+
+	/* The current target sock specified by tg parameter is actived. take one message
+	 * from the epbase->snd.head and send into network */
+	int             (*rm)      (struct epbase *ep, struct tgtd *tg,
+				    char **ubuf);
+
+	/* The incoming message specified by ubuf pointer */
+	int             (*add)     (struct epbase *ep, struct tgtd *tg,
+				    char *ubuf);
+
+	struct tgtd *   (*join)    (struct epbase *ep, int fd);
+	void            (*term)    (struct epbase *ep, struct tgtd *tg);
+	int             (*setopt)  (struct epbase *ep, int opt, void *optval,
+				    int optlen);
+	int             (*getopt)  (struct epbase *ep, int opt, void *optval,
+				    int *optlen);
 	struct list_head item;
 };
 
 
 
 struct tgtd {
-	struct epbase *owner;
-	struct poll_ent ent;
+	struct epbase *owner;           /* the owner of this target socket */
+	struct poll_ent ent;            /* xpoll entry */
 	u32 bad_status:1;
-	int fd;
+	int fd;                         /* xsocket file descriptor */
 	struct list_head item;
 };
 
@@ -90,10 +106,10 @@ int sp_generic_term_by_tgtd (struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd (struct epbase *ep, int fd);
 
 struct skbuf_head {
-	int wnd;
-	int size;
-	int waiters;
-	struct list_head head;
+	int wnd;                        /* skbuff windows */
+	int size;                       /* current buffer size */
+	int waiters;                    /* wait the empty or non-empty events */
+	struct list_head head;          /* skbuff head */
 };
 
 #define skbuf_head_init(q, windows) do {	\
@@ -128,18 +144,17 @@ struct skbuf_head {
 #define SP_RCVWND 1048576000
 
 struct epbase {
-	struct epbase_vfptr vfptr;
+	struct epbase_vfptr vfptr;      /* the endpoint's vfptr of sp */
 	union {
-		u32 shutdown:1;
-		u32 bad;
+		u32 shutdown:1;         /* endpoint is shutdown */
+		u32 bad;                /* the bad and other status bit field can share the memory */
 	} status;
-	atomic_t ref;
-	int eid;
-	mutex_t lock;
+	atomic_t ref;                   /* reference counter */
+	int eid;                        /* endpoint id, the index of sp_global.endpoints array */
+	mutex_t lock;                   /* per epbase lock and condition */
 	condition_t cond;
-	struct poll_ent ent;
-	struct skbuf_head rcv;
-	struct skbuf_head snd;
+	struct skbuf_head rcv;          /* recv buffer */
+	struct skbuf_head snd;          /* send buffer */
 	struct list_head item;
 	u64 listener_num;
 	u64 connector_num;
@@ -194,24 +209,24 @@ int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg);
 
 struct sp_global {
 	int exiting;
+
+	/* eid pool lock, protect endpoints/unused/nendpoints */
 	mutex_t lock;
 
 	/* The global table of existing ep. The descriptor representing
-	   the ep is the index to this table. This pointer is also used to
-	   find out whether context is initialised. If it is null, context is
-	   uninitialised. */
+	 * the ep is the index to this table. This pointer is also used to
+	 * find out whether context is initialised. If it is null, context is
+	 * uninitialised.
+	 */
 	struct epbase *endpoints[MAX_ENDPOINTS];
 
-	/* Stack of unused ep descriptors.  */
-	int unused[MAX_ENDPOINTS];
-
-	/* Number of actual ep. */
-	size_t nendpoints;
+	int unused[MAX_ENDPOINTS];          /* Stack of unused ep descriptors.  */
+	size_t nendpoints;                  /* Number of actual ep. */
 
 	int pollid;
-	thread_t runner;
-	struct list_head epbase_head;
-	struct list_head shutdown_head;
+	thread_t runner;                    /* backend events_hndl runner */
+	struct list_head epbase_head;       /* epbase_vfptrs head */
+	struct list_head shutdown_head;     /* shutdown the epbase asyncronous */
 };
 
 extern struct sp_global sg;
@@ -233,9 +248,11 @@ struct epbase_vfptr *epbase_vfptr_lookup (int sp_family, int sp_type) {
 	return 0;
 }
 
-int eid_alloc (int sp_family, int sp_type);
-struct epbase *eid_get (int eid);
-void eid_put (int eid);
+extern int eid_alloc (int sp_family, int sp_type);
+
+extern struct epbase *eid_get (int eid);
+
+extern void eid_put (int eid);
 
 
 typedef int (*ep_setopt) (struct epbase *ep, void *optval, int optlen);
