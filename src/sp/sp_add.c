@@ -37,11 +37,11 @@ int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
 	switch (get_socktype (tg->fd) ) {
 	case XLISTENER:
 		list_add_tail (&tg->item, &ep->listeners);
-		ep->listener_num++;
+		ep->nlisteners++;
 		break;
 	case XCONNECTOR:
 		list_add_tail (&tg->item, &ep->connectors);
-		ep->connector_num++;
+		ep->nconnectors++;
 		break;
 	default:
 		BUG_ON (1);

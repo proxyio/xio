@@ -302,9 +302,9 @@ void epbase_init (struct epbase *ep)
 	skbuf_head_init (&ep->rcv, SP_RCVWND);
 	skbuf_head_init (&ep->snd, SP_SNDWND);
 
-	ep->listener_num = 0;
-	ep->connector_num = 0;
-	ep->bad_num = 0;
+	ep->nlisteners = 0;
+	ep->nconnectors = 0;
+	ep->nbads = 0;
 	INIT_LIST_HEAD (&ep->listeners);
 	INIT_LIST_HEAD (&ep->connectors);
 	INIT_LIST_HEAD (&ep->bad_socks);

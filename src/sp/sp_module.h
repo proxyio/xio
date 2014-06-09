@@ -156,12 +156,13 @@ struct epbase {
 	struct skbuf_head rcv;          /* recv buffer */
 	struct skbuf_head snd;          /* send buffer */
 	struct list_head item;
-	u64 listener_num;
-	u64 connector_num;
-	u64 bad_num;
+
 	struct list_head listeners;
+	u64 nlisteners;
 	struct list_head connectors;
+	u64 nconnectors;
 	struct list_head bad_socks;
+	u64 nbads;
 };
 
 void epbase_init (struct epbase *ep);
@@ -191,10 +192,10 @@ void epbase_exit (struct epbase *ep);
 	    list_del_init(&tg->item);			\
 	    switch (get_socktype(tg->fd)) {		\
 	    case XLISTENER:				\
-		ep->listener_num--;			\
+		ep->nlisteners--;			\
 		break;					\
 	    case XCONNECTOR:				\
-		ep->connector_num--;			\
+		ep->nconnectors--;			\
 		break;					\
 	    default:					\
 		BUG_ON(1);				\
