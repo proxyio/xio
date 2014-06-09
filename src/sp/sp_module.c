@@ -156,10 +156,10 @@ static void event_hndl (struct poll_ent *ent)
 
 static void shutdown_epbase()
 {
-	struct epbase *ep, *nep;
+	struct epbase *ep, *tmp;
 
 	mutex_lock (&sg.lock);
-	walk_epbase_s (ep, nep, &sg.shutdown_head) {
+	walk_epbase_s (ep, tmp, &sg.shutdown_head) {
 		DEBUG_OFF ("eid %d shutdown", ep->eid);
 		list_del_init (&ep->item);
 		sg.unused[--sg.nendpoints] = ep->eid;
@@ -174,15 +174,12 @@ static int sp_runner (void *args)
 {
 	waitgroup_t *wg = (waitgroup_t *) args;
 	int rc, i;
-	int ivl = 0;
 	const char *estr;
 	struct poll_ent ent[100];
 
 	waitgroup_done (wg);
 	while (!sg.exiting) {
 		rc = xpoll_wait (sg.pollid, ent, NELEM (ent, struct poll_ent), 1);
-		if (ivl)
-			usleep (ivl);
 		if (rc < 0)
 			goto SD_EPBASE;
 		DEBUG_OFF ("%d sockets happened events", rc);
@@ -286,12 +283,6 @@ void eid_put (int eid)
 		mutex_unlock (&sg.lock);
 	}
 }
-
-void tgtd_free (struct tgtd *tg)
-{
-	mem_free (tg, sizeof (*tg) );
-}
-
 
 void epbase_init (struct epbase *ep)
 {
