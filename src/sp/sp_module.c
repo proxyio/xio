@@ -167,7 +167,7 @@ static void shutdown_epbase()
 
 extern const char *event_str[];
 
-static int po_routine_worker (void *args)
+static int sp_runner (void *args)
 {
 	waitgroup_t *wg = (waitgroup_t *) args;
 	int rc, i;
@@ -219,7 +219,7 @@ void sp_module_init()
 	INIT_LIST_HEAD (&sg.shutdown_head);
 
 	waitgroup_add (&wg);
-	thread_start (&sg.po_routine, po_routine_worker, &wg);
+	thread_start (&sg.runner, sp_runner, &wg);
 	waitgroup_wait (&wg);
 }
 
@@ -227,7 +227,7 @@ void sp_module_init()
 void sp_module_exit()
 {
 	sg.exiting = true;
-	thread_stop (&sg.po_routine);
+	thread_stop (&sg.runner);
 	mutex_destroy (&sg.lock);
 	xpoll_close (sg.pollid);
 	BUG_ON (sg.nendpoints);

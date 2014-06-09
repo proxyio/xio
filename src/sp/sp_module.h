@@ -207,7 +207,7 @@ struct sp_global {
 	size_t nendpoints;
 
 	int pollid;
-	thread_t po_routine;
+	thread_t runner;
 	struct list_head epbase_head;
 	struct list_head shutdown_head;
 };
