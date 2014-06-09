@@ -153,6 +153,7 @@ bin_PROGRAMS =
 
 #  automated tests
 UTILS_TESTS = \
+	tests/stl_ts \
 	tests/bufio_ts \
 	tests/krb_ts \
 	tests/modstat_ts \
