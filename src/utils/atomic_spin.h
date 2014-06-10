@@ -20,13 +20,76 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ATOMIC_
-#define _XIO_ATOMIC_
+#ifndef _XIO_ATOMIC_SPIN_
+#define _XIO_ATOMIC_SPIN_
 
 #include <inttypes.h>
+#include "base.h"
+#include "spinlock.h"
 
-#if !defined HAVE_GCC_ATOMIC_BUILTINS
-#include "atomic_spin.h"
-#endif
+typedef struct atomic {
+	int64_t val;
+	spin_t lock;
+} atomic_t;
+
+static inline void atomic_init(atomic_t *at)
+{
+	spin_init(&at->lock);
+	at->val = 0;
+}
+
+static inline void atomic_destroy(atomic_t *at)
+{
+	spin_destroy(&at->lock);
+}
+
+static inline i64 atomic_incs(atomic_t *at, i64 ref)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	at->val += ref;
+	spin_unlock(&at->lock);
+	return old;
+}
+
+static inline i64 atomic_decs(atomic_t *at, i64 ref)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	at->val -= ref;
+	spin_unlock(&at->lock);
+	return old;
+}
+
+static inline i64 atomic_inc(atomic_t *at)
+{
+	return atomic_incs(at, 1);
+}
+
+static inline i64 atomic_dec(atomic_t *at)
+{
+	return atomic_decs(at, 1);
+}
+
+static inline i64 atomic_fetch(atomic_t *at)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	spin_unlock(&at->lock);
+	return old;
+}
+
+static inline i64 atomic_swap(atomic_t *at, int ref)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	at->val = ref;
+	spin_unlock(&at->lock);
+	return old;
+}
 
 #endif

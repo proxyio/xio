@@ -20,13 +20,54 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ATOMIC_
-#define _XIO_ATOMIC_
+#ifndef _XIO_ATOMIC_GCC_
+#define _XIO_ATOMIC_GCC_
 
 #include <inttypes.h>
+#include "base.h"
+#include "spinlock.h"
 
-#if !defined HAVE_GCC_ATOMIC_BUILTINS
-#include "atomic_spin.h"
-#endif
+typedef struct {
+	i64 ref;
+} atomic_t;
+
+static inline void atomic_init(atomic_t *at)
+{
+	at->ref = 0;
+}
+
+static inline void atomic_destroy(atomic_t *at)
+{
+}
+
+static inline i64 atomic_incs(atomic_t *at, i64 ref)
+{
+	return __sync_fetch_and_add (&at->ref, ref);
+}
+
+static inline i64 atomic_decs(atomic_t *at, i64 ref)
+{
+	return __sync_fetch_and_sub (&at->ref, ref);
+}
+
+static inline i64 atomic_inc(atomic_t *at)
+{
+	return atomic_incs(at, 1);
+}
+
+static inline i64 atomic_dec(atomic_t *at)
+{
+	return atomic_decs(at, 1);
+}
+
+static inline i64 atomic_fetch(atomic_t *at)
+{
+	return at->ref;
+}
+
+static inline i64 atomic_swap(atomic_t *at, int ref)
+{
+	BUG_ON(1);
+}
 
 #endif

@@ -20,13 +20,4 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ATOMIC_
-#define _XIO_ATOMIC_
-
-#include <inttypes.h>
-
-#if !defined HAVE_GCC_ATOMIC_BUILTINS
 #include "atomic_spin.h"
-#endif
-
-#endif
