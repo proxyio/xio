@@ -24,6 +24,7 @@
 #define _XIO_ATOMIC_
 
 #include <inttypes.h>
+#include "base.h"
 #include "spinlock.h"
 
 typedef struct atomic {
@@ -31,60 +32,64 @@ typedef struct atomic {
 	spin_t lock;
 } atomic_t;
 
-#define atomic_init(at) do {			\
-	spin_init(&(at)->lock);			\
-	(at)->val = 0;				\
-    } while (0)
+static inline void atomic_init(atomic_t *at)
+{
+	spin_init(&at->lock);
+	at->val = 0;
+}
 
-#define atomic_destroy(at) do {			\
-	spin_destroy(&(at)->lock);		\
-    } while (0)
+static inline void atomic_destroy(atomic_t *at)
+{
+	spin_destroy(&at->lock);
+}
 
-#define atomic_incs(at, nval) ({ int64_t __old;	\
-	    spin_lock(&(at)->lock);		\
-	    __old = (at)->val;			\
-	    (at)->val += nval;			\
-	    spin_unlock(&(at)->lock);		\
-	    __old;				\
-	})
+static inline i64 atomic_incs(atomic_t *at, i64 ref)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	at->val += ref;
+	spin_unlock(&at->lock);
+	return old;
+}
 
-#define atomic_decs(at, nval) ({ int64_t __old;	\
-	    spin_lock(&(at)->lock);		\
-	    __old = (at)->val;			\
-	    (at)->val -= nval;			\
-	    spin_unlock(&(at)->lock);		\
-	    __old;				\
-	})
+static inline i64 atomic_decs(atomic_t *at, i64 ref)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	at->val -= ref;
+	spin_unlock(&at->lock);
+	return old;
+}
 
-#define atomic_inc(at) atomic_incs(at, 1)
-#define atomic_dec(at) atomic_decs(at, 1)
+static inline i64 atomic_inc(atomic_t *at)
+{
+	return atomic_incs(at, 1);
+}
 
-#define atomic_read(at) ({ int64_t __old;	\
-	    spin_lock(&(at)->lock);		\
-	    __old = (at)->val;			\
-	    spin_unlock(&(at)->lock);		\
-	    __old;})
+static inline i64 atomic_dec(atomic_t *at)
+{
+	return atomic_decs(at, 1);
+}
 
-#define atomic_set(at, nval) ({ int64_t __old;	\
-	    spin_lock(&(at)->lock);		\
-	    __old = (at)->val;			\
-	    (at)->val = nval;			\
-	    spin_unlock(&(at)->lock);		\
-	    __old;})
+static inline i64 atomic_fetch(atomic_t *at)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	spin_unlock(&at->lock);
+	return old;
+}
 
-#define atomic_dec_and_lock(at, locktype, ext_lock) if (({	\
-		int64_t __old;					\
-		spin_lock(&(at)->lock);				\
-		__old = (at)->val--;				\
-		spin_unlock(&(at)->lock);			\
-		if (__old == 1)					\
-		    locktype##_lock(&ext_lock);			\
-		__old;						\
-	    }) == 1)
-
-
-
-
-
+static inline i64 atomic_swap(atomic_t *at, int ref)
+{
+	int64_t old;
+	spin_lock(&at->lock);
+	old = at->val;
+	at->val = ref;
+	spin_unlock(&at->lock);
+	return old;
+}
 
 #endif

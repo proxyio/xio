@@ -270,7 +270,7 @@ struct epbase *eid_get (int eid) {
 		mutex_unlock (&sg.lock);
 		return 0;
 	}
-	BUG_ON (!atomic_read (&ep->ref) );
+	BUG_ON (!atomic_fetch (&ep->ref) );
 	atomic_inc (&ep->ref);
 	mutex_unlock (&sg.lock);
 	return ep;
@@ -281,7 +281,8 @@ void eid_put (int eid)
 	struct epbase *ep = sg.endpoints[eid];
 
 	BUG_ON (!ep);
-	atomic_dec_and_lock (&ep->ref, mutex, sg.lock) {
+	if (atomic_dec (&ep->ref) == 1) {
+		mutex_lock (&sg.lock);
 		list_add_tail (&ep->item, &sg.shutdown_head);
 		mutex_unlock (&sg.lock);
 	}
@@ -307,7 +308,7 @@ void epbase_init (struct epbase *ep)
 void epbase_exit (struct epbase *ep)
 {
 	struct skbuf *msg, *tmp;
-	BUG_ON (atomic_read (&ep->ref) );
+	BUG_ON (atomic_fetch (&ep->ref) );
 
 	list_splice (&ep->snd.head, &ep->rcv.head);
 	walk_msg_s (msg, tmp, &ep->rcv.head) {

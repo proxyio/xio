@@ -136,7 +136,8 @@ void pput (int pollid)
 {
 	struct xpoll_t *self = pg.polls[pollid];
 
-	atomic_dec_and_lock (&self->ref, spin, pg.lock) {
+	if (atomic_dec (&self->ref) ==  1) {
+		spin_lock (&pg.lock);
 		pg.unused[--pg.npolls] = pollid;
 		xpoll_destroy (self);
 		spin_unlock (&pg.lock);

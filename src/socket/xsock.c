@@ -63,7 +63,7 @@ int xalloc (int family, int socktype)
 	xgb.sockbases[sb->fd] = sb;
 	atomic_inc (&sb->ref);
 	mutex_unlock (&xgb.lock);
-	BUG_ON (atomic_read (&sb->ref) != 1);
+	BUG_ON (atomic_fetch (&sb->ref) != 1);
 	DEBUG_OFF ("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
 	return sb->fd;
 }
@@ -75,7 +75,7 @@ struct sockbase *xget (int fd) {
 		mutex_unlock (&xgb.lock);
 		return 0;
 	}
-	BUG_ON (!atomic_read (&sb->ref) );
+	BUG_ON (!atomic_fetch (&sb->ref) );
 	atomic_inc (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	return sb;
