@@ -30,7 +30,8 @@ XIO_SOCKET = \
 	src/socket/xsock.h \
 	src/socket/xrecv.c \
 	src/socket/xeventnotify.c \
-	src/socket/xcpu.c \
+	src/socket/xactor.c \
+	src/socket/xactor.h \
 	src/socket/xbind.c \
 	src/socket/xgb.c \
 	src/socket/xclose.c \
@@ -44,8 +45,8 @@ XIO_SOCKET = \
 	src/socket/xmessage.h \
 	src/socket/xtcpipc.h \
 	src/socket/inproc/xinproc.c \
-	src/socket/inproc/xinproc_listener.c \
-	src/socket/xcpu.h
+	src/socket/inproc/xinproc_listener.c
+
 
 XIO_POLL = \
 	src/poll/xeventpoll.h \

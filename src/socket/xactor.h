@@ -29,18 +29,15 @@
 #include <utils/eventloop.h>
 #include <utils/efd.h>
 
-struct xtask;
-typedef void (*xtask_func) (struct xtask *ts);
-
-struct xtask {
-	xtask_func f;
+struct actor_task {
+	void (*f) (struct actor_task *ts);
 	struct list_head link;
 };
 
-#define walk_task_s(ts, nt, head)			\
-    walk_each_entry_s(ts, nt, head, struct xtask, link)
+#define walk_task_s(ts, tmp, head)			\
+    walk_each_entry_s(ts, tmp, head, struct actor_task, link)
 
-struct xcpu {
+struct xactor {
 	spin_t lock;
 
 	/* Backend eventloop for cpu_worker. */
@@ -53,10 +50,10 @@ struct xcpu {
 	struct list_head shutdown_socks;
 };
 
-int xcpu_alloc();
-int xcpu_choosed (int fd);
-void xcpu_free (int cpu_no);
-struct xcpu *xcpuget (int cpu_no);
+int xactor_alloc();
+int xactor_choosed (int fd);
+void xactor_free (int cpu_no);
+struct xactor *xactorget (int cpu_no);
 
 
 

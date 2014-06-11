@@ -84,7 +84,7 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct xcpu *cpu = xcpuget (sb->cpu_no);
+	struct xactor *cpu = xactorget (sb->cpu_no);
 
 	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
@@ -103,7 +103,7 @@ void xput (int fd)
 	mutex_unlock (&xgb.lock);
 }
 
-static void xshutdown_task_f (struct xtask *ts)
+static void xshutdown_task_f (struct actor_task *ts)
 {
 	struct sockbase *sb = cont_of (ts, struct sockbase, shutdown);
 	sb->vfptr->close (sb);
@@ -122,7 +122,7 @@ void xsock_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->cpu_no = xcpu_choosed (sb->fd);
+	sb->cpu_no = xactor_choosed (sb->fd);
 
 	sb->rcv.waiters = 0;
 	sb->rcv.buf = 0;

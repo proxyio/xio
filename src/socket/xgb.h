@@ -27,7 +27,7 @@
 #include <utils/list.h>
 #include "xinproc.h"
 #include "xtcpipc.h"
-#include "xcpu.h"
+#include "xactor.h"
 
 /* Max number of cpu core */
 #define XIO_MAX_CPUS 32
@@ -54,7 +54,7 @@ struct xglobal {
 	size_t nsockbases;
 
 
-	struct xcpu cpus[XIO_MAX_CPUS];
+	struct xactor cpus[XIO_MAX_CPUS];
 
 	/* Stack of unused xsock descriptors.  */
 	int cpu_unused[XIO_MAX_CPUS];
