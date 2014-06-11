@@ -182,6 +182,30 @@ static int sub_skbuf_rm (char *ubuf, void *optval)
 	return 0;
 }
 
+/* Simply copy the content of skbuf to dest */
+static char *ubufdup (char *ubuf) {
+	char *dest = xallocubuf (xubuflen (ubuf) );
+
+	if (dest)
+		memcpy(dest, ubuf, xubuflen (ubuf) );
+	return dest;
+}
+
+/* Clone the skbuf simply
+   WARNING: if the skbuf is high level tree, only the children of the skbuf
+   would be clone, the sub of children isn't, remember that. */
+static int clone_skbuf (char *ubuf, void *optval) {
+	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *cur, *tmp;
+	char *dest = ubufdup (ubuf);
+
+	walk_msg_s (cur, tmp, &src->cmsg_head) {
+		sub_skbuf_add (dest, ubufdup (cur->chunk.iov_base) );
+	}
+	*(char **)optval = dest;
+	return 0;
+}
+
 static const skbuf_ctl skbuf_vfptr[] = {
 	0,
 	sub_skbuf_num,       /* the number of sub skbuf */
@@ -190,6 +214,7 @@ static const skbuf_ctl skbuf_vfptr[] = {
 	sub_skbuf_tail,      /* the last sub skbuf of this ubuf */
 	sub_skbuf_add,       /* insert one skbuf into children's head of the ubuf */
 	sub_skbuf_rm,        /* remove one skbuf from children's head of the ubuf */
+	clone_skbuf,         /* clone a skbuf include all the subs */
 };
 
 
