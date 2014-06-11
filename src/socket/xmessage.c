@@ -33,10 +33,10 @@ u32 skbuf_len (struct skbuf *msg)
 
 u32 skbuf_lens (struct skbuf *msg)
 {
-	struct skbuf *cmsg, *ncmsg;
+	struct skbuf *cmsg, *tmp;
 	u32 iovlen = skbuf_len (msg);
 
-	walk_msg_s (cmsg, ncmsg, &msg->cmsg_head) {
+	walk_msg_s (cmsg, tmp, &msg->cmsg_head) {
 		iovlen += skbuf_lens (cmsg);
 	}
 	return iovlen;
@@ -50,11 +50,11 @@ char *skbuf_base (struct skbuf *msg)
 int skbuf_serialize (struct skbuf *msg, struct list_head *head)
 {
 	int rc = 0;
-	struct skbuf *cmsg, *ncmsg;
+	struct skbuf *cmsg, *tmp;
 
 	rc++;
 	list_add_tail (&msg->item, head);
-	walk_msg_s (cmsg, ncmsg, &msg->cmsg_head) {
+	walk_msg_s (cmsg, tmp, &msg->cmsg_head) {
 		list_del_init (&cmsg->item);
 		rc += skbuf_serialize (cmsg, head);
 	}
@@ -85,8 +85,8 @@ char *xallocubuf (int size)
 
 void xfree_skbuf (struct skbuf *msg)
 {
-	struct skbuf *cmsg, *ncmsg;
-	walk_msg_s (cmsg, ncmsg, &msg->cmsg_head) {
+	struct skbuf *cmsg, *tmp;
+	walk_msg_s (cmsg, tmp, &msg->cmsg_head) {
 		list_del_init (&cmsg->item);
 		xfree_skbuf (cmsg);
 	}
