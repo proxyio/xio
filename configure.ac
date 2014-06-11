@@ -69,6 +69,10 @@ AS_IF([test "$enable_lua" = "yes"], [
     AC_CHECK_LIB([lua], [lua_pushnumber])
 ])
 
+AS_IF([test x"$GCC" = x"yes"], [
+    AC_DEFINE([HAVE_GCC], [], [gcc compiler support])
+])
+
 
 
 AC_CONFIG_FILES([Makefile])

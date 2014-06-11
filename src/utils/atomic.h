@@ -23,9 +23,12 @@
 #ifndef _XIO_ATOMIC_
 #define _XIO_ATOMIC_
 
+#include <config.h>
 #include <inttypes.h>
 
-#if !defined HAVE_GCC_ATOMIC_BUILTINS
+#if defined HAVE_GCC
+#include "atomic_gcc.h"
+#else
 #include "atomic_spin.h"
 #endif
 
