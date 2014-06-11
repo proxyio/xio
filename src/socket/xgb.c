@@ -40,10 +40,10 @@ static void __shutdown_socks_task_hndl (struct xcpu *cpu)
 	struct list_head st_head = {};
 
 	INIT_LIST_HEAD (&st_head);
-	mutex_lock (&cpu->lock);
+	spin_lock (&cpu->lock);
 	efd_unsignal (&cpu->efd);
 	list_splice (&cpu->shutdown_socks, &st_head);
-	mutex_unlock (&cpu->lock);
+	spin_unlock (&cpu->lock);
 
 	walk_task_s (ts, nx_ts, &st_head) {
 		list_del_init (&ts->link);
@@ -65,7 +65,7 @@ static inline int kcpud (void *args)
 	int cpu_no = xcpu_alloc();
 	struct xcpu *cpu = xcpuget (cpu_no);
 
-	mutex_init (&cpu->lock);
+	spin_init (&cpu->lock);
 	INIT_LIST_HEAD (&cpu->shutdown_socks);
 
 	/* Init eventloop and wakeup parent */
@@ -95,7 +95,7 @@ static inline int kcpud (void *args)
 	/* Release the poll descriptor when kcpud exit. */
 	xcpu_free (cpu_no);
 	eloop_destroy (&cpu->el);
-	mutex_destroy (&cpu->lock);
+	spin_destroy (&cpu->lock);
 	return rc;
 }
 

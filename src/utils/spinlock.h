@@ -29,9 +29,16 @@ typedef struct spin {
 	pthread_spinlock_t _spin;
 } spin_t;
 
-int spin_init (spin_t *spin);
-int spin_lock (spin_t *spin);
-int spin_unlock (spin_t *spin);
-int spin_destroy (spin_t *spin);
+int spin_init (spin_t *lock);
+int spin_lock (spin_t *lock);
+int spin_unlock (spin_t *lock);
+
+static inline void spin_relock (spin_t *lock)
+{
+	spin_unlock (lock);
+	spin_lock (lock);
+}
+
+int spin_destroy (spin_t *lock);
 
 #endif

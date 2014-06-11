@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_XCPU_
-#define _XIO_XCPU_
+#ifndef _XIO_CPU_
+#define _XIO_CPU_
 
 #include <utils/list.h>
 #include <utils/mutex.h>
@@ -41,9 +41,7 @@ struct xtask {
     walk_each_entry_s(ts, nt, head, struct xtask, link)
 
 struct xcpu {
-	//spin_t lock; // for release mode
-
-	mutex_t lock; // for debug mode
+	spin_t lock;
 
 	/* Backend eventloop for cpu_worker. */
 	eloop_t el;
