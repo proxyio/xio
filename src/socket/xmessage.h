@@ -27,6 +27,7 @@
 #include <utils/list.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
+#include <utils/atomic.h>
 
 /* The transport protocol header is 6 bytes long and looks like this:
  * +--------+------------+------------+
@@ -52,6 +53,7 @@ struct xiov {
 struct skbuf {
 	struct list_head item;
 	struct list_head cmsg_head;
+	atomic_t ref;
 	struct xiov chunk;
 };
 

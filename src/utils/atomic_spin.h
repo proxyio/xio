@@ -43,7 +43,7 @@ static inline void atomic_destroy(atomic_t *at)
 	spin_destroy(&at->lock);
 }
 
-static inline i64 atomic_incs(atomic_t *at, i64 ref)
+static inline i64 atomic_incrs(atomic_t *at, i64 ref)
 {
 	int64_t old;
 	spin_lock(&at->lock);
@@ -53,7 +53,7 @@ static inline i64 atomic_incs(atomic_t *at, i64 ref)
 	return old;
 }
 
-static inline i64 atomic_decs(atomic_t *at, i64 ref)
+static inline i64 atomic_decrs(atomic_t *at, i64 ref)
 {
 	int64_t old;
 	spin_lock(&at->lock);
@@ -63,14 +63,14 @@ static inline i64 atomic_decs(atomic_t *at, i64 ref)
 	return old;
 }
 
-static inline i64 atomic_inc(atomic_t *at)
+static inline i64 atomic_incr(atomic_t *at)
 {
-	return atomic_incs(at, 1);
+	return atomic_incrs(at, 1);
 }
 
-static inline i64 atomic_dec(atomic_t *at)
+static inline i64 atomic_decr(atomic_t *at)
 {
-	return atomic_decs(at, 1);
+	return atomic_decrs(at, 1);
 }
 
 static inline i64 atomic_fetch(atomic_t *at)

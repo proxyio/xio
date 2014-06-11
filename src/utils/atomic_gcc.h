@@ -40,24 +40,24 @@ static inline void atomic_destroy(atomic_t *at)
 {
 }
 
-static inline i64 atomic_incs(atomic_t *at, i64 ref)
+static inline i64 atomic_incrs(atomic_t *at, i64 ref)
 {
 	return __sync_fetch_and_add (&at->ref, ref);
 }
 
-static inline i64 atomic_decs(atomic_t *at, i64 ref)
+static inline i64 atomic_decrs(atomic_t *at, i64 ref)
 {
 	return __sync_fetch_and_sub (&at->ref, ref);
 }
 
-static inline i64 atomic_inc(atomic_t *at)
+static inline i64 atomic_incr(atomic_t *at)
 {
-	return atomic_incs(at, 1);
+	return atomic_incrs(at, 1);
 }
 
-static inline i64 atomic_dec(atomic_t *at)
+static inline i64 atomic_decr(atomic_t *at)
 {
-	return atomic_decs(at, 1);
+	return atomic_decrs(at, 1);
 }
 
 static inline i64 atomic_fetch(atomic_t *at)

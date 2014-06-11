@@ -45,7 +45,7 @@ struct sockbase *getlistener (const char *addr) {
 		mutex_lock (&sb->lock);
 		if (!sb->fepipe) {
 			refed = true;
-			atomic_inc (&sb->ref);
+			atomic_incr (&sb->ref);
 		}
 		mutex_unlock (&sb->lock);
 		if (!refed)

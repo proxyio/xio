@@ -127,7 +127,7 @@ struct xpoll_t *pget (int pollid) {
 		spin_unlock (&pg.lock);
 		return 0;
 	}
-	atomic_inc (&self->ref);
+	atomic_incr (&self->ref);
 	spin_unlock (&pg.lock);
 	return self;
 }
@@ -136,7 +136,7 @@ void pput (int pollid)
 {
 	struct xpoll_t *self = pg.polls[pollid];
 
-	if (atomic_dec (&self->ref) ==  1) {
+	if (atomic_decr (&self->ref) ==  1) {
 		spin_lock (&pg.lock);
 		pg.unused[--pg.npolls] = pollid;
 		xpoll_destroy (self);
@@ -188,7 +188,7 @@ struct xpitem *addfd (struct xpoll_t *self, int fd) {
 
 	/* Cycle reference of xpoll_t and xpitem */
 	itm->ref++;
-	atomic_inc (&self->ref);
+	atomic_incr (&self->ref);
 
 	itm->base.ent.fd = fd;
 	BUG_ON (attached (&itm->lru_link) );

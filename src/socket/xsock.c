@@ -61,7 +61,7 @@ int xalloc (int family, int socktype)
 	BUG_ON (xgb.nsockbases >= XIO_MAX_SOCKS);
 	sb->fd = xgb.unused[xgb.nsockbases++];
 	xgb.sockbases[sb->fd] = sb;
-	atomic_inc (&sb->ref);
+	atomic_incr (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	BUG_ON (atomic_fetch (&sb->ref) != 1);
 	DEBUG_OFF ("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
@@ -76,7 +76,7 @@ struct sockbase *xget (int fd) {
 		return 0;
 	}
 	BUG_ON (!atomic_fetch (&sb->ref) );
-	atomic_inc (&sb->ref);
+	atomic_incr (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	return sb;
 }
@@ -88,7 +88,7 @@ void xput (int fd)
 
 	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
-	if (atomic_dec (&sb->ref) == 1) {
+	if (atomic_decr (&sb->ref) == 1) {
 		xgb.sockbases[sb->fd] = 0;
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		DEBUG_OFF ("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);

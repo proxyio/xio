@@ -70,6 +70,8 @@ struct skbuf *xalloc_skbuf (int size) {
 	msg->chunk.iov_len = size;
 	msg->chunk.checksum = crc16 ( (char *) &msg->chunk.iov_len, sizeof (msg->chunk) -
 	                              sizeof (u16) );
+	atomic_init (&msg->ref);
+	atomic_incr (&msg->ref);
 	return msg;
 }
 

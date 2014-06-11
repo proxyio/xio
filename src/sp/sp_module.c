@@ -254,7 +254,7 @@ int eid_alloc (int sp_family, int sp_type)
 	eid = sg.unused[sg.nendpoints++];
 	ep->eid = eid;
 	sg.endpoints[eid] = ep;
-	atomic_inc (&ep->ref);
+	atomic_incr (&ep->ref);
 	mutex_unlock (&sg.lock);
 	return eid;
 }
@@ -271,7 +271,7 @@ struct epbase *eid_get (int eid) {
 		return 0;
 	}
 	BUG_ON (!atomic_fetch (&ep->ref) );
-	atomic_inc (&ep->ref);
+	atomic_incr (&ep->ref);
 	mutex_unlock (&sg.lock);
 	return ep;
 }
@@ -281,7 +281,7 @@ void eid_put (int eid)
 	struct epbase *ep = sg.endpoints[eid];
 
 	BUG_ON (!ep);
-	if (atomic_dec (&ep->ref) == 1) {
+	if (atomic_decr (&ep->ref) == 1) {
 		mutex_lock (&sg.lock);
 		list_add_tail (&ep->item, &sg.shutdown_head);
 		mutex_unlock (&sg.lock);

@@ -75,7 +75,7 @@ static struct sockbase *xinp_alloc() {
 	if (self) {
 		xsock_init (&self->base);
 		atomic_init (&self->ref);
-		atomic_inc (&self->ref);
+		atomic_incr (&self->ref);
 		return &self->base;
 	}
 	return 0;
@@ -111,13 +111,13 @@ static int xinp_connector_bind (struct sockbase *sb, const char *sock)
 	strncpy (sb->peer, sock, TP_SOCKADDRLEN);
 	strncpy (nsb->addr, sock, TP_SOCKADDRLEN);
 
-	atomic_inc (&self->ref);
-	atomic_inc (&peer->ref);
+	atomic_incr (&self->ref);
+	atomic_incr (&peer->ref);
 	self->peer = &peer->base;
 	peer->peer = &self->base;
 
 	if (acceptq_add (listener, nsb) < 0) {
-		atomic_dec (&peer->ref);
+		atomic_decr (&peer->ref);
 		sb->vfptr->close (nsb);
 		xput (listener->fd);
 		errno = ECONNREFUSED;
@@ -136,7 +136,7 @@ static void xinp_peer_close (struct inproc_sock *peer)
 		condition_broadcast (&peer->base.cond);
 	mutex_unlock (&peer->base.lock);
 
-	if (atomic_dec (&peer->ref) == 1) {
+	if (atomic_decr (&peer->ref) == 1) {
 		xsock_exit (&peer->base);
 		atomic_destroy (&peer->ref);
 		mem_free (peer, sizeof (*peer) );
@@ -153,7 +153,7 @@ static void xinp_connector_close (struct sockbase *sb)
 		peer = cont_of (self->peer, struct inproc_sock, base);
 		xinp_peer_close (peer);
 	}
-	if (atomic_dec (&self->ref) == 1) {
+	if (atomic_decr (&self->ref) == 1) {
 		xsock_exit (&self->base);
 		atomic_destroy (&self->ref);
 		mem_free (self, sizeof (*self) );
