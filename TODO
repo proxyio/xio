@@ -3,4 +3,4 @@
 3. PUBSUB scalability protocol
 4. BUS scalability protocol
 5. little endian/big endian for network transmit
-6. optimize the atomic API
+6. optimize the atomic API                                   -- 2014/06/10 done
