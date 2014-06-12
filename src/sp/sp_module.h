@@ -105,6 +105,26 @@ void sg_update_tg (struct tgtd *tg, u32 ev);
 int sp_generic_term_by_tgtd (struct epbase *ep, struct tgtd *tg);
 int sp_generic_term_by_fd (struct epbase *ep, int fd);
 
+static inline void tgtd_try_enable_out (struct tgtd *tg)
+{
+	struct epbase *ep = tg->owner;
+
+	if (! (tg->ent.events & XPOLLOUT) ) {
+		sg_update_tg (tg, tg->ent.events | XPOLLOUT);
+		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
+	}
+}
+
+static inline void tgtd_try_disable_out (struct tgtd *tg)
+{
+	struct epbase *ep = tg->owner;
+
+	if ( (tg->ent.events & XPOLLOUT) ) {
+		sg_update_tg (tg, tg->ent.events & ~XPOLLOUT);
+		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
+	}
+}
+
 struct skbuf_head {
 	int wnd;                        /* skbuff windows */
 	int size;                       /* current buffer size */

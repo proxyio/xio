@@ -59,8 +59,8 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 	if (uuid_compare (rt->uuid, get_rrtgtd (tg)->uuid) )
 		uuid_copy (get_rrtgtd (tg)->uuid, rt->uuid);
-	skbuf_head_in (&get_rrtgtd (go)->snd, ubuf);
-	__tgtd_try_enable_out (go);
+	skbuf_head_in (&get_rrtgtd (go)->ls_head, ubuf);
+	tgtd_try_enable_out (go);
 	DEBUG_OFF ("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	return 0;
 }
@@ -68,12 +68,12 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	struct rtentry rt = {};
-	if (skbuf_head_empty (&get_rrtgtd (tg)->snd) ) {
-		__tgtd_try_disable_out (tg);
+	if (skbuf_head_empty (&get_rrtgtd (tg)->ls_head) ) {
+		tgtd_try_disable_out (tg);
 		return -1;
 	}
 	uuid_copy (rt.uuid, get_rrtgtd (tg)->uuid);
-	skbuf_head_out (&get_rrtgtd (tg)->snd, *ubuf);
+	skbuf_head_out (&get_rrtgtd (tg)->ls_head, *ubuf);
 	rt_append (*ubuf, &rt);
 	DEBUG_OFF ("ep %d req %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
 	return 0;
@@ -89,19 +89,19 @@ static int dispatcher_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 	if (!back)
 		return -1;
 	pg->ttl--;
-	skbuf_head_in (&get_rrtgtd (back)->snd, ubuf);
-	__tgtd_try_enable_out (back);
+	skbuf_head_in (&get_rrtgtd (back)->ls_head, ubuf);
+	tgtd_try_enable_out (back);
 	DEBUG_OFF ("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	return 0;
 }
 
 static int receiver_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-	if (skbuf_head_empty (&get_rrtgtd (tg)->snd) ) {
-		__tgtd_try_disable_out (tg);
+	if (skbuf_head_empty (&get_rrtgtd (tg)->ls_head) ) {
+		tgtd_try_disable_out (tg);
 		return -1;
 	}
-	skbuf_head_out (&get_rrtgtd (tg)->snd, *ubuf);
+	skbuf_head_out (&get_rrtgtd (tg)->ls_head, *ubuf);
 	DEBUG_OFF ("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
 	return 0;
 }

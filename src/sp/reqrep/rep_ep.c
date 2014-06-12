@@ -93,7 +93,7 @@ static struct tgtd *repep_join (struct epbase *ep, int fd) {
 
 	if (!rr_tg)
 		return 0;
-	skbuf_head_init (&rr_tg->snd, SP_SNDWND);
+	skbuf_head_init (&rr_tg->ls_head, SP_SNDWND);
 	generic_tgtd_init (ep, &rr_tg->tg, fd);
 	return &rr_tg->tg;
 }

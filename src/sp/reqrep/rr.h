@@ -113,7 +113,7 @@ static inline void rt_append (char *ubuf, struct rtentry *rt)
 struct rrtgtd {
 	struct tgtd tg;
 	uuid_t uuid;
-	struct skbuf_head snd;
+	struct skbuf_head ls_head;   /* local storage */
 };
 
 static inline void rrtgtd_free(struct rrtgtd *rr_tg) {
@@ -123,27 +123,6 @@ static inline void rrtgtd_free(struct rrtgtd *rr_tg) {
 static inline struct rrtgtd *get_rrtgtd (struct tgtd *tg) {
 	return cont_of (tg, struct rrtgtd, tg);
 }
-
-static inline void __tgtd_try_enable_out (struct tgtd *tg)
-{
-	struct epbase *ep = tg->owner;
-
-	if (! (tg->ent.events & XPOLLOUT) ) {
-		sg_update_tg (tg, tg->ent.events | XPOLLOUT);
-		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
-	}
-}
-
-static inline void __tgtd_try_disable_out (struct tgtd *tg)
-{
-	struct epbase *ep = tg->owner;
-
-	if ( (tg->ent.events & XPOLLOUT) ) {
-		sg_update_tg (tg, tg->ent.events & ~XPOLLOUT);
-		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
-	}
-}
-
 
 
 #endif
