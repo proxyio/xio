@@ -166,6 +166,7 @@ UTILS_TESTS = \
 	tests/xsocket_ts \
 	tests/poll_ts \
 	tests/sp_reqrep_ts \
+	tests/sp_pubsub_ts \
 	tests/sp_pipeline_ts
 
 check_PROGRAMS = \

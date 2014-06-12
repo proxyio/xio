@@ -92,7 +92,6 @@ static void reqep_term (struct epbase *ep, struct tgtd *tg)
 }
 
 static struct tgtd *reqep_join (struct epbase *ep, int fd) {
-	int rc;
 	struct rrtgtd *rr_tg = TNEW (struct rrtgtd);
 
 	if (!rr_tg)

@@ -41,29 +41,63 @@ static void pub_ep_destroy (struct epbase *ep)
 static int pub_ep_send (struct epbase *ep, char *ubuf)
 {
 	int rc = 0;
+	char *dst;
+	struct tgtd *tg;
+
+	mutex_lock (&ep->lock);
+	walk_tgtd (tg, &ep->connectors) {
+		dst = ubuf;
+		if (list_next (&tg->item) != &ep->connectors)
+			BUG_ON ((rc = ubufctl (ubuf, SCLONE, &dst)));
+		skbuf_head_in (&get_pubsub_tgtd (tg)->ls_head, dst);
+		tgtd_try_enable_out (tg);
+	}
+	mutex_unlock (&ep->lock);
 	return rc;
 }
 
+/* limited by the pubsub protocol, the sub endpoint can't send any
+   message to pub endpoint, if it do it, we can mark this socket on
+   bad status, or drop the message simply. */
 static int pub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-	/* limited by the pubsub protocol, the sub endpoint can't send any
-	 * message to pub endpoint, if it do it, we can mark this socket on
-	 * bad status, or drop the message simply. */
-	int rc = 0;
-	xfreeubuf(ubuf);
+	int rc = -1;
+
+	if (rc)
+		errno = EPERM;
 	return rc;
 }
 
 static int pub_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-	int rc = 0;
-	return rc;
+	mutex_lock (&ep->lock);
+	if (skbuf_head_empty (&get_pubsub_tgtd (tg)->ls_head)) {
+		tgtd_try_disable_out (tg);
+		mutex_unlock (&ep->lock);
+		return -1;
+	}
+	skbuf_head_out (&get_pubsub_tgtd (tg)->ls_head, *ubuf);
+	mutex_unlock (&ep->lock);
+	return 0;
 }
 
-static struct tgtd *pub_ep_join (struct epbase *ep, int fd) {
-	struct tgtd *tg = 0;
-	return tg;
+static struct tgtd *pub_ep_join (struct epbase *ep, int fd)
+{
+	struct pubsub_tgtd *ps_tg = TNEW(struct pubsub_tgtd);
+
+	if (!ps_tg)
+		return 0;
+	skbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
+	generic_tgtd_init (ep, &ps_tg->tg, fd);
+	return &ps_tg->tg;
 }
+
+static void pub_ep_term (struct epbase *ep, struct tgtd *tg)
+{
+	pubsub_tgtd_free (get_pubsub_tgtd (tg) );
+}
+
+
 
 static const ep_setopt setopt_vfptr[] = {
 	0,
@@ -104,9 +138,10 @@ static struct epbase_vfptr pub_epbase = {
 	.add = pub_ep_add,
 	.rm = pub_ep_rm,
 	.join = pub_ep_join,
+	.term = pub_ep_term,
 	.setopt = pub_ep_setopt,
 	.getopt = pub_ep_getopt,
 };
 
-struct epbase_vfptr *pub_epbase_vfptr = &pub_epbase;
+struct epbase_vfptr *pubep_vfptr = &pub_epbase;
 

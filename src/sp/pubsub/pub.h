@@ -25,6 +25,8 @@
 
 #include <xio/sp_pubsub.h>
 #include <sp/sp_module.h>
+#include "pubsub.h"
+
 
 struct pub_ep {
 	struct epbase base;

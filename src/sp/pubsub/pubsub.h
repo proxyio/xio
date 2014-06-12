@@ -20,15 +20,22 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_SUB_
-#define _SP_SUB_
+#ifndef _PUBSUB_
+#define _PUBSUB_
 
-#include <xio/sp_pubsub.h>
-#include <sp/sp_module.h>
-#include "pubsub.h"
+#include <sp/sp_hdr.h>
 
-struct sub_ep {
-	struct epbase base;
+struct pubsub_tgtd {
+	struct tgtd tg;
+	struct skbuf_head ls_head;   /* local storage */
 };
+
+static inline void pubsub_tgtd_free(struct pubsub_tgtd *ps_tg) {
+	mem_free (ps_tg, sizeof (struct pubsub_tgtd) );
+}
+
+static inline struct pubsub_tgtd *get_pubsub_tgtd (struct tgtd *tg) {
+	return cont_of (tg, struct pubsub_tgtd, tg);
+}
 
 #endif

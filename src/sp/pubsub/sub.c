@@ -40,25 +40,43 @@ static void sub_ep_destroy (struct epbase *ep)
 
 static int sub_ep_send (struct epbase *ep, char *ubuf)
 {
-	int rc = 0;
+	int rc = -1;
+
+	if (rc)
+		errno = EPERM;
 	return rc;
 }
 
 static int sub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-	int rc = 0;
-	return rc;
+	mutex_lock (&ep->lock);
+	skbuf_head_in (&ep->rcv, ubuf);
+	if (ep->rcv.waiters)
+		condition_broadcast (&ep->cond);
+	mutex_unlock (&ep->lock);
+	return 0;
 }
 
 static int sub_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-	int rc = 0;
-	return rc;
+	tgtd_try_disable_out (tg);
+	return -1;
 }
 
-static struct tgtd *sub_ep_join (struct epbase *ep, int fd) {
-	struct tgtd *tg = 0;
-	return tg;
+static struct tgtd *sub_ep_join (struct epbase *ep, int fd)
+{
+	struct pubsub_tgtd *ps_tg = TNEW(struct pubsub_tgtd);
+
+	if (!ps_tg)
+		return 0;
+	skbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
+	generic_tgtd_init (ep, &ps_tg->tg, fd);
+	return &ps_tg->tg;
+}
+
+static void sub_ep_term (struct epbase *ep, struct tgtd *tg)
+{
+	pubsub_tgtd_free (get_pubsub_tgtd (tg) );
 }
 
 static const ep_setopt setopt_vfptr[] = {
@@ -100,11 +118,12 @@ static struct epbase_vfptr sub_epbase = {
 	.add = sub_ep_add,
 	.rm = sub_ep_rm,
 	.join = sub_ep_join,
+	.term = sub_ep_term,
 	.setopt = sub_ep_setopt,
 	.getopt = sub_ep_getopt,
 };
 
-struct epbase_vfptr *sub_epbase_vfptr = &sub_epbase;
+struct epbase_vfptr *subep_vfptr = &sub_epbase;
 
 
 

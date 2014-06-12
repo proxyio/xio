@@ -197,6 +197,9 @@ SD_EPBASE:
 
 extern struct epbase_vfptr *reqep_vfptr;
 extern struct epbase_vfptr *repep_vfptr;
+extern struct epbase_vfptr *pubep_vfptr;
+extern struct epbase_vfptr *subep_vfptr;
+
 
 void sp_module_init()
 {
@@ -218,6 +221,8 @@ void sp_module_init()
 	INIT_LIST_HEAD (&sg.epbase_head);
 	list_add_tail (&reqep_vfptr->item, &sg.epbase_head);
 	list_add_tail (&repep_vfptr->item, &sg.epbase_head);
+	list_add_tail (&pubep_vfptr->item, &sg.epbase_head);
+	list_add_tail (&subep_vfptr->item, &sg.epbase_head);
 	INIT_LIST_HEAD (&sg.shutdown_head);
 
 	waitgroup_add (&wg);

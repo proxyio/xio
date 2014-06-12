@@ -206,6 +206,8 @@ static inline void list_splice (struct list_head *head1, struct list_head *head2
 
 #define list_next(pos) (pos)->next
 
+#define list_prev(pos) (pos)->prev
+
 // Interate over a list
 // @param pos        the &struct list_head to use as a loop conter.
 // @param head       the head for your list.
