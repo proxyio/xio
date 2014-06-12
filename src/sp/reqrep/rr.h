@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_RRHDR_
-#define _XIO_RRHDR_
+#ifndef _RR_
+#define _RR_
 
 #include <sp/sp_hdr.h>
 
