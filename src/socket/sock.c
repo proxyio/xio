@@ -64,7 +64,7 @@ int xalloc (int family, int socktype)
 	atomic_incr (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	BUG_ON (atomic_fetch (&sb->ref) != 1);
-	DEBUG_OFF ("xsock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
+	DEBUG_OFF ("sock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
 	return sb->fd;
 }
 
@@ -84,14 +84,14 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
 	if (atomic_decr (&sb->ref) == 1) {
 		xgb.sockbases[sb->fd] = 0;
 		xgb.unused[--xgb.nsockbases] = sb->fd;
-		DEBUG_OFF ("xsock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
 		spin_lock (&cpu->lock);
 		while (efd_signal (&cpu->efd) < 0)
@@ -109,7 +109,7 @@ static void xshutdown_task_f (struct actor_task *ts)
 	sb->vfptr->close (sb);
 }
 
-void xsock_init (struct sockbase *sb)
+void sockbase_init (struct sockbase *sb)
 {
 	mutex_init (&sb->lock);
 	condition_init (&sb->cond);
@@ -122,7 +122,7 @@ void xsock_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->cpu_no = xactor_choosed (sb->fd);
+	sb->cpu_no = actor_choosed (sb->fd);
 
 	sb->rcv.waiters = 0;
 	sb->rcv.buf = 0;
@@ -143,7 +143,7 @@ void xsock_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->acceptq.link);
 }
 
-void xsock_exit (struct sockbase *sb)
+void sockbase_exit (struct sockbase *sb)
 {
 	struct list_head head = {};
 	struct skbuf *msg, *nmsg;
@@ -178,7 +178,7 @@ void xsock_exit (struct sockbase *sb)
 	}
 
 	/* It's possible that user call xclose() and xpoll_add()
-	 * at the same time. and attach_to_xsock() happen after xclose().
+	 * at the same time. and attach_to_sock() happen after xclose().
 	 * this is a user's bug.
 	 */
 	BUG_ON (!list_empty (&sb->poll_entries) );

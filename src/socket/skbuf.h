@@ -20,40 +20,53 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_CPU_
-#define _XIO_CPU_
+#ifndef _H_SKBUF_
+#define _H_SKBUF_
 
+#include <utils/base.h>
 #include <utils/list.h>
-#include <utils/mutex.h>
-#include <utils/spinlock.h>
-#include <utils/eventloop.h>
-#include <utils/efd.h>
+#include <xio/socket.h>
+#include <xio/cmsghdr.h>
+#include <utils/atomic.h>
 
-struct actor_task {
-	void (*f) (struct actor_task *ts);
-	struct list_head link;
+/* The transport protocol header is 6 bytes long and looks like this:
+ * +--------+------------+------------+
+ * | 0xffff | 0xffffffff | 0xffffffff |
+ * +--------+------------+------------+
+ * |  crc16 |    size    |   chunk    |
+ * +--------+------------+------------+
+ */
+
+
+#define SKBUF_SUBNUMMARK 0xf           // 16
+#define SKBUF_CMSGLENMARK 0xfff         // 4k
+
+/* TODO: little endian and big endian */
+struct xiov {
+	u16 checksum;
+	u16 cmsg_num:4;
+	u16 cmsg_length:12;
+	u32 iov_len;
+	char iov_base[0];
 };
 
-#define walk_task_s(ts, tmp, head)			\
-    walk_each_entry_s(ts, tmp, head, struct actor_task, link)
-
-struct xactor {
-	spin_t lock;
-
-	/* Backend eventloop for cpu_worker. */
-	eloop_t el;
-
-	ev_t efd_et;
-	struct efd efd;
-
-	/* Waiting for closed xsock will be attached here */
-	struct list_head shutdown_socks;
+struct skbuf {
+	struct list_head item;
+	struct list_head cmsg_head;
+	atomic_t ref;
+	struct xiov chunk;
 };
 
-int xactor_alloc();
-int xactor_choosed (int fd);
-void xactor_free (int cpu_no);
-struct xactor *xactorget (int cpu_no);
+u32 skbuf_len (struct skbuf *msg);
+char *skbuf_base (struct skbuf *msg);
+struct skbuf *xalloc_skbuf (int size);
+void xfree_skbuf (struct skbuf *msg);
+
+#define walk_msg_s(pos, next, head)				\
+    walk_each_entry_s(pos, next, head, struct skbuf, item)
+
+int skbuf_serialize (struct skbuf *msg, struct list_head *head);
+
 
 
 

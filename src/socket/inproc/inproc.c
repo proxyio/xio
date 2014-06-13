@@ -40,7 +40,7 @@ static int snd_head_push (struct sockbase *sb)
 	struct skbuf *msg;
 	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base) )->peer;
 
-	// TODO: maybe the peer xsock can't recv anymore after the check.
+	// TODO: maybe the peer sock can't recv anymore after the check.
 	mutex_unlock (&sb->lock);
 
 	mutex_lock (&peer->lock);
@@ -73,7 +73,7 @@ static struct sockbase *xinp_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
 	if (self) {
-		xsock_init (&self->base);
+		sockbase_init (&self->base);
 		atomic_init (&self->ref);
 		atomic_incr (&self->ref);
 		return &self->base;
@@ -84,7 +84,7 @@ static struct sockbase *xinp_alloc() {
 
 
 /******************************************************************************
- *  xsock_inproc_spec
+ *  sock_inproc_spec
  ******************************************************************************/
 
 static int xinp_connector_bind (struct sockbase *sb, const char *sock)
@@ -130,14 +130,14 @@ static int xinp_connector_bind (struct sockbase *sb, const char *sock)
 
 static void xinp_peer_close (struct inproc_sock *peer)
 {
-	/* Destroy the xsock and free xsock id if i hold the last ref. */
+	/* Destroy the sock and free sock id if i hold the last ref. */
 	mutex_lock (&peer->base.lock);
 	if (peer->base.rcv.waiters || peer->base.snd.waiters)
 		condition_broadcast (&peer->base.cond);
 	mutex_unlock (&peer->base.lock);
 
 	if (atomic_decr (&peer->ref) == 1) {
-		xsock_exit (&peer->base);
+		sockbase_exit (&peer->base);
 		atomic_destroy (&peer->ref);
 		mem_free (peer, sizeof (*peer) );
 	}
@@ -154,7 +154,7 @@ static void xinp_connector_close (struct sockbase *sb)
 		xinp_peer_close (peer);
 	}
 	if (atomic_decr (&self->ref) == 1) {
-		xsock_exit (&self->base);
+		sockbase_exit (&self->base);
 		atomic_destroy (&self->ref);
 		mem_free (self, sizeof (*self) );
 	}

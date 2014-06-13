@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <utils/alloc.h>
 #include <utils/crc.h>
-#include "xmessage.h"
+#include "skbuf.h"
 
 
 u32 skbuf_len (struct skbuf *msg)

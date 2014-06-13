@@ -20,30 +20,24 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_TCPIPC_SOCK_
-#define _XIO_TCPIPC_SOCK_
+#ifndef _H_INPROC_SOCK_
+#define _H_INPROC_SOCK_
 
-#include "xsock.h"
+#include "sock.h"
 
-struct tcpipc_sock {
+struct inproc_sock {
 	struct sockbase base;
-	ev_t et;
-	struct bio in;
-	struct bio out;
-	struct io ops;
-	int sys_fd;
-	struct iovec iov[100];
-	struct iovec *biov;
-	int iov_start;
-	int iov_end;
-	int iov_length;
-	struct list_head sg_head;
-	struct transport *vtp;
+	atomic_t ref;
+
+	/* For inproc-listener */
+	struct ssmap_node rb_link;
+
+	/* For inproc-connector and inproc-accepter */
+	struct sockbase *peer;
 };
 
-extern struct sockbase_vfptr xtcp_listener_spec;
-extern struct sockbase_vfptr xtcp_connector_spec;
-extern struct sockbase_vfptr xipc_listener_spec;
-extern struct sockbase_vfptr xipc_connector_spec;
+extern struct sockbase_vfptr xinp_listener_spec;
+extern struct sockbase_vfptr xinp_connector_spec;
+
 
 #endif

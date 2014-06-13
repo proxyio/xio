@@ -36,7 +36,7 @@ extern struct io default_xops;
 static void request_socks_full (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if ( (self->et.events & EPOLLIN) ) {
@@ -48,7 +48,7 @@ static void request_socks_full (struct sockbase *sb)
 static void request_socks_nonfull (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if (! (self->et.events & EPOLLIN) ) {
@@ -63,7 +63,7 @@ static int xio_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int sys_fd, on = 1;
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	BUG_ON (! (self->vtp = transport_lookup (sb->vfptr->pf) ) );
 	if ( (sys_fd = self->vtp->bind (sock) ) < 0)
@@ -83,12 +83,12 @@ static int xio_listener_bind (struct sockbase *sb, const char *sock)
 static void xio_listener_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 	struct sockbase *nsb;
 
 	BUG_ON (!self->vtp);
 
-	/* Detach xsock low-level file descriptor from poller */
+	/* Detach sock low-level file descriptor from poller */
 	BUG_ON (eloop_del (&cpu->el, &self->et) != 0);
 	self->vtp->close (self->sys_fd);
 
@@ -104,8 +104,8 @@ static void xio_listener_close (struct sockbase *sb)
 		xclose (nsb->fd);
 	}
 
-	/* Destroy the xsock base and free xsockid. */
-	xsock_exit (sb);
+	/* Destroy the sock base and free sockid. */
+	sockbase_exit (sb);
 	mem_free (self, sizeof (*self) );
 }
 
@@ -137,7 +137,7 @@ static int xio_listener_hndl (eloop_t *el, ev_t *et)
 	struct sockbase *sb = &self->base;
 	int on = 1;
 	int nfd;
-	struct xactor *cpu;
+	struct actor *cpu;
 	struct sockbase *nsb = 0;
 	struct tcpipc_sock *nself = 0;
 
@@ -158,7 +158,7 @@ static int xio_listener_hndl (eloop_t *el, ev_t *et)
 		return -1;
 	}
 	nsb = xgb.sockbases[nfd];
-	cpu = xactorget (nsb->cpu_no);
+	cpu = actorget (nsb->cpu_no);
 	nself = cont_of (nsb, struct tcpipc_sock, base);
 
 	DEBUG_OFF ("%d accept new connection %d", sb->fd, nfd);

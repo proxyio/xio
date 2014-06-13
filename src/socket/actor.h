@@ -20,24 +20,41 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_INPROC_SOCK_
-#define _XIO_INPROC_SOCK_
+#ifndef _H_ACTOR_
+#define _H_ACTOR_
 
-#include "xsock.h"
+#include <utils/list.h>
+#include <utils/mutex.h>
+#include <utils/spinlock.h>
+#include <utils/eventloop.h>
+#include <utils/efd.h>
 
-struct inproc_sock {
-	struct sockbase base;
-	atomic_t ref;
-
-	/* For inproc-listener */
-	struct ssmap_node rb_link;
-
-	/* For inproc-connector and inproc-accepter */
-	struct sockbase *peer;
+struct actor_task {
+	void (*f) (struct actor_task *ts);
+	struct list_head link;
 };
 
-extern struct sockbase_vfptr xinp_listener_spec;
-extern struct sockbase_vfptr xinp_connector_spec;
+#define walk_task_s(ts, tmp, head)			\
+    walk_each_entry_s(ts, tmp, head, struct actor_task, link)
+
+struct actor {
+	spin_t lock;
+
+	/* Backend eventloop for cpu_worker. */
+	eloop_t el;
+
+	ev_t efd_et;
+	struct efd efd;
+
+	/* Waiting for closed xsock will be attached here */
+	struct list_head shutdown_socks;
+};
+
+int actor_alloc();
+int actor_choosed (int fd);
+void actor_free (int cpu_no);
+struct actor *actorget (int cpu_no);
+
 
 
 #endif

@@ -34,7 +34,7 @@
 
 struct xglobal xgb = {};
 
-static void __shutdown_socks_task_hndl (struct xactor *cpu)
+static void __shutdown_socks_task_hndl (struct actor *cpu)
 {
 	struct actor_task *ts, *tmp;
 	struct list_head st_head = {};
@@ -62,8 +62,8 @@ static inline int kcpud (void *args)
 {
 	waitgroup_t *wg = (waitgroup_t *) args;
 	int rc = 0;
-	int cpu_no = xactor_alloc();
-	struct xactor *cpu = xactorget (cpu_no);
+	int cpu_no = actor_alloc();
+	struct actor *cpu = actorget (cpu_no);
 
 	spin_init (&cpu->lock);
 	INIT_LIST_HEAD (&cpu->shutdown_socks);
@@ -93,7 +93,7 @@ static inline int kcpud (void *args)
 
 	BUG_ON (!list_empty (&cpu->shutdown_socks) );
 	/* Release the poll descriptor when kcpud exit. */
-	xactor_free (cpu_no);
+	actor_free (cpu_no);
 	eloop_destroy (&cpu->el);
 	spin_destroy (&cpu->lock);
 	return rc;

@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include "xgb.h"
 
-int xactor_alloc()
+int actor_alloc()
 {
 	int cpu_no;
 
@@ -38,14 +38,14 @@ int xactor_alloc()
 	return cpu_no;
 }
 
-int xactor_choosed (int fd)
+int actor_choosed (int fd)
 {
 	if (xgb.ncpus == 0)
 		sleep (0xfffffff);
 	return fd % xgb.ncpus;
 }
 
-void xactor_free (int cpu_no)
+void actor_free (int cpu_no)
 {
 	mutex_lock (&xgb.lock);
 	xgb.cpu_unused[--xgb.ncpus] = cpu_no;
@@ -56,7 +56,7 @@ void xactor_free (int cpu_no)
 	mutex_unlock (&xgb.lock);
 }
 
-struct xactor *xactorget (int cpu_no) {
+struct actor *actorget (int cpu_no) {
 	return &xgb.cpus[cpu_no];
 }
 

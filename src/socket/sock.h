@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_XSOCK_
-#define _XIO_XSOCK_
+#ifndef _H_SOCK_
+#define _H_SOCK_
 
 #include <utils/base.h>
 #include <utils/map.h>
@@ -36,8 +36,8 @@
 #include <utils/transport.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
-#include "xmessage.h"
-#include "xactor.h"
+#include "skbuf.h"
+#include "actor.h"
 
 #define null NULL
 
@@ -45,15 +45,12 @@
 extern int default_sndbuf;
 extern int default_rcvbuf;
 
-int xsocket (int pf, int type);
-int xbind (int fd, const char *addr);
-
 /* Sockspec_vfptr notify types */
 #define RECV_Q           1
 #define SEND_Q           2
 #define SOCKS_REQ        3
 
-/* Following xmq events are provided by xsock */
+/* Following xmq events are provided by sockbase */
 #define XMQ_PUSH         0x01
 #define XMQ_POP          0x02
 #define XMQ_EMPTY        0x04
@@ -161,8 +158,8 @@ static inline int can_recv (struct sockbase *sb)
 int xalloc (int family, int socktype);
 struct sockbase *xget (int fd);
 void xput (int fd);
-void xsock_init (struct sockbase *sb);
-void xsock_exit (struct sockbase *sb);
+void sockbase_init (struct sockbase *sb);
+void sockbase_exit (struct sockbase *sb);
 
 int recvq_add (struct sockbase *sb, struct skbuf *msg);
 struct skbuf *recvq_rm (struct sockbase *sb);

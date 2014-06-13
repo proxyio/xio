@@ -28,7 +28,7 @@
 #include "../xgb.h"
 
 /******************************************************************************
- *  xsock's proc field operation.
+ *  sock's proc field operation.
  ******************************************************************************/
 
 struct sockbase *getlistener (const char *addr) {
@@ -78,14 +78,14 @@ static void rmlistener (struct ssmap_node *node)
 }
 
 /******************************************************************************
- *  xsock_inproc_spec
+ *  sock_inproc_spec
  ******************************************************************************/
 
 static struct sockbase *xinp_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
 	if (self) {
-		xsock_init (&self->base);
+		sockbase_init (&self->base);
 		return &self->base;
 	}
 	return 0;
@@ -121,8 +121,8 @@ static void xinp_listener_close (struct sockbase *sb)
 		xclose (nsb->fd);
 	}
 
-	/* Close the xsock and free xsock id. */
-	xsock_exit (sb);
+	/* Close the sock and free sock id. */
+	sockbase_exit (sb);
 	mem_free (self, sizeof (*self) );
 }
 

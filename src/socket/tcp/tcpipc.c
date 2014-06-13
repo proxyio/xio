@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include "../xgb.h"
-#include "../xsock.h"
+#include "../sock.h"
 
 static i64 xio_connector_read (struct io *ops, char *buff, i64 sz)
 {
@@ -62,7 +62,7 @@ struct io default_xops = {
 static void snd_head_empty (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 	int64_t sndbuf = bio_size (&self->out);
 
 	// Disable POLLOUT event when snd_head is empty
@@ -77,7 +77,7 @@ static void snd_head_empty (struct sockbase *sb)
 static void snd_head_nonempty (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if (! (self->et.events & EPOLLOUT) ) {
@@ -101,7 +101,7 @@ static void rcv_head_pop (struct sockbase *sb)
 static void rcv_head_full (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if ( (self->et.events & EPOLLIN) ) {
@@ -114,7 +114,7 @@ static void rcv_head_full (struct sockbase *sb)
 static void rcv_head_nonfull (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if (! (self->et.events & EPOLLIN) ) {
@@ -130,7 +130,7 @@ struct sockbase *xio_alloc() {
 	struct tcpipc_sock *self = TNEW (struct tcpipc_sock);
 
 	if (self) {
-		xsock_init (&self->base);
+		sockbase_init (&self->base);
 		bio_init (&self->in);
 		bio_init (&self->out);
 		INIT_LIST_HEAD (&self->sg_head);
@@ -142,7 +142,7 @@ struct sockbase *xio_alloc() {
 static int xio_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 	int sys_fd;
 	int on = 1;
 	int blen = max (default_sndbuf, default_rcvbuf);
@@ -171,14 +171,14 @@ static int xio_connector_snd (struct sockbase *sb);
 static void xio_connector_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct xactor *cpu = xactorget (sb->cpu_no);
+	struct actor *cpu = actorget (sb->cpu_no);
 
 	BUG_ON (!self->vtp);
 
 	/* Try flush buf massage into network before close */
 	xio_connector_snd (sb);
 
-	/* Detach xsock low-level file descriptor from poller */
+	/* Detach sock low-level file descriptor from poller */
 	BUG_ON (eloop_del (&cpu->el, &self->et) != 0);
 	self->vtp->close (self->sys_fd);
 
@@ -189,8 +189,8 @@ static void xio_connector_close (struct sockbase *sb)
 	self->et.data = 0;
 	self->vtp = 0;
 
-	/* Destroy the xsock base and free xsockid. */
-	xsock_exit (sb);
+	/* Destroy the sock base and free sockid. */
+	sockbase_exit (sb);
 	mem_free (self, sizeof (*self) );
 }
 
@@ -271,7 +271,7 @@ static int xio_connector_rcv (struct sockbase *sb)
 			list_add_tail (&cmsg->item, &aim->cmsg_head);
 		}
 		recvq_add (sb, aim);
-		DEBUG_OFF ("%d xsock recv one message", sb->fd);
+		DEBUG_OFF ("%d sock recv one message", sb->fd);
 	}
 	return rc;
 }
@@ -402,16 +402,16 @@ int xio_connector_hndl (eloop_t *el, ev_t *et)
 	struct sockbase *sb = &self->base;
 
 	if (et->happened & EPOLLIN) {
-		DEBUG_OFF ("io xsock %d EPOLLIN", sb->fd);
+		DEBUG_OFF ("io sock %d EPOLLIN", sb->fd);
 		rc = xio_connector_rcv (sb);
 	}
 	if (et->happened & EPOLLOUT) {
-		DEBUG_OFF ("io xsock %d EPOLLOUT", sb->fd);
+		DEBUG_OFF ("io sock %d EPOLLOUT", sb->fd);
 		rc = xio_connector_snd (sb);
 	}
 	if ( (rc < 0 && errno != EAGAIN) ||
 	     et->happened & (EPOLLERR|EPOLLRDHUP|EPOLLHUP) ) {
-		DEBUG_OFF ("io xsock %d EPIPE with events %d", sb->fd, et->happened);
+		DEBUG_OFF ("io sock %d EPIPE with events %d", sb->fd, et->happened);
 		mutex_lock (&sb->lock);
 		sb->fepipe = true;
 		if (sb->rcv.waiters || sb->snd.waiters)

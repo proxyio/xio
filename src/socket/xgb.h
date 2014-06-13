@@ -20,14 +20,14 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_XGLOBAL_
-#define _XIO_XGLOBAL_
+#ifndef _H_GLOBAL_
+#define _H_GLOBAL_
 
 #include <utils/mutex.h>
 #include <utils/list.h>
-#include "xinproc.h"
-#include "xtcpipc.h"
-#include "xactor.h"
+#include "inproc.h"
+#include "tcpipc.h"
+#include "actor.h"
 
 /* Max number of cpu core */
 #define XIO_MAX_CPUS 32
@@ -54,7 +54,7 @@ struct xglobal {
 	size_t nsockbases;
 
 
-	struct xactor cpus[XIO_MAX_CPUS];
+	struct actor cpus[XIO_MAX_CPUS];
 
 	/* Stack of unused xsock descriptors.  */
 	int cpu_unused[XIO_MAX_CPUS];

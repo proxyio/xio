@@ -20,54 +20,30 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SKBUF_
-#define _XIO_SKBUF_
+#ifndef _H_TCPIPC_SOCK_
+#define _H_TCPIPC_SOCK_
 
-#include <utils/base.h>
-#include <utils/list.h>
-#include <xio/socket.h>
-#include <xio/cmsghdr.h>
-#include <utils/atomic.h>
+#include "sock.h"
 
-/* The transport protocol header is 6 bytes long and looks like this:
- * +--------+------------+------------+
- * | 0xffff | 0xffffffff | 0xffffffff |
- * +--------+------------+------------+
- * |  crc16 |    size    |   chunk    |
- * +--------+------------+------------+
- */
-
-
-#define SKBUF_SUBNUMMARK 0xf           // 16
-#define SKBUF_CMSGLENMARK 0xfff         // 4k
-
-/* TODO: little endian and big endian */
-struct xiov {
-	u16 checksum;
-	u16 cmsg_num:4;
-	u16 cmsg_length:12;
-	u32 iov_len;
-	char iov_base[0];
+struct tcpipc_sock {
+	struct sockbase base;
+	ev_t et;
+	struct bio in;
+	struct bio out;
+	struct io ops;
+	int sys_fd;
+	struct iovec iov[100];
+	struct iovec *biov;
+	int iov_start;
+	int iov_end;
+	int iov_length;
+	struct list_head sg_head;
+	struct transport *vtp;
 };
 
-struct skbuf {
-	struct list_head item;
-	struct list_head cmsg_head;
-	atomic_t ref;
-	struct xiov chunk;
-};
-
-u32 skbuf_len (struct skbuf *msg);
-char *skbuf_base (struct skbuf *msg);
-struct skbuf *xalloc_skbuf (int size);
-void xfree_skbuf (struct skbuf *msg);
-
-#define walk_msg_s(pos, next, head)				\
-    walk_each_entry_s(pos, next, head, struct skbuf, item)
-
-int skbuf_serialize (struct skbuf *msg, struct list_head *head);
-
-
-
+extern struct sockbase_vfptr xtcp_listener_spec;
+extern struct sockbase_vfptr xtcp_connector_spec;
+extern struct sockbase_vfptr xipc_listener_spec;
+extern struct sockbase_vfptr xipc_connector_spec;
 
 #endif

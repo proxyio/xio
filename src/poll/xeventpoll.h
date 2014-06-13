@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_XPOLL_
-#define _XIO_XPOLL_
+#ifndef _H_XPOLL_
+#define _H_XPOLL_
 
 #include <utils/atomic.h>
 #include <utils/mutex.h>
@@ -29,7 +29,7 @@
 #include <utils/condition.h>
 #include <utils/list.h>
 #include <xio/poll.h>
-#include <socket/xsock.h>
+#include <socket/sock.h>
 
 struct xpitem {
 	struct pollbase base;
