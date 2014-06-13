@@ -333,7 +333,7 @@ static int sg_send (struct sockbase *sb)
 		iov++;
 	}
 	self->iov_start = iov - self->biov;
-	BUG_ON (iov > &self->iov[self->iov_end]);
+	BUG_ON (iov > &self->biov[self->iov_end]);
 	if (bio_size (&self->out) || self->iov_start < self->iov_end) {
 		errno = EAGAIN;
 		return -1;

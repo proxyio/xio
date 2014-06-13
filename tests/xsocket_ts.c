@@ -235,9 +235,28 @@ static void xexp_test()
 	inproc_server_thread2();
 }
 
+
+
+static void tcp_sg_send()
+{
+	int afd = xlisten ("tcp://127.0.0.1:15100");
+	int cfd = xconnect ("tcp://127.0.0.1:15100");
+	int i;
+	char *ubuf;
+	
+	BUG_ON (afd < 0 || cfd < 0);
+	for (i = 0; i < 1000; i++) {
+		ubuf = xallocubuf (12);
+		BUG_ON (xsend (cfd, ubuf));
+	}
+	xclose (afd);
+	xclose (cfd);
+}
+
 int main (int argc, char **argv)
 {
 	xsock_test (1);
-	xexp_test();
+	xexp_test ();
+	tcp_sg_send ();
 	return 0;
 }

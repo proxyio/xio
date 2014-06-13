@@ -153,14 +153,14 @@ i64 tcp_recv (int sockfd, char *buf, i64 len)
 	i64 rc;
 	rc = recv (sockfd, buf, len, 0);
 
-	//  Signalise peer failure.
+	/* Signalise peer failure. */
 	if (rc == 0) {
 		errno = EPIPE;
 		return -1;
 	}
-	//  Several errors are OK. When speculative read is being done we
-	//  may not be able to read a single byte to the socket. Also, SIGSTOP
-	//  issued by a debugging tool can result in EINTR error.
+	/* Several errors are OK. When speculative read is being done we
+	 * may not be able to read a single byte to the socket. Also, SIGSTOP
+	 * issued by a debugging tool can result in EINTR error. */
 	if (rc == -1 &&
 	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) ) {
 		errno = EAGAIN;
@@ -173,15 +173,15 @@ i64 tcp_send (int sockfd, const char *buf, i64 len)
 {
 	i64 rc = send (sockfd, buf, len, 0);
 
-	//  Several errors are OK. When speculative write is being done we
-	//  may not be able to write a single byte to the socket. Also, SIGSTOP
-	//  issued by a debugging tool can result in EINTR error.
+	/* Several errors are OK. When speculative write is being done we
+	 * may not be able to write a single byte to the socket. Also, SIGSTOP
+	 * issued by a debugging tool can result in EINTR error. */
 	if (rc == -1) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
 			errno = EAGAIN;
 			return -1;
 		}
-		// Signalise peer failure.
+		/* Signalise peer failure. */
 		errno = EPIPE;
 		return -1;
 	}
@@ -192,15 +192,15 @@ i64 tcp_sendmsg (int sockfd, const struct msghdr *msg, int flags)
 {
 	i64 rc = sendmsg (sockfd, msg, flags);
 
-	//  Several errors are OK. When speculative write is being done we
-	//  may not be able to write a single byte to the socket. Also, SIGSTOP
-	//  issued by a debugging tool can result in EINTR error.
+	/* Several errors are OK. When speculative write is being done we
+	 * may not be able to write a single byte to the socket. Also, SIGSTOP
+	 * issued by a debugging tool can result in EINTR error. */
 	if (rc == -1) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
 			errno = EAGAIN;
 			return -1;
 		}
-		// Signalise peer failure.
+		/* Signalise peer failure. */
 		errno = EPIPE;
 		return -1;
 	}
