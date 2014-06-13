@@ -20,6 +20,7 @@
   IN THE SOFTWARE.
 */
 
+#include <config.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <unistd.h>
@@ -171,7 +172,11 @@ i64 tcp_recv (int sockfd, char *buf, i64 len)
 
 i64 tcp_send (int sockfd, const char *buf, i64 len)
 {
+#if defined HAVE_DEBUG
+	i64 rc = send (sockfd, buf, rand () % len, 0);	
+#else
 	i64 rc = send (sockfd, buf, len, 0);
+#endif
 
 	/* Several errors are OK. When speculative write is being done we
 	 * may not be able to write a single byte to the socket. Also, SIGSTOP

@@ -114,7 +114,8 @@ i64 ipc_recv (int sockfd, char *buf, i64 len)
 	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) ) {
 		errno = EAGAIN;
 		return -1;
-	} else if (nbytes == 0) {    //  Signalise peer failure.
+	} else if (nbytes == 0) {
+		/* Signalise peer failure. */
 		errno = EPIPE;
 		return -1;
 	}
@@ -130,7 +131,7 @@ i64 ipc_send (int sockfd, const char *buf, i64 len)
 		errno = EAGAIN;
 		return -1;
 	} else if (nbytes == -1) {
-		// Signalise peer failure.
+		/* Signalise peer failure. */
 		errno = EPIPE;
 		return -1;
 	}
@@ -138,10 +139,7 @@ i64 ipc_send (int sockfd, const char *buf, i64 len)
 }
 
 
-/* TODO:
- * getsockname/getpeername doesn't support unix domain socket.
- */
-
+/* TODO: getsockname/getpeername doesn't support unix domain socket. */
 int ipc_sockname (int fd, char *sock, int size)
 {
 	struct sockaddr_un addr = {};
