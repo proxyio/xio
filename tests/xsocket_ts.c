@@ -18,7 +18,7 @@ static void xclient (const char *pf)
 	char *xbuf, *oob;
 	char host[1024];
 
-	sprintf (host, "%s%s", pf, "://127.0.0.1:18894");
+	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
 	BUG_ON ( (sfd = xconnect (host) ) < 0);
 	for (i = 0; i < cnt; i++) {
@@ -59,7 +59,7 @@ static void xserver()
 	int afd, sfd;
 	thread_t cli_thread = {};
 	char *xbuf;
-	char *host = "tcp+inproc://127.0.0.1:18894";
+	char *host = "tcp+inproc://127.0.0.1:15100";
 
 	BUG_ON ( (afd = xlisten (host) ) < 0);
 	thread_start (&cli_thread, xclient_thread, 0);
@@ -88,7 +88,7 @@ static void xclient2 (const char *pf)
 	struct poll_ent ent[cnt] = {};
 	char host[1024] = {};
 
-	sprintf (host, "%s%s", pf, "://127.0.0.1:18895");
+	sprintf (host, "%s%s", pf, "://127.0.0.1:15200");
 	for (i = 0; i < cnt; i++) {
 		BUG_ON ( (sfd[i] = xconnect (host) ) < 0);
 		ent[i].fd = sfd[i];
@@ -117,7 +117,7 @@ static void xserver2()
 
 	pollid = xpoll_create();
 	DEBUG_OFF ("%d", pollid);
-	BUG_ON ( (afd = xlisten ("tcp+ipc+inproc://127.0.0.1:18895") ) < 0);
+	BUG_ON ( (afd = xlisten ("tcp+ipc+inproc://127.0.0.1:15200") ) < 0);
 	thread_start (&cli_thread, xclient_thread2, 0);
 	ent[0].fd = afd;
 	ent[0].self = 0;

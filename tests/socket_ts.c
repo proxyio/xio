@@ -14,7 +14,7 @@ static void tcp_client()
 	int64_t nbytes;
 	char buf[1024] = {};
 
-	BUG_ON ( (sfd = tcp_connect ("127.0.0.1:18894") ) <= 0);
+	BUG_ON ( (sfd = tcp_connect ("127.0.0.1:15100") ) <= 0);
 	randstr (buf, 1024);
 	BUG_ON (sizeof (buf) != (nbytes = tcp_send (sfd, buf, sizeof (buf) ) ) );
 	BUG_ON (nbytes != tcp_recv (sfd, buf, nbytes) );
@@ -54,7 +54,7 @@ static void tcp_server_thread()
 
 	eloop_init (&el, 1024, 100, 10);
 
-	BUG_ON ( (afd = tcp_bind ("*:18894") ) <= 0);
+	BUG_ON ( (afd = tcp_bind ("*:15100") ) <= 0);
 	thread_start (&cli_thread, tcp_client_thread, NULL);
 
 	BUG_ON ( (sfd = tcp_accept (afd) ) <= 0);
@@ -180,7 +180,7 @@ static int can_exit = 0;
 static int server_thread (void *args)
 {
 	waitgroup_t *wg = (waitgroup_t *) args;
-	int afd = tcp_bind ("*:18893");
+	int afd = tcp_bind ("*:15100");
 	int sfd;
 	int on;
 	int optlen = 0;
@@ -219,7 +219,7 @@ static void tcp_option()
 	thread_start (&t, server_thread, &wg);
 	waitgroup_wait (&wg);
 
-	sfd = tcp_connect ("127.0.0.1:18893");
+	sfd = tcp_connect ("127.0.0.1:15100");
 	BUG_ON (sfd < 0);
 	tcp_test_sock_opt (sfd);
 	can_exit = 1;
@@ -228,6 +228,10 @@ static void tcp_option()
 }
 
 static void ipc_option()
+{
+}
+
+static void tcp_sg_send()
 {
 }
 

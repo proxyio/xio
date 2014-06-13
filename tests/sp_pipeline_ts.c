@@ -17,7 +17,7 @@ static int req_thread (void *args)
 	int eid;
 	char *sbuf, *rbuf;
 
-	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:18900");
+	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:15100");
 	randstr (buf, sizeof (buf) );
 	BUG_ON ( (eid = sp_endpoint (SP_REQREP, SP_REQ) ) < 0);
 	for (i = 0; i < 3; i++) {
@@ -47,8 +47,8 @@ volatile static int proxy_stopped = 1;
 
 static int proxy_thread (void *args)
 {
-	char *fronthost = "tcp+inproc+ipc://127.0.0.1:18900";
-	char *backhost = "tcp+inproc+ipc://127.0.0.1:18899";
+	char *fronthost = "tcp+inproc+ipc://127.0.0.1:15100";
+	char *backhost = "tcp+inproc+ipc://127.0.0.1:15200";
 	int s;
 	int front_eid, back_eid;
 
@@ -72,7 +72,7 @@ static int proxy_thread (void *args)
 
 int main (int argc, char **argv)
 {
-	char *addr = "://127.0.0.1:18899", host[1024] = {};
+	char *addr = "://127.0.0.1:15200", host[1024] = {};
 	u32 i;
 	thread_t pyt;
 	thread_t t[1];

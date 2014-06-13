@@ -16,7 +16,7 @@ static int req_thread (void *args)
 	int eid;
 	char *sbuf, *rbuf;
 
-	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:18898");
+	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:15100");
 	randstr (buf, sizeof (buf) );
 	BUG_ON ( (eid = sp_endpoint (SP_REQREP, SP_REQ) ) < 0);
 	for (i = 0; i < 1; i++) {
@@ -46,7 +46,7 @@ static int req_thread (void *args)
 
 int server1()
 {
-	char *addr = "://127.0.0.1:18898";
+	char *addr = "://127.0.0.1:15100";
 	char host[1024] = {};
 	u32 i;
 	thread_t t[30];
@@ -93,7 +93,7 @@ static int rep_thread (void *args)
 	int i;
 	int eid;
 
-	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:18890");
+	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:15200");
 	BUG_ON ( (eid = sp_endpoint (SP_REQREP, SP_REP) ) < 0);
 	BUG_ON (sp_listen (eid, host) < 0);
 
@@ -111,7 +111,7 @@ static int rep_thread (void *args)
 
 int server2()
 {
-	char *addr = "://127.0.0.1:18890";
+	char *addr = "://127.0.0.1:15200";
 	char host[1024] = {};
 	char buf[128];
 	u32 i;

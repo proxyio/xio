@@ -18,7 +18,7 @@ static int sub_thread (void *args)
 	int eid;
 	char *ubuf;
 
-	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:18898");
+	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:15100");
 	randstr (buf, sizeof (buf) );
 	BUG_ON ( (eid = sp_endpoint (SP_PUBSUB, SP_SUB) ) < 0);
 	BUG_ON ((rc = sp_connect (eid, host)) < 0);
@@ -38,7 +38,7 @@ static int sub_thread (void *args)
 
 int server1()
 {
-	char *addr = "://127.0.0.1:18898";
+	char *addr = "://127.0.0.1:15100";
 	char host[1024] = {};
 	u32 i;
 	thread_t t[20];
