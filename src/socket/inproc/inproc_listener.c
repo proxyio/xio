@@ -81,7 +81,7 @@ static void rmlistener (struct ssmap_node *node)
  *  sock_inproc_spec
  ******************************************************************************/
 
-static struct sockbase *xinp_alloc() {
+static struct sockbase *inp_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
 	if (self) {
@@ -91,7 +91,7 @@ static struct sockbase *xinp_alloc() {
 	return 0;
 }
 
-static int xinp_listener_bind (struct sockbase *sb, const char *sock)
+static int inp_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct ssmap_node *node = 0;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
@@ -107,7 +107,7 @@ static int xinp_listener_bind (struct sockbase *sb, const char *sock)
 	return 0;
 }
 
-static void xinp_listener_close (struct sockbase *sb)
+static void inp_listener_close (struct sockbase *sb)
 {
 	struct sockbase *nsb;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
@@ -126,12 +126,12 @@ static void xinp_listener_close (struct sockbase *sb)
 	mem_free (self, sizeof (*self) );
 }
 
-struct sockbase_vfptr xinp_listener_spec = {
+struct sockbase_vfptr inp_listener_spec = {
 	.type = XLISTENER,
 	.pf = XPF_INPROC,
-	.alloc = xinp_alloc,
-	.bind = xinp_listener_bind,
-	.close = xinp_listener_close,
+	.alloc = inp_alloc,
+	.bind = inp_listener_bind,
+	.close = inp_listener_close,
 	.notify = 0,
 	.getopt = 0,
 	.setopt = 0,

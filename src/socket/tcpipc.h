@@ -41,9 +41,9 @@ struct tcpipc_sock {
 	struct transport *vtp;
 };
 
-extern struct sockbase_vfptr xtcp_listener_spec;
-extern struct sockbase_vfptr xtcp_connector_spec;
-extern struct sockbase_vfptr xipc_listener_spec;
-extern struct sockbase_vfptr xipc_connector_spec;
+extern struct sockbase_vfptr tcp_listener_spec;
+extern struct sockbase_vfptr tcp_connector_spec;
+extern struct sockbase_vfptr ipc_listener_spec;
+extern struct sockbase_vfptr ipc_connector_spec;
 
 #endif

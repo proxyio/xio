@@ -110,9 +110,9 @@ struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
 	return 0;
 }
 
-extern struct sockbase_vfptr xmul_listener_spec[3];
+extern struct sockbase_vfptr mul_listener_spec[3];
 
-void xsocket_module_init()
+void socket_module_init()
 {
 	waitgroup_t wg;
 	int fd;
@@ -147,19 +147,19 @@ void xsocket_module_init()
 
 	/* The priority of sockbase_vfptr: inproc > ipc > tcp */
 	INIT_LIST_HEAD (protocol_head);
-	list_add_tail (&xinp_listener_spec.link, protocol_head);
-	list_add_tail (&xinp_connector_spec.link, protocol_head);
-	list_add_tail (&xipc_listener_spec.link, protocol_head);
-	list_add_tail (&xipc_connector_spec.link, protocol_head);
-	list_add_tail (&xtcp_listener_spec.link, protocol_head);
-	list_add_tail (&xtcp_connector_spec.link, protocol_head);
-	list_add_tail (&xmul_listener_spec[0].link, protocol_head);
-	list_add_tail (&xmul_listener_spec[1].link, protocol_head);
-	list_add_tail (&xmul_listener_spec[2].link, protocol_head);
-	list_add_tail (&xmul_listener_spec[3].link, protocol_head);
+	list_add_tail (&inp_listener_spec.link, protocol_head);
+	list_add_tail (&inp_connector_spec.link, protocol_head);
+	list_add_tail (&ipc_listener_spec.link, protocol_head);
+	list_add_tail (&ipc_connector_spec.link, protocol_head);
+	list_add_tail (&tcp_listener_spec.link, protocol_head);
+	list_add_tail (&tcp_connector_spec.link, protocol_head);
+	list_add_tail (&mul_listener_spec[0].link, protocol_head);
+	list_add_tail (&mul_listener_spec[1].link, protocol_head);
+	list_add_tail (&mul_listener_spec[2].link, protocol_head);
+	list_add_tail (&mul_listener_spec[3].link, protocol_head);
 }
 
-void xsocket_module_exit()
+void socket_module_exit()
 {
 	DEBUG_OFF();
 	xgb.exiting = true;

@@ -28,7 +28,7 @@
 #include "../xgb.h"
 #include "../sock.h"
 
-static i64 xio_connector_read (struct io *ops, char *buff, i64 sz)
+static i64 ti_connector_read (struct io *ops, char *buff, i64 sz)
 {
 	struct tcpipc_sock *self = cont_of (ops, struct tcpipc_sock, ops);
 	struct transport *vtp = self->vtp;
@@ -38,7 +38,7 @@ static i64 xio_connector_read (struct io *ops, char *buff, i64 sz)
 	return rc;
 }
 
-static i64 xio_connector_write (struct io *ops, char *buff, i64 sz)
+static i64 ti_connector_write (struct io *ops, char *buff, i64 sz)
 {
 	struct tcpipc_sock *self = cont_of (ops, struct tcpipc_sock, ops);
 	struct transport *vtp = self->vtp;
@@ -49,8 +49,8 @@ static i64 xio_connector_write (struct io *ops, char *buff, i64 sz)
 }
 
 struct io default_xops = {
-	.read = xio_connector_read,
-	.write = xio_connector_write,
+	.read = ti_connector_read,
+	.write = ti_connector_write,
 };
 
 
@@ -124,9 +124,9 @@ static void rcv_head_nonfull (struct sockbase *sb)
 	}
 }
 
-int xio_connector_hndl (eloop_t *el, ev_t *et);
+int ti_connector_hndl (eloop_t *el, ev_t *et);
 
-struct sockbase *xio_alloc() {
+struct sockbase *ti_alloc() {
 	struct tcpipc_sock *self = TNEW (struct tcpipc_sock);
 
 	if (self) {
@@ -139,7 +139,7 @@ struct sockbase *xio_alloc() {
 	return 0;
 }
 
-static int xio_connector_bind (struct sockbase *sb, const char *sock)
+static int ti_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct actor *cpu = actorget (sb->cpu_no);
@@ -160,15 +160,15 @@ static int xio_connector_bind (struct sockbase *sb, const char *sock)
 	self->ops = default_xops;
 	self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
 	self->et.fd = sys_fd;
-	self->et.f = xio_connector_hndl;
+	self->et.f = ti_connector_hndl;
 	self->et.data = self;
 	BUG_ON (eloop_add (&cpu->el, &self->et) != 0);
 	return 0;
 }
 
-static int xio_connector_snd (struct sockbase *sb);
+static int ti_connector_snd (struct sockbase *sb);
 
-static void xio_connector_close (struct sockbase *sb)
+static void ti_connector_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct actor *cpu = actorget (sb->cpu_no);
@@ -176,7 +176,7 @@ static void xio_connector_close (struct sockbase *sb)
 	BUG_ON (!self->vtp);
 
 	/* Try flush buf massage into network before close */
-	xio_connector_snd (sb);
+	ti_connector_snd (sb);
 
 	/* Detach sock low-level file descriptor from poller */
 	BUG_ON (eloop_del (&cpu->el, &self->et) != 0);
@@ -213,7 +213,7 @@ static void snd_head_notify (struct sockbase *sb, u32 events)
 		snd_head_nonempty (sb);
 }
 
-static void xio_connector_notify (struct sockbase *sb, int type, u32 events)
+static void ti_connector_notify (struct sockbase *sb, int type, u32 events)
 {
 	switch (type) {
 	case RECV_Q:
@@ -249,7 +249,7 @@ static void bufio_rm (struct bio *b, struct skbuf **msg)
 	bio_read (b, skbuf_base (*msg), skbuf_len (*msg) );
 }
 
-static int xio_connector_rcv (struct sockbase *sb)
+static int ti_connector_rcv (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc = 0;
@@ -345,7 +345,7 @@ static int sg_send (struct sockbase *sb)
 	return 0;
 }
 
-static int xio_connector_sg (struct sockbase *sb)
+static int ti_connector_sg (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
@@ -381,21 +381,21 @@ static int xio_connector_sg (struct sockbase *sb)
 	return rc;
 }
 
-static int xio_connector_snd (struct sockbase *sb)
+static int ti_connector_snd (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
 	struct skbuf *msg;
 
 	if (self->vtp->sendmsg)
-		return xio_connector_sg (sb);
+		return ti_connector_sg (sb);
 	while ( (msg = sendq_rm (sb) ) )
 		bufio_add (&self->out, msg);
 	rc = bio_flush (&self->out, &self->ops);
 	return rc;
 }
 
-int xio_connector_hndl (eloop_t *el, ev_t *et)
+int ti_connector_hndl (eloop_t *el, ev_t *et)
 {
 	int rc = 0;
 	struct tcpipc_sock *self = cont_of (et, struct tcpipc_sock, et);
@@ -403,11 +403,11 @@ int xio_connector_hndl (eloop_t *el, ev_t *et)
 
 	if (et->happened & EPOLLIN) {
 		DEBUG_OFF ("io sock %d EPOLLIN", sb->fd);
-		rc = xio_connector_rcv (sb);
+		rc = ti_connector_rcv (sb);
 	}
 	if (et->happened & EPOLLOUT) {
 		DEBUG_OFF ("io sock %d EPOLLOUT", sb->fd);
-		rc = xio_connector_snd (sb);
+		rc = ti_connector_snd (sb);
 	}
 	if ( (rc < 0 && errno != EAGAIN) ||
 	     et->happened & (EPOLLERR|EPOLLRDHUP|EPOLLHUP) ) {
@@ -424,24 +424,24 @@ int xio_connector_hndl (eloop_t *el, ev_t *et)
 
 
 
-struct sockbase_vfptr xtcp_connector_spec = {
+struct sockbase_vfptr tcp_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = XPF_TCP,
-	.alloc = xio_alloc,
-	.bind = xio_connector_bind,
-	.close = xio_connector_close,
-	.notify = xio_connector_notify,
+	.alloc = ti_alloc,
+	.bind = ti_connector_bind,
+	.close = ti_connector_close,
+	.notify = ti_connector_notify,
 	.setopt = 0,
 	.getopt = 0,
 };
 
-struct sockbase_vfptr xipc_connector_spec = {
+struct sockbase_vfptr ipc_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = XPF_IPC,
-	.alloc = xio_alloc,
-	.bind = xio_connector_bind,
-	.close = xio_connector_close,
-	.notify = xio_connector_notify,
+	.alloc = ti_alloc,
+	.bind = ti_connector_bind,
+	.close = ti_connector_close,
+	.notify = ti_connector_notify,
 	.setopt = 0,
 	.getopt = 0,
 };

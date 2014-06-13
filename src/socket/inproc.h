@@ -36,8 +36,8 @@ struct inproc_sock {
 	struct sockbase *peer;
 };
 
-extern struct sockbase_vfptr xinp_listener_spec;
-extern struct sockbase_vfptr xinp_connector_spec;
+extern struct sockbase_vfptr inp_listener_spec;
+extern struct sockbase_vfptr inp_connector_spec;
 
 
 #endif

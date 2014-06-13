@@ -69,7 +69,7 @@ static int rcv_head_pop (struct sockbase *sb)
 }
 
 
-static struct sockbase *xinp_alloc() {
+static struct sockbase *inp_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
 	if (self) {
@@ -87,7 +87,7 @@ static struct sockbase *xinp_alloc() {
  *  sock_inproc_spec
  ******************************************************************************/
 
-static int xinp_connector_bind (struct sockbase *sb, const char *sock)
+static int inp_connector_bind (struct sockbase *sb, const char *sock)
 {
 	int nfd = 0;
 	struct sockbase *nsb = 0;
@@ -128,7 +128,7 @@ static int xinp_connector_bind (struct sockbase *sb, const char *sock)
 	return 0;
 }
 
-static void xinp_peer_close (struct inproc_sock *peer)
+static void inp_peer_close (struct inproc_sock *peer)
 {
 	/* Destroy the sock and free sock id if i hold the last ref. */
 	mutex_lock (&peer->base.lock);
@@ -143,7 +143,7 @@ static void xinp_peer_close (struct inproc_sock *peer)
 	}
 }
 
-static void xinp_connector_close (struct sockbase *sb)
+static void inp_connector_close (struct sockbase *sb)
 {
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 	struct inproc_sock *peer = 0;
@@ -151,7 +151,7 @@ static void xinp_connector_close (struct sockbase *sb)
 	/* TODO: bug on here */
 	if (self->peer) {
 		peer = cont_of (self->peer, struct inproc_sock, base);
-		xinp_peer_close (peer);
+		inp_peer_close (peer);
 	}
 	if (atomic_decr (&self->ref) == 1) {
 		sockbase_exit (&self->base);
@@ -173,7 +173,7 @@ static void rcv_head_notify (struct sockbase *sb, u32 events)
 		rcv_head_pop (sb);
 }
 
-static void xinp_connector_notify (struct sockbase *sb, int type, u32 events)
+static void inp_connector_notify (struct sockbase *sb, int type, u32 events)
 {
 	switch (type) {
 	case RECV_Q:
@@ -187,13 +187,13 @@ static void xinp_connector_notify (struct sockbase *sb, int type, u32 events)
 	}
 }
 
-struct sockbase_vfptr xinp_connector_spec = {
+struct sockbase_vfptr inp_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = XPF_INPROC,
-	.alloc = xinp_alloc,
-	.bind = xinp_connector_bind,
-	.close = xinp_connector_close,
-	.notify = xinp_connector_notify,
+	.alloc = inp_alloc,
+	.bind = inp_connector_bind,
+	.close = inp_connector_close,
+	.notify = inp_connector_notify,
 	.getopt = 0,
 	.setopt = 0,
 };

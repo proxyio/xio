@@ -57,9 +57,9 @@ static void request_socks_nonfull (struct sockbase *sb)
 	}
 }
 
-static int xio_listener_hndl (eloop_t *el, ev_t *et);
+static int ti_listener_hndl (eloop_t *el, ev_t *et);
 
-static int xio_listener_bind (struct sockbase *sb, const char *sock)
+static int ti_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int sys_fd, on = 1;
@@ -74,13 +74,13 @@ static int xio_listener_bind (struct sockbase *sb, const char *sock)
 	self->sys_fd = sys_fd;
 	self->et.events = EPOLLIN|EPOLLERR;
 	self->et.fd = sys_fd;
-	self->et.f = xio_listener_hndl;
+	self->et.f = ti_listener_hndl;
 	self->et.data = self;
 	BUG_ON (eloop_add (&cpu->el, &self->et) != 0);
 	return 0;
 }
 
-static void xio_listener_close (struct sockbase *sb)
+static void ti_listener_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct actor *cpu = actorget (sb->cpu_no);
@@ -117,7 +117,7 @@ static void request_socks_notify (struct sockbase *sb, u32 events)
 		request_socks_nonfull (sb);
 }
 
-static void xio_listener_notify (struct sockbase *sb, int type, uint32_t events)
+static void ti_listener_notify (struct sockbase *sb, int type, uint32_t events)
 {
 	switch (type) {
 	case SOCKS_REQ:
@@ -128,9 +128,9 @@ static void xio_listener_notify (struct sockbase *sb, int type, uint32_t events)
 	}
 }
 
-extern int xio_connector_hndl (eloop_t *el, ev_t *et);
+extern int ti_connector_hndl (eloop_t *el, ev_t *et);
 
-static int xio_listener_hndl (eloop_t *el, ev_t *et)
+static int ti_listener_hndl (eloop_t *el, ev_t *et)
 {
 	struct tcpipc_sock *self = cont_of (et, struct tcpipc_sock, et);
 	int sys_fd;
@@ -168,32 +168,32 @@ static int xio_listener_hndl (eloop_t *el, ev_t *et)
 	nself->ops = default_xops;
 	nself->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
 	nself->et.fd = sys_fd;
-	nself->et.f = xio_connector_hndl;
+	nself->et.f = ti_connector_hndl;
 	nself->et.data = nself;
 	BUG_ON (eloop_add (&cpu->el, &nself->et) != 0);
 	return acceptq_add (sb, nsb);
 }
 
-extern struct sockbase *xio_alloc();
+extern struct sockbase *ti_alloc();
 
-struct sockbase_vfptr xtcp_listener_spec = {
+struct sockbase_vfptr tcp_listener_spec = {
 	.type = XLISTENER,
 	.pf = XPF_TCP,
-	.alloc = xio_alloc,
-	.bind = xio_listener_bind,
-	.close = xio_listener_close,
-	.notify = xio_listener_notify,
+	.alloc = ti_alloc,
+	.bind = ti_listener_bind,
+	.close = ti_listener_close,
+	.notify = ti_listener_notify,
 	.getopt = 0,
 	.setopt = 0,
 };
 
-struct sockbase_vfptr xipc_listener_spec = {
+struct sockbase_vfptr ipc_listener_spec = {
 	.type = XLISTENER,
 	.pf = XPF_IPC,
-	.alloc = xio_alloc,
-	.bind = xio_listener_bind,
-	.close = xio_listener_close,
-	.notify = xio_listener_notify,
+	.alloc = ti_alloc,
+	.bind = ti_listener_bind,
+	.close = ti_listener_close,
+	.notify = ti_listener_notify,
 	.getopt = 0,
 	.setopt = 0,
 };
