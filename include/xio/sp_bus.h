@@ -20,20 +20,15 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_SP_REQREP_
-#define _H_SP_REQREP_
+#ifndef _H_SP_BUS_
+#define _H_SP_BUS_
 
 #include <xio/sp.h>
 #include <xio/cplusplus_define.h>
 
-#define SP_REQREP_VERSION 0x0001
+#define SP_BUS_VERSION 0x0001
 
-/* Following sp_types are provided by REQREP protocol */
-#define SP_REQ         1
-#define SP_REP         2
-
-/* Following options are provided by REQREP protocol */
-#define SP_PROXY       1
+/* Following sp_types are provided by BUS protocol */
 
 #include <xio/cplusplus_endif.h>
 #endif

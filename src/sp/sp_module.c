@@ -199,6 +199,7 @@ extern struct epbase_vfptr *reqep_vfptr;
 extern struct epbase_vfptr *repep_vfptr;
 extern struct epbase_vfptr *pubep_vfptr;
 extern struct epbase_vfptr *subep_vfptr;
+extern struct epbase_vfptr *busep_vfptr;
 
 
 void sp_module_init()
@@ -223,6 +224,7 @@ void sp_module_init()
 	list_add_tail (&repep_vfptr->item, &sg.epbase_head);
 	list_add_tail (&pubep_vfptr->item, &sg.epbase_head);
 	list_add_tail (&subep_vfptr->item, &sg.epbase_head);
+	list_add_tail (&busep_vfptr->item, &sg.epbase_head);
 	INIT_LIST_HEAD (&sg.shutdown_head);
 
 	waitgroup_add (&wg);

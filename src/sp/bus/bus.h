@@ -24,5 +24,25 @@
 #define _SP_BUS_
 
 
+#include <xio/sp_bus.h>
+#include <sp/sp_module.h>
+
+struct bus_ep {
+	struct epbase base;
+};
+
+struct bus_tgtd {
+	struct tgtd tg;
+	struct skbuf_head ls_head;   /* local storage */
+};
+
+static inline void bus_tgtd_free(struct bus_tgtd *ps_tg) {
+	mem_free (ps_tg, sizeof (struct bus_tgtd) );
+}
+
+static inline struct bus_tgtd *get_bus_tgtd (struct tgtd *tg) {
+	return cont_of (tg, struct bus_tgtd, tg);
+}
+
 
 #endif

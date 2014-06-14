@@ -59,6 +59,7 @@ XIO_SP = \
 	src/sp/reqrep/req_ep.c \
 	src/sp/pubsub/pub.c \
 	src/sp/pubsub/sub.c \
+	src/sp/bus/bus.c \
 	src/sp/sp_rm.c \
 	src/sp/sp_recv.c \
 	src/sp/sp_setopt.c
@@ -122,6 +123,7 @@ UTILS_TESTS = \
 	tests/xubuf_ts \
 	tests/xsocket_ts \
 	tests/poll_ts \
+	tests/sp_bus_ts \
 	tests/sp_reqrep_ts \
 	tests/sp_pubsub_ts \
 	tests/sp_pipeline_ts

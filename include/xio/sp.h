@@ -20,10 +20,12 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SCALABILITY_PROTOCOLS_
-#define _XIO_SCALABILITY_PROTOCOLS_
+#ifndef _H_SCALABILITY_PROTOCOLS_
+#define _H_SCALABILITY_PROTOCOLS_
 
 #include <xio/socket.h>
+#include <xio/poll.h>
+#include <xio/cmsghdr.h>
 #include <xio/cplusplus_define.h>
 
 #define SP_REQREP    1
