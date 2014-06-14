@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_SKRB_
-#define _H_SKRB_
+#ifndef _H_PROXYIO_SKRB_
+#define _H_PROXYIO_SKRB_
 
 #include <stdint.h>
 #include <inttypes.h>
@@ -101,4 +101,4 @@ static inline void skrb_delete (skrb_t *tree, skrb_node_t *node)
 	rb_erase (&node->rb, &tree->root);
 }
 
-#endif /* _H_SKRB_ */
+#endif /* _H_PROXYIO_SKRB_ */
