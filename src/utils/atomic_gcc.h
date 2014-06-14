@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ATOMIC_GCC_
-#define _XIO_ATOMIC_GCC_
+#ifndef _H_PROXYIO_ATOMIC_GCC_
+#define _H_PROXYIO_ATOMIC_GCC_
 
 #include <inttypes.h>
 #include "base.h"

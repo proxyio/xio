@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_EVENTLOOP_
-#define _XIO_EVENTLOOP_
+#ifndef _H_PROXYIO_EVENTLOOP_
+#define _H_PROXYIO_EVENTLOOP_
 
 #include <unistd.h>
 #include <sys/epoll.h>

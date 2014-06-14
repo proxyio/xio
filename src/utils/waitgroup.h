@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_WAITGROUP_
-#define _XIO_WAITGROUP_
+#ifndef _H_PROXYIO_WAITGROUP_
+#define _H_PROXYIO_WAITGROUP_
 
 #include "mutex.h"
 #include "condition.h"

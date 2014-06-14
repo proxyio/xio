@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SPHDR_
-#define _XIO_SPHDR_
+#ifndef _H_PROXYIO_SP_HDR_
+#define _H_PROXYIO_SP_HDR_
 
 #include <errno.h>
 #include <uuid/uuid.h>

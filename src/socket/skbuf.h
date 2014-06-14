@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_SKBUF_
-#define _H_SKBUF_
+#ifndef _H_PROXYIO_SKBUF_
+#define _H_PROXYIO_SKBUF_
 
 #include <utils/base.h>
 #include <utils/list.h>

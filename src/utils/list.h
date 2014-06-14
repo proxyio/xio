@@ -22,8 +22,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_LIST_
-#define _XIO_LIST_
+#ifndef _H_PROXYIO_LIST_
+#define _H_PROXYIO_LIST_
 
 #include "base.h"
 
@@ -470,4 +470,4 @@ static inline void hlist_add_after (struct hlist_node *node, struct hlist_node *
 	 pos = (type *)pos->member.next)
 
 
-#endif // _LIST_H_
+#endif // _LIST_H_PROXYIO_

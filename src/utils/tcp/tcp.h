@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_TCP_
-#define _XIO_TCP_
+#ifndef _H_PROXYIO_TCP_
+#define _H_PROXYIO_TCP_
 
 #include <inttypes.h>
 #include "../transport.h"

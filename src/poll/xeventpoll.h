@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_XEVENTPOLL_
-#define _H_XEVENTPOLL_
+#ifndef _H_PROXYIO_XEVENTPOLL_
+#define _H_PROXYIO_XEVENTPOLL_
 
 #include <utils/atomic.h>
 #include <utils/mutex.h>

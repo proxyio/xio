@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SKRB_SYNC_
-#define _XIO_SKRB_SYNC_
+#ifndef _H_PROXYIO_SKRB_SYNC_
+#define _H_PROXYIO_SKRB_SYNC_
 
 #include <stdint.h>
 #include <inttypes.h>
@@ -103,4 +103,4 @@
 	spin_unlock(spin);			\
     } while (0)
 
-#endif /* _H_SKRB_ */
+#endif /* _H_PROXYIO_SKRB_ */

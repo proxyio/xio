@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_EVENTFD_
-#define _XIO_EVENTFD_
+#ifndef _H_PROXYIO_EVENTFD_
+#define _H_PROXYIO_EVENTFD_
 
 struct efd {
 	int r;

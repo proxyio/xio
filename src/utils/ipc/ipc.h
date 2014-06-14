@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_IPC_
-#define _XIO_IPC_
+#ifndef _H_PROXYIO_IPC_
+#define _H_PROXYIO_IPC_
 
 #include <inttypes.h>
 #include "../transport.h"

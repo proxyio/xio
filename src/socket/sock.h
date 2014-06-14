@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_SOCK_
-#define _H_SOCK_
+#ifndef _H_PROXYIO_SOCK_
+#define _H_PROXYIO_SOCK_
 
 #include <utils/base.h>
 #include <utils/map.h>

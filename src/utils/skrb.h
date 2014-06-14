@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SKRB_
-#define _XIO_SKRB_
+#ifndef _H_SKRB_
+#define _H_SKRB_
 
 #include <stdint.h>
 #include <inttypes.h>

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_BIO_
-#define _XIO_BIO_
+#ifndef _H_PROXYIO_BUFIO_
+#define _H_PROXYIO_BUFIO_
 
 #include <inttypes.h>
 #include "base.h"

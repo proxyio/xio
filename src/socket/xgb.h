@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_GLOBAL_
-#define _H_GLOBAL_
+#ifndef _H_PROXYIO_XGLOBAL_
+#define _H_PROXYIO_XGLOBAL_
 
 #include <utils/mutex.h>
 #include <utils/list.h>

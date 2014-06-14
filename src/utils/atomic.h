@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ATOMIC_
-#define _XIO_ATOMIC_
+#ifndef _H_PROXYIO_ATOMIC_
+#define _H_PROXYIO_ATOMIC_
 
 #include <config.h>
 #include <inttypes.h>

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_TCPIPC_SOCK_
-#define _H_TCPIPC_SOCK_
+#ifndef _H_PROXYIO_TCPIPC_INTERN_
+#define _H_PROXYIO_TCPIPC_INTERN_
 
 #include "sock.h"
 

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_TRANSPORT_
-#define _XIO_TRANSPORT_
+#ifndef _H_PROXYIO_TRANSPORT_
+#define _H_PROXYIO_TRANSPORT_
 
 #include "list.h"
 #include <sys/socket.h>

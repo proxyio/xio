@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_SOCKADDR_
-#define _XIO_SOCKADDR_
+#ifndef _H_PROXYIO_SOCKADDR_
+#define _H_PROXYIO_SOCKADDR_
 
 #include "base.h"
 

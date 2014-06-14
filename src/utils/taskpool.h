@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_TASKPOOL_
-#define _XIO_TASKPOOL_
+#ifndef _H_PROXYIO_TASKPOOL_
+#define _H_PROXYIO_TASKPOOL_
 
 #include "base.h"
 #include "list.h"
@@ -97,4 +97,4 @@ int taskpool_stop (taskpool_t *tp);
 
 
 
-#endif   // _H_TASK_POOL_
+#endif   // _H_PROXYIO_TASK_POOL_

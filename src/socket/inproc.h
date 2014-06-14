@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_INPROC_SOCK_
-#define _H_INPROC_SOCK_
+#ifndef _H_PROXYIO_INPROC_INTERN_
+#define _H_PROXYIO_INPROC_INTERN_
 
 #include "sock.h"
 

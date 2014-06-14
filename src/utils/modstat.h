@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_MODULESTAT_
-#define _XIO_MODULESTAT_
+#ifndef _H_PROXYIO_MODULESTAT_
+#define _H_PROXYIO_MODULESTAT_
 
 #include "base.h"
 #include "timer.h"

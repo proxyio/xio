@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_TIMESTAMP_
-#define _XIO_TIMESTAMP_
+#ifndef _H_PROXYIO_TIMESTAMP_
+#define _H_PROXYIO_TIMESTAMP_
 
 #include "base.h"
 

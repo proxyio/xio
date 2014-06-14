@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_ACTOR_
-#define _H_ACTOR_
+#ifndef _H_PROXYIO_ACTOR_
+#define _H_PROXYIO_ACTOR_
 
 #include <utils/list.h>
 #include <utils/mutex.h>

@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_REQ_
-#define _SP_REQ_
+#ifndef _H_PROXYIO_SP_REQ_
+#define _H_PROXYIO_SP_REQ_
 
 #include <sp/sp_module.h>
 #include "rr.h"

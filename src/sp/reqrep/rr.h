@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _RR_
-#define _RR_
+#ifndef _H_PROXYIO_SP_REQREP_INTERN_
+#define _H_PROXYIO_SP_REQREP_INTERN_
 
 #include <sp/sp_hdr.h>
 

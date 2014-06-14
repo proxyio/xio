@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_BUS_
-#define _SP_BUS_
+#ifndef _H_PROXYIO_SP_BUS_INTERN_
+#define _H_PROXYIO_SP_BUS_INTERN_
 
 
 #include <xio/sp_bus.h>

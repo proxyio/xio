@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_MODULE_
-#define _SP_MODULE_
+#ifndef _H_PROXYIO_SP_MODULE_
+#define _H_PROXYIO_SP_MODULE_
 
 #include <uuid/uuid.h>
 #include <utils/list.h>

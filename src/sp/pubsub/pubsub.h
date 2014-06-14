@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _PUBSUB_
-#define _PUBSUB_
+#ifndef _H_PROXYIO_SP_PUBSUB_INTERN_
+#define _H_PROXYIO_SP_PUBSUB_INTERN_
 
 #include <sp/sp_hdr.h>
 

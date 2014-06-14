@@ -1,5 +1,5 @@
-#ifndef _XIO_CRC_
-#define _XIO_CRC_
+#ifndef _H_PROXYIO_CRC_
+#define _H_PROXYIO_CRC_
 
 #include <inttypes.h>
 

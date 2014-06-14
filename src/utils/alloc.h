@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ZMALLOC_
-#define _XIO_ZMALLOC_
+#ifndef _H_PROXYIO_ZMALLOC_
+#define _H_PROXYIO_ZMALLOC_
 
 #include <inttypes.h>
 

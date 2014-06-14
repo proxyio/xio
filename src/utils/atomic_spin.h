@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_ATOMIC_SPIN_
-#define _XIO_ATOMIC_SPIN_
+#ifndef _H_PROXYIO_ATOMIC_SPIN_
+#define _H_PROXYIO_ATOMIC_SPIN_
 
 #include <inttypes.h>
 #include "base.h"

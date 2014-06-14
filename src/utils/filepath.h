@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_FILEPATH_
-#define _XIO_FILEPATH_
+#ifndef _H_PROXYIO_FILEPATH_
+#define _H_PROXYIO_FILEPATH_
 
 #include "base.h"
 #include "alloc.h"

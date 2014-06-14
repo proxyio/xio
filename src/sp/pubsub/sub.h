@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _SP_SUB_
-#define _SP_SUB_
+#ifndef _H_PROXYIO_SP_SUB_
+#define _H_PROXYIO_SP_SUB_
 
 #include <xio/sp_pubsub.h>
 #include <sp/sp_module.h>

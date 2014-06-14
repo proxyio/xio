@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _XIO_BASE_
-#define _XIO_BASE_
+#ifndef _H_PROXYIO_BASE_
+#define _H_PROXYIO_BASE_
 
 #include <stdio.h>
 #include <stdlib.h>
