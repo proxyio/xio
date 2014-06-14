@@ -38,27 +38,30 @@ static void bus_ep_destroy (struct epbase *ep)
 	mem_free (bus_ep, sizeof (*bus_ep) );
 }
 
+/* Send message to all targets in the connectors list_head. here just save
+   the message into local storage head. */
 static int bus_ep_send (struct epbase *ep, char *ubuf)
 {
 	int rc = 0;
-	char *dst;
-	struct tgtd *tg;
+	char *tmp;
+	struct tgtd *dst;
 
 	mutex_lock (&ep->lock);
-	walk_tgtd (tg, &ep->connectors) {
-		dst = ubuf;
-		if (list_next (&tg->item) != &ep->connectors)
-			BUG_ON ((rc = ubufctl (ubuf, SCLONE, &dst)));
-		skbuf_head_in (&get_bus_tgtd (tg)->ls_head, dst);
-		tgtd_try_enable_out (tg);
+	walk_tgtd (dst, &ep->connectors) {
+		tmp = ubuf;
+		/* for the last target. send the ubuf directly */
+		if (list_next (&dst->item) != &ep->connectors)
+			BUG_ON ((rc = ubufctl (ubuf, SCLONE, &tmp)));
+		skbuf_head_in (&get_bus_tgtd (dst)->ls_head, tmp);
+		tgtd_try_enable_out (dst);
 	}
 	mutex_unlock (&ep->lock);
 	return rc;
 }
 
-/* limited by the bus protocol, the sub endpoint can't send any
-   message to pub endpoint, if it do it, we can mark this socket on
-   bad status, or drop the message simply. */
+
+/* Recv message from src target and dispatch its copy to other targets
+   in the connectors list_head. */
 static int bus_ep_add (struct epbase *ep, struct tgtd *src, char *ubuf)
 {
 	int rc;
@@ -67,6 +70,7 @@ static int bus_ep_add (struct epbase *ep, struct tgtd *src, char *ubuf)
 
 	mutex_lock (&ep->lock);
 	walk_tgtd (tg, &ep->connectors) {
+		/* Don't backward */
 		if (tg == src)
 			continue;
 		BUG_ON ((rc = ubufctl (ubuf, SCLONE, &tmp)));
