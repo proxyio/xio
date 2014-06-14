@@ -386,6 +386,37 @@ div#toc a:visited { color: blue; }
 <div id="header">
 <h1>SP_BUS</h1>
 </div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><em><strong>BUS</strong></em> broadcast message to the BUS network</p></div>
+</div>
+</div>
+<h2 id="_bus_network">BUS network</h2>
+<div class="sectionbody">
+<div class="paragraph"><p>--&#8594; represent the sp_connect () call;
+<em><strong>Actor</strong></em> represent the caller of sp_send () / sp_recv () API</p></div>
+<div class="paragraph"><p><span class="image">
+<img src="images/sp-bus-patterns-1.png" alt="images/sp-bus-patterns-1.png" />
+</span></p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>buser1 = sp_endpoint (SP_BUS, SP_BUS);
+buser2 = sp_endpoint (SP_BUS, SP_BUS);
+
+sp_listen (buser1, sockaddr1);
+sp_listen (buser2, sockaddr2);
+sp_connect (buser2, sockaddr1);
+
+buser3 = sp_endpoint (SP_BUS, SP_BUS);
+buser4 = sp_endpoint (SP_BUS, SP_BUS);
+sp_connect (buser3, sockaddr1);
+sp_connect (buser4, sockaddr2);
+
+sp_send (buser3, ubuf);
+sp_recv (buser4, ubuf2);
+assert (ubuf == ubuf2);</tt></pre>
+</div></div>
+</div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
 <div class="literalblock">
@@ -398,7 +429,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-21 23:21:11 CST
+Last updated 2014-06-14 21:41:01 CST
 </div>
 </div>
 </body>

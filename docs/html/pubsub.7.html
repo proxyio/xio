@@ -386,6 +386,63 @@ div#toc a:visited { color: blue; }
 <div id="header">
 <h1>SP_PUBSUB</h1>
 </div>
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph"><p><em><strong>publish</strong>/<strong>subcribe</strong></em>  subcriber recv message from publisher</p></div>
+</div>
+</div>
+<h2 id="_publish_to_many_subcriber">publish to many subcriber</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><span class="image">
+<img src="images/sp-pubsub-patterns-1.png" alt="images/sp-pubsub-patterns-1.png" />
+</span></p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>int puber = sp_endpoint (SP_PUBSUB, SP_PUB);
+int suber1 = sp_endpoint (SP_PUBSUB, SP_SUB);
+int suber2 = sp_endpoint (SP_PUBSUB, SP_SUB);
+
+sp_listen (puber, sockaddr);
+sp_connect (suber1, sockaddr);
+sp_connect (suber1, sockaddr);
+
+sp_send (puber, ubuf);
+sp_recv (suber1, &amp;ubuf1);
+sp_recv (suber2, &amp;ubuf2);
+
+assert (ubuf == ubuf1 == ubuf2);</tt></pre>
+</div></div>
+</div>
+<h2 id="_subcribe_from_many_publisher">subcribe from many publisher</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><span class="image">
+<img src="images/sp-pubsub-patterns-2.png" alt="images/sp-pubsub-patterns-2.png" />
+</span></p></div>
+<div class="listingblock">
+<div class="content">
+<pre><tt>int puber1 = sp_endpoint (SP_PUBSUB, SP_PUB);
+int puber2 = sp_endpoint (SP_PUBSUB, SP_PUB);
+int suber = sp_endpoint (SP_PUBSUB, SP_SUB);
+
+sp_listen (puber1, sockaddr1);
+sp_listen (puber2, sockaddr2);
+
+sp_connect (suber, sockaddr1);
+sp_connect (suber, sockaddr2);
+
+sp_send (puber1, ubuf1);
+sp_send (puber2, ubuf2);
+
+sp_recv (suber, &amp;ubuf3);
+sp_recv (suber, &amp;ubuf4);</tt></pre>
+</div></div>
+</div>
+<h2 id="_multiple_subcriber_and_publisher">multiple subcriber and publisher</h2>
+<div class="sectionbody">
+<div class="paragraph"><p><span class="image">
+<img src="images/sp-pubsub-patterns-3.png" alt="images/sp-pubsub-patterns-3.png" />
+</span></p></div>
+</div>
 <h2 id="_authors">AUTHORS</h2>
 <div class="sectionbody">
 <div class="literalblock">
@@ -398,7 +455,7 @@ Martin Sustrik &lt;sustrik@250bpm.com&gt;</tt></pre>
 <div id="footnotes"><hr /></div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2014-05-21 23:22:27 CST
+Last updated 2014-06-14 20:34:13 CST
 </div>
 </div>
 </body>

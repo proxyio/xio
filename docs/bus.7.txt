@@ -1,10 +1,33 @@
 SP_BUS
 ======
 
+'*BUS*' broadcast message to the BUS network
 
+BUS network
+-----------
 
+---> represent the sp_connect () call; 
+'*Actor*' represent the caller of sp_send () / sp_recv () API
 
+image:images/sp-bus-patterns-1.png[The one-to-many network]
 
+----
+buser1 = sp_endpoint (SP_BUS, SP_BUS);
+buser2 = sp_endpoint (SP_BUS, SP_BUS);
+
+sp_listen (buser1, sockaddr1);
+sp_listen (buser2, sockaddr2);
+sp_connect (buser2, sockaddr1);
+
+buser3 = sp_endpoint (SP_BUS, SP_BUS);
+buser4 = sp_endpoint (SP_BUS, SP_BUS);
+sp_connect (buser3, sockaddr1);
+sp_connect (buser4, sockaddr2);
+
+sp_send (buser3, ubuf);
+sp_recv (buser4, ubuf2);
+assert (ubuf == ubuf2);
+----
 
 AUTHORS
 -------

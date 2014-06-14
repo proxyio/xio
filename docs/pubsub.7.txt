@@ -1,8 +1,57 @@
 SP_PUBSUB
 =========
 
+'*publish*/*subcribe*'  subcriber recv message from publisher
+
+publish to many subcriber
+-------------------------
+
+image:images/sp-pubsub-patterns-1.png[The one-to-many network]
 
 
+----
+int puber = sp_endpoint (SP_PUBSUB, SP_PUB);
+int suber1 = sp_endpoint (SP_PUBSUB, SP_SUB);
+int suber2 = sp_endpoint (SP_PUBSUB, SP_SUB);
+
+sp_listen (puber, sockaddr);
+sp_connect (suber1, sockaddr);
+sp_connect (suber1, sockaddr);
+
+sp_send (puber, ubuf);
+sp_recv (suber1, &ubuf1);
+sp_recv (suber2, &ubuf2);
+
+assert (ubuf == ubuf1 == ubuf2);
+----
+
+subcribe from many publisher
+----------------------------
+
+image:images/sp-pubsub-patterns-2.png[The one-to-many network]
+
+----
+int puber1 = sp_endpoint (SP_PUBSUB, SP_PUB);
+int puber2 = sp_endpoint (SP_PUBSUB, SP_PUB);
+int suber = sp_endpoint (SP_PUBSUB, SP_SUB);
+
+sp_listen (puber1, sockaddr1);
+sp_listen (puber2, sockaddr2);
+
+sp_connect (suber, sockaddr1);
+sp_connect (suber, sockaddr2);
+
+sp_send (puber1, ubuf1);
+sp_send (puber2, ubuf2);
+
+sp_recv (suber, &ubuf3);
+sp_recv (suber, &ubuf4);
+----
+
+multiple subcriber and publisher
+--------------------------------
+
+image:images/sp-pubsub-patterns-3.png[The one-to-many network]
 
 
 
