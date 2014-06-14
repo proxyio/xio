@@ -11,6 +11,8 @@ BUS network
 
 image:images/sp-bus-patterns-1.png[The one-to-many network]
 
+Anyone can broadcast message to others connected on the same bus network.
+
 ----
 buser1 = sp_endpoint (SP_BUS, SP_BUS);
 buser2 = sp_endpoint (SP_BUS, SP_BUS);
