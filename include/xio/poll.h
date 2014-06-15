@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_XPOLL_
-#define _H_XPOLL_
+#ifndef _H_PROXYIO_POLL_
+#define _H_PROXYIO_POLL_
 
 #include <xio/cplusplus_define.h>
 

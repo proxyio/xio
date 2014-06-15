@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_SCALABILITY_PROTOCOLS_
-#define _H_SCALABILITY_PROTOCOLS_
+#ifndef _H_PROXYIO_SCALABILITY_PROTOCOLS_
+#define _H_PROXYIO_SCALABILITY_PROTOCOLS_
 
 #include <xio/socket.h>
 #include <xio/poll.h>

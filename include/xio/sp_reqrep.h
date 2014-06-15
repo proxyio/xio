@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_SP_REQREP_
-#define _H_SP_REQREP_
+#ifndef _H_PROXYIO_SP_REQREP_
+#define _H_PROXYIO_SP_REQREP_
 
 #include <xio/sp.h>
 #include <xio/cplusplus_define.h>

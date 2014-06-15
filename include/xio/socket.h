@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_XSOCKET_
-#define _H_XSOCKET_
+#ifndef _H_PROXYIO_SOCKET_
+#define _H_PROXYIO_SOCKET_
 
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
