@@ -88,7 +88,7 @@ XIO_UTILS = \
 	src/utils/tcp/tcp_getopt.c \
 	src/utils/tcp/tcp_setopt.c \
 	src/utils/bufio.c \
-	src/utils/modstat.c \
+	src/utils/mstats.c \
 	src/utils/slab.c \
 	src/utils/crc16.c \
 	src/utils/sockaddr.c

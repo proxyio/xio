@@ -20,17 +20,17 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_MODULESTAT_
-#define _H_PROXYIO_MODULESTAT_
+#ifndef _H_PROXYIO_MSTATS_
+#define _H_PROXYIO_MSTATS_
 
 #include "base.h"
 #include "timer.h"
 
-#define MODSTAT_KEYMAX 256
+#define MSTATS_KEYMAX 256
 
-struct modstat;
+struct mstats;
 typedef void (*threshold_warn)
-(struct modstat *self, int sl, int key, int64_t threshold, int64_t val);
+(struct mstats *self, int sl, int key, int64_t threshold, int64_t val);
 
 enum STAT_TYPE {
     MST_NOW = 0,
@@ -53,7 +53,7 @@ enum STAT_LEVEL {
 
 extern const char *stat_level_token[MSL_NUM];
 
-typedef struct modstat {
+typedef struct mstats {
 	int kr;
 	int64_t slv[MSL_NUM];
 	int64_t *keys[MST_NUM][MSL_NUM];
@@ -61,21 +61,21 @@ typedef struct modstat {
 	int64_t timestamp[MSL_NUM];
 	int64_t trigger_counter[MSL_NUM];
 	threshold_warn *f;
-} modstat_t;
+} mstats_t;
 
 
-#define DEFINE_MODSTAT(name, KEYRANGE)			\
-    typedef struct name##_modstat {			\
+#define DEFINE_MSTATS(name, KEYRANGE)			\
+    typedef struct name##_mstats {			\
 	int64_t keys[MST_NUM][MSL_NUM][KEYRANGE];	\
 	int64_t threshold[MSL_NUM][KEYRANGE];		\
 	threshold_warn f[MSL_NUM];			\
-	modstat_t self;					\
-    } name##_modstat_t
+	mstats_t self;					\
+    } name##_mstats_t
 
 
-#define INIT_MODSTAT(mst) do {						\
+#define INIT_MSTATS(mst) do {						\
 	int sl, st;							\
-	modstat_t *self = &mst.self;					\
+	mstats_t *self = &mst.self;					\
 	ZERO(mst);							\
 	self->kr = sizeof(mst.keys) /					\
 	    (MSL_NUM * MST_NUM * sizeof(int64_t));			\
@@ -93,44 +93,44 @@ typedef struct modstat {
 	    self->timestamp[sl] = gettimeof(ms);			\
     } while (0)
 
-static inline void modstat_incrkey (modstat_t *ms, int key)
+static inline void mstats_incrkey (mstats_t *ms, int key)
 {
 	int sl;
 	for (sl = 0; sl < MSL_NUM; sl++)
 		ms->keys[MST_NOW][sl][key] += 1;
 }
 
-static inline void modstat_incrskey (modstat_t *ms, int key, int val)
+static inline void mstats_incrskey (mstats_t *ms, int key, int val)
 {
 	int sl;
 	for (sl = 0; sl < MSL_NUM; sl++)
 		ms->keys[MST_NOW][sl][key] += val;
 }
 
-static inline int64_t modstat_getkey (modstat_t *ms, int st, int sl, int key)
+static inline int64_t mstats_getkey (mstats_t *ms, int st, int sl, int key)
 {
 	return ms->keys[st][sl][key];
 }
 
-static inline void modstat_set_warnf (modstat_t *ms, int sl, threshold_warn f)
+static inline void mstats_set_warnf (mstats_t *ms, int sl, threshold_warn f)
 {
 	ms->f[sl] = f;
 }
 
-static inline void modstat_set_threshold (modstat_t *ms, int sl, int key, int64_t v)
+static inline void mstats_set_threshold (mstats_t *ms, int sl, int key, int64_t v)
 {
 	ms->threshold[sl][key] = v;
 }
 
-void modstat_update_timestamp (modstat_t *ms, int64_t timestamp);
-int generic_parse_modstat_item (const char *str, const char *key, int *tr, int *v);
-static inline int generic_init_modstat (modstat_t *self, int keyrange,
+void mstats_update_timestamp (mstats_t *ms, int64_t timestamp);
+int generic_parse_mstats_item (const char *str, const char *key, int *tr, int *v);
+static inline int generic_init_mstats (mstats_t *self, int keyrange,
                                         const char **items, const char *ss)
 {
 	int i = 0, sl = 0, val = 0;
 	for (i = 1; i < keyrange; i++)
-		if ( (generic_parse_modstat_item (ss, items[i], &sl, &val) ) == 0)
-			modstat_set_threshold (self, sl, i, val);
+		if ( (generic_parse_mstats_item (ss, items[i], &sl, &val) ) == 0)
+			mstats_set_threshold (self, sl, i, val);
 	return 0;
 }
 
