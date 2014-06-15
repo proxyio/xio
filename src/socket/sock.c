@@ -84,7 +84,7 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct actor *cpu = actorget (sb->cpu_no);
+	struct task_runner *cpu = get_task_runner (sb->cpu_no);
 
 	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
@@ -93,18 +93,18 @@ void xput (int fd)
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
-		actor_lock (cpu);
+		task_runner_lock (cpu);
 		while (efd_signal (&cpu->efd) < 0)
-			actor_relock (cpu);
+			task_runner_relock (cpu);
 		list_add_tail (&sb->shutdown.link, &cpu->shutdown_socks);
-		actor_unlock (cpu);
+		task_runner_unlock (cpu);
 	}
 	mutex_unlock (&xgb.lock);
 }
 
-static void xshutdown_task_f (struct actor_task *ts)
+static void xshutdown_task_f (struct task_ent *te)
 {
-	struct sockbase *sb = cont_of (ts, struct sockbase, shutdown);
+	struct sockbase *sb = cont_of (te, struct sockbase, shutdown);
 	sb->vfptr->close (sb);
 }
 
@@ -121,7 +121,7 @@ void sockbase_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->cpu_no = actor_choosed (sb->fd);
+	sb->cpu_no = task_runner_choosed (sb->fd);
 	socket_mstats_init (&sb->stats);
 
 	sb->rcv.waiters = 0;

@@ -37,7 +37,7 @@
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include "skbuf.h"
-#include "actor.h"
+#include "task_runner.h"
 #include "stats.h"
 
 #define null NULL
@@ -139,7 +139,7 @@ struct sockbase {
 		struct list_head link;
 	} acceptq;
 
-	struct actor_task shutdown;
+	struct task_ent shutdown;
 	struct list_head poll_entries;
 };
 

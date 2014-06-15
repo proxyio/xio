@@ -34,20 +34,20 @@
 
 struct xglobal xgb = {};
 
-static void __shutdown_socks_task_hndl (struct actor *cpu)
+static void __shutdown_socks_task_hndl (struct task_runner *cpu)
 {
-	struct actor_task *ts, *tmp;
+	struct task_ent *te, *tmp;
 	struct list_head st_head = {};
 
 	INIT_LIST_HEAD (&st_head);
-	actor_lock (cpu);
+	task_runner_lock (cpu);
 	efd_unsignal (&cpu->efd);
 	list_splice (&cpu->shutdown_socks, &st_head);
-	actor_unlock (cpu);
+	task_runner_unlock (cpu);
 
-	walk_task_s (ts, tmp, &st_head) {
-		list_del_init (&ts->link);
-		ts->f (ts);
+	walk_task_s (te, tmp, &st_head) {
+		list_del_init (&te->link);
+		te->f (te);
 	}
 }
 
@@ -62,10 +62,10 @@ static inline int kcpud (void *args)
 {
 	waitgroup_t *wg = (waitgroup_t *) args;
 	int rc = 0;
-	int cpu_no = actor_alloc();
-	struct actor *cpu = actorget (cpu_no);
+	int cpu_no = task_runner_alloc();
+	struct task_runner *cpu = get_task_runner (cpu_no);
 
-	actor_lock_init (cpu);
+	task_runner_lock_init (cpu);
 	INIT_LIST_HEAD (&cpu->shutdown_socks);
 
 	/* Init eventloop and wakeup parent */
@@ -93,9 +93,9 @@ static inline int kcpud (void *args)
 
 	BUG_ON (!list_empty (&cpu->shutdown_socks) );
 	/* Release the poll descriptor when kcpud exit. */
-	actor_free (cpu_no);
+	task_runner_free (cpu_no);
 	eloop_destroy (&cpu->el);
-	actor_lock_destroy (cpu);
+	task_runner_lock_destroy (cpu);
 	return rc;
 }
 
