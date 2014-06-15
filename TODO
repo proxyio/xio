@@ -1,6 +1,7 @@
-1. scatter/gather send.
-2. skbuf protect by reference
-3. PUBSUB scalability protocol
-4. BUS scalability protocol
+1. scatter/gather send.                                      -- 2014/06/06 done
+2. skbuf protect by reference                                -- (x)
+3. PUBSUB scalability protocol                               -- 2014/06/14 done
+4. BUS scalability protocol                                  -- 2014/06/14 done
 5. little endian/big endian for network transmit
 6. optimize the atomic API                                   -- 2014/06/10 done
+7. optimize the socket recv
