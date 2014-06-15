@@ -69,10 +69,22 @@ AS_IF([test "$enable_lua" = "yes"], [
     AC_CHECK_LIB([lua], [lua_pushnumber])
 ])
 
-AS_IF([test x"$GCC" = x"yes"], [
+AS_IF([test $GCC = yes], [
     AC_DEFINE([HAVE_GCC], [], [gcc compiler support])
 ])
 
+
+#  If --enable-debug is specified, set the HAVE_DEBUG macro.
+AC_ARG_ENABLE([debug],
+    [AS_HELP_STRING([--enable-debug], [enable debugging information [default=yes]])]
+)
+
+if test "$enable_debug" = "yes"; then
+    if test "$GCC" = "yes"; then
+        CFLAGS="-g -O0 "
+    fi
+    AC_DEFINE([HAVE_DEBUG], [], [enable debug compile mode])
+fi
 
 
 AC_CONFIG_FILES([Makefile])
