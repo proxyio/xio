@@ -210,11 +210,11 @@ int xpoll_wait (int pollid, struct poll_ent *ents, int size, int to)
 			break;
 		ents[n++] = itm->base.ent;
 		if (itm->base.ent.happened & XPOLLIN)
-			mstats_base_incrkey (&self->stats.base, ST_POLLIN);
+			poll_mstats_incr (&self->stats, ST_POLLIN);
 		if (itm->base.ent.happened & XPOLLOUT)
-			mstats_base_incrkey (&self->stats.base, ST_POLLOUT);
+			poll_mstats_incr (&self->stats, ST_POLLOUT);
 		if (itm->base.ent.happened & XPOLLERR)
-			mstats_base_incrkey (&self->stats.base, ST_POLLERR);
+			poll_mstats_incr (&self->stats, ST_POLLERR);
 	}
 	mutex_unlock (&self->lock);
 	pput (pollid);

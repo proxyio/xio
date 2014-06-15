@@ -30,7 +30,7 @@
 
 struct mstats_base;
 typedef void (*thres_warn)
-(struct mstats_base *stb, int sl, int key, int64_t thres, int64_t val);
+(struct mstats_base *stb, int sl, int key, i64 thres, i64 val);
 
 enum {
 	MST_NOW = 0,
@@ -52,11 +52,11 @@ enum {
 
 struct mstats_base {
 	int kr;
-	int64_t slv[MSL_NUM];
-	int64_t *keys[MST_NUM][MSL_NUM];
-	int64_t *thres[MSL_NUM];
-	int64_t timestamp[MSL_NUM];
-	int64_t trigger_counter[MSL_NUM];
+	i64 slv[MSL_NUM];
+	i64 *keys[MST_NUM][MSL_NUM];
+	i64 *thres[MSL_NUM];
+	i64 timestamp[MSL_NUM];
+	i64 trigger_counter[MSL_NUM];
 	thres_warn *f;
 };
 
@@ -64,8 +64,8 @@ struct mstats_base {
 
 #define DEFINE_MSTATS(name, KEYRANGE)					\
 	struct name##_mstats {						\
-		int64_t keys[MST_NUM][MSL_NUM][KEYRANGE];		\
-		int64_t thres[MSL_NUM][KEYRANGE];			\
+		i64 keys[MST_NUM][MSL_NUM][KEYRANGE];		\
+		i64 thres[MSL_NUM][KEYRANGE];			\
 		thres_warn f[MSL_NUM];					\
 		struct mstats_base base;				\
 	};								\
@@ -81,29 +81,47 @@ struct mstats_base {
 		stb->slv[MSL_H] = 3600000;				\
 		stb->slv[MSL_D] = 86400000;				\
 		foreach (i, MST_NUM) foreach (j, MSL_NUM)		\
-			stb->keys[i][j] = (int64_t *)st->keys[i][j];	\
+			stb->keys[i][j] = (i64 *)st->keys[i][j];	\
 		foreach (i, MSL_NUM)					\
-			stb->thres[i] = (int64_t *)st->thres[i];	\
+			stb->thres[i] = (i64 *)st->thres[i];	\
 		stb->f = (thres_warn *)st->f;				\
 		foreach (i, MSL_NUM)					\
 			stb->timestamp[i] = gettimeof(ms);		\
+	}								\
+	static inline							\
+	void name##_mstats_incr (struct name##_mstats *st, int key)	\
+	{								\
+		return mstats_base_incr (&st->base, key);		\
+	}								\
+	static inline							\
+	void name##_mstats_incrs (struct name##_mstats *st, int key,	\
+				  int val)				\
+	{								\
+		return mstats_base_incrs (&st->base, key, val);		\
+	}								\
+	static inline							\
+	i64 name##_mstats_fetch (struct name##_mstats *_st,		\
+				   int st, int sl, int key)		\
+	{								\
+		return mstats_base_fetch (&_st->base, st, sl, key);	\
 	}
 
-static inline void mstats_base_incrkey (struct mstats_base *stb, int key)
+
+static inline void mstats_base_incr (struct mstats_base *stb, int key)
 {
 	int sl;
 	for (sl = 0; sl < MSL_NUM; sl++)
 		stb->keys[MST_NOW][sl][key] += 1;
 }
 
-static inline void mstats_base_incrskey (struct mstats_base *stb, int key, int val)
+static inline void mstats_base_incrs (struct mstats_base *stb, int key, int val)
 {
 	int sl;
 	for (sl = 0; sl < MSL_NUM; sl++)
 		stb->keys[MST_NOW][sl][key] += val;
 }
 
-static inline int64_t mstats_base_getkey (struct mstats_base *stb, int st, int sl, int key)
+static inline i64 mstats_base_fetch (struct mstats_base *stb, int st, int sl, int key)
 {
 	return stb->keys[st][sl][key];
 }
@@ -113,12 +131,12 @@ static inline void mstats_base_set_warnf (struct mstats_base *stb, int sl, thres
 	stb->f[sl] = f;
 }
 
-static inline void mstats_base_set_thres (struct mstats_base *stb, int sl, int key, int64_t v)
+static inline void mstats_base_set_thres (struct mstats_base *stb, int sl, int key, i64 v)
 {
 	stb->thres[sl][key] = v;
 }
 
-void mstats_base_emit (struct mstats_base *stb, int64_t timestamp);
+void mstats_base_emit (struct mstats_base *stb, i64 timestamp);
 int mstats_base_parse (const char *str, const char *key, int *tr, int *v);
 
 static inline int mstats_base_init (struct mstats_base *stb, int keyrange,

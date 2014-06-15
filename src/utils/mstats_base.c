@@ -43,7 +43,7 @@ const char *stat_level_token[MSL_NUM] = {
 };
 
 
-static void trigger_one_key_stat (struct mstats_base *ms, int64_t nowtime)
+static void trigger_one_key_stat (struct mstats_base *ms, i64 nowtime)
 {
 	int sl, key;
 	for (sl = MSL_S; sl < MSL_NUM; sl++) {
@@ -61,7 +61,7 @@ static void trigger_one_key_stat (struct mstats_base *ms, int64_t nowtime)
 	}
 }
 
-static void update_one_key_stat (struct mstats_base *ms, int64_t nowtime)
+static void update_one_key_stat (struct mstats_base *ms, i64 nowtime)
 {
 	int sl, key;
 	for (sl = MSL_S; sl < MSL_NUM; sl++) {
@@ -74,7 +74,7 @@ static void update_one_key_stat (struct mstats_base *ms, int64_t nowtime)
 	}
 }
 
-void mstats_base_emit (struct mstats_base *ms, int64_t timestamp)
+void mstats_base_emit (struct mstats_base *ms, i64 timestamp)
 {
 	trigger_one_key_stat (ms, timestamp);
 	update_one_key_stat (ms, timestamp);

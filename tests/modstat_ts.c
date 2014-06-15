@@ -42,8 +42,8 @@ static int mstats_test()
 	mstats_base_set_thres (ms, MSL_H, SEND, 300);
 	mstats_base_set_thres (ms, MSL_D, SEND, 500);
 	for (i = 0; i < 1000; i++) {
-		mstats_base_incrkey (ms, SEND);
-		mstats_base_incrkey (ms, RECV);
+		mstats_base_incr (ms, SEND);
+		mstats_base_incr (ms, RECV);
 		mstats_base_emit (ms, gettimeof (ms) );
 	}
 	return 0;
