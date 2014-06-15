@@ -38,7 +38,11 @@ struct actor_task {
     walk_each_entry_s(ts, tmp, head, struct actor_task, link)
 
 struct actor {
+#if defined HAVE_DEBUG
+	mutex_t lock;
+#else
 	spin_t lock;
+#endif
 
 	/* Backend eventloop for cpu_worker. */
 	eloop_t el;
@@ -55,6 +59,60 @@ int actor_choosed (int fd);
 void actor_free (int cpu_no);
 struct actor *actorget (int cpu_no);
 
+#if defined HAVE_DEBUG
 
+static inline void actor_lock_init (struct actor *cpu)
+{
+	mutex_init (&cpu->lock);
+}
+
+static inline void actor_lock_destroy (struct actor *cpu)
+{
+	mutex_destroy (&cpu->lock);
+}
+
+static inline void actor_relock (struct actor *cpu)
+{
+	mutex_relock (&cpu->lock);
+}
+
+static inline void actor_lock (struct actor *cpu)
+{
+	mutex_lock (&cpu->lock);
+}
+
+static inline void actor_unlock (struct actor *cpu)
+{
+	mutex_unlock (&cpu->lock);
+}
+
+#else
+
+static inline void actor_lock_init (struct actor *cpu)
+{
+	spin_init (&cpu->lock);
+}
+
+static inline void actor_lock_destroy (struct actor *cpu)
+{
+	spin_destroy (&cpu->lock);
+}
+
+static inline void actor_relock (struct actor *cpu)
+{
+	spin_relock (&cpu->lock);
+}
+
+static inline void actor_lock (struct actor *cpu)
+{
+	spin_lock (&cpu->lock);
+}
+
+static inline void actor_unlock (struct actor *cpu)
+{
+	spin_unlock (&cpu->lock);
+}
+
+#endif
 
 #endif

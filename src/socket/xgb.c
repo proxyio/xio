@@ -40,10 +40,10 @@ static void __shutdown_socks_task_hndl (struct actor *cpu)
 	struct list_head st_head = {};
 
 	INIT_LIST_HEAD (&st_head);
-	spin_lock (&cpu->lock);
+	actor_lock (cpu);
 	efd_unsignal (&cpu->efd);
 	list_splice (&cpu->shutdown_socks, &st_head);
-	spin_unlock (&cpu->lock);
+	actor_unlock (cpu);
 
 	walk_task_s (ts, tmp, &st_head) {
 		list_del_init (&ts->link);
@@ -65,7 +65,7 @@ static inline int kcpud (void *args)
 	int cpu_no = actor_alloc();
 	struct actor *cpu = actorget (cpu_no);
 
-	spin_init (&cpu->lock);
+	actor_lock_init (cpu);
 	INIT_LIST_HEAD (&cpu->shutdown_socks);
 
 	/* Init eventloop and wakeup parent */
@@ -95,7 +95,7 @@ static inline int kcpud (void *args)
 	/* Release the poll descriptor when kcpud exit. */
 	actor_free (cpu_no);
 	eloop_destroy (&cpu->el);
-	spin_destroy (&cpu->lock);
+	actor_lock_destroy (cpu);
 	return rc;
 }
 

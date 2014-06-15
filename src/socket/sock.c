@@ -93,12 +93,11 @@ void xput (int fd)
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
-		spin_lock (&cpu->lock);
+		actor_lock (cpu);
 		while (efd_signal (&cpu->efd) < 0)
-			spin_relock (&cpu->lock);
+			actor_relock (cpu);
 		list_add_tail (&sb->shutdown.link, &cpu->shutdown_socks);
-		spin_unlock (&cpu->lock);
-
+		actor_unlock (cpu);
 	}
 	mutex_unlock (&xgb.lock);
 }
