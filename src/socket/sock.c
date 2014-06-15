@@ -123,6 +123,7 @@ void sockbase_init (struct sockbase *sb)
 
 	atomic_init (&sb->ref);
 	sb->cpu_no = actor_choosed (sb->fd);
+	socket_mstats_init (&sb->stats);
 
 	sb->rcv.waiters = 0;
 	sb->rcv.buf = 0;

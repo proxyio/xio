@@ -38,6 +38,7 @@
 #include <xio/poll.h>
 #include "skbuf.h"
 #include "actor.h"
+#include "stats.h"
 
 #define null NULL
 
@@ -115,6 +116,7 @@ struct sockbase {
 	struct sockbase *owner;
 	struct list_head sub_socks;
 	struct list_head sib_link;
+	struct socket_mstats stats;
 
 	struct {
 		int waiters;
