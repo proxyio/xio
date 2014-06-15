@@ -61,7 +61,7 @@ static void poll_entry_destroy (struct poll_entry *pfd)
 	BUG_ON (pfd->ref != 0);
 	spin_destroy (&pfd->lock);
 	mem_free (pfd, sizeof (*pfd) );
-	pput (self->id);
+	poll_put (self->id);
 }
 
 
@@ -89,21 +89,18 @@ int poll_entry_put (struct poll_entry *pfd)
 	return ref;
 }
 
-struct xpoll_t *xpoll_new() {
-	struct xpoll_t *self = TNEW (struct xpoll_t);
-	if (self) {
-		self->uwaiters = 0;
-		atomic_init (&self->ref);
-		self->size = 0;
-		mutex_init (&self->lock);
-		condition_init (&self->cond);
-		INIT_LIST_HEAD (&self->lru_head);
-	}
-	return self;
-}
-
 struct xpoll_t *poll_alloc() {
-	struct xpoll_t *self = xpoll_new();
+	struct xpoll_t *self = TNEW (struct xpoll_t);
+
+	if (!self)
+		return 0;
+
+	self->uwaiters = 0;
+	atomic_init (&self->ref);
+	self->size = 0;
+	mutex_init (&self->lock);
+	condition_init (&self->cond);
+	INIT_LIST_HEAD (&self->lru_head);
 
 	BUG_ON (pg.npolls >= XIO_MAX_POLLS);
 	spin_lock (&pg.lock);
@@ -113,13 +110,13 @@ struct xpoll_t *poll_alloc() {
 	return self;
 }
 
-static void xpoll_destroy (struct xpoll_t *self)
+static void poll_destroy (struct xpoll_t *self)
 {
 	mutex_destroy (&self->lock);
 	mem_free (self, sizeof (struct xpoll_t) );
 }
 
-struct xpoll_t *pget (int pollid) {
+struct xpoll_t *poll_get (int pollid) {
 	struct xpoll_t *self;
 
 	spin_lock (&pg.lock);
@@ -132,14 +129,14 @@ struct xpoll_t *pget (int pollid) {
 	return self;
 }
 
-void pput (int pollid)
+void poll_put (int pollid)
 {
 	struct xpoll_t *self = pg.polls[pollid];
 
 	if (atomic_decr (&self->ref) ==  1) {
 		spin_lock (&pg.lock);
 		pg.unused[--pg.npolls] = pollid;
-		xpoll_destroy (self);
+		poll_destroy (self);
 		spin_unlock (&pg.lock);
 	}
 }

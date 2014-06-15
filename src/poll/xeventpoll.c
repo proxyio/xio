@@ -84,7 +84,7 @@ int xpoll_create()
 	struct xpoll_t *self = poll_alloc();
 
 	if (self) {
-		pget (self->id);
+		poll_get (self->id);
 		poll_mstats_init (&self->stats);
 	}
 	return self->id;
@@ -169,7 +169,7 @@ const poll_ctl ctl_vfptr[] = {
 
 int xpoll_ctl (int pollid, int op, struct poll_fd *pollfd)
 {
-	struct xpoll_t *self = pget (pollid);
+	struct xpoll_t *self = poll_get (pollid);
 	int rc;
 
 	if (!self) {
@@ -177,18 +177,18 @@ int xpoll_ctl (int pollid, int op, struct poll_fd *pollfd)
 		return -1;
 	}
 	if (op >= NELEM (ctl_vfptr, poll_ctl) || !ctl_vfptr[op]) {
-		pput (pollid);
+		poll_put (pollid);
 		errno = EINVAL;
 		return -1;
 	}
 	rc = ctl_vfptr[op] (self, pollfd);
-	pput (pollid);
+	poll_put (pollid);
 	return rc;
 }
 
 int xpoll_wait (int pollid, struct poll_fd *pollfds, int size, int to)
 {
-	struct xpoll_t *self = pget (pollid);
+	struct xpoll_t *self = poll_get (pollid);
 	int n = 0;
 	struct poll_entry *ent, *tmp;
 
@@ -217,7 +217,7 @@ int xpoll_wait (int pollid, struct poll_fd *pollfds, int size, int to)
 			poll_mstats_incr (&self->stats, ST_POLLERR);
 	}
 	mutex_unlock (&self->lock);
-	pput (pollid);
+	poll_put (pollid);
 	return n;
 }
 
@@ -225,7 +225,7 @@ int xpoll_wait (int pollid, struct poll_fd *pollfds, int size, int to)
 int xpoll_close (int pollid)
 {
 	int rc;
-	struct xpoll_t *self = pget (pollid);
+	struct xpoll_t *self = poll_get (pollid);
 
 	if (!self) {
 		errno = EBADF;
@@ -239,7 +239,7 @@ int xpoll_close (int pollid)
 	}
 
 	/* Release the ref hold by user-caller */
-	pput (pollid);
-	pput (pollid);
+	poll_put (pollid);
+	poll_put (pollid);
 	return 0;
 }

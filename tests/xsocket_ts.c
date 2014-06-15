@@ -96,7 +96,7 @@ static void xclient2 (const char *pf)
 	for (i = 0; i < cnt; i++) {
 		BUG_ON ( (sfd[i] = xconnect (host) ) < 0);
 		ent[i].fd = sfd[i];
-		ent[i].self = 0;
+		ent[i].hndl = 0;
 		ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
 		assert (xpoll_ctl (pollid, XPOLL_ADD, &ent[i]) == 0);
 	}
@@ -124,7 +124,7 @@ static void xserver2()
 	BUG_ON ( (afd = xlisten ("tcp+ipc+inproc://127.0.0.1:15200") ) < 0);
 	thread_start (&cli_thread, xclient_thread2, 0);
 	ent[0].fd = afd;
-	ent[0].self = 0;
+	ent[0].hndl = 0;
 	ent[0].events = XPOLLERR;
 	BUG_ON (xpoll_ctl (pollid, XPOLL_ADD, &ent[0]) != 0);
 
@@ -133,7 +133,7 @@ static void xserver2()
 			BUG_ON ( (sfd[i] = xaccept (afd) ) < 0);
 			DEBUG_OFF ("%d", sfd[i]);
 			ent[i].fd = sfd[i];
-			ent[i].self = 0;
+			ent[i].hndl = 0;
 			ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
 			BUG_ON (xpoll_ctl (pollid, XPOLL_ADD, &ent[i]) != 0);
 		}
@@ -141,7 +141,7 @@ static void xserver2()
 		for (i = 0; i < mycnt; i++) {
 			DEBUG_OFF ("%d", sfd[i]);
 			ent[i].fd = sfd[i];
-			ent[i].self = 0;
+			ent[i].hndl = 0;
 			ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
 			BUG_ON (xpoll_ctl (pollid, XPOLL_MOD, &ent[i]) != 0);
 			BUG_ON (xpoll_ctl (pollid, XPOLL_MOD, &ent[i]) != 0);

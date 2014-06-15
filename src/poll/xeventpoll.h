@@ -63,8 +63,8 @@ struct xpoll_t {
 };
 
 struct xpoll_t *poll_alloc();
-struct xpoll_t *pget (int pollid);
-void pput (int pollid);
+struct xpoll_t *poll_get (int pollid);
+void poll_put (int pollid);
 
 #define XPOLL_HEADFD -0x3654
 struct poll_entry *get_poll_entry (struct xpoll_t *poll, int fd);
