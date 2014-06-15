@@ -50,8 +50,8 @@ static void trigger_one_key_stat (struct mstats_base *ms, int64_t nowtime)
 		if (nowtime - ms->timestamp[sl] <= ms->slv[sl])
 			continue;
 		for (key = 0; key < ms->kr; key++) {
-			if (ms->f[sl] && ms->keys[MST_NOW][sl][key] > ms->threshold[sl][key])
-				ms->f[sl] (ms, sl, key, ms->threshold[sl][key], ms->keys[MST_NOW][sl][key]);
+			if (ms->f[sl] && ms->keys[MST_NOW][sl][key] > ms->thres[sl][key])
+				ms->f[sl] (ms, sl, key, ms->thres[sl][key], ms->keys[MST_NOW][sl][key]);
 			ms->keys[MST_LAST][sl][key] = ms->keys[MST_NOW][sl][key];
 			if (!ms->keys[MST_MIN][sl][key] || ms->keys[MST_NOW][sl][key] < ms->keys[MST_MIN][sl][key])
 				ms->keys[MST_MIN][sl][key] = ms->keys[MST_NOW][sl][key];
