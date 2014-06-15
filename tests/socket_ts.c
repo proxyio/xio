@@ -8,6 +8,38 @@
 #include <utils/thread.h>
 #include "testutil.h"
 
+/* Compatiple for HAVE_DEBUG flags */
+static int64_t tcp_send_full (int fd, char *buff, int len)
+{
+	int rc = 0;
+	int full = len;
+
+	while (len > 0) {
+		if ((rc = tcp_send (fd, buff, len)) >= 0) {
+			buff += rc;
+			len -= rc;
+		} else
+			break;
+	}
+	return full - len;
+}
+
+static int64_t tcp_recv_full (int fd, char *buff, int len)
+{
+	int rc = 0;
+	int full = len;
+
+	while (len > 0) {
+		if ((rc = tcp_recv (fd, buff, len)) >= 0) {
+			buff += rc;
+			len -= rc;
+		} else
+			break;
+	}
+	return full - len;
+}
+
+
 static void tcp_client()
 {
 	int sfd;
@@ -16,8 +48,8 @@ static void tcp_client()
 
 	BUG_ON ( (sfd = tcp_connect ("127.0.0.1:15100") ) <= 0);
 	randstr (buf, 1024);
-	BUG_ON (sizeof (buf) != (nbytes = tcp_send (sfd, buf, sizeof (buf) ) ) );
-	BUG_ON (nbytes != tcp_recv (sfd, buf, nbytes) );
+	BUG_ON (sizeof (buf) != (nbytes = tcp_send_full (sfd, buf, sizeof (buf) ) ) );
+	BUG_ON (nbytes != tcp_recv_full (sfd, buf, nbytes) );
 	close (sfd);
 }
 
@@ -34,8 +66,8 @@ int tcp_client_event_handler (eloop_t *el, ev_t *et)
 
 	randstr (buf, sizeof (buf) );
 	if (et->happened & EPOLLIN) {
-		BUG_ON (sizeof (buf) != tcp_recv (et->fd, buf, sizeof (buf) ) );
-		BUG_ON (sizeof (buf) != tcp_send (et->fd, buf, sizeof (buf) ) );
+		BUG_ON (sizeof (buf) != tcp_recv_full (et->fd, buf, sizeof (buf) ) );
+		BUG_ON (sizeof (buf) != tcp_send_full (et->fd, buf, sizeof (buf) ) );
 	}
 	if (et->happened & EPOLLRDHUP) {
 		eloop_del (el, et);
