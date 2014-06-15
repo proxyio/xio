@@ -85,6 +85,7 @@ int xpoll_create()
 
 	if (self) {
 		pget (self->id);
+		poll_mstats_init (&self->stats);
 	}
 	return self->id;
 }

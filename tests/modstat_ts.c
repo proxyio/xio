@@ -1,15 +1,15 @@
-#include <utils/mstats.h>
+#include <utils/mstats_base.h>
 
-static void s_warn (mstats_t *self, int sl, int key, int64_t ts, int64_t val)
+static void s_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
 {
 }
-static void m_warn (mstats_t *self, int sl, int key, int64_t ts, int64_t val)
+static void m_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
 {
 }
-static void h_warn (mstats_t *self, int sl, int key, int64_t ts, int64_t val)
+static void h_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
 {
 }
-static void d_warn (mstats_t *self, int sl, int key, int64_t ts, int64_t val)
+static void d_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
 {
 }
 
@@ -25,26 +25,26 @@ DEFINE_MSTATS (ut, UT_KEYRANGE);
 static int mstats_test()
 {
 	int i;
-	ut_mstats_t utms = {};
-	mstats_t *ms = &utms.self;
+	struct ut_mstats utms = {};
+	struct mstats_base *ms = &utms.base;
 
-	INIT_MSTATS (utms);
+	ut_mstats_init (&utms);
 	ms->slv[MSL_S] = 500;
 	ms->slv[MSL_M] = 1000;
 	ms->slv[MSL_H] = 2000;
 	ms->slv[MSL_D] = 4000;
-	mstats_set_warnf (ms, MSL_S, s_warn);
-	mstats_set_warnf (ms, MSL_M, m_warn);
-	mstats_set_warnf (ms, MSL_H, h_warn);
-	mstats_set_warnf (ms, MSL_D, d_warn);
-	mstats_set_threshold (ms, MSL_S, SEND, 100);
-	mstats_set_threshold (ms, MSL_M, SEND, 200);
-	mstats_set_threshold (ms, MSL_H, SEND, 300);
-	mstats_set_threshold (ms, MSL_D, SEND, 500);
+	mstats_base_set_warnf (ms, MSL_S, s_warn);
+	mstats_base_set_warnf (ms, MSL_M, m_warn);
+	mstats_base_set_warnf (ms, MSL_H, h_warn);
+	mstats_base_set_warnf (ms, MSL_D, d_warn);
+	mstats_base_set_threshold (ms, MSL_S, SEND, 100);
+	mstats_base_set_threshold (ms, MSL_M, SEND, 200);
+	mstats_base_set_threshold (ms, MSL_H, SEND, 300);
+	mstats_base_set_threshold (ms, MSL_D, SEND, 500);
 	for (i = 0; i < 1000; i++) {
-		mstats_incrkey (ms, SEND);
-		mstats_incrkey (ms, RECV);
-		mstats_update_timestamp (ms, gettimeof (ms) );
+		mstats_base_incrkey (ms, SEND);
+		mstats_base_incrkey (ms, RECV);
+		mstats_base_emit (ms, gettimeof (ms) );
 	}
 	return 0;
 }
@@ -52,7 +52,7 @@ static int mstats_test()
 
 static int gtip (const char *str, const char *item, int *tr, int *v)
 {
-	return generic_parse_mstats_item (str, item, tr, v);
+	return mstats_base_parse (str, item, tr, v);
 }
 
 static int mstats_item_parse_test()

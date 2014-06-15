@@ -33,6 +33,7 @@
 #include <inttypes.h>
 #include <sys/syscall.h>
 
+#define foreach(i, max) for (i = 0; i < max; i++)
 
 #if !defined gettid
 int gettid();

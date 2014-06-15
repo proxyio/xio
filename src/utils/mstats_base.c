@@ -23,7 +23,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include "mstats.h"
+#include "mstats_base.h"
 
 const char *stat_type_token[MST_NUM] = {
 	"now",
@@ -43,7 +43,7 @@ const char *stat_level_token[MSL_NUM] = {
 };
 
 
-static void trigger_one_key_stat (mstats_t *ms, int64_t nowtime)
+static void trigger_one_key_stat (struct mstats_base *ms, int64_t nowtime)
 {
 	int sl, key;
 	for (sl = MSL_S; sl < MSL_NUM; sl++) {
@@ -61,7 +61,7 @@ static void trigger_one_key_stat (mstats_t *ms, int64_t nowtime)
 	}
 }
 
-static void update_one_key_stat (mstats_t *ms, int64_t nowtime)
+static void update_one_key_stat (struct mstats_base *ms, int64_t nowtime)
 {
 	int sl, key;
 	for (sl = MSL_S; sl < MSL_NUM; sl++) {
@@ -74,7 +74,7 @@ static void update_one_key_stat (mstats_t *ms, int64_t nowtime)
 	}
 }
 
-void mstats_update_timestamp (mstats_t *ms, int64_t timestamp)
+void mstats_base_emit (struct mstats_base *ms, int64_t timestamp)
 {
 	trigger_one_key_stat (ms, timestamp);
 	update_one_key_stat (ms, timestamp);
@@ -82,7 +82,7 @@ void mstats_update_timestamp (mstats_t *ms, int64_t timestamp)
 
 
 
-int generic_parse_mstats_item (const char *str, const char *key, int *tr, int *v)
+int mstats_base_parse (const char *str, const char *key, int *tr, int *v)
 {
 	char *pos = NULL, *newstr = NULL;
 

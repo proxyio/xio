@@ -30,6 +30,7 @@
 #include <utils/list.h>
 #include <xio/poll.h>
 #include <socket/sock.h>
+#include "stats.h"
 
 struct xpitem {
 	struct pollbase base;
@@ -58,6 +59,7 @@ struct xpoll_t {
 	int uwaiters;
 	int size;
 	struct list_head lru_head;
+	struct poll_mstats stats;
 };
 
 struct xpoll_t *poll_alloc();

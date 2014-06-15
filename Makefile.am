@@ -45,6 +45,7 @@ XIO_SOCKET = \
 XIO_POLL = \
 	src/poll/xpoll_struct.c \
 	src/poll/xselect.c \
+	src/poll/stats.c \
 	src/poll/xeventpoll.c
 
 XIO_SP = \
@@ -88,7 +89,7 @@ XIO_UTILS = \
 	src/utils/tcp/tcp_getopt.c \
 	src/utils/tcp/tcp_setopt.c \
 	src/utils/bufio.c \
-	src/utils/mstats.c \
+	src/utils/mstats_base.c \
 	src/utils/slab.c \
 	src/utils/crc16.c \
 	src/utils/sockaddr.c
