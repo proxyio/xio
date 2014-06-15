@@ -25,7 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include "../xgb.h"
+#include "../global.h"
 
 extern int _xlisten (int pf, const char *addr);
 

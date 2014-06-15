@@ -30,7 +30,7 @@
 #include <utils/spinlock.h>
 #include <utils/condition.h>
 #include <utils/thread.h>
-#include <socket/xgb.h>
+#include <socket/global.h>
 #include <xio/poll.h>
 #include <xio/sp_reqrep.h>
 #include "sp_hdr.h"

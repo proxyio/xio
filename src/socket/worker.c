@@ -21,7 +21,7 @@
 */
 
 #include <stdio.h>
-#include "xgb.h"
+#include "global.h"
 
 int worker_alloc()
 {

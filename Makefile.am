@@ -31,7 +31,7 @@ XIO_SOCKET = \
 	src/socket/eventnotify.c \
 	src/socket/worker.c \
 	src/socket/xbind.c \
-	src/socket/xgb.c \
+	src/socket/global.c \
 	src/socket/xclose.c \
 	src/socket/xconnect.c \
 	src/socket/tcp/tcpipc_listener.c \

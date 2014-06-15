@@ -22,7 +22,7 @@
 
 
 #include <utils/timer.h>
-#include <socket/xgb.h>
+#include <socket/global.h>
 #include "xeventpoll.h"
 
 struct xp_global pg;

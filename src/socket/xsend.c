@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-#include "xgb.h"
+#include "global.h"
 
 struct skbuf *sendq_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;

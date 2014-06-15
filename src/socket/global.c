@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-#include "xgb.h"
+#include "global.h"
 
 /* Backend poller wait kernel timeout msec */
 #define DEF_ELOOPTIMEOUT 1
