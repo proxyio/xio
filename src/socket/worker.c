@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include "xgb.h"
 
-int task_runner_alloc()
+int worker_alloc()
 {
 	int cpu_no;
 
@@ -38,14 +38,14 @@ int task_runner_alloc()
 	return cpu_no;
 }
 
-int task_runner_choosed (int fd)
+int worker_choosed (int fd)
 {
 	if (xgb.ncpus == 0)
 		sleep (0xfffffff);
 	return fd % xgb.ncpus;
 }
 
-void task_runner_free (int cpu_no)
+void worker_free (int cpu_no)
 {
 	mutex_lock (&xgb.lock);
 	xgb.cpu_unused[--xgb.ncpus] = cpu_no;
@@ -56,7 +56,7 @@ void task_runner_free (int cpu_no)
 	mutex_unlock (&xgb.lock);
 }
 
-struct task_runner *get_task_runner (int cpu_no) {
+struct worker *get_worker (int cpu_no) {
 	return &xgb.cpus[cpu_no];
 }
 

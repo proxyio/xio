@@ -27,7 +27,7 @@
 #include <utils/list.h>
 #include "inproc.h"
 #include "tcpipc.h"
-#include "task_runner.h"
+#include "worker.h"
 
 /* Max number of cpu core */
 #define XIO_MAX_CPUS 32
@@ -54,7 +54,7 @@ struct xglobal {
 	size_t nsockbases;
 
 
-	struct task_runner cpus[XIO_MAX_CPUS];
+	struct worker cpus[XIO_MAX_CPUS];
 
 	/* Stack of unused xsock descriptors.  */
 	int cpu_unused[XIO_MAX_CPUS];

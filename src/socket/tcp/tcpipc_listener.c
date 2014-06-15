@@ -36,7 +36,7 @@ extern struct io default_xops;
 static void request_socks_full (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if ( (self->et.events & EPOLLIN) ) {
@@ -48,7 +48,7 @@ static void request_socks_full (struct sockbase *sb)
 static void request_socks_nonfull (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if (! (self->et.events & EPOLLIN) ) {
@@ -63,7 +63,7 @@ static int ti_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int sys_fd, on = 1;
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	BUG_ON (! (self->vtp = transport_lookup (sb->vfptr->pf) ) );
 	if ( (sys_fd = self->vtp->bind (sock) ) < 0)
@@ -83,7 +83,7 @@ static int ti_listener_bind (struct sockbase *sb, const char *sock)
 static void ti_listener_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 	struct sockbase *nsb;
 
 	BUG_ON (!self->vtp);
@@ -137,7 +137,7 @@ static int ti_listener_hndl (eloop_t *el, ev_t *et)
 	struct sockbase *sb = &self->base;
 	int on = 1;
 	int nfd;
-	struct task_runner *cpu;
+	struct worker *cpu;
 	struct sockbase *nsb = 0;
 	struct tcpipc_sock *nself = 0;
 
@@ -158,7 +158,7 @@ static int ti_listener_hndl (eloop_t *el, ev_t *et)
 		return -1;
 	}
 	nsb = xgb.sockbases[nfd];
-	cpu = get_task_runner (nsb->cpu_no);
+	cpu = get_worker (nsb->cpu_no);
 	nself = cont_of (nsb, struct tcpipc_sock, base);
 
 	DEBUG_OFF ("%d accept new connection %d", sb->fd, nfd);

@@ -62,7 +62,7 @@ struct io default_xops = {
 static void snd_head_empty (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 	int64_t sndbuf = bio_size (&self->out);
 
 	// Disable POLLOUT event when snd_head is empty
@@ -77,7 +77,7 @@ static void snd_head_empty (struct sockbase *sb)
 static void snd_head_nonempty (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if (! (self->et.events & EPOLLOUT) ) {
@@ -101,7 +101,7 @@ static void rcv_head_pop (struct sockbase *sb)
 static void rcv_head_full (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if ( (self->et.events & EPOLLIN) ) {
@@ -114,7 +114,7 @@ static void rcv_head_full (struct sockbase *sb)
 static void rcv_head_nonfull (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	// Enable POLLOUT event when snd_head isn't empty
 	if (! (self->et.events & EPOLLIN) ) {
@@ -142,7 +142,7 @@ struct sockbase *ti_alloc() {
 static int ti_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 	int sys_fd;
 	int on = 1;
 	int blen = max (default_sndbuf, default_rcvbuf);
@@ -171,7 +171,7 @@ static int ti_connector_snd (struct sockbase *sb);
 static void ti_connector_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	BUG_ON (!self->vtp);
 

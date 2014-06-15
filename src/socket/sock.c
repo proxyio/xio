@@ -84,7 +84,7 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct task_runner *cpu = get_task_runner (sb->cpu_no);
+	struct worker *cpu = get_worker (sb->cpu_no);
 
 	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
@@ -93,11 +93,11 @@ void xput (int fd)
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
-		task_runner_lock (cpu);
+		worker_lock (cpu);
 		while (efd_signal (&cpu->efd) < 0)
-			task_runner_relock (cpu);
+			worker_relock (cpu);
 		list_add_tail (&sb->shutdown.link, &cpu->shutdown_socks);
-		task_runner_unlock (cpu);
+		worker_unlock (cpu);
 	}
 	mutex_unlock (&xgb.lock);
 }
@@ -121,7 +121,7 @@ void sockbase_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->cpu_no = task_runner_choosed (sb->fd);
+	sb->cpu_no = worker_choosed (sb->fd);
 	socket_mstats_init (&sb->stats);
 
 	sb->rcv.waiters = 0;

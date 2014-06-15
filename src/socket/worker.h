@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_TASK_RUNNER_
-#define _H_PROXYIO_TASK_RUNNER_
+#ifndef _H_PROXYIO_WORKER_
+#define _H_PROXYIO_WORKER_
 
 #include <utils/list.h>
 #include <utils/mutex.h>
@@ -37,7 +37,7 @@ struct task_ent {
 #define walk_task_s(ts, tmp, head)				\
     walk_each_entry_s(ts, tmp, head, struct task_ent, link)
 
-struct task_runner {
+struct worker {
 #if defined HAVE_DEBUG
 	mutex_t lock;
 #else
@@ -54,61 +54,61 @@ struct task_runner {
 	struct list_head shutdown_socks;
 };
 
-int task_runner_alloc();
-int task_runner_choosed (int fd);
-void task_runner_free (int cpu_no);
-struct task_runner *get_task_runner (int cpu_no);
+int worker_alloc();
+int worker_choosed (int fd);
+void worker_free (int cpu_no);
+struct worker *get_worker (int cpu_no);
 
 #if defined HAVE_DEBUG
 
-static inline void task_runner_lock_init (struct task_runner *cpu)
+static inline void worker_lock_init (struct worker *cpu)
 {
 	mutex_init (&cpu->lock);
 }
 
-static inline void task_runner_lock_destroy (struct task_runner *cpu)
+static inline void worker_lock_destroy (struct worker *cpu)
 {
 	mutex_destroy (&cpu->lock);
 }
 
-static inline void task_runner_relock (struct task_runner *cpu)
+static inline void worker_relock (struct worker *cpu)
 {
 	mutex_relock (&cpu->lock);
 }
 
-static inline void task_runner_lock (struct task_runner *cpu)
+static inline void worker_lock (struct worker *cpu)
 {
 	mutex_lock (&cpu->lock);
 }
 
-static inline void task_runner_unlock (struct task_runner *cpu)
+static inline void worker_unlock (struct worker *cpu)
 {
 	mutex_unlock (&cpu->lock);
 }
 
 #else
 
-static inline void task_runner_lock_init (struct task_runner *cpu)
+static inline void worker_lock_init (struct worker *cpu)
 {
 	spin_init (&cpu->lock);
 }
 
-static inline void task_runner_lock_destroy (struct task_runner *cpu)
+static inline void worker_lock_destroy (struct worker *cpu)
 {
 	spin_destroy (&cpu->lock);
 }
 
-static inline void task_runner_relock (struct task_runner *cpu)
+static inline void worker_relock (struct worker *cpu)
 {
 	spin_relock (&cpu->lock);
 }
 
-static inline void task_runner_lock (struct task_runner *cpu)
+static inline void worker_lock (struct worker *cpu)
 {
 	spin_lock (&cpu->lock);
 }
 
-static inline void task_runner_unlock (struct task_runner *cpu)
+static inline void worker_unlock (struct worker *cpu)
 {
 	spin_unlock (&cpu->lock);
 }
