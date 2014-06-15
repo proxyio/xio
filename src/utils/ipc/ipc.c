@@ -33,7 +33,6 @@
 #include "ipc.h"
 #include "../list.h"
 
-#define TP_IPC_SOCKDIR "/tmp/proxyio"
 #define TP_IPC_BACKLOG 100
 
 void ipc_close (int fd)
@@ -61,8 +60,7 @@ int ipc_bind (const char *sock)
 #endif
 		return -1;
 	addr.sun_family = AF_LOCAL;
-	snprintf (addr.sun_path,
-	          sizeof (addr.sun_path), "%s/%s", TP_IPC_SOCKDIR, sock);
+	snprintf (addr.sun_path, sizeof (addr.sun_path), "%s", sock);
 	unlink (addr.sun_path);
 	if (bind (afd, (struct sockaddr *) &addr, addr_len) < 0
 	    || listen (afd, TP_IPC_BACKLOG) < 0) {
@@ -97,8 +95,7 @@ int ipc_connect (const char *peer)
 	if ( (fd = socket (AF_LOCAL, SOCK_STREAM, 0) ) < 0)
 		return -1;
 	addr.sun_family = AF_LOCAL;
-	snprintf (addr.sun_path, sizeof (addr.sun_path), "%s/%s", TP_IPC_SOCKDIR,
-	          peer);
+	snprintf (addr.sun_path, sizeof (addr.sun_path), "%s", peer);
 	if (connect (fd, (struct sockaddr *) &addr, addr_len) < 0) {
 		close (fd);
 		return -1;
