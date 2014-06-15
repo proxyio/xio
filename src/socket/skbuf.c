@@ -182,6 +182,19 @@ static int sub_skbuf_rm (char *ubuf, void *optval)
 	return 0;
 }
 
+static int sub_skbuf_switch (char *ubuf, void *optval)
+{
+	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *dst = cont_of (optval, struct skbuf, chunk.iov_base);
+
+	dst->chunk.cmsg_num = src->chunk.cmsg_num;
+	src->chunk.cmsg_num = 0;
+	dst->chunk.cmsg_length = src->chunk.cmsg_length;
+	src->chunk.cmsg_length = 0;
+	list_splice (&src->cmsg_head, &dst->cmsg_head);
+	return 0;
+}
+
 /* Simply copy the content of skbuf to dest */
 static char *ubufdup (char *ubuf) {
 	char *dest = xallocubuf (xubuflen (ubuf) );
@@ -214,6 +227,7 @@ static const skbuf_ctl skbuf_vfptr[] = {
 	sub_skbuf_tail,      /* the last sub skbuf of this ubuf */
 	sub_skbuf_add,       /* insert one skbuf into children's head of the ubuf */
 	sub_skbuf_rm,        /* remove one skbuf from children's head of the ubuf */
+	sub_skbuf_switch,    /* move the sub skbuf from one to another */
 	clone_skbuf,         /* clone a skbuf include all the subs */
 };
 

@@ -26,13 +26,18 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
+/* One normal ubuf can take at most 16 control ubuf. */
 enum {
+	/* Following options are operate on control ubuf */	
 	SNUM = 1,
 	SFIRST,
 	SNEXT,
 	SLAST,
 	SADD,
 	SRM,
+	SSWITCH,
+
+	/* Following options are operate on normal ubuf */	
 	SCLONE,
 };
 

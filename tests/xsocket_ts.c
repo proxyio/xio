@@ -58,7 +58,7 @@ static void xserver()
 	int i, j;
 	int afd, sfd;
 	thread_t cli_thread = {};
-	char *xbuf;
+	char *xbuf, *ubuf;
 	char *host = "tcp+inproc://127.0.0.1:15100";
 
 	BUG_ON ( (afd = xlisten (host) ) < 0);
@@ -70,7 +70,11 @@ static void xserver()
 		for (i = 0; i < cnt * 10; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
 			DEBUG_OFF ("%d recv", sfd);
-			BUG_ON (0 != xsend (sfd, xbuf) );
+			ubuf = xallocubuf (xubuflen (xbuf));
+			memcpy (ubuf, xbuf, xubuflen (xbuf));
+			ubufctl (xbuf, SSWITCH, ubuf);
+			BUG_ON (0 != xsend (sfd, ubuf) );
+			xfreeubuf (xbuf);
 		}
 		xclose (sfd);
 	}
