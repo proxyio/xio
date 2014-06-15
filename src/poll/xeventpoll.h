@@ -32,22 +32,22 @@
 #include <socket/sock.h>
 #include "stats.h"
 
-struct xpitem {
+struct poll_fd {
 	struct pollbase base;
 	spin_t lock;
 	struct list_head lru_link;
 	int ref;
-	struct xpoll_t *poll;
+	struct xpoll_t *owner;
 };
 
 extern struct pollbase_vfptr xpollbase_vfptr;
 
-#define walk_xpitem_s(itm, nitm, head)				\
-    walk_each_entry_s(itm, nitm, head, struct xpitem, lru_link)
+#define walk_poll_fd_s(pfd, tmp, head)				\
+    walk_each_entry_s(pfd, tmp, head, struct poll_fd, lru_link)
 
-struct xpitem *xpitem_alloc();
-int xpitem_get (struct xpitem *itm);
-int xpitem_put (struct xpitem *itm);
+struct poll_fd *poll_fd_alloc();
+int poll_fd_get (struct poll_fd *pfd);
+int poll_fd_put (struct poll_fd *pfd);
 
 
 struct xpoll_t {
@@ -67,8 +67,8 @@ struct xpoll_t *pget (int pollid);
 void pput (int pollid);
 
 #define XPOLL_HEADFD -0x3654
-struct xpitem *getfd (struct xpoll_t *poll, int fd);
-struct xpitem *addfd (struct xpoll_t *poll, int fd);
+struct poll_fd *getfd (struct xpoll_t *poll, int fd);
+struct poll_fd *addfd (struct xpoll_t *poll, int fd);
 int rmfd (struct xpoll_t *poll, int fd);
 
 /* Max number of concurrent socks. */

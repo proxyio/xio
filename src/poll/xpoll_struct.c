@@ -43,48 +43,48 @@ void xpoll_module_exit()
 	BUG_ON (pg.npolls > 0);
 }
 
-struct xpitem *xpitem_alloc() {
-	struct xpitem *itm = TNEW (struct xpitem);
-	if (itm) {
-		INIT_LIST_HEAD (&itm->lru_link);
-		spin_init (&itm->lock);
-		itm->ref = 0;
-		pollbase_init (&itm->base, &xpollbase_vfptr);
+struct poll_fd *poll_fd_alloc() {
+	struct poll_fd *pfd = TNEW (struct poll_fd);
+	if (pfd) {
+		INIT_LIST_HEAD (&pfd->lru_link);
+		spin_init (&pfd->lock);
+		pfd->ref = 0;
+		pollbase_init (&pfd->base, &xpollbase_vfptr);
 	}
-	return itm;
+	return pfd;
 }
 
-static void xpitem_destroy (struct xpitem *itm)
+static void poll_fd_destroy (struct poll_fd *pfd)
 {
-	struct xpoll_t *self = itm->poll;
+	struct xpoll_t *self = pfd->owner;
 
-	BUG_ON (itm->ref != 0);
-	spin_destroy (&itm->lock);
-	mem_free (itm, sizeof (*itm) );
+	BUG_ON (pfd->ref != 0);
+	spin_destroy (&pfd->lock);
+	mem_free (pfd, sizeof (*pfd) );
 	pput (self->id);
 }
 
 
-int xpitem_get (struct xpitem *itm)
+int poll_fd_get (struct poll_fd *pfd)
 {
 	int ref;
-	spin_lock (&itm->lock);
-	ref = itm->ref++;
-	spin_unlock (&itm->lock);
+	spin_lock (&pfd->lock);
+	ref = pfd->ref++;
+	spin_unlock (&pfd->lock);
 	return ref;
 }
 
-int xpitem_put (struct xpitem *itm)
+int poll_fd_put (struct poll_fd *pfd)
 {
 	int ref;
 
-	spin_lock (&itm->lock);
-	ref = itm->ref--;
-	BUG_ON (itm->ref < 0);
-	spin_unlock (&itm->lock);
+	spin_lock (&pfd->lock);
+	ref = pfd->ref--;
+	BUG_ON (pfd->ref < 0);
+	spin_unlock (&pfd->lock);
 	if (ref == 1) {
-		BUG_ON (attached (&itm->lru_link) );
-		xpitem_destroy (itm);
+		BUG_ON (attached (&pfd->lru_link) );
+		poll_fd_destroy (pfd);
 	}
 	return ref;
 }
@@ -145,75 +145,75 @@ void pput (int pollid)
 }
 
 /* Find xpoll_item by socket fd. if fd == XPOLL_HEADFD, return head item */
-struct xpitem *ffd (struct xpoll_t *self, int fd) {
-	struct xpitem *itm, *nitm;
+struct poll_fd *ffd (struct xpoll_t *self, int fd) {
+	struct poll_fd *pfd, *npfd;
 
-	walk_xpitem_s (itm, nitm, &self->lru_head) {
-		if (itm->base.ent.fd == fd || fd == XPOLL_HEADFD)
-			return itm;
+	walk_poll_fd_s (pfd, npfd, &self->lru_head) {
+		if (pfd->base.ent.fd == fd || fd == XPOLL_HEADFD)
+			return pfd;
 	}
 	return 0;
 }
 
-/* Find xpitem by xsock id and return with ref incr if exist. */
-struct xpitem *getfd (struct xpoll_t *self, int fd) {
-	struct xpitem *itm = 0;
+/* Find poll_fd by xsock id and return with ref incr if exist. */
+struct poll_fd *getfd (struct xpoll_t *self, int fd) {
+	struct poll_fd *pfd = 0;
 	mutex_lock (&self->lock);
-	if ( (itm = ffd (self, fd) ) )
-		xpitem_get (itm);
+	if ( (pfd = ffd (self, fd) ) )
+		poll_fd_get (pfd);
 	mutex_unlock (&self->lock);
-	return itm;
+	return pfd;
 }
 
-/* Create a new xpitem if the fd doesn't exist and get one ref for
+/* Create a new poll_fd if the fd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct xpitem *addfd (struct xpoll_t *self, int fd) {
-	struct xpitem *itm;
+struct poll_fd *addfd (struct xpoll_t *self, int fd) {
+	struct poll_fd *pfd;
 
 	mutex_lock (&self->lock);
-	if ( (itm = ffd (self, fd) ) ) {
+	if ( (pfd = ffd (self, fd) ) ) {
 		mutex_unlock (&self->lock);
 		errno = EEXIST;
 		return 0;
 	}
-	if (! (itm = xpitem_alloc() ) ) {
+	if (! (pfd = poll_fd_alloc() ) ) {
 		mutex_unlock (&self->lock);
 		errno = ENOMEM;
 		return 0;
 	}
 
 	/* One reference for back for caller */
-	itm->ref++;
+	pfd->ref++;
 
-	/* Cycle reference of xpoll_t and xpitem */
-	itm->ref++;
+	/* Cycle reference of xpoll_t and poll_fd */
+	pfd->ref++;
 	atomic_incr (&self->ref);
 
-	itm->base.ent.fd = fd;
-	BUG_ON (attached (&itm->lru_link) );
+	pfd->base.ent.fd = fd;
+	BUG_ON (attached (&pfd->lru_link) );
 	self->size++;
-	list_add_tail (&itm->lru_link, &self->lru_head);
+	list_add_tail (&pfd->lru_link, &self->lru_head);
 	mutex_unlock (&self->lock);
 
-	return itm;
+	return pfd;
 }
 
-/* Remove the xpitem if the fd's xpitem exist. */
+/* Remove the poll_fd if the fd's poll_fd exist. */
 int rmfd (struct xpoll_t *self, int fd)
 {
-	struct xpitem *itm;
+	struct poll_fd *pfd;
 
 	mutex_lock (&self->lock);
-	if (! (itm = ffd (self, fd) ) ) {
+	if (! (pfd = ffd (self, fd) ) ) {
 		mutex_unlock (&self->lock);
 		errno = ENOENT;
 		return -1;
 	}
-	BUG_ON (!attached (&itm->lru_link) );
+	BUG_ON (!attached (&pfd->lru_link) );
 	self->size--;
-	list_del_init (&itm->lru_link);
+	list_del_init (&pfd->lru_link);
 	mutex_unlock (&self->lock);
-	xpitem_put (itm);
+	poll_fd_put (pfd);
 	return 0;
 }

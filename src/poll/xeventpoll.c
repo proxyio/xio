@@ -37,40 +37,40 @@ const char *event_str[] = {
 
 void xpollbase_emit (struct pollbase *pb, u32 events)
 {
-	struct xpitem *itm = cont_of (pb, struct xpitem, base);
-	struct xpoll_t *self = itm->poll;
+	struct poll_fd *pfd = cont_of (pb, struct poll_fd, base);
+	struct xpoll_t *self = pfd->owner;
 
 	mutex_lock (&self->lock);
 	BUG_ON (!pb->ent.events);
-	if (!attached (&itm->lru_link) ) {
-		list_del_init (&itm->base.link);
+	if (!attached (&pfd->lru_link) ) {
+		list_del_init (&pfd->base.link);
 		mutex_unlock (&self->lock);
-		xpitem_put (itm);
+		poll_fd_put (pfd);
 		return;
 	}
-	spin_lock (&itm->lock);
+	spin_lock (&pfd->lock);
 	if (events) {
 		DEBUG_OFF ("socket %d update events %s", pb->event.fd, event_str[events]);
 		pb->ent.happened = events;
-		list_move (&itm->lru_link, &self->lru_head);
+		list_move (&pfd->lru_link, &self->lru_head);
 		if (self->uwaiters)
 			condition_broadcast (&self->cond);
 	} else if (pb->ent.happened && !events) {
 		DEBUG_OFF ("socket %d disable events notify", pb->event.fd);
 		pb->ent.happened = 0;
-		list_move_tail (&itm->lru_link, &self->lru_head);
+		list_move_tail (&pfd->lru_link, &self->lru_head);
 	}
-	spin_unlock (&itm->lock);
+	spin_unlock (&pfd->lock);
 	mutex_unlock (&self->lock);
 }
 
 void xpollbase_close (struct pollbase *pb)
 {
-	struct xpitem *itm = cont_of (pb, struct xpitem, base);
-	struct xpoll_t *self = itm->poll;
+	struct poll_fd *pfd = cont_of (pb, struct poll_fd, base);
+	struct xpoll_t *self = pfd->owner;
 
 	xpoll_ctl (self->id, XPOLL_DEL, &pb->ent);
-	xpitem_put (itm);
+	poll_fd_put (pfd);
 }
 
 struct pollbase_vfptr xpollbase_vfptr = {
@@ -96,24 +96,24 @@ static int xpoll_add (struct xpoll_t *self, struct poll_ent *ent)
 {
 	int rc;
 	struct sockbase *sb = xget (ent->fd);
-	struct xpitem *itm;
+	struct poll_fd *pfd;
 
 	if (!sb) {
 		errno = EBADF;
 		return -1;
 	}
-	if (! (itm = addfd (self, ent->fd) ) ) {
+	if (! (pfd = addfd (self, ent->fd) ) ) {
 		xput (sb->fd);
 		return -1;
 	}
 
-	spin_lock (&itm->lock);
-	itm->base.ent = *ent;
-	itm->poll = self;
-	spin_unlock (&itm->lock);
+	spin_lock (&pfd->lock);
+	pfd->base.ent = *ent;
+	pfd->owner = self;
+	spin_unlock (&pfd->lock);
 
 	/* BUG: condition race with xpoll_rm() */
-	if ( (rc = add_pollbase (sb->fd, &itm->base) ) == 0) {
+	if ( (rc = add_pollbase (sb->fd, &pfd->base) ) == 0) {
 		emit_pollevents (sb);
 	} else
 		rmfd (self, ent->fd);
@@ -131,30 +131,30 @@ static int xpoll_rm (struct xpoll_t *self, struct poll_ent *ent)
 static int xpoll_mod (struct xpoll_t *self, struct poll_ent *ent)
 {
 	struct sockbase *sb = xget (ent->fd);
-	struct xpitem *itm;
+	struct poll_fd *pfd;
 
 	if (!sb) {
 		errno = EBADF;
 		return -1;
 	}
-	if (! (itm = getfd (self, ent->fd) ) ) {
+	if (! (pfd = getfd (self, ent->fd) ) ) {
 		xput (sb->fd);
 		errno = ENOENT;
 		return -1;
 	}
 
 	mutex_lock (&self->lock);
-	spin_lock (&itm->lock);
+	spin_lock (&pfd->lock);
 	/* WANRING: only update events events here. */
-	itm->base.ent.events = ent->events;
-	spin_unlock (&itm->lock);
+	pfd->base.ent.events = ent->events;
+	spin_unlock (&pfd->lock);
 	mutex_unlock (&self->lock);
 
 	emit_pollevents (sb);
 
 	/* Release the ref hold by caller */
 	xput (sb->fd);
-	xpitem_put (itm);
+	poll_fd_put (pfd);
 	return 0;
 }
 
@@ -190,7 +190,7 @@ int xpoll_wait (int pollid, struct poll_ent *ents, int size, int to)
 {
 	struct xpoll_t *self = pget (pollid);
 	int n = 0;
-	struct xpitem *itm, *nitm;
+	struct poll_fd *pfd, *tmp;
 
 	if (!self) {
 		errno = EBADF;
@@ -199,21 +199,21 @@ int xpoll_wait (int pollid, struct poll_ent *ents, int size, int to)
 	mutex_lock (&self->lock);
 
 	/* WAITING any events happened */
-	itm = list_first (&self->lru_head, struct xpitem, lru_link);
-	if (!itm->base.ent.happened && to > 0) {
+	pfd = list_first (&self->lru_head, struct poll_fd, lru_link);
+	if (!pfd->base.ent.happened && to > 0) {
 		self->uwaiters++;
 		condition_timedwait (&self->cond, &self->lock, to);
 		self->uwaiters--;
 	}
-	walk_xpitem_s (itm, nitm, &self->lru_head) {
-		if (!itm->base.ent.happened || n >= size)
+	walk_poll_fd_s (pfd, tmp, &self->lru_head) {
+		if (!pfd->base.ent.happened || n >= size)
 			break;
-		ents[n++] = itm->base.ent;
-		if (itm->base.ent.happened & XPOLLIN)
+		ents[n++] = pfd->base.ent;
+		if (pfd->base.ent.happened & XPOLLIN)
 			poll_mstats_incr (&self->stats, ST_POLLIN);
-		if (itm->base.ent.happened & XPOLLOUT)
+		if (pfd->base.ent.happened & XPOLLOUT)
 			poll_mstats_incr (&self->stats, ST_POLLOUT);
-		if (itm->base.ent.happened & XPOLLERR)
+		if (pfd->base.ent.happened & XPOLLERR)
 			poll_mstats_incr (&self->stats, ST_POLLERR);
 	}
 	mutex_unlock (&self->lock);
