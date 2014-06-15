@@ -245,7 +245,7 @@ static void bufio_rm (struct bio *b, struct skbuf **msg)
 	struct skbuf one = {};
 
 	bio_copy (b, (char *) (&one.chunk), sizeof (one.chunk) );
-	*msg = xalloc_skbuf (one.chunk.iov_len);
+	*msg = xalloc_skbuf (one.chunk.ubuf_len);
 	bio_read (b, skbuf_base (*msg), skbuf_len (*msg) );
 }
 

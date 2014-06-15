@@ -28,7 +28,7 @@
 
 u32 skbuf_len (struct skbuf *msg)
 {
-	return sizeof (msg->chunk) + msg->chunk.iov_len;
+	return sizeof (msg->chunk) + msg->chunk.ubuf_len;
 }
 
 u32 skbuf_lens (struct skbuf *msg)
@@ -67,8 +67,8 @@ struct skbuf *xalloc_skbuf (int size) {
 		return 0;
 	INIT_LIST_HEAD (&msg->item);
 	INIT_LIST_HEAD (&msg->cmsg_head);
-	msg->chunk.iov_len = size;
-	msg->chunk.checksum = crc16 ( (char *) &msg->chunk.iov_len, sizeof (msg->chunk) -
+	msg->chunk.ubuf_len = size;
+	msg->chunk.checksum = crc16 ( (char *) &msg->chunk.ubuf_len, sizeof (msg->chunk) -
 	                              sizeof (u16) );
 	atomic_init (&msg->ref);
 	atomic_incr (&msg->ref);
@@ -80,7 +80,7 @@ char *xallocubuf (int size)
 	struct skbuf *msg = xalloc_skbuf (size);
 	if (!msg)
 		return 0;
-	return msg->chunk.iov_base;
+	return msg->chunk.ubuf_base;
 }
 
 void xfree_skbuf (struct skbuf *msg)
@@ -90,19 +90,19 @@ void xfree_skbuf (struct skbuf *msg)
 		list_del_init (&cmsg->item);
 		xfree_skbuf (cmsg);
 	}
-	mem_free (msg, sizeof (*msg) + msg->chunk.iov_len);
+	mem_free (msg, sizeof (*msg) + msg->chunk.ubuf_len);
 }
 
 void xfreeubuf (char *ubuf)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	xfree_skbuf (msg);
 }
 
 int xubuflen (char *ubuf)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	return msg->chunk.iov_len;
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+	return msg->chunk.ubuf_len;
 }
 
 
@@ -110,19 +110,19 @@ typedef int (*skbuf_ctl) (char *skbuf, void *optval);
 
 static int sub_skbuf_num (char *ubuf, void *optval)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	* (int *) optval = msg->chunk.cmsg_num;
 	return 0;
 }
 
 static int sub_skbuf_first (char *ubuf, void *optval)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	struct skbuf *cur;
 
 	if (!list_empty (&msg->cmsg_head) ) {
 		cur = list_first (&msg->cmsg_head, struct skbuf, item);
-		* (char **) optval = cur->chunk.iov_base;
+		* (char **) optval = cur->chunk.ubuf_base;
 		return 0;
 	}
 	return -1;
@@ -130,12 +130,12 @@ static int sub_skbuf_first (char *ubuf, void *optval)
 
 static int sub_skbuf_next (char *ubuf, void *optval)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	struct skbuf *cur = cont_of (optval, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+	struct skbuf *cur = cont_of (optval, struct skbuf, chunk.ubuf_base);
 
 	if (list_next (&cur->item) != &msg->cmsg_head) {
-		cur = cont_of (list_next (&cur->item), struct skbuf, chunk.iov_base);
-		* (char **) optval = cur->chunk.iov_base;
+		cur = cont_of (list_next (&cur->item), struct skbuf, chunk.ubuf_base);
+		* (char **) optval = cur->chunk.ubuf_base;
 		return 0;
 	}
 	return -1;
@@ -143,12 +143,12 @@ static int sub_skbuf_next (char *ubuf, void *optval)
 
 static int sub_skbuf_tail (char *ubuf, void *optval)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	struct skbuf *cur;
 
 	if (!list_empty (&msg->cmsg_head) ) {
 		cur = list_last (&msg->cmsg_head, struct skbuf, item);
-		* (char **) optval = cur->chunk.iov_base;
+		* (char **) optval = cur->chunk.ubuf_base;
 		return 0;
 	}
 	return -1;
@@ -156,8 +156,8 @@ static int sub_skbuf_tail (char *ubuf, void *optval)
 
 static int sub_skbuf_add (char *ubuf, void *optval)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	struct skbuf *new = cont_of (optval, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+	struct skbuf *new = cont_of (optval, struct skbuf, chunk.ubuf_base);
 
 	if (msg->chunk.cmsg_num == SKBUF_SUBNUMMARK ||
 	    msg->chunk.cmsg_length + skbuf_lens (new) > SKBUF_CMSGLENMARK) {
@@ -172,8 +172,8 @@ static int sub_skbuf_add (char *ubuf, void *optval)
 
 static int sub_skbuf_rm (char *ubuf, void *optval)
 {
-	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	struct skbuf *rm = cont_of (optval, struct skbuf, chunk.iov_base);
+	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+	struct skbuf *rm = cont_of (optval, struct skbuf, chunk.ubuf_base);
 
 	msg->chunk.cmsg_num--;
 	msg->chunk.cmsg_length -= skbuf_lens (rm);
@@ -184,8 +184,8 @@ static int sub_skbuf_rm (char *ubuf, void *optval)
 
 static int sub_skbuf_switch (char *ubuf, void *optval)
 {
-	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.iov_base);
-	struct skbuf *dst = cont_of (optval, struct skbuf, chunk.iov_base);
+	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+	struct skbuf *dst = cont_of (optval, struct skbuf, chunk.ubuf_base);
 
 	dst->chunk.cmsg_num = src->chunk.cmsg_num;
 	src->chunk.cmsg_num = 0;
@@ -208,12 +208,12 @@ static char *ubufdup (char *ubuf) {
    WARNING: if the skbuf is high level tree, only the children of the skbuf
    would be clone, the sub of children isn't, remember that. */
 static int clone_skbuf (char *ubuf, void *optval) {
-	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	struct skbuf *cur, *tmp;
 	char *dest = ubufdup (ubuf);
 
 	walk_msg_s (cur, tmp, &src->cmsg_head) {
-		sub_skbuf_add (dest, ubufdup (cur->chunk.iov_base) );
+		sub_skbuf_add (dest, ubufdup (cur->chunk.ubuf_base) );
 	}
 	*(char **)optval = dest;
 	return 0;

@@ -39,22 +39,21 @@
 
 
 #define SKBUF_SUBNUMMARK 0xf           // 16
-#define SKBUF_CMSGLENMARK 0xfff         // 4k
+#define SKBUF_CMSGLENMARK 0xfff        // 4k
 
 /* TODO: little endian and big endian */
-struct xiov {
-	u16 checksum;
-	u16 cmsg_num:4;
-	u16 cmsg_length:12;
-	u32 iov_len;
-	char iov_base[0];
-};
-
 struct skbuf {
 	struct list_head item;
 	struct list_head cmsg_head;
 	atomic_t ref;
-	struct xiov chunk;
+
+	struct {
+		u16 checksum;
+		u16 cmsg_num:4;
+		u16 cmsg_length:12;
+		u32 ubuf_len;
+		char ubuf_base[0];
+	} chunk;
 };
 
 u32 skbuf_len (struct skbuf *msg);

@@ -36,12 +36,12 @@
 #include "sp_hdr.h"
 
 static inline struct skbuf *get_skbuf (char *ubuf) {
-	return cont_of (ubuf, struct skbuf, chunk.iov_base);
+	return cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 }
 
 static inline char *get_ubuf (struct skbuf *skb)
 {
-	return skb->chunk.iov_base;
+	return skb->chunk.ubuf_base;
 }
 
 static inline int get_socktype (int fd)

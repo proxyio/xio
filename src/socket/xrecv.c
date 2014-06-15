@@ -107,7 +107,7 @@ int xrecv (int fd, char **ubuf)
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 		rc = -1;
 	} else {
-		*ubuf = msg->chunk.iov_base;
+		*ubuf = msg->chunk.ubuf_base;
 	}
 	xput (fd);
 	return rc;

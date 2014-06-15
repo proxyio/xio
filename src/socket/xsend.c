@@ -109,7 +109,7 @@ int xsend (int fd, char *ubuf)
 		errno = EBADF;
 		return -1;
 	}
-	msg = cont_of (ubuf, struct skbuf, chunk.iov_base);
+	msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	if ( (rc = sendq_add (sb, msg) ) < 0) {
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 	}
