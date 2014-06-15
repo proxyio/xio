@@ -37,40 +37,40 @@ const char *event_str[] = {
 
 void xpollbase_emit (struct pollbase *pb, u32 events)
 {
-	struct poll_fd *pfd = cont_of (pb, struct poll_fd, base);
-	struct xpoll_t *self = pfd->owner;
+	struct poll_entry *ent = cont_of (pb, struct poll_entry, base);
+	struct xpoll_t *self = ent->owner;
 
 	mutex_lock (&self->lock);
-	BUG_ON (!pb->ent.events);
-	if (!attached (&pfd->lru_link) ) {
-		list_del_init (&pfd->base.link);
+	BUG_ON (!pb->pollfd.events);
+	if (!attached (&ent->lru_link) ) {
+		list_del_init (&ent->base.link);
 		mutex_unlock (&self->lock);
-		poll_fd_put (pfd);
+		poll_entry_put (ent);
 		return;
 	}
-	spin_lock (&pfd->lock);
+	spin_lock (&ent->lock);
 	if (events) {
 		DEBUG_OFF ("socket %d update events %s", pb->event.fd, event_str[events]);
-		pb->ent.happened = events;
-		list_move (&pfd->lru_link, &self->lru_head);
+		pb->pollfd.happened = events;
+		list_move (&ent->lru_link, &self->lru_head);
 		if (self->uwaiters)
 			condition_broadcast (&self->cond);
-	} else if (pb->ent.happened && !events) {
+	} else if (pb->pollfd.happened && !events) {
 		DEBUG_OFF ("socket %d disable events notify", pb->event.fd);
-		pb->ent.happened = 0;
-		list_move_tail (&pfd->lru_link, &self->lru_head);
+		pb->pollfd.happened = 0;
+		list_move_tail (&ent->lru_link, &self->lru_head);
 	}
-	spin_unlock (&pfd->lock);
+	spin_unlock (&ent->lock);
 	mutex_unlock (&self->lock);
 }
 
 void xpollbase_close (struct pollbase *pb)
 {
-	struct poll_fd *pfd = cont_of (pb, struct poll_fd, base);
-	struct xpoll_t *self = pfd->owner;
+	struct poll_entry *ent = cont_of (pb, struct poll_entry, base);
+	struct xpoll_t *self = ent->owner;
 
-	xpoll_ctl (self->id, XPOLL_DEL, &pb->ent);
-	poll_fd_put (pfd);
+	xpoll_ctl (self->id, XPOLL_DEL, &pb->pollfd);
+	poll_entry_put (ent);
 }
 
 struct pollbase_vfptr xpollbase_vfptr = {
@@ -92,73 +92,73 @@ int xpoll_create()
 
 extern void emit_pollevents (struct sockbase *sb);
 
-static int xpoll_add (struct xpoll_t *self, struct poll_ent *ent)
+static int xpoll_add (struct xpoll_t *self, struct poll_fd *pollfd)
 {
 	int rc;
-	struct sockbase *sb = xget (ent->fd);
-	struct poll_fd *pfd;
+	struct sockbase *sb = xget (pollfd->fd);
+	struct poll_entry *ent;
 
 	if (!sb) {
 		errno = EBADF;
 		return -1;
 	}
-	if (! (pfd = addfd (self, ent->fd) ) ) {
+	if (! (ent = add_poll_entry (self, pollfd->fd) ) ) {
 		xput (sb->fd);
 		return -1;
 	}
 
-	spin_lock (&pfd->lock);
-	pfd->base.ent = *ent;
-	pfd->owner = self;
-	spin_unlock (&pfd->lock);
+	spin_lock (&ent->lock);
+	ent->base.pollfd = *pollfd;
+	ent->owner = self;
+	spin_unlock (&ent->lock);
 
 	/* BUG: condition race with xpoll_rm() */
-	if ( (rc = add_pollbase (sb->fd, &pfd->base) ) == 0) {
+	if ( (rc = add_pollbase (sb->fd, &ent->base) ) == 0) {
 		emit_pollevents (sb);
 	} else
-		rmfd (self, ent->fd);
+		rm_poll_entry (self, pollfd->fd);
 	xput (sb->fd);
 	return rc;
 }
 
-static int xpoll_rm (struct xpoll_t *self, struct poll_ent *ent)
+static int xpoll_rm (struct xpoll_t *self, struct poll_fd *pollfd)
 {
-	int rc = rmfd (self, ent->fd);
+	int rc = rm_poll_entry (self, pollfd->fd);
 	return rc;
 }
 
 
-static int xpoll_mod (struct xpoll_t *self, struct poll_ent *ent)
+static int xpoll_mod (struct xpoll_t *self, struct poll_fd *pollfd)
 {
-	struct sockbase *sb = xget (ent->fd);
-	struct poll_fd *pfd;
+	struct sockbase *sb = xget (pollfd->fd);
+	struct poll_entry *ent;
 
 	if (!sb) {
 		errno = EBADF;
 		return -1;
 	}
-	if (! (pfd = getfd (self, ent->fd) ) ) {
+	if (! (ent = get_poll_entry (self, pollfd->fd) ) ) {
 		xput (sb->fd);
 		errno = ENOENT;
 		return -1;
 	}
 
 	mutex_lock (&self->lock);
-	spin_lock (&pfd->lock);
+	spin_lock (&ent->lock);
 	/* WANRING: only update events events here. */
-	pfd->base.ent.events = ent->events;
-	spin_unlock (&pfd->lock);
+	ent->base.pollfd.events = pollfd->events;
+	spin_unlock (&ent->lock);
 	mutex_unlock (&self->lock);
 
 	emit_pollevents (sb);
 
 	/* Release the ref hold by caller */
 	xput (sb->fd);
-	poll_fd_put (pfd);
+	poll_entry_put (ent);
 	return 0;
 }
 
-typedef int (*poll_ctl) (struct xpoll_t *self, struct poll_ent *ent);
+typedef int (*poll_ctl) (struct xpoll_t *self, struct poll_fd *pollfd);
 
 const poll_ctl ctl_vfptr[] = {
 	0,
@@ -167,7 +167,7 @@ const poll_ctl ctl_vfptr[] = {
 	xpoll_mod,
 };
 
-int xpoll_ctl (int pollid, int op, struct poll_ent *ent)
+int xpoll_ctl (int pollid, int op, struct poll_fd *pollfd)
 {
 	struct xpoll_t *self = pget (pollid);
 	int rc;
@@ -181,16 +181,16 @@ int xpoll_ctl (int pollid, int op, struct poll_ent *ent)
 		errno = EINVAL;
 		return -1;
 	}
-	rc = ctl_vfptr[op] (self, ent);
+	rc = ctl_vfptr[op] (self, pollfd);
 	pput (pollid);
 	return rc;
 }
 
-int xpoll_wait (int pollid, struct poll_ent *ents, int size, int to)
+int xpoll_wait (int pollid, struct poll_fd *pollfds, int size, int to)
 {
 	struct xpoll_t *self = pget (pollid);
 	int n = 0;
-	struct poll_fd *pfd, *tmp;
+	struct poll_entry *ent, *tmp;
 
 	if (!self) {
 		errno = EBADF;
@@ -199,21 +199,21 @@ int xpoll_wait (int pollid, struct poll_ent *ents, int size, int to)
 	mutex_lock (&self->lock);
 
 	/* WAITING any events happened */
-	pfd = list_first (&self->lru_head, struct poll_fd, lru_link);
-	if (!pfd->base.ent.happened && to > 0) {
+	ent = list_first (&self->lru_head, struct poll_entry, lru_link);
+	if (!ent->base.pollfd.happened && to > 0) {
 		self->uwaiters++;
 		condition_timedwait (&self->cond, &self->lock, to);
 		self->uwaiters--;
 	}
-	walk_poll_fd_s (pfd, tmp, &self->lru_head) {
-		if (!pfd->base.ent.happened || n >= size)
+	walk_poll_entry_s (ent, tmp, &self->lru_head) {
+		if (!ent->base.pollfd.happened || n >= size)
 			break;
-		ents[n++] = pfd->base.ent;
-		if (pfd->base.ent.happened & XPOLLIN)
+		pollfds[n++] = ent->base.pollfd;
+		if (ent->base.pollfd.happened & XPOLLIN)
 			poll_mstats_incr (&self->stats, ST_POLLIN);
-		if (pfd->base.ent.happened & XPOLLOUT)
+		if (ent->base.pollfd.happened & XPOLLOUT)
 			poll_mstats_incr (&self->stats, ST_POLLOUT);
-		if (pfd->base.ent.happened & XPOLLERR)
+		if (ent->base.pollfd.happened & XPOLLERR)
 			poll_mstats_incr (&self->stats, ST_POLLERR);
 	}
 	mutex_unlock (&self->lock);
@@ -235,7 +235,7 @@ int xpoll_close (int pollid)
 	self->shutdown_state = true;
 	mutex_unlock (&self->lock);
 
-	while ( (rc = rmfd (self, XPOLL_HEADFD) ) == 0) {
+	while ( (rc = rm_poll_entry (self, XPOLL_HEADFD) ) == 0) {
 	}
 
 	/* Release the ref hold by user-caller */

@@ -81,8 +81,8 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 static int reqep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	int rc = -1;
-	if (tg->ent.events & XPOLLOUT)
-		sg_update_tg (tg, tg->ent.events & ~XPOLLOUT);
+	if (tg->pollfd.events & XPOLLOUT)
+		sg_update_tg (tg, tg->pollfd.events & ~XPOLLOUT);
 	return rc;
 }
 

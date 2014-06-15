@@ -89,7 +89,7 @@ static void xclient2 (const char *pf)
 {
 	int i;
 	int sfd[cnt];
-	struct poll_ent ent[cnt] = {};
+	struct poll_fd ent[cnt] = {};
 	char host[1024] = {};
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15200");
@@ -117,7 +117,7 @@ static void xserver2()
 	int i, j, mycnt;
 	int afd, sfd[cnt];
 	thread_t cli_thread = {};
-	struct poll_ent ent[cnt] = {};
+	struct poll_fd ent[cnt] = {};
 
 	pollid = xpoll_create();
 	DEBUG_OFF ("%d", pollid);

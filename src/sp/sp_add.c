@@ -56,10 +56,10 @@ void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)
 
 	tg->fd = fd;
 	tg->owner = ep;
-	tg->ent.fd = fd;
-	tg->ent.self = tg;
-	tg->ent.events = XPOLLIN|XPOLLERR;
-	tg->ent.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
+	tg->pollfd.fd = fd;
+	tg->pollfd.self = tg;
+	tg->pollfd.events = XPOLLIN|XPOLLERR;
+	tg->pollfd.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
 }
 
 int sp_add (int eid, int fd)

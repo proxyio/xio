@@ -32,7 +32,7 @@
 #include <socket/sock.h>
 #include "stats.h"
 
-struct poll_fd {
+struct poll_entry {
 	struct pollbase base;
 	spin_t lock;
 	struct list_head lru_link;
@@ -42,12 +42,12 @@ struct poll_fd {
 
 extern struct pollbase_vfptr xpollbase_vfptr;
 
-#define walk_poll_fd_s(pfd, tmp, head)				\
-    walk_each_entry_s(pfd, tmp, head, struct poll_fd, lru_link)
+#define walk_poll_entry_s(pfd, tmp, head)				\
+    walk_each_entry_s(pfd, tmp, head, struct poll_entry, lru_link)
 
-struct poll_fd *poll_fd_alloc();
-int poll_fd_get (struct poll_fd *pfd);
-int poll_fd_put (struct poll_fd *pfd);
+struct poll_entry *poll_entry_alloc();
+int poll_entry_get (struct poll_entry *pfd);
+int poll_entry_put (struct poll_entry *pfd);
 
 
 struct xpoll_t {
@@ -67,14 +67,14 @@ struct xpoll_t *pget (int pollid);
 void pput (int pollid);
 
 #define XPOLL_HEADFD -0x3654
-struct poll_fd *getfd (struct xpoll_t *poll, int fd);
-struct poll_fd *addfd (struct xpoll_t *poll, int fd);
-int rmfd (struct xpoll_t *poll, int fd);
+struct poll_entry *get_poll_entry (struct xpoll_t *poll, int fd);
+struct poll_entry *add_poll_entry (struct xpoll_t *poll, int fd);
+int rm_poll_entry (struct xpoll_t *poll, int fd);
 
 /* Max number of concurrent socks. */
 #define XIO_MAX_POLLS 10240
 
-struct xp_global {
+struct pglobal {
 	spin_t lock;
 
 	/* The global table of existing xsock. The descriptor representing
@@ -91,7 +91,7 @@ struct xp_global {
 	size_t npolls;
 };
 
-extern struct xp_global pg;
+extern struct pglobal pg;
 
 
 

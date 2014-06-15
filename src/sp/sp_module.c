@@ -28,15 +28,15 @@ struct sp_global sg;
 void sg_add_tg (struct tgtd *tg)
 {
 	int rc;
-	rc = xpoll_ctl (sg.pollid, XPOLL_ADD, &tg->ent);
+	rc = xpoll_ctl (sg.pollid, XPOLL_ADD, &tg->pollfd);
 	BUG_ON (rc);
 }
 
 void sg_update_tg (struct tgtd *tg, u32 ev)
 {
 	int rc;
-	tg->ent.events = ev;
-	rc = xpoll_ctl (sg.pollid, XPOLL_MOD, &tg->ent);
+	tg->pollfd.events = ev;
+	rc = xpoll_ctl (sg.pollid, XPOLL_MOD, &tg->pollfd);
 	BUG_ON (rc);
 }
 
@@ -45,7 +45,7 @@ static void connector_event_hndl (struct tgtd *tg)
 	struct epbase *ep = tg->owner;
 	int rc;
 	char *ubuf = 0;
-	int happened = tg->ent.happened;
+	int happened = tg->pollfd.happened;
 
 	if (happened & XPOLLIN) {
 		DEBUG_OFF ("ep %d socket %d recv begin", ep->eid, tg->fd);
@@ -85,7 +85,7 @@ static void listener_event_hndl (struct tgtd *tg)
 	struct epbase *ep = tg->owner;
 	struct tgtd *ntg;
 
-	happened = tg->ent.happened;
+	happened = tg->pollfd.happened;
 	if (happened & XPOLLIN) {
 		while ((fd = xaccept (tg->fd)) >= 0) {
 			rc = xsetopt (fd, XL_SOCKET, XNOBLOCK, &on, optlen);
@@ -127,14 +127,14 @@ static void epbase_close_bad_tgtds (struct epbase *ep)
 	}
 }
 
-static void event_hndl (struct poll_ent *ent)
+static void event_hndl (struct poll_fd *pollfd)
 {
 	int socktype = 0;
 	int optlen;
-	struct tgtd *tg = (struct tgtd *) ent->self;
+	struct tgtd *tg = (struct tgtd *) pollfd->self;
 
-	BUG_ON (tg->fd != tg->ent.fd);
-	tg->ent.happened = ent->happened;
+	BUG_ON (tg->fd != tg->pollfd.fd);
+	tg->pollfd.happened = pollfd->happened;
 	xgetopt (tg->fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
 
 	switch (socktype) {
@@ -175,18 +175,18 @@ static int sp_runner (void *args)
 	waitgroup_t *wg = (waitgroup_t *) args;
 	int rc, i;
 	const char *estr;
-	struct poll_ent ent[100];
+	struct poll_fd pollfds[100];
 
 	waitgroup_done (wg);
 	while (!sg.exiting) {
-		rc = xpoll_wait (sg.pollid, ent, NELEM (ent, struct poll_ent), 1);
+		rc = xpoll_wait (sg.pollid, pollfds, NELEM (pollfds, struct poll_fd), 1);
 		if (rc < 0)
 			goto SD_EPBASE;
 		DEBUG_OFF ("%d sockets happened events", rc);
 		for (i = 0; i < rc; i++) {
-			estr = event_str[ent[i].happened];
-			DEBUG_OFF ("socket %d with events %s", ent[i].fd, estr);
-			event_hndl (&ent[i]);
+			estr = event_str[pollfds[i].happened];
+			DEBUG_OFF ("socket %d with events %s", pollfds[i].fd, estr);
+			event_hndl (&pollfds[i]);
 		}
 SD_EPBASE:
 		shutdown_epbase();

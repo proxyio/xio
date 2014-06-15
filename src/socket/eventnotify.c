@@ -55,12 +55,12 @@ int check_pollevents (struct sockbase *self, int events)
 void __emit_pollevents (struct sockbase *self)
 {
 	int happened = 0;
-	struct pollbase *pb, *npb;
+	struct pollbase *pb, *tmp;
 
 	happened |= check_pollevents (self, XPOLLIN|XPOLLOUT|XPOLLERR);
-	walk_pollbase_s (pb, npb, &self->poll_entries) {
+	walk_pollbase_s (pb, tmp, &self->poll_entries) {
 		BUG_ON (!pb->vfptr);
-		pb->vfptr->emit (pb, happened & pb->ent.events);
+		pb->vfptr->emit (pb, happened & pb->pollfd.events);
 	}
 }
 

@@ -70,12 +70,12 @@ struct pollbase_vfptr {
 
 struct pollbase {
 	struct pollbase_vfptr *vfptr;
-	struct poll_ent ent;
+	struct poll_fd pollfd;
 	struct list_head link;
 };
 
-#define walk_pollbase_s(pb, npb, head)				\
-    walk_each_entry_s(pb, npb, head, struct pollbase, link)
+#define walk_pollbase_s(pb, tmp, head)				\
+    walk_each_entry_s(pb, tmp, head, struct pollbase, link)
 
 static inline
 void pollbase_init (struct pollbase *pb, struct pollbase_vfptr *vfptr)

@@ -25,7 +25,7 @@
 #include <socket/global.h>
 #include "xeventpoll.h"
 
-struct xp_global pg;
+struct pglobal pg;
 
 
 void xpoll_module_init()
@@ -43,8 +43,8 @@ void xpoll_module_exit()
 	BUG_ON (pg.npolls > 0);
 }
 
-struct poll_fd *poll_fd_alloc() {
-	struct poll_fd *pfd = TNEW (struct poll_fd);
+struct poll_entry *poll_entry_alloc() {
+	struct poll_entry *pfd = TNEW (struct poll_entry);
 	if (pfd) {
 		INIT_LIST_HEAD (&pfd->lru_link);
 		spin_init (&pfd->lock);
@@ -54,7 +54,7 @@ struct poll_fd *poll_fd_alloc() {
 	return pfd;
 }
 
-static void poll_fd_destroy (struct poll_fd *pfd)
+static void poll_entry_destroy (struct poll_entry *pfd)
 {
 	struct xpoll_t *self = pfd->owner;
 
@@ -65,7 +65,7 @@ static void poll_fd_destroy (struct poll_fd *pfd)
 }
 
 
-int poll_fd_get (struct poll_fd *pfd)
+int poll_entry_get (struct poll_entry *pfd)
 {
 	int ref;
 	spin_lock (&pfd->lock);
@@ -74,7 +74,7 @@ int poll_fd_get (struct poll_fd *pfd)
 	return ref;
 }
 
-int poll_fd_put (struct poll_fd *pfd)
+int poll_entry_put (struct poll_entry *pfd)
 {
 	int ref;
 
@@ -84,7 +84,7 @@ int poll_fd_put (struct poll_fd *pfd)
 	spin_unlock (&pfd->lock);
 	if (ref == 1) {
 		BUG_ON (attached (&pfd->lru_link) );
-		poll_fd_destroy (pfd);
+		poll_entry_destroy (pfd);
 	}
 	return ref;
 }
@@ -145,39 +145,39 @@ void pput (int pollid)
 }
 
 /* Find xpoll_item by socket fd. if fd == XPOLL_HEADFD, return head item */
-struct poll_fd *ffd (struct xpoll_t *self, int fd) {
-	struct poll_fd *pfd, *npfd;
+struct poll_entry *find_poll_entry (struct xpoll_t *self, int fd) {
+	struct poll_entry *pfd, *npfd;
 
-	walk_poll_fd_s (pfd, npfd, &self->lru_head) {
-		if (pfd->base.ent.fd == fd || fd == XPOLL_HEADFD)
+	walk_poll_entry_s (pfd, npfd, &self->lru_head) {
+		if (pfd->base.pollfd.fd == fd || fd == XPOLL_HEADFD)
 			return pfd;
 	}
 	return 0;
 }
 
-/* Find poll_fd by xsock id and return with ref incr if exist. */
-struct poll_fd *getfd (struct xpoll_t *self, int fd) {
-	struct poll_fd *pfd = 0;
+/* Find poll_entry by socket fd and return with ref incr if exist. */
+struct poll_entry *get_poll_entry (struct xpoll_t *self, int fd) {
+	struct poll_entry *pfd = 0;
 	mutex_lock (&self->lock);
-	if ( (pfd = ffd (self, fd) ) )
-		poll_fd_get (pfd);
+	if ( (pfd = find_poll_entry (self, fd) ) )
+		poll_entry_get (pfd);
 	mutex_unlock (&self->lock);
 	return pfd;
 }
 
-/* Create a new poll_fd if the fd doesn't exist and get one ref for
+/* Create a new poll_entry if the fd doesn't exist and get one ref for
  * caller. xpoll_add() call this.
  */
-struct poll_fd *addfd (struct xpoll_t *self, int fd) {
-	struct poll_fd *pfd;
+struct poll_entry *add_poll_entry (struct xpoll_t *self, int fd) {
+	struct poll_entry *pfd;
 
 	mutex_lock (&self->lock);
-	if ( (pfd = ffd (self, fd) ) ) {
+	if ( (pfd = find_poll_entry (self, fd) ) ) {
 		mutex_unlock (&self->lock);
 		errno = EEXIST;
 		return 0;
 	}
-	if (! (pfd = poll_fd_alloc() ) ) {
+	if (! (pfd = poll_entry_alloc() ) ) {
 		mutex_unlock (&self->lock);
 		errno = ENOMEM;
 		return 0;
@@ -186,11 +186,11 @@ struct poll_fd *addfd (struct xpoll_t *self, int fd) {
 	/* One reference for back for caller */
 	pfd->ref++;
 
-	/* Cycle reference of xpoll_t and poll_fd */
+	/* Cycle reference of xpoll_t and poll_entry */
 	pfd->ref++;
 	atomic_incr (&self->ref);
 
-	pfd->base.ent.fd = fd;
+	pfd->base.pollfd.fd = fd;
 	BUG_ON (attached (&pfd->lru_link) );
 	self->size++;
 	list_add_tail (&pfd->lru_link, &self->lru_head);
@@ -199,13 +199,13 @@ struct poll_fd *addfd (struct xpoll_t *self, int fd) {
 	return pfd;
 }
 
-/* Remove the poll_fd if the fd's poll_fd exist. */
-int rmfd (struct xpoll_t *self, int fd)
+/* Remove the poll_entry if the fd's poll_entry exist. */
+int rm_poll_entry (struct xpoll_t *self, int fd)
 {
-	struct poll_fd *pfd;
+	struct poll_entry *pfd;
 
 	mutex_lock (&self->lock);
-	if (! (pfd = ffd (self, fd) ) ) {
+	if (! (pfd = find_poll_entry (self, fd) ) ) {
 		mutex_unlock (&self->lock);
 		errno = ENOENT;
 		return -1;
@@ -214,6 +214,6 @@ int rmfd (struct xpoll_t *self, int fd)
 	self->size--;
 	list_del_init (&pfd->lru_link);
 	mutex_unlock (&self->lock);
-	poll_fd_put (pfd);
+	poll_entry_put (pfd);
 	return 0;
 }

@@ -90,7 +90,7 @@ struct epbase_vfptr {
 
 struct tgtd {
 	struct epbase *owner;           /* the owner of this target socket */
-	struct poll_ent ent;            /* xpoll entry */
+	struct poll_fd pollfd;          /* xpoll entry */
 	u32 bad_status:1;
 	int fd;                         /* xsocket file descriptor */
 	struct list_head item;
@@ -109,8 +109,8 @@ static inline void tgtd_try_enable_out (struct tgtd *tg)
 {
 	struct epbase *ep = tg->owner;
 
-	if (! (tg->ent.events & XPOLLOUT) ) {
-		sg_update_tg (tg, tg->ent.events | XPOLLOUT);
+	if (! (tg->pollfd.events & XPOLLOUT) ) {
+		sg_update_tg (tg, tg->pollfd.events | XPOLLOUT);
 		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
 	}
 }
@@ -119,8 +119,8 @@ static inline void tgtd_try_disable_out (struct tgtd *tg)
 {
 	struct epbase *ep = tg->owner;
 
-	if ( (tg->ent.events & XPOLLOUT) ) {
-		sg_update_tg (tg, tg->ent.events & ~XPOLLOUT);
+	if ( (tg->pollfd.events & XPOLLOUT) ) {
+		sg_update_tg (tg, tg->pollfd.events & ~XPOLLOUT);
 		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
 	}
 }
