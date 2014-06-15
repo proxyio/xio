@@ -20,23 +20,34 @@
   IN THE SOFTWARE.
 */
 
-#include <utils/timer.h>
-#include "pglobal.h"
+#ifndef _H_PROXYIO_PGLOBAL_
+#define _H_PROXYIO_PGLOBAL_
 
-extern int check_pollevents (struct sockbase *sb, int events);
+#include <utils/spinlock.h>
+#include "poll_struct.h"
+
+/* Max number of concurrent socks. */
+#define XIO_MAX_POLLS 10240
+
+struct pglobal {
+	spin_t lock;
+
+	/* The global table of existing xsock. The descriptor representing
+	 * the xsock is the index to this table. This pointer is also used to
+	 * find out whether context is initialised. If it is null, context is
+	 * uninitialised.
+	 */
+	struct xpoll_t *polls[XIO_MAX_POLLS];
+
+	/* Stack of unused xsock descriptors.  */
+	int unused[XIO_MAX_POLLS];
+
+	/* Number of actual socks. */
+	size_t npolls;
+};
+
+extern struct pglobal pg;
 
 
-int xselect (int events, int nin, int *in_set, int nout, int *out_set)
-{
-	int i, n;
-	struct sockbase *sb;
 
-	for (n = 0, i = 0; i < nin && n < nout; i++) {
-		if (! (sb = xget (in_set[i]) ) )
-			continue;
-		if (check_pollevents (sb, events) > 0)
-			out_set[n++] = in_set[i];
-		xput (sb->fd);
-	}
-	return n;
-}
+#endif

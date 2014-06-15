@@ -23,25 +23,9 @@
 
 #include <utils/timer.h>
 #include <socket/global.h>
-#include "xeventpoll.h"
+#include "pglobal.h"
+#include "poll_struct.h"
 
-struct pglobal pg;
-
-
-void xpoll_module_init()
-{
-	int pollid;
-
-	spin_init (&pg.lock);
-	for (pollid = 0; pollid < XIO_MAX_POLLS; pollid++)
-		pg.unused[pollid] = pollid;
-}
-
-void xpoll_module_exit()
-{
-	spin_destroy (&pg.lock);
-	BUG_ON (pg.npolls > 0);
-}
 
 struct poll_entry *poll_entry_alloc() {
 	struct poll_entry *pfd = TNEW (struct poll_entry);

@@ -5,7 +5,7 @@
   of this software and associated documentation files (the "Software"),
   to deal in the Software without restriction, including without limitation
   the rights to use, copy, modify, merge, publish, distribute, sublicense,
-  and/or sell copies of the Software, and to permit persons to whom
+  and/or sell copies of the Software, and to permit persons to who m
   the Software is furnished to do so, subject to the following conditions:
 
   The above copyright notice and this permission notice shall be included
@@ -20,23 +20,22 @@
   IN THE SOFTWARE.
 */
 
-#include <utils/timer.h>
+
 #include "pglobal.h"
 
-extern int check_pollevents (struct sockbase *sb, int events);
+struct pglobal pg = {};
 
-
-int xselect (int events, int nin, int *in_set, int nout, int *out_set)
+void xpoll_module_init()
 {
-	int i, n;
-	struct sockbase *sb;
+	int pollid;
 
-	for (n = 0, i = 0; i < nin && n < nout; i++) {
-		if (! (sb = xget (in_set[i]) ) )
-			continue;
-		if (check_pollevents (sb, events) > 0)
-			out_set[n++] = in_set[i];
-		xput (sb->fd);
-	}
-	return n;
+	spin_init (&pg.lock);
+	for (pollid = 0; pollid < XIO_MAX_POLLS; pollid++)
+		pg.unused[pollid] = pollid;
+}
+
+void xpoll_module_exit()
+{
+	spin_destroy (&pg.lock);
+	BUG_ON (pg.npolls > 0);
 }
