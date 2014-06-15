@@ -30,7 +30,7 @@ void xpoll_module_init()
 	int pollid;
 
 	spin_init (&pg.lock);
-	for (pollid = 0; pollid < XIO_MAX_POLLS; pollid++)
+	for (pollid = 0; pollid < PROXYIO_MAX_POLLS; pollid++)
 		pg.unused[pollid] = pollid;
 }
 

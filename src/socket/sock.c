@@ -58,7 +58,7 @@ int xalloc (int family, int socktype)
 	}
 	sb->vfptr = vfptr;
 	mutex_lock (&xgb.lock);
-	BUG_ON (xgb.nsockbases >= XIO_MAX_SOCKS);
+	BUG_ON (xgb.nsockbases >= PROXYIO_MAX_SOCKS);
 	sb->fd = xgb.unused[xgb.nsockbases++];
 	xgb.sockbases[sb->fd] = sb;
 	atomic_incr (&sb->ref);

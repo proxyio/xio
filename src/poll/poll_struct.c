@@ -86,7 +86,7 @@ struct xpoll_t *poll_alloc() {
 	condition_init (&self->cond);
 	INIT_LIST_HEAD (&self->lru_head);
 
-	BUG_ON (pg.npolls >= XIO_MAX_POLLS);
+	BUG_ON (pg.npolls >= PROXYIO_MAX_POLLS);
 	spin_lock (&pg.lock);
 	self->id = pg.unused[pg.npolls++];
 	pg.polls[self->id] = self;

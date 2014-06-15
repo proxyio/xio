@@ -28,7 +28,7 @@ int worker_alloc()
 	int cpu_no;
 
 	mutex_lock (&xgb.lock);
-	BUG_ON (xgb.ncpus >= XIO_MAX_CPUS);
+	BUG_ON (xgb.ncpus >= PROXYIO_MAX_CPUS);
 	cpu_no = xgb.cpu_unused[xgb.ncpus++];
 	if (xgb.ncpus <= xgb.ncpus_low)
 		xgb.ncpus_low = xgb.ncpus;

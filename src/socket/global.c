@@ -69,7 +69,7 @@ static inline int kcpud (void *args)
 	INIT_LIST_HEAD (&cpu->shutdown_socks);
 
 	/* Init eventloop and wakeup parent */
-	BUG_ON (eloop_init (&cpu->el, XIO_MAX_SOCKS/XIO_MAX_CPUS,
+	BUG_ON (eloop_init (&cpu->el, PROXYIO_MAX_SOCKS/PROXYIO_MAX_CPUS,
 	                    DEF_ELOOPIOMAX, DEF_ELOOPTIMEOUT) != 0);
 	BUG_ON (efd_init (&cpu->efd) );
 	ZERO (cpu->efd_et);
@@ -128,9 +128,9 @@ void socket_module_init()
 	xgb.exiting = false;
 	mutex_init (&xgb.lock);
 
-	for (fd = 0; fd < XIO_MAX_SOCKS; fd++)
+	for (fd = 0; fd < PROXYIO_MAX_SOCKS; fd++)
 		xgb.unused[fd] = fd;
-	for (cpu_no = 0; cpu_no < XIO_MAX_CPUS; cpu_no++)
+	for (cpu_no = 0; cpu_no < PROXYIO_MAX_CPUS; cpu_no++)
 		xgb.cpu_unused[cpu_no] = cpu_no;
 
 	xgb.cpu_cores = 1;

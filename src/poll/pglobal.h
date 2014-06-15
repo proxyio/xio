@@ -27,7 +27,7 @@
 #include "poll_struct.h"
 
 /* Max number of concurrent socks. */
-#define XIO_MAX_POLLS 10240
+#define PROXYIO_MAX_POLLS 10240
 
 struct pglobal {
 	spin_t lock;
@@ -37,10 +37,10 @@ struct pglobal {
 	 * find out whether context is initialised. If it is null, context is
 	 * uninitialised.
 	 */
-	struct xpoll_t *polls[XIO_MAX_POLLS];
+	struct xpoll_t *polls[PROXYIO_MAX_POLLS];
 
 	/* Stack of unused xsock descriptors.  */
-	int unused[XIO_MAX_POLLS];
+	int unused[PROXYIO_MAX_POLLS];
 
 	/* Number of actual socks. */
 	size_t npolls;

@@ -30,11 +30,11 @@
 #include "worker.h"
 
 /* Max number of cpu core */
-#define XIO_MAX_CPUS 32
+#define PROXYIO_MAX_CPUS 32
 
 
 /* Max number of concurrent socks. */
-#define XIO_MAX_SOCKS 10240
+#define PROXYIO_MAX_SOCKS 10240
 
 struct xglobal {
 	int exiting;
@@ -45,19 +45,19 @@ struct xglobal {
 	 * find out whether context is initialised. If it is null, context is
 	 * uninitialised.
 	 */
-	struct sockbase *sockbases[XIO_MAX_SOCKS];
+	struct sockbase *sockbases[PROXYIO_MAX_SOCKS];
 
 	/* Stack of unused xsock descriptors.  */
-	int unused[XIO_MAX_SOCKS];
+	int unused[PROXYIO_MAX_SOCKS];
 
 	/* Number of actual socks. */
 	size_t nsockbases;
 
 
-	struct worker cpus[XIO_MAX_CPUS];
+	struct worker cpus[PROXYIO_MAX_CPUS];
 
 	/* Stack of unused xsock descriptors.  */
-	int cpu_unused[XIO_MAX_CPUS];
+	int cpu_unused[PROXYIO_MAX_CPUS];
 
 	/* Number of actual runner poller.  */
 	size_t ncpus;
