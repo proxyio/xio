@@ -131,7 +131,7 @@ static void event_hndl (struct poll_fd *pollfd)
 {
 	int socktype = 0;
 	int optlen;
-	struct tgtd *tg = (struct tgtd *) pollfd->self;
+	struct tgtd *tg = (struct tgtd *) pollfd->hndl;
 
 	BUG_ON (tg->fd != tg->pollfd.fd);
 	tg->pollfd.happened = pollfd->happened;

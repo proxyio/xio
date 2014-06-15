@@ -57,7 +57,7 @@ void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)
 	tg->fd = fd;
 	tg->owner = ep;
 	tg->pollfd.fd = fd;
-	tg->pollfd.self = tg;
+	tg->pollfd.hndl = tg;
 	tg->pollfd.events = XPOLLIN|XPOLLERR;
 	tg->pollfd.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
 }
