@@ -60,6 +60,7 @@ void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)
 	tg->pollfd.hndl = tg;
 	tg->pollfd.events = XPOLLIN|XPOLLERR;
 	tg->pollfd.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
+	tgtd_mstats_init (&tg->stats);
 }
 
 int sp_add (int eid, int fd)

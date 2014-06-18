@@ -310,6 +310,8 @@ void epbase_init (struct epbase *ep)
 	INIT_LIST_HEAD (&ep->listeners);
 	INIT_LIST_HEAD (&ep->connectors);
 	INIT_LIST_HEAD (&ep->bad_socks);
+
+	epbase_mstats_init (&ep->stats);
 }
 
 void epbase_exit (struct epbase *ep)

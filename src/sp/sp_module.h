@@ -30,10 +30,29 @@
 #include <utils/spinlock.h>
 #include <utils/condition.h>
 #include <utils/thread.h>
+#include <utils/mstats_base.h>
 #include <socket/global.h>
 #include <xio/poll.h>
 #include <xio/sp_reqrep.h>
 #include "sp_hdr.h"
+
+enum {
+	EP_SEND = 0,
+	EP_RECV,
+	EPBASE_STATS_KEYRANGE,
+};
+
+DEFINE_MSTATS (epbase, EPBASE_STATS_KEYRANGE);
+
+enum {
+	TG_SEND = 0,
+	TG_RECV,
+	TGTD_STATS_KEYRANGE,
+};
+
+DEFINE_MSTATS (tgtd, TGTD_STATS_KEYRANGE);
+
+
 
 static inline struct skbuf *get_skbuf (char *ubuf) {
 	return cont_of (ubuf, struct skbuf, chunk.ubuf_base);
@@ -94,6 +113,7 @@ struct tgtd {
 	u32 bad_status:1;
 	int fd;                         /* xsocket file descriptor */
 	struct list_head item;
+	struct tgtd_mstats stats;
 };
 
 void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd);
@@ -187,6 +207,8 @@ struct epbase {
 	u64 nconnectors;
 	struct list_head bad_socks;
 	u64 nbads;
+
+	struct epbase_mstats stats;
 };
 
 void epbase_init (struct epbase *ep);
