@@ -103,9 +103,9 @@ static int receiver_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 int epbase_proxyto (struct epbase *repep, struct epbase *reqep)
 {
-	struct repep *frontend = rep_ep (repep);
-	struct reqep *backend = req_ep (reqep);
-
+	struct repep *frontend = cont_of (repep, struct repep, base);
+	struct reqep *backend = cont_of (reqep, struct reqep, base);
+	
 	dlock (repep, reqep);
 	if (!list_empty (&repep->connectors) || !list_empty (&repep->bad_socks) ) {
 		errno = EINVAL;

@@ -113,7 +113,7 @@ static inline void rt_append (char *ubuf, struct rtentry *rt)
 
 struct rr_tgtd {
 	struct tgtd tg;
-	uuid_t uuid;
+	uuid_t uuid;                 /* global unique id for distributed system */
 	struct skbuf_head ls_head;   /* local storage */
 };
 

@@ -30,11 +30,10 @@ struct repep;
 
 struct reqep {
 	struct epbase base;
-	struct algo_ops *target_algo;
 	struct repep *peer;
+	struct algo_ops *target_algo;
 };
 
-#define req_ep(ep) cont_of(ep, struct reqep, base)
 #define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
 
 extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);

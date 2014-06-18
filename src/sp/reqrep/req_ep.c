@@ -62,7 +62,7 @@ static int reqep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int reqep_send (struct epbase *ep, char *ubuf)
 {
 	int rc = -1;
-	struct reqep *reqep = req_ep (ep);
+	struct reqep *reqep = cont_of (ep, struct reqep, base);
 	struct rrhdr *pg = 0;
 	struct rtentry rt = {};
 	struct tgtd *tg = 0;
