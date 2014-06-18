@@ -20,25 +20,30 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_SP_REQREP_
-#define _H_PROXYIO_SP_REQREP_
+#include "req_ep.h"
 
-#include <xio/sp.h>
-#include <xio/cplusplus_define.h>
+static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf) {
+	struct epbase *ep = &reqep->base;
+	struct tgtd *tg;
+	struct req_tgtd *req_tg;
 
-#define SP_REQREP_VERSION 0x0001
+	if (list_empty (&ep->connectors))
+		return 0;
+	tg = list_first (&ep->connectors, struct tgtd, item);
+	req_tg = cont_of (tg, struct req_tgtd, rr_tg.tg);
 
-/* Following sp_types are provided by REQREP protocol */
-#define SP_REQ         1
-#define SP_REP         2
+	/* Move to the tail if cur_weight less than zero */
+	if (--req_tg->algod.rrbin.cur_weight <= 0) {
+		req_tg->algod.rrbin.cur_weight = req_tg->algod.rrbin.origin_weight;
+		list_move_tail (&tg->item, &ep->connectors);
+	}
+	return tg;
+}
 
-/* Following options are provided by REQREP protocol */
-#define SP_PROXY       1  /* recv message from rep_ep and dispatch to req_ep */
-#define SP_REQ_TGALGO  2  /* specified the loadbalance algo for SP_REQ */
+struct algo_ops weight_rrbin_ops = {
+	.type = SP_REQ_WEIGHT_RRBIN,
+	.select = weight_rrbin_select,
+};
 
-/* Following loadbalance algos are provided by REQREP protocol */
-#define SP_REQ_RRBIN          1
-#define SP_REQ_WEIGHT_RRBIN   2
+struct algo_ops *weight_rrbin_vfptr = &weight_rrbin_ops;
 
-#include <xio/cplusplus_endif.h>
-#endif

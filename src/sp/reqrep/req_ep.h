@@ -44,8 +44,6 @@ struct algo_ops {
 	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
 };
 
-extern struct algo_ops *rrbin_vfptr;
-
 struct req_tgtd {
 	struct rr_tgtd rr_tg;
 	union {
@@ -56,6 +54,7 @@ struct req_tgtd {
 	} algod;
 };
 
-
+extern struct algo_ops *rrbin_vfptr;
+extern struct algo_ops *weight_rrbin_vfptr;
 
 #endif

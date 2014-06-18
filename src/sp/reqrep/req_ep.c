@@ -100,6 +100,7 @@ static struct tgtd *reqep_join (struct epbase *ep, int fd) {
 	if (!req_tg)
 		return 0;
 	rr_tg = &req_tg->rr_tg;
+	ZERO (req_tg->algod);
 
 	skbuf_head_init (&rr_tg->ls_head, SP_SNDWND);
 	uuid_generate (rr_tg->uuid);
