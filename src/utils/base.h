@@ -89,4 +89,11 @@ typedef uint64_t u64;
 
 #define max(a, b) (a > b ? a : b)
 
+#define ERRNO_RETURN(eno) do {			\
+		errno = eno;			\
+		return -1;			\
+	} while (0)
+
+
+
 #endif

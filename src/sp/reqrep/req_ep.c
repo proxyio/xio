@@ -128,11 +128,33 @@ static int set_target_algo (struct epbase *ep, void *optval, int optlen)
 	return 0;
 }
 
+static int set_rrbin_weight (struct epbase *ep, void *optval, int optlen)
+{
+	struct reqep *req_ep = cont_of (ep, struct reqep, base);
+	struct sp_req_rrbin_weight_entry *e = (struct sp_req_rrbin_weight_entry *) optval;
+	struct tgtd *tg;
+	struct req_tgtd *req_tg;
+
+	mutex_lock (&ep->lock);
+	if (req_ep->target_algo->type != SP_REQ_RRBIN) {
+		mutex_unlock (&ep->lock);
+		ERRNO_RETURN (EINVAL);
+	}
+	tg = get_tgtd_if (tg, &ep->connectors, (tg->fd == e->fd));
+	if (tg) {
+		req_tg = cont_of (tg, struct req_tgtd, rr_tg.tg);
+		req_tg->algod.rrbin.origin_weight = e->weight;
+	}
+	mutex_unlock (&ep->lock);
+	return 0;
+}
+
 
 static const ep_setopt setopt_vfptr[] = {
 	0,
 	set_proxyto,
 	set_target_algo,
+	set_rrbin_weight,
 };
 
 static const ep_getopt getopt_vfptr[] = {
