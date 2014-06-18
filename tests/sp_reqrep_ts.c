@@ -131,6 +131,9 @@ int server2()
 	sleep (1);
 
 	BUG_ON ( (eid = sp_endpoint (SP_REQREP, SP_REQ) ) < 0);
+	sbuf = xallocubuf (0);
+	BUG_ON (sp_send (eid, sbuf) != -1);
+
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		sprintf (host, "%s%s", pf[i], addr);
 		BUG_ON ( (s = sp_connect (eid, host) ) < 0);

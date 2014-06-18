@@ -70,6 +70,8 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 	mutex_lock (&ep->lock);
 	tg = reqep->target_algo->select (reqep, ubuf);
 	mutex_unlock (&ep->lock);
+	if (!tg)
+		return -1;
 	uuid_copy (rt.uuid, get_rr_tgtd (tg)->uuid);
 	pg = new_rrhdr (&rt);
 	ubufctl_add (ubuf, (char *) pg);
