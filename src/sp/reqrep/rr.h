@@ -111,18 +111,18 @@ static inline void rt_append (char *ubuf, struct rtentry *rt)
 	ubufctl_add (ubuf, sh_ubuf);
 }
 
-struct rrtgtd {
+struct rr_tgtd {
 	struct tgtd tg;
 	uuid_t uuid;
 	struct skbuf_head ls_head;   /* local storage */
 };
 
-static inline void rrtgtd_free(struct rrtgtd *rr_tg) {
-	mem_free (rr_tg, sizeof (struct rrtgtd) );
+static inline void rr_tgtd_free(struct rr_tgtd *rr_tg) {
+	mem_free (rr_tg, sizeof (struct rr_tgtd) );
 }
 
-static inline struct rrtgtd *get_rrtgtd (struct tgtd *tg) {
-	return cont_of (tg, struct rrtgtd, tg);
+static inline struct rr_tgtd *get_rr_tgtd (struct tgtd *tg) {
+	return cont_of (tg, struct rr_tgtd, tg);
 }
 
 

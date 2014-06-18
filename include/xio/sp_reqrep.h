@@ -37,7 +37,7 @@
 #define SP_REQ_TGALGO  2  /* specified the loadbalance algo for SP_REQ */
 
 /* Following loadbalance algos are provided by REQREP protocol */
-#define SP_REQ_RRBIN
+#define SP_REQ_RRBIN   1
 
 #include <xio/cplusplus_endif.h>
 #endif

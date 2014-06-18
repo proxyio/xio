@@ -70,7 +70,7 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 	mutex_lock (&ep->lock);
 	tg = reqep->target_algo->select (reqep, ubuf);
 	mutex_unlock (&ep->lock);
-	uuid_copy (rt.uuid, get_rrtgtd (tg)->uuid);
+	uuid_copy (rt.uuid, get_rr_tgtd (tg)->uuid);
 	pg = new_rrhdr (&rt);
 	ubufctl_add (ubuf, (char *) pg);
 	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
@@ -88,11 +88,11 @@ static int reqep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static void reqep_term (struct epbase *ep, struct tgtd *tg)
 {
-	rrtgtd_free (get_rrtgtd (tg) );
+	rr_tgtd_free (get_rr_tgtd (tg) );
 }
 
 static struct tgtd *reqep_join (struct epbase *ep, int fd) {
-	struct rrtgtd *rr_tg = TNEW (struct rrtgtd);
+	struct rr_tgtd *rr_tg = TNEW (struct rr_tgtd);
 
 	if (!rr_tg)
 		return 0;
