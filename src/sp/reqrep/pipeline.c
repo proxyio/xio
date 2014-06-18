@@ -50,6 +50,8 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 	struct rtentry *rt = rt_cur (ubuf);
 	struct tgtd *go = peer->target_algo->select (peer, ubuf);
 
+	if (!go)
+		return -1;
 	if (uuid_compare (rt->uuid, get_rr_tgtd (tg)->uuid) )
 		uuid_copy (get_rr_tgtd (tg)->uuid, rt->uuid);
 	skbuf_head_in (&get_rr_tgtd (go)->ls_head, ubuf);
