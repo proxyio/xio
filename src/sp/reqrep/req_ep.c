@@ -117,10 +117,16 @@ static int set_proxyto (struct epbase *ep, void *optval, int optlen)
 	return rc;
 }
 
+static int set_target_algo (struct epbase *ep, void *optval, int optlen)
+{
+	return 0;
+}
+
 
 static const ep_setopt setopt_vfptr[] = {
 	0,
 	set_proxyto,
+	set_target_algo,
 };
 
 static const ep_getopt getopt_vfptr[] = {

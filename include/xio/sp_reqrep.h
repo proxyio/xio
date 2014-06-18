@@ -33,7 +33,11 @@
 #define SP_REP         2
 
 /* Following options are provided by REQREP protocol */
-#define SP_PROXY       1
+#define SP_PROXY       1  /* recv message from rep_ep and dispatch to req_ep */
+#define SP_REQ_TGALGO  2  /* specified the loadbalance algo for SP_REQ */
+
+/* Following loadbalance algos are provided by REQREP protocol */
+#define SP_REQ_RRBIN
 
 #include <xio/cplusplus_endif.h>
 #endif

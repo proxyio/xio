@@ -36,6 +36,7 @@ static struct tgtd *rrbin_select (struct reqep *reqep, char *ubuf) {
 }
 
 struct algo_ops rrbin_ops = {
+	.type = SP_REQ_TGALGO,
 	.select = rrbin_select,
 };
 

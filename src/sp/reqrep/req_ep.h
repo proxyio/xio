@@ -39,7 +39,9 @@ struct reqep {
 
 extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
 
+
 struct algo_ops {
+	int type;
 	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
 };
 
