@@ -111,12 +111,12 @@ static struct tgtd *reqep_join (struct epbase *ep, int fd) {
 
 static int set_proxyto (struct epbase *ep, void *optval, int optlen)
 {
-	int rc, front_eid = * (int *) optval;
+	int rc;
+	int front_eid = * (int *) optval;
 	struct epbase *peer = eid_get (front_eid);
 
 	if (!peer) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	rc = epbase_proxyto (peer, ep);
 	eid_put (front_eid);
@@ -166,8 +166,7 @@ static int reqep_setopt (struct epbase *ep, int opt, void *optval, int optlen)
 {
 	int rc;
 	if (opt < 0 || opt >= NELEM (setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	rc = setopt_vfptr[opt] (ep, optval, optlen);
 	return rc;
@@ -177,8 +176,7 @@ static int reqep_getopt (struct epbase *ep, int opt, void *optval, int *optlen)
 {
 	int rc;
 	if (opt < 0 || opt >= NELEM (getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	rc = getopt_vfptr[opt] (ep, optval, optlen);
 	return rc;

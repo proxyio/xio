@@ -29,8 +29,7 @@ int sp_getopt (int eid, int opt, void *optval, int *optlen)
 	struct epbase *ep = eid_get (eid);
 
 	if (!ep) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	rc = ep->vfptr.getopt (ep, opt, optval, optlen);
 	eid_put (eid);

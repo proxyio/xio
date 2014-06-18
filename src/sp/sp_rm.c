@@ -70,8 +70,7 @@ int sp_rm (int eid, int fd)
 	int rc;
 
 	if (!ep) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	rc = sp_generic_term_by_fd (ep, fd);
 	eid_put (eid);

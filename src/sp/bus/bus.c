@@ -127,8 +127,7 @@ static int bus_ep_setopt (struct epbase *ep, int opt, void *optval, int optlen)
 {
 	int rc;
 	if (opt < 0 || opt >= NELEM (setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	rc = setopt_vfptr[opt] (ep, optval, optlen);
 	return rc;
@@ -138,8 +137,7 @@ static int bus_ep_getopt (struct epbase *ep, int opt, void *optval, int *optlen)
 {
 	int rc;
 	if (opt < 0 || opt >= NELEM (getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	rc = getopt_vfptr[opt] (ep, optval, optlen);
 	return rc;

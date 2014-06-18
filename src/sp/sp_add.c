@@ -71,8 +71,7 @@ int sp_add (int eid, int fd)
 	struct tgtd *tg;
 
 	if (!ep) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	if ( (tg = ep->vfptr.join (ep, fd) ) ) {
 		if ((rc = epbase_add_tgtd (ep, tg))) {

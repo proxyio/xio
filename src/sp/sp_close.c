@@ -29,8 +29,7 @@ int sp_close (int eid)
 	struct epbase *ep = eid_get (eid);
 
 	if (!ep) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	mutex_lock (&ep->lock);
 	ep->status.shutdown = true;

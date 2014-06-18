@@ -28,8 +28,7 @@ int sp_recv (int eid, char **ubuf)
 	struct epbase *ep = eid_get (eid);
 
 	if (!ep) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	mutex_lock (&ep->lock);
 
@@ -48,8 +47,7 @@ int sp_recv (int eid, char **ubuf)
 	if (ep->status.shutdown) {
 		mutex_unlock (&ep->lock);
 		eid_put (eid);
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	skbuf_head_out (&ep->rcv, *ubuf);
 

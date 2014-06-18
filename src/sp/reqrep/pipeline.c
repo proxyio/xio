@@ -108,14 +108,12 @@ int epbase_proxyto (struct epbase *repep, struct epbase *reqep)
 	
 	dlock (repep, reqep);
 	if (!list_empty (&repep->connectors) || !list_empty (&repep->bad_socks) ) {
-		errno = EINVAL;
 		dunlock (repep, reqep);
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	if (!list_empty (&reqep->connectors) || !list_empty (&reqep->bad_socks) ) {
-		errno = EINVAL;
 		dunlock (repep, reqep);
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	frontend->peer = backend;
 	backend->peer = frontend;

@@ -40,11 +40,7 @@ static void sub_ep_destroy (struct epbase *ep)
 
 static int sub_ep_send (struct epbase *ep, char *ubuf)
 {
-	int rc = -1;
-
-	if (rc)
-		errno = EPERM;
-	return rc;
+	ERRNO_RETURN (EPERM);
 }
 
 static int sub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
@@ -91,8 +87,7 @@ static int sub_ep_setopt (struct epbase *ep, int opt, void *optval, int optlen)
 {
 	int rc;
 	if (opt < 0 || opt >= NELEM (setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	rc = setopt_vfptr[opt] (ep, optval, optlen);
 	return rc;
@@ -102,8 +97,7 @@ static int sub_ep_getopt (struct epbase *ep, int opt, void *optval, int *optlen)
 {
 	int rc;
 	if (opt < 0 || opt >= NELEM (getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
+		ERRNO_RETURN (EINVAL);
 	}
 	rc = getopt_vfptr[opt] (ep, optval, optlen);
 	return rc;

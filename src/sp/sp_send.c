@@ -30,8 +30,7 @@ int sp_send (int eid, char *ubuf)
 	struct epbase *ep = eid_get (eid);
 
 	if (!ep || ep->status.shutdown) {
-		errno = EBADF;
-		return -1;
+		ERRNO_RETURN (EBADF);
 	}
 	rc = ep->vfptr.send (ep, ubuf);
 	eid_put (eid);

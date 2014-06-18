@@ -250,8 +250,7 @@ int eid_alloc (int sp_family, int sp_type)
 	struct epbase *ep;
 
 	if (!vfptr) {
-		errno = EPROTO;
-		return -1;
+		ERRNO_RETURN (EPROTO);
 	}
 	if (! (ep = vfptr->alloc() ) )
 		return -1;
