@@ -20,30 +20,24 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_SP_REQ_
-#define _H_PROXYIO_SP_REQ_
+#include "req_ep.h"
 
-#include <sp/sp_module.h>
-#include "rr.h"
+static struct tgtd *rrbin_select (struct reqep *reqep, char *ubuf) {
+	struct epbase *ep = &reqep->base;
+	struct tgtd *tg = 0;
 
-struct repep;
+	if (list_empty (&ep->connectors))
+		return 0;
+	tg = list_first (&ep->connectors, struct tgtd, item);
 
-struct reqep {
-	struct epbase base;
-	struct algo_ops *target_algo;
-	struct repep *peer;
+	/* Move to the tail */
+	list_move_tail (&tg->item, &ep->connectors);
+	return tg;
+}
+
+struct algo_ops rrbin_ops = {
+	.select = rrbin_select,
 };
 
-#define req_ep(ep) cont_of(ep, struct reqep, base)
-#define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
+struct algo_ops *rrbin_vfptr = &rrbin_ops;
 
-extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
-
-struct algo_ops {
-	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
-};
-
-extern struct algo_ops *rrbin_vfptr;
-
-
-#endif

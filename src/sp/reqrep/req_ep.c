@@ -27,6 +27,7 @@ static struct epbase *reqep_alloc() {
 
 	if (reqep) {
 		epbase_init (&reqep->base);
+		reqep->target_algo = rrbin_vfptr;
 		reqep->peer = 0;
 		return &reqep->base;
 	}
@@ -61,14 +62,13 @@ static int reqep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int reqep_send (struct epbase *ep, char *ubuf)
 {
 	int rc = -1;
+	struct reqep *reqep = req_ep (ep);
 	struct rrhdr *pg = 0;
 	struct rtentry rt = {};
 	struct tgtd *tg = 0;
 
 	mutex_lock (&ep->lock);
-	get_tgtd_if (tg, &ep->connectors, 1);
-	if (tg)
-		list_move_tail (&tg->item, &ep->connectors);
+	tg = reqep->target_algo->select (reqep, ubuf);
 	mutex_unlock (&ep->lock);
 	uuid_copy (rt.uuid, get_rrtgtd (tg)->uuid);
 	pg = new_rrhdr (&rt);

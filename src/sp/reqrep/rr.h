@@ -23,6 +23,7 @@
 #ifndef _H_PROXYIO_SP_REQREP_INTERN_
 #define _H_PROXYIO_SP_REQREP_INTERN_
 
+#include <xio/sp_reqrep.h>
 #include <sp/sp_hdr.h>
 
 /* The sphdr looks like this:

@@ -35,15 +35,8 @@ static void dunlock (struct epbase *ep1, struct epbase *ep2)
 	mutex_unlock (&ep1->lock);
 }
 
-
-static struct tgtd *rrbin_forward (struct epbase *ep, char *ubuf) {
-	struct tgtd *tg = list_first (&ep->connectors, struct tgtd, item);
-
-	list_move_tail (&tg->item, &ep->connectors);
-	return tg;
-}
-
-static struct tgtd *route_backward (struct epbase *ep, char *ubuf) {
+static struct tgtd *route_backward (struct repep *repep, char *ubuf) {
+	struct epbase *ep = &repep->base;
 	struct rtentry *rt = rt_prev (ubuf);
 	struct tgtd *tg = 0;
 
@@ -53,9 +46,9 @@ static struct tgtd *route_backward (struct epbase *ep, char *ubuf) {
 
 static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-	struct epbase *peer = peer_repep (ep);
+	struct reqep *peer = peer_reqep (ep);
 	struct rtentry *rt = rt_cur (ubuf);
-	struct tgtd *go = rrbin_forward (peer, ubuf);
+	struct tgtd *go = peer->target_algo->select (peer, ubuf);
 
 	if (uuid_compare (rt->uuid, get_rrtgtd (tg)->uuid) )
 		uuid_copy (get_rrtgtd (tg)->uuid, rt->uuid);
@@ -82,7 +75,7 @@ static int dispatcher_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static int dispatcher_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
-	struct epbase *peer = peer_reqep (ep);
+	struct repep *peer = peer_repep (ep);
 	struct rrhdr *pg = get_rrhdr (ubuf);
 	struct tgtd *back = route_backward (peer, ubuf);
 
