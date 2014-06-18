@@ -117,10 +117,6 @@ struct rr_tgtd {
 	struct skbuf_head ls_head;   /* local storage */
 };
 
-static inline void rr_tgtd_free(struct rr_tgtd *rr_tg) {
-	mem_free (rr_tg, sizeof (struct rr_tgtd) );
-}
-
 static inline struct rr_tgtd *get_rr_tgtd (struct tgtd *tg) {
 	return cont_of (tg, struct rr_tgtd, tg);
 }

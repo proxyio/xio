@@ -100,7 +100,7 @@ static struct tgtd *repep_join (struct epbase *ep, int fd) {
 
 static void repep_term (struct epbase *ep, struct tgtd *tg)
 {
-	rr_tgtd_free (get_rr_tgtd (tg) );
+	mem_free (cont_of (tg, struct rr_tgtd, tg), sizeof (struct rr_tgtd));
 }
 
 

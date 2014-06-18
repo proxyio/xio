@@ -46,5 +46,16 @@ struct algo_ops {
 
 extern struct algo_ops *rrbin_vfptr;
 
+struct req_tgtd {
+	struct rr_tgtd rr_tg;
+	union {
+		struct {
+			int origin_weight;
+			int cur_weight;
+		} rrbin;
+	} algod;
+};
+
+
 
 #endif
