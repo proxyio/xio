@@ -22,7 +22,8 @@
 
 #include "req_ep.h"
 
-static struct tgtd *rrbin_select (struct reqep *reqep, char *ubuf) {
+static struct tgtd *rrbin_select (struct reqep *reqep, char *ubuf)
+{
 	struct epbase *ep = &reqep->base;
 	struct tgtd *tg = 0;
 
