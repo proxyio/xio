@@ -56,6 +56,10 @@ struct req_tgtd {
 	} algod;
 };
 
+static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
+	return cont_of (tg, struct req_tgtd, tg);
+}
+
 extern struct algo_ops *rrbin_vfptr;
 extern struct algo_ops *weight_rrbin_vfptr;
 

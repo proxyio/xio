@@ -72,7 +72,7 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 	mutex_unlock (&ep->lock);
 	if (!tg)
 		return -1;
-	uuid_copy (rt.uuid, get_rr_tgtd (tg)->uuid);
+	uuid_copy (rt.uuid, get_req_tgtd (tg)->uuid);
 	pg = new_rrhdr (&rt);
 	ubufctl_add (ubuf, (char *) pg);
 	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);

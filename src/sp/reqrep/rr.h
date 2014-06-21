@@ -111,15 +111,4 @@ static inline void rt_append (char *ubuf, struct rtentry *rt)
 	ubufctl_add (ubuf, sh_ubuf);
 }
 
-struct rr_tgtd {
-	struct tgtd tg;
-	uuid_t uuid;                 /* global unique id for distributed system */
-	struct skbuf_head ls_head;   /* local storage */
-};
-
-static inline struct rr_tgtd *get_rr_tgtd (struct tgtd *tg) {
-	return cont_of (tg, struct rr_tgtd, tg);
-}
-
-
 #endif

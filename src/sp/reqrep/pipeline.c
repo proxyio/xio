@@ -40,7 +40,7 @@ static struct tgtd *route_backward (struct repep *repep, char *ubuf) {
 	struct rtentry *rt = rt_prev (ubuf);
 	struct tgtd *tg = 0;
 
-	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rr_tgtd (tg)->uuid, rt->uuid) );
+	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rep_tgtd (tg)->uuid, rt->uuid) );
 	return tg;
 }
 
@@ -52,9 +52,9 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 	if (!go)
 		return -1;
-	if (uuid_compare (rt->uuid, get_rr_tgtd (tg)->uuid) )
-		uuid_copy (get_rr_tgtd (tg)->uuid, rt->uuid);
-	skbuf_head_in (&get_rr_tgtd (go)->ls_head, ubuf);
+	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid) )
+		uuid_copy (get_rep_tgtd (tg)->uuid, rt->uuid);
+	skbuf_head_in (&get_req_tgtd (go)->ls_head, ubuf);
 	tgtd_try_enable_out (go);
 	DEBUG_OFF ("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	return 0;
@@ -63,12 +63,12 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	struct rtentry rt = {};
-	if (skbuf_head_empty (&get_rr_tgtd (tg)->ls_head) ) {
+	if (skbuf_head_empty (&get_req_tgtd (tg)->ls_head) ) {
 		tgtd_try_disable_out (tg);
 		return -1;
 	}
-	uuid_copy (rt.uuid, get_rr_tgtd (tg)->uuid);
-	skbuf_head_out (&get_rr_tgtd (tg)->ls_head, *ubuf);
+	uuid_copy (rt.uuid, get_req_tgtd (tg)->uuid);
+	skbuf_head_out (&get_req_tgtd (tg)->ls_head, *ubuf);
 	rt_append (*ubuf, &rt);
 	DEBUG_OFF ("ep %d req %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
 	return 0;
@@ -84,7 +84,7 @@ static int dispatcher_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 	if (!back)
 		return -1;
 	pg->ttl--;
-	skbuf_head_in (&get_rr_tgtd (back)->ls_head, ubuf);
+	skbuf_head_in (&get_rep_tgtd (back)->ls_head, ubuf);
 	tgtd_try_enable_out (back);
 	DEBUG_OFF ("ep %d resp %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	return 0;
@@ -92,11 +92,11 @@ static int dispatcher_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 static int receiver_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-	if (skbuf_head_empty (&get_rr_tgtd (tg)->ls_head) ) {
+	if (skbuf_head_empty (&get_rep_tgtd (tg)->ls_head) ) {
 		tgtd_try_disable_out (tg);
 		return -1;
 	}
-	skbuf_head_out (&get_rr_tgtd (tg)->ls_head, *ubuf);
+	skbuf_head_out (&get_rep_tgtd (tg)->ls_head, *ubuf);
 	DEBUG_OFF ("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
 	return 0;
 }

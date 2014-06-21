@@ -49,7 +49,7 @@ static int repep_send (struct epbase *ep, char *ubuf)
 	struct tgtd *tg = 0;
 
 	mutex_lock (&ep->lock);
-	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rr_tgtd (tg)->uuid, rt->uuid) );
+	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rep_tgtd (tg)->uuid, rt->uuid) );
 	if (tg)
 		list_move (&tg->item, &ep->connectors);
 	mutex_unlock (&ep->lock);
@@ -68,8 +68,8 @@ static int repep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	struct rtentry *rt = rt_cur (ubuf);
 
-	if (uuid_compare (rt->uuid, get_rr_tgtd (tg)->uuid) )
-		uuid_copy (get_rr_tgtd (tg)->uuid, rt->uuid);
+	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid) )
+		uuid_copy (get_rep_tgtd (tg)->uuid, rt->uuid);
 	DEBUG_OFF ("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	mutex_lock (&ep->lock);
 	skbuf_head_in (&ep->rcv, ubuf);
@@ -89,18 +89,18 @@ static int repep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 }
 
 static struct tgtd *repep_join (struct epbase *ep, int fd) {
-	struct rr_tgtd *rr_tg = TNEW (struct rr_tgtd);
+	struct rep_tgtd *rep_tg = TNEW (struct rep_tgtd);
 
-	if (!rr_tg)
+	if (!rep_tg)
 		return 0;
-	skbuf_head_init (&rr_tg->ls_head, SP_SNDWND);
-	generic_tgtd_init (ep, &rr_tg->tg, fd);
-	return &rr_tg->tg;
+	skbuf_head_init (&rep_tg->ls_head, SP_SNDWND);
+	generic_tgtd_init (ep, &rep_tg->tg, fd);
+	return &rep_tg->tg;
 }
 
 static void repep_term (struct epbase *ep, struct tgtd *tg)
 {
-	mem_free (cont_of (tg, struct rr_tgtd, tg), sizeof (struct rr_tgtd));
+	mem_free (cont_of (tg, struct rep_tgtd, tg), sizeof (struct rep_tgtd));
 }
 
 

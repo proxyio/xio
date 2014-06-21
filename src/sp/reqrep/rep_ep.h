@@ -33,6 +33,16 @@ struct repep {
 	struct reqep *peer;
 };
 
+struct rep_tgtd {
+	struct tgtd tg;
+	uuid_t uuid;                 /* global unique id for distributed system */
+	struct skbuf_head ls_head;   /* local storage */
+};
+
+static inline struct rep_tgtd *get_rep_tgtd (struct tgtd *tg) {
+	return cont_of (tg, struct rep_tgtd, tg);
+}
+
 #define peer_reqep(pep) (cont_of(pep, struct repep, base))->peer
 
 extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
