@@ -42,6 +42,29 @@ static void reqep_destroy (struct epbase *ep)
 	mem_free (reqep, sizeof (*reqep) );
 }
 
+static int reqep_send (struct epbase *ep, char *ubuf)
+{
+	int rc = -1;
+	struct reqep *reqep = cont_of (ep, struct reqep, base);
+	struct rrhdr *pg = 0;
+	struct rtentry rt = {};
+	struct tgtd *tg = 0;
+
+	mutex_lock (&ep->lock);
+	tg = reqep->target_algo->select (reqep, ubuf);
+	if (tg)
+		tgtd_mstats_incr (&tg->stats, TG_SEND);
+	mutex_unlock (&ep->lock);
+	if (!tg)
+		return -1;
+	uuid_copy (rt.uuid, get_req_tgtd (tg)->uuid);
+	pg = new_rrhdr (&rt);
+	ubufctl_add (ubuf, (char *) pg);
+	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
+	rc = xsend (tg->fd, ubuf);
+	return rc;
+}
+
 static int reqep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	struct rrhdr *pg = get_rrhdr (ubuf);
@@ -55,29 +78,9 @@ static int reqep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 	BUG_ON (ep->rcv.waiters < 0);
 	if (ep->rcv.waiters)
 		condition_broadcast (&ep->cond);
+	tgtd_mstats_incr (&tg->stats, TG_RECV);
 	mutex_unlock (&ep->lock);
 	return 0;
-}
-
-static int reqep_send (struct epbase *ep, char *ubuf)
-{
-	int rc = -1;
-	struct reqep *reqep = cont_of (ep, struct reqep, base);
-	struct rrhdr *pg = 0;
-	struct rtentry rt = {};
-	struct tgtd *tg = 0;
-
-	mutex_lock (&ep->lock);
-	tg = reqep->target_algo->select (reqep, ubuf);
-	mutex_unlock (&ep->lock);
-	if (!tg)
-		return -1;
-	uuid_copy (rt.uuid, get_req_tgtd (tg)->uuid);
-	pg = new_rrhdr (&rt);
-	ubufctl_add (ubuf, (char *) pg);
-	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
-	rc = xsend (tg->fd, ubuf);
-	return rc;
 }
 
 static int reqep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)

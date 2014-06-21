@@ -40,6 +40,10 @@
 /* Following loadbalance algos are provided by REQREP protocol */
 #define SP_REQ_RRBIN          1
 #define SP_REQ_WEIGHT_RRBIN   2
+#define SP_REQ_RTSLOAD        3   /* real-time loadbalance by second statistics */
+#define SP_REQ_RTHLOAD        4   /* real-time loadbalance by minute statistics */
+#define SP_REQ_RTMLOAD        5   /* real-time loadbalance by hour statistics */
+#define SP_REQ_RTDLOAD        6   /* real-time loadbalance by day statistics */
 
 struct sp_req_rrbin_weight_entry {
 	int fd;
