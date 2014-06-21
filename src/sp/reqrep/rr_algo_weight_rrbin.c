@@ -31,7 +31,7 @@ static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
 	if (list_empty (&ep->connectors))
 		return 0;
 	tg = list_first (&ep->connectors, struct tgtd, item);
-	req_tg = cont_of (tg, struct req_tgtd, rr_tg.tg);
+	req_tg = cont_of (tg, struct req_tgtd, tg);
 
 	/* Move to the tail if cur_weight less than zero */
 	if (--req_tg->algod.rrbin.cur_weight <= 0) {

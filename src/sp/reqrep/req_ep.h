@@ -45,7 +45,9 @@ struct algo_ops {
 };
 
 struct req_tgtd {
-	struct rr_tgtd rr_tg;
+	struct tgtd tg;
+	uuid_t uuid;                 /* global unique id for distributed system */
+	struct skbuf_head ls_head;   /* local storage */
 	union {
 		struct {
 			int origin_weight;

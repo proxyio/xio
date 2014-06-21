@@ -90,22 +90,20 @@ static int reqep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static void reqep_term (struct epbase *ep, struct tgtd *tg)
 {
-	mem_free (cont_of (tg, struct req_tgtd, rr_tg.tg), sizeof (struct req_tgtd));
+	mem_free (cont_of (tg, struct req_tgtd, tg), sizeof (struct req_tgtd));
 }
 
 static struct tgtd *reqep_join (struct epbase *ep, int fd) {
 	struct req_tgtd *req_tg = TNEW (struct req_tgtd);
-	struct rr_tgtd *rr_tg;
 
 	if (!req_tg)
 		return 0;
-	rr_tg = &req_tg->rr_tg;
 	ZERO (req_tg->algod);
 
-	skbuf_head_init (&rr_tg->ls_head, SP_SNDWND);
-	uuid_generate (rr_tg->uuid);
-	generic_tgtd_init (ep, &rr_tg->tg, fd);
-	return &rr_tg->tg;
+	skbuf_head_init (&req_tg->ls_head, SP_SNDWND);
+	uuid_generate (req_tg->uuid);
+	generic_tgtd_init (ep, &req_tg->tg, fd);
+	return &req_tg->tg;
 }
 
 
@@ -142,7 +140,7 @@ static int set_rrbin_weight (struct epbase *ep, void *optval, int optlen)
 	}
 	tg = get_tgtd_if (tg, &ep->connectors, (tg->fd == e->fd));
 	if (tg) {
-		req_tg = cont_of (tg, struct req_tgtd, rr_tg.tg);
+		req_tg = cont_of (tg, struct req_tgtd, tg);
 		req_tg->algod.rrbin.origin_weight = e->weight;
 	}
 	mutex_unlock (&ep->lock);
