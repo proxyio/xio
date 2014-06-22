@@ -166,112 +166,10 @@ static PyObject *cpy_xfreeubuf (PyObject *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-
 static PyObject *cpy_xubuflen (PyObject *self, PyObject *args)
 {
 	Message *message = (Message *) self;
 	return Py_BuildValue ("i", xubuflen (message->ubuf) );
-}
-
-static PyObject *cpy_xsocket (PyObject *self, PyObject *args)
-{
-	int pf = 0;
-	int socktype = 0;
-
-	if (!PyArg_ParseTuple (args, "ii", &pf, &socktype) )
-		return 0;
-	return Py_BuildValue ("i", xsocket (pf, socktype) );
-}
-
-static PyObject *cpy_xbind (PyObject *self, PyObject *args)
-{
-	int fd = 0;
-	const char *sockaddr = 0;
-
-	if (!PyArg_ParseTuple (args, "is", &fd, &sockaddr) )
-		return 0;
-	return Py_BuildValue ("i", xbind (fd, sockaddr) );
-}
-
-static PyObject *cpy_xaccept (PyObject *self, PyObject *args)
-{
-	int fd = 0;
-
-	if (!PyArg_ParseTuple (args, "i", &fd) )
-		return 0;
-	return Py_BuildValue ("i", xaccept (fd) );
-}
-
-static PyObject *cpy_xlisten (PyObject *self, PyObject *args)
-{
-	const char *sockaddr = 0;
-
-	if (!PyArg_ParseTuple (args, "s", &sockaddr) )
-		return 0;
-	return Py_BuildValue ("i", xlisten (sockaddr) );
-}
-
-static PyObject *cpy_xconnect (PyObject *self, PyObject *args)
-{
-	const char *sockaddr = 0;
-
-	if (!PyArg_ParseTuple (args, "s", &sockaddr) )
-		return 0;
-	return Py_BuildValue ("i", xconnect (sockaddr) );
-}
-
-static PyObject *cpy_xrecv (PyObject *self, PyObject *args)
-{
-	PyObject *tuple = PyTuple_New (2);
-	Message *message = (Message *) PyType_GenericAlloc (&MessageType, 0);
-	int fd = 0;
-	int rc;
-	char *ubuf = 0;
-
-	if (!PyArg_ParseTuple (args, "i", &fd) )
-		return 0;
-	if ( (rc = xrecv (fd, &ubuf) ) == 0)
-		message->ubuf = ubuf;
-	PyTuple_SetItem (tuple, 0, Py_BuildValue ("i", rc) );
-	PyTuple_SetItem (tuple, 1, (PyObject *) message);
-	return tuple;
-}
-
-static PyObject *cpy_xsend (PyObject *self, PyObject *args)
-{
-	int fd = 0;
-	int rc;
-	Message *message = 0;
-
-	if (!PyArg_ParseTuple (args, "iO", &fd, &message) )
-		return 0;
-	if (!message->ubuf) {
-		PyErr_BadInternalCall();
-		return 0;
-	}
-	if ( (rc = xsend (fd, message->ubuf) ) == 0) {
-		message->ubuf = 0;
-	}
-	return Py_BuildValue ("i", rc);
-}
-
-static PyObject *cpy_xclose (PyObject *self, PyObject *args)
-{
-	int fd = 0;
-
-	if (!PyArg_ParseTuple (args, "i", &fd) )
-		return 0;
-	return Py_BuildValue ("i", xclose (fd) );
-}
-
-static PyObject *cpy_xsetopt (PyObject *self, PyObject *args)
-{
-	return 0;
-}
-
-static PyObject *cpy_xgetopt (PyObject *self, PyObject *args)
-{
-	return 0;
 }
 
 static PyObject *cpy_sp_endpoint (PyObject *self, PyObject *args)
@@ -384,16 +282,7 @@ static PyMethodDef module_methods[] = {
 	{"xallocubuf",      cpy_xallocubuf,     METH_VARARGS,  "alloc a user-space message"},
 	{"xubuflen",        cpy_xubuflen,       METH_VARARGS,  "return the ubuf's length"},
 	{"xfreeubuf",       cpy_xfreeubuf,      METH_VARARGS,  "free ubuf"},
-	{"xsocket",         cpy_xsocket,        METH_VARARGS,  "create an socket"},
-	{"xbind",           cpy_xbind,          METH_VARARGS,  "bind the sockaddr to the socket"},
-	{"xlisten",         cpy_xlisten,        METH_VARARGS,  "listen the sockaddr"},
-	{"xconnect",        cpy_xconnect,       METH_VARARGS,  "connecto to the sockaddr"},
-	{"xaccept",         cpy_xaccept,        METH_VARARGS,  "accept an new socket"},
-	{"xrecv",           cpy_xrecv,          METH_VARARGS,  "receive a message"},
-	{"xsend",           cpy_xsend,          METH_VARARGS,  "send a message"},
-	{"xclose",          cpy_xclose,         METH_VARARGS,  "close the socket"},
-	{"xsetopt",         cpy_xsetopt,        METH_VARARGS,  "set socket options"},
-	{"xgetopt",         cpy_xgetopt,        METH_VARARGS,  "get socket options"},
+
 	{"sp_endpoint",     cpy_sp_endpoint,    METH_VARARGS,  "create an SP endpoint"},
 	{"sp_close",        cpy_sp_close,       METH_VARARGS,  "close an SP endpoint"},
 	{"sp_send",         cpy_sp_send,        METH_VARARGS,  "send one message into endpoint"},
@@ -413,39 +302,9 @@ struct xsymbol {
 };
 
 static struct xsymbol const_symbols[] = {
-	{"XPOLLIN",      XPOLLIN},
-	{"XPOLLOUT",     XPOLLOUT},
-	{"XPOLLERR",     XPOLLERR},
-
-	{"XPOLL_ADD",    XPOLL_ADD},
-	{"XPOLL_DEL",    XPOLL_DEL},
-	{"XPOLL_MOD",    XPOLL_MOD},
-
-	{"XPF_TCP",      XPF_TCP},
-	{"XPF_IPC",      XPF_IPC},
-	{"XPF_INPROC",   XPF_INPROC},
-	{"XLISTENER",    XLISTENER},
-	{"XCONNECTOR",   XCONNECTOR},
-	{"XSOCKADDRLEN", XSOCKADDRLEN},
-
-	{"XL_SOCKET",    XL_SOCKET},
-	{"XNOBLOCK",     XNOBLOCK},
-	{"XSNDWIN",      XSNDWIN},
-	{"XRCVWIN",      XRCVWIN},
-	{"XSNDBUF",      XSNDBUF},
-	{"XRCVBUF",      XRCVBUF},
-	{"XLINGER",      XLINGER},
-	{"XSNDTIMEO",    XSNDTIMEO},
-	{"XRCVTIMEO",    XRCVTIMEO},
-	{"XRECONNECT",   XRECONNECT},
-	{"XSOCKTYPE",    XSOCKTYPE},
-	{"XSOCKPROTO",   XSOCKPROTO},
-	{"XTRACEDEBUG",  XTRACEDEBUG},
-
 	{"SP_REQREP",    SP_REQREP},
 	{"SP_BUS",       SP_BUS},
 	{"SP_PUBSUB",    SP_PUBSUB},
-
 	{"SP_REQ",       SP_REQ},
 	{"SP_REP",       SP_REP},
 	{"SP_PROXY",     SP_PROXY},
