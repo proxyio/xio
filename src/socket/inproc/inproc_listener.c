@@ -112,8 +112,13 @@ static void inp_listener_close (struct sockbase *sb)
 	struct sockbase *nsb;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
-	/* Avoiding the new connectors */
+	/* Avoiding the new connectors and remove listen file */
 	rmlistener (&self->rb_link);
+
+	/* we remove the file here because of Unix domain socket doesn't unlink
+	 * the file when socket closed. and don't support getsockname ()
+	 * or getpeername () API. */
+	remove (sb->addr);
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &nsb) == 0) {
