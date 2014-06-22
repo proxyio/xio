@@ -1,15 +1,15 @@
 #include <utils/mstats_base.h>
 
-static void s_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+static void s_warn (struct mstats_base *stb, int sl, int key, i64 ts, i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
-static void m_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+static void m_warn (struct mstats_base *stb, int sl, int key, i64 ts, i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
-static void h_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+static void h_warn (struct mstats_base *stb, int sl, int key, i64 ts, i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
-static void d_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+static void d_warn (struct mstats_base *stb, int sl, int key, i64 ts, i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
 
@@ -29,10 +29,10 @@ static int mstats_test()
 	struct mstats_base *ms = &utms.base;
 
 	ut_mstats_init (&utms);
-	ms->slv[MSL_S] = 500;
-	ms->slv[MSL_M] = 1000;
-	ms->slv[MSL_H] = 2000;
-	ms->slv[MSL_D] = 4000;
+	ms->level[MSL_S] = 500;
+	ms->level[MSL_M] = 1000;
+	ms->level[MSL_H] = 2000;
+	ms->level[MSL_D] = 4000;
 	mstats_base_set_warnf (ms, MSL_S, s_warn);
 	mstats_base_set_warnf (ms, MSL_M, m_warn);
 	mstats_base_set_warnf (ms, MSL_H, h_warn);

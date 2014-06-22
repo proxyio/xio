@@ -42,42 +42,33 @@ const char *stat_level_token[MSL_NUM] = {
 	"day",
 };
 
-
 static void trigger_one_key_stat (struct mstats_base *ms, i64 nowtime)
 {
 	int sl, key;
-	for (sl = MSL_S; sl < MSL_NUM; sl++) {
-		if (nowtime - ms->timestamp[sl] <= ms->slv[sl])
-			continue;
-		for (key = 0; key < ms->kr; key++) {
-			if (ms->f[sl] && ms->keys[MST_NOW][sl][key] > ms->thres[sl][key])
-				ms->f[sl] (ms, sl, key, ms->thres[sl][key], ms->keys[MST_NOW][sl][key]);
-			ms->keys[MST_LAST][sl][key] = ms->keys[MST_NOW][sl][key];
-			if (!ms->keys[MST_MIN][sl][key] || ms->keys[MST_NOW][sl][key] < ms->keys[MST_MIN][sl][key])
-				ms->keys[MST_MIN][sl][key] = ms->keys[MST_NOW][sl][key];
-			if (!ms->keys[MST_MAX][sl][key] || ms->keys[MST_NOW][sl][key] > ms->keys[MST_MAX][sl][key])
-				ms->keys[MST_MAX][sl][key] = ms->keys[MST_NOW][sl][key];
-		}
-	}
-}
+	i64 min_val, max_val, avg_val, all_val;
 
-static void update_one_key_stat (struct mstats_base *ms, i64 nowtime)
-{
-	int sl, key;
+	min_val = max_val = avg_val = all_val = 0;
 	for (sl = MSL_S; sl < MSL_NUM; sl++) {
-		if (nowtime - ms->timestamp[sl] <= ms->slv[sl])
+		if (nowtime - ms->timestamp[sl] <= ms->level[sl])
 			continue;
 		ms->trigger_counter[sl]++;
 		ms->timestamp[sl] = nowtime;
-		for (key = 0; key < ms->kr; key++)
+		for (key = 0; key < ms->kr; key++) {
+			all_val = ms->keys[MST_NOW][sl][key];
+			min_val = ms->keys[MST_MIN][sl][key];
+			max_val = ms->keys[MST_MAX][sl][key];
+			avg_val = ms->keys[MST_AVG][sl][key];
+			if (ms->f[sl] && all_val > ms->thres[sl][key])
+				ms->f[sl] (ms, sl, key, ms->thres[sl][key], all_val, min_val, max_val, avg_val);
+			ms->keys[MST_LAST][sl][key] = all_val;
 			ms->keys[MST_NOW][sl][key] = 0;
+		}
 	}
 }
 
 void mstats_base_emit (struct mstats_base *ms, i64 timestamp)
 {
 	trigger_one_key_stat (ms, timestamp);
-	update_one_key_stat (ms, timestamp);
 }
 
 
