@@ -315,8 +315,8 @@ static inline char *clone_ubuf (char *src)
 	BUG_ON (!dst);
 	memcpy (dst, src, xubuflen (src));
 
-	/* clone the sub skbuff into dst */
-	rc = ubufctl (src, SCLONE, dst);
+	/* copy the sub skbuff into dst */
+	rc = ubufctl (src, SCOPY, dst);
 	BUG_ON (rc);
 	return dst;
 }

@@ -67,7 +67,7 @@ static PyObject *Message_copyhdr (PyObject *self, PyObject *args)
 	
 	if ( !PyArg_ParseTuple (args, "O", &to) )
 		return 0;
-	return Py_BuildValue ("i", ubufctl (from->ubuf, SCLONE, to->ubuf) );
+	return Py_BuildValue ("i", ubufctl (from->ubuf, SCOPY, to->ubuf) );
 }
 
 
