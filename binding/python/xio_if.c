@@ -28,20 +28,36 @@
 #include <string.h>
 #include "xio_if.h"
 
-const static char MODULE_NAME[] = "_xio_cpy";
-
 typedef struct {
 	PyObject_HEAD
 	void *ubuf;
 } Message;
 
+static PyTypeObject MessageType;
+
 static PyObject *Message_new (PyTypeObject *type, PyObject *args,
                               PyObject *kwds)
 {
-	PyErr_Format (PyExc_TypeError,
-	              "cannot create '%.100s' instances us xallocubuf instead",
-	              type->tp_name);
-	return 0;
+	char *buff = 0;
+	Message *message = 0;
+
+	if (!PyArg_ParseTuple (args, "s", &buff) )
+		return 0;
+	message = (Message *) PyType_GenericAlloc (&MessageType, 0);
+	if ( (message->ubuf = xallocubuf (strlen (buff)) ) == NULL) {
+		Py_DECREF ( (PyObject*) message);
+		Py_RETURN_NONE;
+	}
+	memcpy (message->ubuf, buff, strlen (buff));
+	return (PyObject*) message;
+}
+
+static void Message_dealloc (PyObject *args)
+{
+	Message *message = (Message *)args;
+
+	if ( message->ubuf )
+		xfreeubuf (message->ubuf);
 }
 
 static PyMemberDef Message_members[] = {
@@ -103,7 +119,7 @@ static PyTypeObject MessageType = {
 	"_xio_cpy.Message",          /*tp_name*/
 	sizeof (Message),            /*tp_basicsize*/
 	0,                           /*tp_itemsize*/
-	0,                           /*tp_dealloc*/
+	Message_dealloc,             /*tp_dealloc*/
 	0,                           /*tp_print*/
 	0,                           /*tp_getattr*/
 	0,                           /*tp_setattr*/
@@ -140,37 +156,6 @@ static PyTypeObject MessageType = {
 	0,                           /* tp_alloc */
 	Message_new,                 /* tp_new */
 };
-
-static PyObject *cpy_xallocubuf (PyObject *self, PyObject *args)
-{
-	int size = 0;
-	Message *message = 0;
-
-	if (!PyArg_ParseTuple (args, "i", &size) )
-		return 0;
-	message = (Message *) PyType_GenericAlloc (&MessageType, 0);
-	if ( (message->ubuf = xallocubuf (size) ) == NULL) {
-		Py_DECREF ( (PyObject*) message);
-		Py_RETURN_NONE;
-	}
-	return (PyObject*) message;
-}
-
-static PyObject *cpy_xfreeubuf (PyObject *self, PyObject *args)
-{
-	Message *message = 0;
-
-	if (!PyArg_ParseTuple (args, "O", &message) )
-		return 0;
-	xfreeubuf (message->ubuf);
-	Py_RETURN_NONE;
-}
-
-static PyObject *cpy_xubuflen (PyObject *self, PyObject *args)
-{
-	Message *message = (Message *) self;
-	return Py_BuildValue ("i", xubuflen (message->ubuf) );
-}
 
 static PyObject *cpy_sp_endpoint (PyObject *self, PyObject *args)
 {
@@ -211,14 +196,18 @@ static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
 
 static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 {
-	PyObject *tuple = PyTuple_New (2);
-	Message *message = (Message *) PyType_GenericAlloc (&MessageType, 0);
+	PyObject *tuple;
+	Message *message;
 	int eid = 0;
 	int rc = 0;
 	char *ubuf = 0;
 
 	if (!PyArg_ParseTuple (args, "i", &eid) )
 		return 0;
+	tuple = PyTuple_New (2);
+	message = (Message *) PyType_GenericAlloc (&MessageType, 0);
+	BUG_ON (!tuple || !message);
+
 	if ( (rc = sp_recv (eid, &ubuf) ) == 0)
 		message->ubuf = ubuf;
 	PyTuple_SetItem (tuple, 0, Py_BuildValue ("i", rc) );
@@ -279,10 +268,6 @@ static PyObject *cpy_sp_connect (PyObject *self, PyObject *args)
 }
 
 static PyMethodDef module_methods[] = {
-	{"xallocubuf",      cpy_xallocubuf,     METH_VARARGS,  "alloc a user-space message"},
-	{"xubuflen",        cpy_xubuflen,       METH_VARARGS,  "return the ubuf's length"},
-	{"xfreeubuf",       cpy_xfreeubuf,      METH_VARARGS,  "free ubuf"},
-
 	{"sp_endpoint",     cpy_sp_endpoint,    METH_VARARGS,  "create an SP endpoint"},
 	{"sp_close",        cpy_sp_close,       METH_VARARGS,  "close an SP endpoint"},
 	{"sp_send",         cpy_sp_send,        METH_VARARGS,  "send one message into endpoint"},

@@ -15,7 +15,7 @@ for i in range(1, 10) :
     assert (rc == 0);
 
 for i in range(1, 10) :
-    msg = xallocubuf(12);
+    msg = Message("Hello world");
     rc = sp_send(cli_eid, msg);
     assert (rc == 0);
 
@@ -26,7 +26,6 @@ for i in range(1, 10) :
 
     rc, msg2 = sp_recv(cli_eid)
     assert (rc == 0);
-    xfreeubuf(msg2);
     print "PASS " + str(i);
 
 sp_close(svr_eid);
