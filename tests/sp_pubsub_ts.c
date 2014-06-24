@@ -75,12 +75,5 @@ int server1()
 
 int main (int argc, char **argv)
 {
-	char *ubuf = xallocubuf (1024);
-	char *dst;
-
-	ubufctl (ubuf, SCLONE, &dst);
-	xfreeubuf (ubuf);
-	xfreeubuf (dst);
-
 	server1();
 }

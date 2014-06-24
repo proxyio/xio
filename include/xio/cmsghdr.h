@@ -36,8 +36,6 @@ enum {
 	SADD,
 	SRM,
 	SSWITCH,
-
-	/* Following options are operate on normal ubuf */	
 	SCLONE,
 };
 

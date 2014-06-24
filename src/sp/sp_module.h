@@ -306,4 +306,22 @@ typedef int (*ep_setopt) (struct epbase *ep, void *optval, int optlen);
 typedef int (*ep_getopt) (struct epbase *ep, void *optval, int *optlen);
 
 
+
+static inline char *clone_ubuf (char *src)
+{
+	int rc;
+	char *dst = xallocubuf (xubuflen (src));
+	
+	BUG_ON (!dst);
+	memcpy (dst, src, xubuflen (src));
+
+	/* clone the sub skbuff into dst */
+	rc = ubufctl (src, SCLONE, dst);
+	BUG_ON (rc);
+	return dst;
+}
+
+
+
+
 #endif

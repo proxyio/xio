@@ -207,15 +207,14 @@ static char *ubufdup (char *ubuf) {
 /* Clone the skbuf simply
    WARNING: if the skbuf is high level tree, only the children of the skbuf
    would be clone, the sub of children isn't, remember that. */
-static int clone_skbuf (char *ubuf, void *optval) {
+static int sub_skbuf_clone (char *ubuf, void *optval) {
 	struct skbuf *src = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	struct skbuf *cur, *tmp;
-	char *dest = ubufdup (ubuf);
+	char *dest = (char *) optval;
 
 	walk_msg_s (cur, tmp, &src->cmsg_head) {
 		sub_skbuf_add (dest, ubufdup (cur->chunk.ubuf_base) );
 	}
-	*(char **)optval = dest;
 	return 0;
 }
 
@@ -228,7 +227,7 @@ static const skbuf_ctl skbuf_vfptr[] = {
 	sub_skbuf_add,       /* insert one skbuf into children's head of the ubuf */
 	sub_skbuf_rm,        /* remove one skbuf from children's head of the ubuf */
 	sub_skbuf_switch,    /* move the sub skbuf from one to another */
-	clone_skbuf,         /* clone a skbuf include all the subs */
+	sub_skbuf_clone,     /* clone a skbuf include all the subs */
 };
 
 

@@ -48,7 +48,7 @@ static int pub_ep_send (struct epbase *ep, char *ubuf)
 	walk_tgtd (tg, &ep->connectors) {
 		dst = ubuf;
 		if (list_next (&tg->item) != &ep->connectors)
-			BUG_ON ((rc = ubufctl (ubuf, SCLONE, &dst)));
+			dst = clone_ubuf (ubuf);
 		skbuf_head_in (&get_pubsub_tgtd (tg)->ls_head, dst);
 		tgtd_try_enable_out (tg);
 	}

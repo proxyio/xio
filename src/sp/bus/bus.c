@@ -51,7 +51,7 @@ static int bus_ep_send (struct epbase *ep, char *ubuf)
 		tmp = ubuf;
 		/* for the last target. send the ubuf directly */
 		if (list_next (&dst->item) != &ep->connectors)
-			BUG_ON ((rc = ubufctl (ubuf, SCLONE, &tmp)));
+			tmp = clone_ubuf (ubuf);
 		skbuf_head_in (&get_bus_tgtd (dst)->ls_head, tmp);
 		tgtd_try_enable_out (dst);
 	}
@@ -73,7 +73,7 @@ static int bus_ep_add (struct epbase *ep, struct tgtd *src, char *ubuf)
 		/* Don't backward */
 		if (tg == src)
 			continue;
-		BUG_ON ((rc = ubufctl (ubuf, SCLONE, &tmp)));
+		tmp = clone_ubuf (ubuf);
 		skbuf_head_in (&get_bus_tgtd (tg)->ls_head, tmp);
 		tgtd_try_enable_out (tg);
 	}
