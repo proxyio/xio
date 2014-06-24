@@ -19,12 +19,12 @@ for i in range(1, 10) :
     rc = sp_send(cli_eid, msg);
     assert (rc == 0);
 
-    rc, msg1 = sp_recv(svr_eid)
+    rc, msg = sp_recv(svr_eid)
     assert (rc == 0);
-    rc = sp_send(svr_eid, msg1);
+    rc = sp_send(svr_eid, msg);
     assert (rc == 0);
 
-    rc, msg2 = sp_recv(cli_eid)
+    rc, msg = sp_recv(cli_eid)
     assert (rc == 0);
     print "PASS " + str(i);
 
