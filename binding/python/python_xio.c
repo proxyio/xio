@@ -60,12 +60,24 @@ static void Message_dealloc (PyObject *args)
 		xfreeubuf (message->ubuf);
 }
 
+static PyObject *Message_copyhdr (PyObject *self, PyObject *args)
+{
+	Message *from = (Message *)self;
+	Message *to;
+	
+	if ( !PyArg_ParseTuple (args, "O", &to) )
+		return 0;
+	return Py_BuildValue ("i", ubufctl (from->ubuf, SCLONE, to->ubuf) );
+}
+
+
 static PyMemberDef Message_members[] = {
 	{NULL}
 };
 
 static PyMethodDef Message_methods[] = {
-	{NULL}
+	{"CopyHdr", Message_copyhdr, METH_VARARGS, "Copy salability protocols specified infomations"},
+	{NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
 

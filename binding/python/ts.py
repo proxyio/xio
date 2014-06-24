@@ -21,7 +21,9 @@ for i in range(1, 10) :
 
     rc, msg = sp_recv(svr_eid)
     assert (rc == 0);
-    rc = sp_send(svr_eid, msg);
+    response = Message("Hello you ?");
+    msg.CopyHdr (response);
+    rc = sp_send(svr_eid, response);
     assert (rc == 0);
 
     rc, msg = sp_recv(cli_eid)
