@@ -141,10 +141,10 @@ TESTS = $(check_PROGRAMS)
 
 #  Building python binding
 if PYTHON
-xinclude_HEADERS += binding/python/xio_if.h
+xinclude_HEADERS += binding/python/python_xio.h
 PYTHON_SOURCES = \
-	binding/python/xio_if.c \
-	binding/python/xio_if.h
+	binding/python/python_xio.c
+
 libxio_la_SOURCES += $(PYTHON_SOURCES)
 endif
 
