@@ -20,17 +20,16 @@ To build proxyio :
     $ sh autogen.sh
     $ ./configure
     $ make
-	$ make check
+    $ make check
     $ sudo make install
 
 ## Python
 
 To build proxyio for python language
 
-	$ ./configure --enable-python
-	$ make
-	$ make check
-	$ sudo make install
+	$ cd binding/python
+	$ python setup.py build
+	$ sudo python setup.py install
 
 ## Lua
 
