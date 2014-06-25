@@ -36,7 +36,7 @@ enum {
 	SADD,
 	SRM,
 	SSWITCH,
-	SCLONE,
+	SCOPY,
 };
 
 int ubufctl (char *ubuf, int opt, void *optval);
