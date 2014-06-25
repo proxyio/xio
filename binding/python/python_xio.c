@@ -26,7 +26,8 @@
 #include <xio/sp.h>
 #include <xio/sp_reqrep.h>
 #include <string.h>
-#include "python_xio.h"
+#include <python2.6/Python.h>
+#include <python2.6/structmember.h>
 
 typedef struct {
 	PyObject_HEAD

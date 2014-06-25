@@ -138,16 +138,6 @@ check_PROGRAMS = \
 
 TESTS = $(check_PROGRAMS)
 
-
-#  Building python binding
-if PYTHON
-xinclude_HEADERS += binding/python/python_xio.h
-PYTHON_SOURCES = \
-	binding/python/python_xio.c
-
-libxio_la_SOURCES += $(PYTHON_SOURCES)
-endif
-
 #  Building lua binding
 if LUA
 xinclude_HEADERS += binding/lua/xio_if.h
