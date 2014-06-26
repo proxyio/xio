@@ -34,7 +34,7 @@ typedef struct {
 	void *ubuf;
 } Message;
 
-static PyTypeObject MessageType;
+static PyTypeObject Message_Type;
 
 static PyObject *Message_new (PyTypeObject *type, PyObject *args,
                               PyObject *kwds)
@@ -44,7 +44,7 @@ static PyObject *Message_new (PyTypeObject *type, PyObject *args,
 
 	if (!PyArg_ParseTuple (args, "s", &buff) )
 		return 0;
-	message = (Message *) PyType_GenericAlloc (&MessageType, 0);
+	message = (Message *) PyType_GenericAlloc (&Message_Type, 0);
 	if ( (message->ubuf = xallocubuf (strlen (buff)) ) == NULL) {
 		Py_DECREF ( (PyObject*) message);
 		Py_RETURN_NONE;
@@ -61,14 +61,13 @@ static void Message_dealloc (PyObject *args)
 		xfreeubuf (message->ubuf);
 }
 
-static PyObject *Message_copyhdr (PyObject *self, PyObject *args)
+static PyObject *Message_response (PyObject *self, PyObject *args)
 {
-	Message *from = (Message *)self;
-	Message *to;
-	
-	if ( !PyArg_ParseTuple (args, "O", &to) )
-		return 0;
-	return Py_BuildValue ("i", ubufctl (from->ubuf, SCOPY, to->ubuf) );
+	Message *req = (Message *)self;
+	Message *resp = (Message *) Message_new (&Message_Type, args, 0);
+
+	BUG_ON (ubufctl (req->ubuf, SCOPY, resp->ubuf));
+	return (PyObject *)resp;
 }
 
 
@@ -77,7 +76,7 @@ static PyMemberDef Message_members[] = {
 };
 
 static PyMethodDef Message_methods[] = {
-	{"CopyHdr", Message_copyhdr, METH_VARARGS, "Copy salability protocols specified infomations"},
+	{"Response", Message_response, METH_VARARGS, "Generate salability protocols response"},
 	{NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -127,7 +126,7 @@ static PyObject *Message_str (Message * self)
 	return PyBytes_FromStringAndSize (self->ubuf, xubuflen (self->ubuf) );
 }
 
-static PyTypeObject MessageType = {
+static PyTypeObject Message_Type = {
 	PyVarObject_HEAD_INIT (NULL, 0)
 	"_xio_cpy.Message",          /*tp_name*/
 	sizeof (Message),            /*tp_basicsize*/
@@ -189,22 +188,45 @@ static PyObject *cpy_sp_close (PyObject *self, PyObject *args)
 	return Py_BuildValue ("i", sp_close (eid) );
 }
 
+static PyObject *cpy_sp_send_with_string (int eid, PyObject *args)
+{
+	int rc;
+	char *str = PyString_AsString (args);
+	int length = PyString_Size (args);
+	char *ubuf = xallocubuf (length);
+
+	BUG_ON (!ubuf);
+	memcpy (ubuf, str, length);
+	if ((rc = sp_send (eid, ubuf)) != 0)
+		xfreeubuf (ubuf);
+	return Py_BuildValue ("i", rc);
+}
+
+static PyObject *cpy_sp_send_with_message (int eid, PyObject *args)
+{
+	int rc;
+	Message *msg = (Message *)args;
+
+	if (!msg->ubuf)
+		return 0;
+	if ((rc = sp_send (eid, msg->ubuf)) == 0)
+		msg->ubuf = 0;
+	return Py_BuildValue ("i", rc);
+}
+
+
 static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
 {
 	int eid = 0;
-	int rc = 0;
-	Message *message = 0;
+	PyObject *msg = 0;
 
-	if (!PyArg_ParseTuple (args, "iO", &eid, &message) )
+	if (!PyArg_ParseTuple (args, "iO", &eid, &msg) )
 		return 0;
-	if (!message->ubuf) {
-		PyErr_BadInternalCall();
-		return 0;
-	}
-	if ( (rc = sp_send (eid, message->ubuf) ) == 0) {
-		message->ubuf = 0;
-	}
-	return Py_BuildValue ("i", rc);
+	if (PyObject_TypeCheck (msg, &Message_Type))
+		return cpy_sp_send_with_message (eid, msg);
+	else if (PyObject_TypeCheck (msg, &PyString_Type))
+		return cpy_sp_send_with_string (eid, msg);
+	return 0;
 }
 
 static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
@@ -218,7 +240,7 @@ static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple (args, "i", &eid) )
 		return 0;
 	tuple = PyTuple_New (2);
-	message = (Message *) PyType_GenericAlloc (&MessageType, 0);
+	message = (Message *) PyType_GenericAlloc (&Message_Type, 0);
 	BUG_ON (!tuple || !message);
 
 	if ( (rc = sp_recv (eid, &ubuf) ) == 0)
@@ -314,9 +336,9 @@ PyMODINIT_FUNC initxio()
 	int i;
 	struct xsymbol *sb;
 
-	BUG_ON (PyType_Ready (&MessageType) < 0);
-	Py_INCREF (&MessageType);
-	PyModule_AddObject (pyxio, "Message", (PyObject *) &MessageType);
+	BUG_ON (PyType_Ready (&Message_Type) < 0);
+	Py_INCREF (&Message_Type);
+	PyModule_AddObject (pyxio, "Message", (PyObject *) &Message_Type);
 	for (i = 0; i < NELEM (const_symbols, struct xsymbol); i++) {
 		sb = &const_symbols[i];
 		PyModule_AddIntConstant (pyxio, sb->name, sb->value);
