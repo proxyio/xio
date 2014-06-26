@@ -34,42 +34,10 @@ typedef struct {
 	void *ubuf;
 } Message;
 
-static PyTypeObject Message_Type;
-
-static PyObject *Message_new (PyTypeObject *type, PyObject *args,
-                              PyObject *kwds)
-{
-	char *buff = 0;
-	Message *message = 0;
-
-	if (!PyArg_ParseTuple (args, "s", &buff) )
-		return 0;
-	message = (Message *) PyType_GenericAlloc (&Message_Type, 0);
-	if ( (message->ubuf = xallocubuf (strlen (buff)) ) == NULL) {
-		Py_DECREF ( (PyObject*) message);
-		Py_RETURN_NONE;
-	}
-	memcpy (message->ubuf, buff, strlen (buff));
-	return (PyObject*) message;
-}
-
-static void Message_dealloc (PyObject *args)
-{
-	Message *message = (Message *)args;
-
-	if ( message->ubuf )
-		xfreeubuf (message->ubuf);
-}
-
-static PyObject *Message_response (PyObject *self, PyObject *args)
-{
-	Message *req = (Message *)self;
-	Message *resp = (Message *) Message_new (&Message_Type, args, 0);
-
-	BUG_ON (ubufctl (req->ubuf, SCOPY, resp->ubuf));
-	return (PyObject *)resp;
-}
-
+static PyObject *Message_new_with_string (char *buff, int len);
+static PyObject *Message_new (PyTypeObject *type, PyObject *args, PyObject *kwds);
+static void Message_dealloc (PyObject *args);
+static PyObject *Message_response (PyObject *self, PyObject *args);
 
 static PyMemberDef Message_members[] = {
 	{NULL}
@@ -79,7 +47,6 @@ static PyMethodDef Message_methods[] = {
 	{"Response", Message_response, METH_VARARGS, "Generate salability protocols response"},
 	{NULL, NULL, 0, NULL}        /* Sentinel */
 };
-
 
 static int Message_getreadbuffer (Message *self, int segment, void **ptrptr)
 {
@@ -115,16 +82,8 @@ static PyBufferProcs Message_bufferproces = {
 	NULL
 };
 
-static PyObject *Message_repr (Message *self)
-{
-	return PyUnicode_FromFormat ("<_xio_cpy.Message size %zu, address %p >",
-	                             xubuflen (self->ubuf), self->ubuf);
-}
-
-static PyObject *Message_str (Message * self)
-{
-	return PyBytes_FromStringAndSize (self->ubuf, xubuflen (self->ubuf) );
-}
+static PyObject *Message_repr (Message *self);
+static PyObject *Message_str (Message * self);
 
 static PyTypeObject Message_Type = {
 	PyVarObject_HEAD_INIT (NULL, 0)
@@ -169,6 +128,65 @@ static PyTypeObject Message_Type = {
 	Message_new,                 /* tp_new */
 };
 
+
+static PyObject *Message_new_by_ubuf (char *ubuf)
+{
+	Message *msg = (Message *) PyType_GenericAlloc (&Message_Type, 0);
+	msg->ubuf = ubuf;
+	return (PyObject *) msg;
+}
+
+static PyObject *Message_new_with_string (char *buff, int len)
+{
+	Message *msg = (Message *) PyType_GenericAlloc (&Message_Type, 0);
+
+	if (!(msg->ubuf = xallocubuf (len))) {
+		Py_DECREF ((PyObject *)msg);
+		Py_RETURN_NONE;
+	}
+	memcpy (msg->ubuf, buff, len);
+	return (PyObject *) msg;
+}
+
+static PyObject *Message_new (PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+	char *buff = 0;
+
+	if (!PyArg_ParseTuple (args, "s", &buff) )
+		return 0;
+	return Message_new_with_string (buff, strlen (buff));
+}
+
+static void Message_dealloc (PyObject *args)
+{
+	Message *message = (Message *)args;
+
+	if ( message->ubuf )
+		xfreeubuf (message->ubuf);
+}
+
+static PyObject *Message_response (PyObject *self, PyObject *args)
+{
+	Message *req = (Message *)self;
+	Message *resp = (Message *) Message_new (&Message_Type, args, 0);
+
+	BUG_ON (ubufctl (req->ubuf, SCOPY, resp->ubuf));
+	return (PyObject *)resp;
+}
+
+
+static PyObject *Message_repr (Message *self)
+{
+	return PyUnicode_FromFormat ("<_xio_cpy.Message size %zu, address %p >",
+	                             xubuflen (self->ubuf), self->ubuf);
+}
+
+static PyObject *Message_str (Message * self)
+{
+	return PyBytes_FromStringAndSize (self->ubuf, xubuflen (self->ubuf) );
+}
+
+
 static PyObject *cpy_sp_endpoint (PyObject *self, PyObject *args)
 {
 	int sp_family = 0;
@@ -204,12 +222,10 @@ static PyObject *cpy_sp_send_with_string (int eid, PyObject *args)
 
 static PyObject *cpy_sp_send_with_message (int eid, PyObject *args)
 {
-	int rc;
+	int rc = -1;
 	Message *msg = (Message *)args;
 
-	if (!msg->ubuf)
-		return 0;
-	if ((rc = sp_send (eid, msg->ubuf)) == 0)
+	if (msg->ubuf && (rc = sp_send (eid, msg->ubuf)) == 0)
 		msg->ubuf = 0;
 	return Py_BuildValue ("i", rc);
 }
@@ -231,23 +247,17 @@ static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
 
 static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 {
-	PyObject *tuple;
-	Message *message;
+	PyObject *msg;
 	int eid = 0;
 	int rc = 0;
 	char *ubuf = 0;
 
 	if (!PyArg_ParseTuple (args, "i", &eid) )
 		return 0;
-	tuple = PyTuple_New (2);
-	message = (Message *) PyType_GenericAlloc (&Message_Type, 0);
-	BUG_ON (!tuple || !message);
-
-	if ( (rc = sp_recv (eid, &ubuf) ) == 0)
-		message->ubuf = ubuf;
-	PyTuple_SetItem (tuple, 0, Py_BuildValue ("i", rc) );
-	PyTuple_SetItem (tuple, 1, (PyObject *) message);
-	return tuple;
+	if ((rc = sp_recv (eid, &ubuf)) != 0)
+		return Py_BuildValue ("is", rc, "error");
+	msg = Message_new_by_ubuf (ubuf);
+	return Py_BuildValue ("iO", rc, msg);
 }
 
 static PyObject *cpy_sp_add (PyObject *self, PyObject *args)
