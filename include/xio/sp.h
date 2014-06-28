@@ -28,6 +28,9 @@
 #include <xio/cmsghdr.h>
 #include <xio/cplusplus_define.h>
 
+#define SP_BUF      "sp_ubuf"
+#define SP_HD       "sp_uhd"
+
 #define SP_REQREP    1
 #define SP_BUS       2
 #define SP_PUBSUB    3
