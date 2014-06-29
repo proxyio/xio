@@ -169,13 +169,13 @@ struct skbuf_head {
 	msg = list_first(&(q)->head, struct skbuf, item);	\
 	list_del_init(&msg->item);				\
 	ubuf = get_ubuf(msg);					\
-	(q)->size -= xubuflen(ubuf);				\
+	(q)->size -= ubuf_len(ubuf);				\
     } while (0)
 
 #define skbuf_head_in(q, ubuf) do {		\
 	struct skbuf *msg = get_skbuf(ubuf);	\
 	list_add_tail(&msg->item, &(q)->head);	\
-	(q)->size += xubuflen(ubuf);		\
+	(q)->size += ubuf_len(ubuf);		\
     } while (0)
 
 
@@ -310,10 +310,10 @@ typedef int (*ep_getopt) (struct epbase *ep, void *optval, int *optlen);
 static inline char *clone_ubuf (char *src)
 {
 	int rc;
-	char *dst = xallocubuf (xubuflen (src));
+	char *dst = ubuf_alloc (ubuf_len (src));
 	
 	BUG_ON (!dst);
-	memcpy (dst, src, xubuflen (src));
+	memcpy (dst, src, ubuf_len (src));
 
 	/* copy the sub skbuff into dst */
 	rc = ubufctl (src, SCOPY, dst);

@@ -245,7 +245,7 @@ static void bufio_rm (struct bio *b, struct skbuf **msg)
 	struct skbuf one = {};
 
 	bio_copy (b, (char *) (&one.chunk), sizeof (one.chunk) );
-	*msg = xalloc_skbuf (one.chunk.ubuf_len);
+	*msg = skbuf_alloc (one.chunk.ubuf_len);
 	bio_read (b, skbuf_base (*msg), skbuf_len (*msg) );
 }
 
@@ -286,7 +286,7 @@ static void bufio_add (struct bio *b, struct skbuf *msg)
 
 	walk_msg_s (msg, nmsg, &head) {
 		bio_write (b, skbuf_base (msg), skbuf_len (msg) );
-		xfree_skbuf (msg);
+		skbuf_free (msg);
 	}
 }
 
@@ -320,7 +320,7 @@ static int sg_send (struct sockbase *sb)
 		rc -= iov->iov_len;
 		msg = cont_of (iov->iov_base, struct skbuf, chunk);
 		list_del_init (&msg->item);
-		xfree_skbuf (msg);
+		skbuf_free (msg);
 		iov++;
 	}
 	/* Cache the reset iovec into bufio  */
@@ -328,7 +328,7 @@ static int sg_send (struct sockbase *sb)
 		bio_write (&self->out, iov->iov_base + rc, iov->iov_len - rc);
 		msg = cont_of (iov->iov_base, struct skbuf, chunk);
 		list_del_init (&msg->item);
-		xfree_skbuf (msg);
+		skbuf_free (msg);
 		rc = 0;
 		iov++;
 	}

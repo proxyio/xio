@@ -24,10 +24,10 @@ static void xclient (const char *pf)
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
 		for (j = 0; j < 10; j++) {
-			xbuf = xallocubuf (nbytes);
+			xbuf = ubuf_alloc (nbytes);
 			memcpy (xbuf, buf, nbytes);
 
-			oob = xallocubuf (nbytes);
+			oob = ubuf_alloc (nbytes);
 			memcpy (oob, buf, nbytes);
 
 			ubufctl_add (xbuf, oob);
@@ -40,7 +40,7 @@ static void xclient (const char *pf)
 			BUG_ON (memcmp (xbuf, buf, nbytes) != 0);
 			oob = ubufctl_first (xbuf);
 			BUG_ON (memcmp (oob, buf, nbytes) != 0);
-			xfreeubuf (xbuf);
+			ubuf_free (xbuf);
 		}
 	}
 	xclose (sfd);
@@ -70,11 +70,11 @@ static void xserver()
 		for (i = 0; i < cnt * 10; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
 			DEBUG_OFF ("%d recv", sfd);
-			ubuf = xallocubuf (xubuflen (xbuf));
-			memcpy (ubuf, xbuf, xubuflen (xbuf));
+			ubuf = ubuf_alloc (ubuf_len (xbuf));
+			memcpy (ubuf, xbuf, ubuf_len (xbuf));
 			ubufctl (xbuf, SSWITCH, ubuf);
 			BUG_ON (0 != xsend (sfd, ubuf) );
-			xfreeubuf (xbuf);
+			ubuf_free (xbuf);
 		}
 		xclose (sfd);
 	}
@@ -250,7 +250,7 @@ static void tcp_sg_send()
 	
 	BUG_ON (afd < 0 || cfd < 0);
 	for (i = 0; i < 1000; i++) {
-		ubuf = xallocubuf (12);
+		ubuf = ubuf_alloc (12);
 		BUG_ON (xsend (cfd, ubuf));
 	}
 	xclose (afd);

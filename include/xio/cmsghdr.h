@@ -26,6 +26,10 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
+char *ubuf_alloc (int size);
+void ubuf_free (char *ubuf);
+int ubuf_len (char *ubuf);
+
 /* One normal ubuf can take at most 16 control ubuf. */
 enum {
 	/* Following options are operate on control ubuf */	

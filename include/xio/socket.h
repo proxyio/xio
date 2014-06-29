@@ -25,10 +25,8 @@
 
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
+#include <xio/cmsghdr.h>
 
-char *xallocubuf (int size);
-void xfreeubuf (char *ubuf);
-int xubuflen (char *ubuf);
 
 /* Following address family are provided */
 #define XPF_TCP        1

@@ -58,8 +58,8 @@ struct skbuf {
 
 u32 skbuf_len (struct skbuf *msg);
 char *skbuf_base (struct skbuf *msg);
-struct skbuf *xalloc_skbuf (int size);
-void xfree_skbuf (struct skbuf *msg);
+struct skbuf *skbuf_alloc (int size);
+void skbuf_free (struct skbuf *msg);
 
 #define walk_msg_s(pos, next, head)				\
     walk_each_entry_s(pos, next, head, struct skbuf, item)

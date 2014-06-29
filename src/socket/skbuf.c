@@ -61,7 +61,7 @@ int skbuf_serialize (struct skbuf *msg, struct list_head *head)
 	return rc;
 }
 
-struct skbuf *xalloc_skbuf (int size) {
+struct skbuf *skbuf_alloc (int size) {
 	struct skbuf *msg = (struct skbuf *) mem_zalloc (sizeof (*msg) + size);
 	if (!msg)
 		return 0;
@@ -75,31 +75,31 @@ struct skbuf *xalloc_skbuf (int size) {
 	return msg;
 }
 
-char *xallocubuf (int size)
+char *ubuf_alloc (int size)
 {
-	struct skbuf *msg = xalloc_skbuf (size);
+	struct skbuf *msg = skbuf_alloc (size);
 	if (!msg)
 		return 0;
 	return msg->chunk.ubuf_base;
 }
 
-void xfree_skbuf (struct skbuf *msg)
+void skbuf_free (struct skbuf *msg)
 {
 	struct skbuf *cmsg, *tmp;
 	walk_msg_s (cmsg, tmp, &msg->cmsg_head) {
 		list_del_init (&cmsg->item);
-		xfree_skbuf (cmsg);
+		skbuf_free (cmsg);
 	}
 	mem_free (msg, sizeof (*msg) + msg->chunk.ubuf_len);
 }
 
-void xfreeubuf (char *ubuf)
+void ubuf_free (char *ubuf)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
-	xfree_skbuf (msg);
+	skbuf_free (msg);
 }
 
-int xubuflen (char *ubuf)
+int ubuf_len (char *ubuf)
 {
 	struct skbuf *msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
 	return msg->chunk.ubuf_len;
@@ -197,10 +197,10 @@ static int sub_skbuf_switch (char *ubuf, void *optval)
 
 /* Simply copy the content of skbuf to dest */
 static char *ubufdup (char *ubuf) {
-	char *dest = xallocubuf (xubuflen (ubuf) );
+	char *dest = ubuf_alloc (ubuf_len (ubuf) );
 
 	if (dest)
-		memcpy(dest, ubuf, xubuflen (ubuf) );
+		memcpy(dest, ubuf, ubuf_len (ubuf) );
 	return dest;
 }
 

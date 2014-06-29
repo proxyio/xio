@@ -57,7 +57,7 @@ static inline struct rrhdr *new_rrhdr (struct rtentry *rt) {
 	struct sphdr *sh = 0;
 	struct rrhdr *pg = 0;
 
-	pg = (struct rrhdr *) xallocubuf (sizeof (*pg) + sizeof (*rt) );
+	pg = (struct rrhdr *) ubuf_alloc (sizeof (*pg) + sizeof (*rt) );
 	BUG_ON (!pg);
 	sh = &pg->sh;
 	sh->protocol = SP_REQREP;
@@ -93,10 +93,10 @@ static inline struct rtentry *rt_prev (char *ubuf) {
 
 static inline char *__rt_append (char *hdr, struct rtentry *rt)
 {
-	u32 hlen = xubuflen (hdr);
-	char *nhdr = xallocubuf (hlen + sizeof (*rt) );
+	u32 hlen = ubuf_len (hdr);
+	char *nhdr = ubuf_alloc (hlen + sizeof (*rt) );
 	memcpy (nhdr, hdr, hlen);
-	xfreeubuf (hdr);
+	ubuf_free (hdr);
 	( (struct rrhdr *) nhdr)->ttl++;
 	*__rt_cur ( (struct rrhdr *) nhdr) = *rt;
 	return nhdr;

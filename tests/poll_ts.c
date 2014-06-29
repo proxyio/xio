@@ -22,13 +22,13 @@ static void xclient (const char *pf)
 	BUG_ON ( (sfd = xconnect (host) ) < 0);
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
-		ubuf = xallocubuf (nbytes);
+		ubuf = ubuf_alloc (nbytes);
 		memcpy (ubuf, buf, nbytes);
 		BUG_ON (0 != xsend (sfd, ubuf) );
 		BUG_ON (0 != xrecv (sfd, &ubuf) );
 		DEBUG_OFF ("%d recv response", sfd);
 		assert (memcmp (ubuf, buf, nbytes) == 0);
-		xfreeubuf (ubuf);
+		ubuf_free (ubuf);
 	}
 	xclose (sfd);
 }
