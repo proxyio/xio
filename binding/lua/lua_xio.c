@@ -20,6 +20,7 @@
   IN THE SOFTWARE.
 */
 
+#include <lua.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include <xio/sp.h>
@@ -27,34 +28,33 @@
 #include <string.h>
 #include <lauxlib.h>
 #include <utils/base.h>
-#include "xio_if.h"
 
 struct xsymbol {
 	const char name[32];
 	int value;
 };
 
-static int lua_xallocubuf (lua_State *L)
+static int lua_ubuf_alloc (lua_State *L)
 {
 	const char *str = luaL_checkstring (L, 1);
-	char *ubuf = xallocubuf (strlen (str) );
+	char *ubuf = ubuf_alloc (strlen (str) );
 	strncpy (ubuf, str, strlen (ubuf) );
 	lua_pushlightuserdata (L, ubuf);
 	return 1;
 }
 
-static int lua_xubuflen (lua_State *L)
+static int lua_ubuf_len (lua_State *L)
 {
 	char *ubuf = (char *) lua_touserdata (L, 1);
 	luaL_argcheck (L, ubuf != NULL, 1, "`ubuf' expected");
-	lua_pushnumber (L, xubuflen (ubuf) );
+	lua_pushnumber (L, ubuf_len (ubuf) );
 	return 1;
 }
 
-static int lua_xfreeubuf (lua_State *L)
+static int lua_ubuf_free (lua_State *L)
 {
 	char *ubuf = (char *) lua_touserdata (L, 1);
-	xfreeubuf (ubuf);
+	ubuf_free (ubuf);
 	return 1;
 }
 
@@ -210,9 +210,9 @@ static int lua_sp_listen (lua_State *L)
 
 
 static const struct luaL_reg api_symbols [] = {
-	{"xallocubuf",      lua_xallocubuf},
-	{"xubuflen",        lua_xubuflen},
-	{"xfreeubuf",       lua_xfreeubuf},
+	{"ubuf_alloc",      lua_ubuf_alloc},
+	{"ubuf_len",        lua_ubuf_len},
+	{"ubuf_free",       lua_ubuf_free},
 	{"xsocket",         lua_xsocket},
 	{"xbind",           lua_xbind},
 	{"xlisten",         lua_xlisten},

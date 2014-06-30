@@ -138,12 +138,10 @@ check_PROGRAMS = \
 
 TESTS = $(check_PROGRAMS)
 
-#  Building lua binding
+# Building lua binding
 if LUA
-xinclude_HEADERS += binding/lua/xio_if.h
 LUA_SOURCES = \
-	binding/lua/xio_if.c \
-	binding/lua/xio_if.h
+	binding/lua/lua_xio.c
 
 libxio_la_SOURCES += $(LUA_SOURCES)
 endif
