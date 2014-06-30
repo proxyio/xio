@@ -29,7 +29,7 @@
 #include <lauxlib.h>
 #include <utils/base.h>
 
-struct xsymbol {
+struct sym_kv {
 	const char name[32];
 	int value;
 };
@@ -237,7 +237,7 @@ static const struct luaL_reg api_symbols [] = {
 };
 
 
-static const struct xsymbol const_symbols [] = {
+static const struct sym_kv const_symbols [] = {
 	{"XPF_TCP",      XPF_TCP},
 	{"XPF_IPC",      XPF_IPC},
 	{"XPF_INPROC",   XPF_INPROC},
@@ -289,7 +289,7 @@ LUA_API int luaopen_xio (lua_State *L)
 	int i;
 	for (i = 0; i < NELEM (api_symbols, struct luaL_reg); i++)
 		LUA_REGISTER_GLOBAL_FUNCTION (L, api_symbols[i]);
-	for (i = 0; i < NELEM (const_symbols, struct xsymbol); i++)
+	for (i = 0; i < NELEM (const_symbols, struct sym_kv); i++)
 		LUA_REGISTER_GLOBAL_CONSTANT (L, const_symbols[i]);
 	return 0;
 }
