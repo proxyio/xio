@@ -1,55 +1,39 @@
 require "xio"
 
-svr_eid = sp_endpoint(SP_REQREP, SP_REP)
-cli_eid = sp_endpoint(SP_REQREP, SP_REQ)
+def assert (boolean)
+  if (!boolean)
+    puts "error"
+    exit
+  end
+end
+
+recver = sp_endpoint(SP_REQREP, SP_REP)
+sender = sp_endpoint(SP_REQREP, SP_REQ)
 host = "inproc://py_reqrep"
 
 for i in 1..10
-  sockaddr = host + i.to_s
-  rc = sp_listen(svr_eid, sockaddr)
-  if (rc != 0)
-    puts "bug"
-    return
-  end
+  rc = sp_listen(recver, host + i.to_s)
+  assert (rc == 0)
 end
   
 for i in 1..10
-  sockaddr = host + i.to_s
-  rc = sp_connect(cli_eid, sockaddr)
-  if (rc != 0)
-    puts "bug"
-    return
-  end
+  rc = sp_connect(sender, host + i.to_s)
+  assert (rc == 0)
 end
 
 for i in 1..10
-  msg = ubuf_alloc("Hello ruby xio")
-  rc = sp_send(cli_eid, msg)
-  if (rc != 0)
-    puts "bug"
-    return
-  end
+  rc = sp_send(sender, "Hello world")
+  assert (rc == 0)
 
-  msg1 = sp_recv(svr_eid)
-  if (msg1 <= 0)
-    puts "bug"
-    return
-  end
+  req = sp_recv(recver)
+  resp = "Hello you ?"
+  resp.instance_variable_set("@hdr", req.instance_variable_get("@hdr"))
+  rc = sp_send(recver, resp)
+  assert (rc == 0)
 
-  rc = sp_send(svr_eid, msg1)
-  if (rc != 0)
-    puts "bug"
-    return
-  end
-
-  msg2 = sp_recv(cli_eid)
-  if (msg2 <= 0)
-    puts "bug"
-    return
-  end
-  ubuf_free(msg2)
-  puts "PASS " + i.to_s
+  resp = sp_recv(sender)
+  puts "PASS " + resp + i.to_s
 end
 
-sp_close(svr_eid)
-sp_close(cli_eid)
+sp_close(recver)
+sp_close(sender)

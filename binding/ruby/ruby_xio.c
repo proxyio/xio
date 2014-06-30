@@ -20,110 +20,13 @@
   IN THE SOFTWARE.
 */
 
+#include <ruby.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include <xio/sp.h>
 #include <xio/sp_reqrep.h>
 #include "../../src/utils/base.h"
-#include <ruby.h>
 
-/* Defining a space for information and references about the module to be
-   stored internally */
-
-static VALUE rb_ubuf_alloc (VALUE self, VALUE rb_str)
-{
-	char *ubuf = ubuf_alloc (RSTRING (rb_str)->len);
-	memcpy (ubuf, RSTRING (rb_str)->ptr, ubuf_len (ubuf) );
-	return INT2NUM ( (long) ubuf);
-}
-
-static VALUE rb_ubuf_len (VALUE self, VALUE rb_ubuf)
-{
-	char *ubuf = (char *) NUM2LONG (rb_ubuf);;
-	return INT2NUM (ubuf_len (ubuf) );
-}
-
-static VALUE rb_ubuf_free (VALUE self, VALUE rb_ubuf)
-{
-	char *ubuf = (char *) NUM2LONG (rb_ubuf);
-	ubuf_free (ubuf);
-	return Qnil;
-}
-
-static VALUE rb_xsocket (VALUE self, VALUE pf, VALUE socktype)
-{
-	int _pf = FIX2INT (pf);
-	int _socktype = FIX2INT (socktype);
-
-	return INT2FIX (xsocket (_pf, _socktype) );
-}
-
-static VALUE rb_xbind (VALUE self, VALUE fd, VALUE sockaddr)
-{
-	int _fd = FIX2INT (fd);
-	const char *_sockaddr = RSTRING (sockaddr)->ptr;
-
-	return INT2FIX (xbind (_fd, _sockaddr) );
-}
-
-static VALUE rb_xaccept (VALUE self, VALUE fd)
-{
-	int _fd = FIX2INT (fd);
-
-	return INT2FIX (xaccept (_fd) );
-}
-
-static VALUE rb_xlisten (VALUE self, VALUE sockaddr)
-{
-	const char *_sockaddr = RSTRING (sockaddr)->ptr;
-
-	return INT2FIX (xlisten (_sockaddr) );
-}
-
-static VALUE rb_xconnect (VALUE self, VALUE sockaddr)
-{
-	const char *_sockaddr = RSTRING (sockaddr)->ptr;
-
-	return INT2FIX (xconnect (_sockaddr) );
-}
-
-static VALUE rb_xrecv (VALUE self, VALUE fd)
-{
-	int _fd = FIX2INT (fd);
-	int rc;
-	char *ubuf = 0;
-
-	rc = xrecv (_fd, &ubuf);
-	if (!rc)
-		assert (ubuf != 0);
-	return INT2NUM ( (long) ubuf);
-}
-
-static VALUE rb_xsend (VALUE self, VALUE fd, VALUE ubuf)
-{
-	int _fd = FIX2INT (fd);
-	char *_ubuf = (char *) NUM2LONG (ubuf);
-
-	return INT2FIX (xsend (_fd, _ubuf) );
-}
-
-static VALUE rb_xclose (VALUE self, VALUE fd)
-{
-	int _fd = FIX2INT (fd);
-
-	return INT2FIX (xclose (_fd) );
-}
-
-
-static VALUE rb_xgetopt (VALUE self, VALUE fd)
-{
-	return Qnil;
-}
-
-static VALUE rb_xsetopt (VALUE self, VALUE fd)
-{
-	return Qnil;
-}
 
 static VALUE rb_sp_endpoint (VALUE self, VALUE sp_family, VALUE sp_type)
 {
@@ -142,13 +45,25 @@ static VALUE rb_sp_close (VALUE self, VALUE eid)
 }
 
 
-static VALUE rb_sp_send (VALUE self, VALUE eid, VALUE ubuf)
+static VALUE rb_sp_send (VALUE self, VALUE eid, VALUE msg)
 {
 	int _eid = FIX2INT (eid);
 	int rc;
-	char *_ubuf = (char *) NUM2LONG (ubuf);
+	VALUE rb_hdr = 0;
+	char *hdr = 0;
+	char *ubuf = ubuf_alloc (RSTRING (msg)->len);
 
-	rc = sp_send (_eid, _ubuf);
+	memcpy (ubuf, RSTRING (msg)->ptr, ubuf_len (ubuf));
+
+	/* How can i checking the valid rb_values, fucking the ruby extension here
+	 */
+	if ((rb_hdr = rb_iv_get (msg, "@hdr")) != 4) {
+		Data_Get_Struct (rb_hdr, char, hdr);
+		if (hdr)
+			ubufctl (hdr, SCOPY, ubuf);
+	}
+	if ((rc = sp_send (_eid, ubuf)))
+		ubuf_free (ubuf);
 	return INT2FIX (rc);
 }
 
@@ -157,11 +72,13 @@ static VALUE rb_sp_recv (VALUE self, VALUE eid)
 	int _eid = FIX2INT (eid);
 	int rc;
 	char *ubuf = 0;
+	VALUE msg;
 
-	rc = sp_recv (_eid, &ubuf);
-	if (!rc)
-		assert (ubuf != 0);
-	return INT2NUM ( (long) ubuf);
+	if ((rc = sp_recv (_eid, &ubuf)))
+		return Qnil;
+	msg = rb_str_new (ubuf, ubuf_len (ubuf));
+	rb_iv_set (msg, "@hdr", Data_Wrap_Struct (0, 0, ubuf_free, ubuf));
+	return msg;
 }
 
 static VALUE rb_sp_add (VALUE self, VALUE eid, VALUE fd)
@@ -214,69 +131,27 @@ struct sym_kv {
 };
 
 static struct sym_kv const_symbols[] = {
-	{"XPOLLIN",      XPOLLIN},
-	{"XPOLLOUT",     XPOLLOUT},
-	{"XPOLLERR",     XPOLLERR},
-
-	{"XPOLL_ADD",    XPOLL_ADD},
-	{"XPOLL_DEL",    XPOLL_DEL},
-	{"XPOLL_MOD",    XPOLL_MOD},
-
-	{"XPF_TCP",      XPF_TCP},
-	{"XPF_IPC",      XPF_IPC},
-	{"XPF_INPROC",   XPF_INPROC},
-	{"XLISTENER",    XLISTENER},
-	{"XCONNECTOR",   XCONNECTOR},
-	{"XSOCKADDRLEN", XSOCKADDRLEN},
-
-	{"XL_SOCKET",    XL_SOCKET},
-	{"XNOBLOCK",     XNOBLOCK},
-	{"XSNDWIN",      XSNDWIN},
-	{"XRCVWIN",      XRCVWIN},
-	{"XSNDBUF",      XSNDBUF},
-	{"XRCVBUF",      XRCVBUF},
-	{"XLINGER",      XLINGER},
-	{"XSNDTIMEO",    XSNDTIMEO},
-	{"XRCVTIMEO",    XRCVTIMEO},
-	{"XRECONNECT",   XRECONNECT},
-	{"XSOCKTYPE",    XSOCKTYPE},
-	{"XSOCKPROTO",   XSOCKPROTO},
-	{"XTRACEDEBUG",  XTRACEDEBUG},
-
 	{"SP_REQREP",    SP_REQREP},
 	{"SP_BUS",       SP_BUS},
 	{"SP_PUBSUB",    SP_PUBSUB},
-
+	
 	{"SP_REQ",       SP_REQ},
 	{"SP_REP",       SP_REP},
 	{"SP_PROXY",     SP_PROXY},
 };
 
 
-// Prototype for the initialization method - Ruby calls this, not you
+/* Prototype for the initialization method - Ruby calls this, not you
+ */
 void Init_xio()
 {
 	int i;
-	struct sym_kv *sb;
+	struct sym_kv *sym;
 
 	for (i = 0; i < NELEM (const_symbols, struct sym_kv); i++) {
-		sb = &const_symbols[i];
-		rb_define_global_const (sb->name, INT2FIX (sb->value) );
+		sym = &const_symbols[i];
+		rb_define_global_const (sym->name, INT2FIX (sym->value) );
 	}
-
-	rb_define_global_function ("ubuf_alloc",      rb_ubuf_alloc,     1);
-	rb_define_global_function ("ubuf_len",        rb_ubuf_len,       1);
-	rb_define_global_function ("ubuf_free",       rb_ubuf_free,      1);
-	rb_define_global_function ("xsocket",         rb_xsocket,        2);
-	rb_define_global_function ("xbind",           rb_xbind,          2);
-	rb_define_global_function ("xaccept",         rb_xaccept,        1);
-	rb_define_global_function ("xlisten",         rb_xlisten,        1);
-	rb_define_global_function ("xconnect",        rb_xconnect,       1);
-	rb_define_global_function ("xrecv",           rb_xrecv,          1);
-	rb_define_global_function ("xsend",           rb_xsend,          2);
-	rb_define_global_function ("xclose",          rb_xclose,         1);
-	rb_define_global_function ("xgetopt",         rb_xgetopt,        1);
-	rb_define_global_function ("xsetopt",         rb_xsetopt,        1);
 
 	rb_define_global_function ("sp_endpoint",     rb_sp_endpoint,    2);
 	rb_define_global_function ("sp_close",        rb_sp_close,       1);
