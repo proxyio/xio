@@ -28,8 +28,8 @@ To build proxyio :
 To build proxyio for python language
 
 	$ cd binding/python
-	$ python setup.py build
-	$ sudo python setup.py install
+	$ python ext.py build
+	$ sudo python ext.py install
 
 ## Lua
 
@@ -67,7 +67,7 @@ copy the xio.ini config file into /etc/php.d/
 To build proxyio for ruby language
 
 	$ cd binding/ruby
-	$ ruby extconf.rb
+	$ ruby ext.rb
 	$ make
 	$ sudo make install
 
