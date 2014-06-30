@@ -55,9 +55,8 @@ struct io default_xops = {
 
 
 
-/******************************************************************************
- *  snd_head events trigger.
- ******************************************************************************/
+/* snd_head events trigger.
+ */
 
 static void snd_head_empty (struct sockbase *sb)
 {
@@ -65,7 +64,7 @@ static void snd_head_empty (struct sockbase *sb)
 	struct worker *cpu = get_worker (sb->cpu_no);
 	int64_t sndbuf = bio_size (&self->out);
 
-	// Disable POLLOUT event when snd_head is empty
+	/* Disable POLLOUT event when snd_head is empty */
 	BUG_ON (sndbuf < 0);
 	if (bio_size (&self->out) == 0 && (self->et.events & EPOLLOUT) ) {
 		DEBUG_OFF ("%d disable EPOLLOUT", sb->fd);
@@ -79,7 +78,7 @@ static void snd_head_nonempty (struct sockbase *sb)
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	// Enable POLLOUT event when snd_head isn't empty
+	/* Enable POLLOUT event when snd_head isn't empty */
 	if (! (self->et.events & EPOLLOUT) ) {
 		DEBUG_OFF ("%d enable EPOLLOUT", sb->fd);
 		self->et.events |= EPOLLOUT;
@@ -88,9 +87,8 @@ static void snd_head_nonempty (struct sockbase *sb)
 }
 
 
-/******************************************************************************
- *  rcv_head events trigger.
- ******************************************************************************/
+/* rcv_head events trigger.
+ */
 
 static void rcv_head_pop (struct sockbase *sb)
 {
@@ -103,7 +101,7 @@ static void rcv_head_full (struct sockbase *sb)
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	// Enable POLLOUT event when snd_head isn't empty
+	/* Enable POLLOUT event when snd_head isn't empty */
 	if ( (self->et.events & EPOLLIN) ) {
 		DEBUG_OFF ("%d disable EPOLLIN", sb->fd);
 		self->et.events &= ~EPOLLIN;
@@ -116,7 +114,7 @@ static void rcv_head_nonfull (struct sockbase *sb)
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	// Enable POLLOUT event when snd_head isn't empty
+	/* Enable POLLOUT event when snd_head isn't empty */
 	if (! (self->et.events & EPOLLIN) ) {
 		DEBUG_OFF ("%d enable EPOLLIN", sb->fd);
 		self->et.events |= EPOLLIN;

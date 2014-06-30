@@ -29,16 +29,15 @@
 
 extern struct io default_xops;
 
-/***************************************************************************
- *  request_socks events trigger.
- ***************************************************************************/
+/* request_socks events trigger.
+ */
 
 static void request_socks_full (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	// Enable POLLOUT event when snd_head isn't empty
+	/* Enable POLLOUT event when snd_head isn't empty */
 	if ( (self->et.events & EPOLLIN) ) {
 		self->et.events &= ~EPOLLIN;
 		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);
@@ -50,7 +49,7 @@ static void request_socks_nonfull (struct sockbase *sb)
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	// Enable POLLOUT event when snd_head isn't empty
+	/* Enable POLLOUT event when snd_head isn't empty */
 	if (! (self->et.events & EPOLLIN) ) {
 		self->et.events |= EPOLLIN;
 		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);

@@ -25,12 +25,10 @@
 #include <xio/sp.h>
 #include <xio/sp_reqrep.h>
 #include "../../src/utils/base.h"
-#include "ruby.h"
+#include <ruby.h>
 
 /* Defining a space for information and references about the module to be
- * stored internally
- */
-
+   stored internally */
 
 static VALUE rb_ubuf_alloc (VALUE self, VALUE rb_str)
 {

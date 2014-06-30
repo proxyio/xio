@@ -27,9 +27,8 @@
 #include <utils/taskpool.h>
 #include "../global.h"
 
-/******************************************************************************
- *  sock's proc field operation.
- ******************************************************************************/
+/* sock's proc field operation.
+ */
 
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
@@ -77,9 +76,8 @@ static void rmlistener (struct ssmap_node *node)
 	xglobal_unlock();
 }
 
-/******************************************************************************
- *  sock_inproc_spec
- ******************************************************************************/
+/* sock_inproc_spec
+ */
 
 static struct sockbase *inp_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);

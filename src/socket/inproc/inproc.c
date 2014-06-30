@@ -29,9 +29,7 @@
 
 extern struct sockbase *getlistener (const char *addr);
 
-/******************************************************************************
- *  snd_head events trigger.
- ******************************************************************************/
+/* snd_head events trigger. */
 
 static int snd_head_push (struct sockbase *sb)
 {
@@ -40,7 +38,7 @@ static int snd_head_push (struct sockbase *sb)
 	struct skbuf *msg;
 	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base) )->peer;
 
-	// TODO: maybe the peer sock can't recv anymore after the check.
+	/* TODO: maybe the peer sock can't recv anymore after the check. */
 	mutex_unlock (&sb->lock);
 
 	mutex_lock (&peer->lock);
@@ -55,9 +53,8 @@ static int snd_head_push (struct sockbase *sb)
 	return rc;
 }
 
-/******************************************************************************
- *  rcv_head events trigger.
- ******************************************************************************/
+/* rcv_head events trigger.
+ */
 
 static int rcv_head_pop (struct sockbase *sb)
 {
@@ -83,9 +80,8 @@ static struct sockbase *inp_alloc() {
 
 
 
-/******************************************************************************
- *  sock_inproc_spec
- ******************************************************************************/
+/* sock_inproc_spec
+ */
 
 static int inp_connector_bind (struct sockbase *sb, const char *sock)
 {
