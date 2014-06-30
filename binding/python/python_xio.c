@@ -92,7 +92,7 @@ static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 	hdr = (Msghdr *) msg->hdr;
 	hdr->ubuf = ubuf;
 	msg->data = PyString_FromStringAndSize (ubuf, ubuf_len (ubuf));
-	return Py_BuildValue ("iO", rc, msg);
+	return Py_BuildValue ("iN", rc, msg);
 }
 
 static PyObject *cpy_sp_add (PyObject *self, PyObject *args)
