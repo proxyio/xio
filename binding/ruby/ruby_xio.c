@@ -32,23 +32,23 @@
  */
 
 
-static VALUE rb_xallocubuf (VALUE self, VALUE rb_str)
+static VALUE rb_ubuf_alloc (VALUE self, VALUE rb_str)
 {
-	char *ubuf = xallocubuf (RSTRING (rb_str)->len);
-	memcpy (ubuf, RSTRING (rb_str)->ptr, xubuflen (ubuf) );
+	char *ubuf = ubuf_alloc (RSTRING (rb_str)->len);
+	memcpy (ubuf, RSTRING (rb_str)->ptr, ubuf_len (ubuf) );
 	return INT2NUM ( (long) ubuf);
 }
 
-static VALUE rb_xubuflen (VALUE self, VALUE rb_ubuf)
+static VALUE rb_ubuf_len (VALUE self, VALUE rb_ubuf)
 {
 	char *ubuf = (char *) NUM2LONG (rb_ubuf);;
-	return INT2NUM (xubuflen (ubuf) );
+	return INT2NUM (ubuf_len (ubuf) );
 }
 
-static VALUE rb_xfreeubuf (VALUE self, VALUE rb_ubuf)
+static VALUE rb_ubuf_free (VALUE self, VALUE rb_ubuf)
 {
 	char *ubuf = (char *) NUM2LONG (rb_ubuf);
-	xfreeubuf (ubuf);
+	ubuf_free (ubuf);
 	return Qnil;
 }
 
@@ -210,12 +210,12 @@ static VALUE rb_sp_connect (VALUE self, VALUE eid, VALUE sockaddr)
 }
 
 
-struct xsymbol {
+struct sym_kv {
 	const char name[32];
 	int value;
 };
 
-static struct xsymbol const_symbols[] = {
+static struct sym_kv const_symbols[] = {
 	{"XPOLLIN",      XPOLLIN},
 	{"XPOLLOUT",     XPOLLOUT},
 	{"XPOLLERR",     XPOLLERR},
@@ -259,16 +259,16 @@ static struct xsymbol const_symbols[] = {
 void Init_xio()
 {
 	int i;
-	struct xsymbol *sb;
+	struct sym_kv *sb;
 
-	for (i = 0; i < NELEM (const_symbols, struct xsymbol); i++) {
+	for (i = 0; i < NELEM (const_symbols, struct sym_kv); i++) {
 		sb = &const_symbols[i];
 		rb_define_global_const (sb->name, INT2FIX (sb->value) );
 	}
 
-	rb_define_global_function ("xallocubuf",      rb_xallocubuf,     1);
-	rb_define_global_function ("xubuflen",        rb_xubuflen,       1);
-	rb_define_global_function ("xfreeubuf",       rb_xfreeubuf,      1);
+	rb_define_global_function ("ubuf_alloc",      rb_ubuf_alloc,     1);
+	rb_define_global_function ("ubuf_len",        rb_ubuf_len,       1);
+	rb_define_global_function ("ubuf_free",       rb_ubuf_free,      1);
 	rb_define_global_function ("xsocket",         rb_xsocket,        2);
 	rb_define_global_function ("xbind",           rb_xbind,          2);
 	rb_define_global_function ("xaccept",         rb_xaccept,        1);

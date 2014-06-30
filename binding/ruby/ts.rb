@@ -23,7 +23,7 @@ for i in 1..10
 end
 
 for i in 1..10
-  msg = xallocubuf("Hello ruby xio")
+  msg = ubuf_alloc("Hello ruby xio")
   rc = sp_send(cli_eid, msg)
   if (rc != 0)
     puts "bug"
@@ -47,7 +47,7 @@ for i in 1..10
     puts "bug"
     return
   end
-  xfreeubuf(msg2)
+  ubuf_free(msg2)
   puts "PASS " + i.to_s
 end
 
