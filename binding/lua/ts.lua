@@ -17,23 +17,15 @@ for i = 1, 10 do
 end
 
 for i = 1, 10 do
-   req = {};
-   req.data = "Hello world"
-   rc = sp_send (sender, req);
+   rc = sp_send (sender, {data = "Hello world"});
    assert (rc == 0);
 
    rc, req = sp_recv (recver)
    assert (rc == 0);
-   resp = {};
-   resp.data = "Hello you ?";
-   resp.hdr = req.hdr;
-   rc = sp_send (recver, resp);
+   rc = sp_send (recver, {data = "Hello you ?", hdr = req.hdr});
    assert (rc == 0);
 
-   resp = {};
-   resp.data = "Hello you ?";
-   resp.hdr = req.hdr;
-   rc = sp_send (recver, resp);
+   rc = sp_send (recver, {data = "Hello you ?", hdr = req.hdr});
    assert (rc == 0);
    
    rc, resp = sp_recv (sender);
