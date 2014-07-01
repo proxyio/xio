@@ -29,6 +29,16 @@
 #include <lauxlib.h>
 #include <utils/base.h>
 
+static int lua_ubuf_free (lua_State *L)
+{
+	char *ubuf = * (char **) lua_touserdata (L, 1);
+
+	if (ubuf) {
+		ubuf_free (ubuf);
+	}
+	return 0;
+}
+
 static int lua_sp_endpoint (lua_State *L)
 {
 	int sp_family = luaL_checkint (L, 1);
@@ -46,18 +56,55 @@ static int lua_sp_close (lua_State *L)
 
 static int lua_sp_send (lua_State *L)
 {
+	int rc;
 	int eid = luaL_checkint (L, 1);
-	char *ubuf = (char *) lua_touserdata (L, 2);
-	lua_pushnumber (L, sp_send (eid, ubuf) );
+	char *ubuf;
+	const char *msg;
+	char *hdr;
+
+	lua_getfield (L, 2, "data");
+	lua_getfield (L, 2, "hdr");
+	msg = lua_tostring (L, -2);
+	hdr = lua_touserdata (L, -1);
+	if (hdr)
+		hdr = * (char **) hdr;
+
+	ubuf = ubuf_alloc (strlen (msg) + 1);
+	memcpy (ubuf, msg, ubuf_len (ubuf));
+	ubuf [ubuf_len (ubuf) - 1] = 0;
+
+	if (hdr)
+		ubufctl (hdr, SCOPY, ubuf);
+	if ((rc = sp_send (eid, ubuf)))
+		ubuf_free (ubuf);
+	lua_pushnumber (L, rc);
 	return 1;
 }
 
 static int lua_sp_recv (lua_State *L)
 {
-	char *ubuf = 0;
+	int rc = 0;
 	int fd = luaL_checkint (L, 1);
-	lua_pushnumber (L, sp_recv (fd, &ubuf) );
-	lua_pushlightuserdata (L, ubuf);
+	char *ud = 0;
+	char *ubuf = 0;
+
+	if ((rc = sp_recv (fd, &ubuf)) != 0) {
+		lua_pushnumber (L, rc);
+		lua_pushstring (L, "error");
+		return 2;
+	}
+	lua_pushnumber (L, rc);
+	lua_newtable (L);
+
+	lua_pushstring (L, ubuf);
+	lua_setfield (L, -2, "data");
+
+	ud = lua_newuserdata (L, sizeof (ubuf));
+	* (char **) ud = ubuf;
+	luaL_getmetatable (L, "ubuf_metatable");
+	lua_setmetatable (L, -2);
+
+	lua_setfield (L, -2, "hdr");
 	return 2;
 }
 
@@ -137,6 +184,7 @@ static const struct sym_kv const_symbols [] = {
 LUA_API int luaopen_xio (lua_State *L)
 {
 	int i;
+
 	for (i = 0; i < NELEM (func_symbols, struct luaL_reg); i++) {
 		lua_pushcfunction (L, func_symbols[i].func);
 		lua_setglobal (L, func_symbols[i].name);
@@ -145,5 +193,11 @@ LUA_API int luaopen_xio (lua_State *L)
 		lua_pushnumber (L, const_symbols[i].value);
 		lua_setglobal (L, const_symbols[i].name);
 	}
+
+	luaL_newmetatable (L, "ubuf_metatable");
+	lua_pushcfunction (L, lua_ubuf_free);
+	lua_setfield (L, -2, "__gc");
+	lua_pop (L, 1);
+	
 	return 0;
 }
