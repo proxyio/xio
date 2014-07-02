@@ -40,12 +40,6 @@ static zend_class_entry *msghdr_ce = 0;
 
 ZEND_METHOD (Msghdr, __construct)
 {
-	zval *hdr;
-
-	MAKE_STD_ZVAL (hdr);
-	ZVAL_STRING (hdr, "weibo", 1);
-	if (zend_hash_add (Z_OBJPROP_P (getThis ()), "hdr", sizeof("hdr"), &hdr, sizeof (hdr), 0) == FAILURE)
-		BUG_ON (1);
 }
 
 ZEND_METHOD (Msghdr, __destruct)
@@ -59,7 +53,6 @@ ZEND_METHOD (Msghdr, __destruct)
 	if ((ptr = Z_STRVAL_PP (hdr)) && (ptr = * (char **) ptr)) {
 		ubuf_free (ptr);
 	}
-	DEBUG_ON ("");
 }
 
 static zend_function_entry msghdr_ce_method[] = {
@@ -135,7 +128,6 @@ PHP_FUNCTION (sp_send)
 		return;
 	ubuf = ubuf_alloc (Z_STRLEN_PP (data));
 	memcpy (ubuf, Z_STRVAL_PP (data), Z_STRLEN_PP (data));
-	DEBUG_ON ("%d %s", ubuf_len (ubuf), ubuf);
 
 	if (zend_hash_find (Z_OBJPROP_P (msg), "hdr", sizeof ("hdr"), (void **) &hdr) == SUCCESS && !ZVAL_IS_NULL (*hdr)) {
 		if (zend_hash_find (Z_OBJPROP_PP (hdr), "__ptr", sizeof ("__ptr"), (void **) &__ptr) == SUCCESS) {
@@ -166,7 +158,6 @@ PHP_FUNCTION (sp_recv)
 
 	MAKE_STD_ZVAL (data);
 	ZVAL_STRINGL (data, ubuf, ubuf_len (ubuf), 1);
-	DEBUG_ON ("%d %s", ubuf_len (ubuf), ubuf);
 
 	if (zend_hash_update (Z_OBJPROP_P (msg), "data", sizeof ("data"), &data, sizeof (data), 0) == FAILURE)
 		BUG_ON (1);
