@@ -38,6 +38,47 @@
 static zend_class_entry *msg_ce = 0;
 static zend_class_entry *msghdr_ce = 0;
 
+ZEND_METHOD (Msghdr, __construct)
+{
+	zval *hdr;
+
+	MAKE_STD_ZVAL (hdr);
+	ZVAL_STRING (hdr, "weibo", 1);
+	if (zend_hash_add (Z_OBJPROP_P (getThis ()), "hdr", sizeof("hdr"), &hdr, sizeof (hdr), 0) == FAILURE)
+		BUG_ON (1);
+}
+
+ZEND_METHOD (Msghdr, __destruct)
+{
+	int rc;
+	zval **hdr = 0;
+	char *ptr;
+
+	if (zend_hash_find (Z_OBJPROP_P (getThis ()), "__ptr", sizeof("__ptr"), (void **) &hdr) == FAILURE)
+		return;
+	if ((ptr = Z_STRVAL_PP (hdr)) && (ptr = * (char **) ptr)) {
+		ubuf_free (ptr);
+	}
+	DEBUG_ON ("");
+}
+
+static zend_function_entry msghdr_ce_method[] = {
+	ZEND_ME (Msghdr, __construct,    NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	ZEND_ME (Msghdr, __destruct,     NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
+	{ NULL, NULL, NULL }
+};
+
+ZEND_METHOD (Msg, __construct2)
+{
+	zval *hdr = 0;
+
+	ALLOC_ZVAL (hdr);
+	object_init_ex (hdr, msghdr_ce);
+
+	if (zend_hash_update (Z_OBJPROP_P (getThis ()), "hdr", sizeof ("hdr"), &hdr, sizeof (hdr), 0) == FAILURE)
+		BUG_ON (1);
+}
+
 ZEND_METHOD (Msg, __construct)
 {
 }
@@ -52,28 +93,6 @@ static zend_function_entry msg_ce_method[] = {
 	{ NULL, NULL, NULL }
 };
 
-
-ZEND_METHOD (Msghdr, __construct)
-{
-}
-
-ZEND_METHOD (Msghdr, __destruct)
-{
-	int rc;
-	zval **hdr = 0;
-	char *ptr;
-
-	if (zend_hash_find (Z_OBJPROP_P(getThis()), "__ptr", sizeof("__ptr"), (void **) &hdr) == FAILURE)
-		return;
-	if ((ptr = Z_STRVAL_PP (hdr)) && (ptr = * (char **) ptr))
-		ubuf_free (ptr);
-}
-
-static zend_function_entry msghdr_ce_method[] = {
-	ZEND_ME (Msghdr, __construct,    NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	ZEND_ME (Msghdr, __destruct,     NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
-	{ NULL, NULL, NULL }
-};
 
 PHP_FUNCTION (sp_endpoint)
 {
@@ -103,23 +122,65 @@ PHP_FUNCTION (sp_send)
 {
 	int rc;
 	long eid = 0;
-	char *ubuf = 0;
+	zval *msg = 0;
+	zval **data = 0;
+	zval **hdr = 0;
+	zval **__ptr = 0;
+	char *ptr;
+	char *ubuf;
 
-	if ((rc = ZPARSE_ARGS ("ll", &eid, &ubuf)) == FAILURE)
+	if ((rc = ZPARSE_ARGS ("lO", &eid, &msg, msg_ce)) == FAILURE)
 		return;
-	RETURN_LONG (sp_send ((int) eid, ubuf));
+	if (zend_hash_find (Z_OBJPROP_P (msg), "data", sizeof ("data"), (void **) &data) == FAILURE)
+		return;
+	ubuf = ubuf_alloc (Z_STRLEN_PP (data));
+	memcpy (ubuf, Z_STRVAL_PP (data), Z_STRLEN_PP (data));
+	DEBUG_ON ("%d %s", ubuf_len (ubuf), ubuf);
+
+	if (zend_hash_find (Z_OBJPROP_P (msg), "hdr", sizeof ("hdr"), (void **) &hdr) == SUCCESS && !ZVAL_IS_NULL (*hdr)) {
+		if (zend_hash_find (Z_OBJPROP_PP (hdr), "__ptr", sizeof ("__ptr"), (void **) &__ptr) == SUCCESS) {
+			if ((ptr = Z_STRVAL_PP (__ptr)) && (ptr = * (char **) ptr)) {
+				ubufctl (ptr, SCOPY, ubuf);
+			}
+		}
+	}
+	if ((rc = sp_send ((int) eid, ubuf)))
+		ubuf_free (ubuf);
+	RETURN_LONG (rc);
 }
 
 PHP_FUNCTION (sp_recv)
 {
 	int rc;
 	long eid = 0;
-	char *ubuf = 0;
+	zval *msg = 0;
+	zval *data = 0;
+	zval *hdr = 0;
+	zval *__ptr = 0;
+	char *ubuf;
 
-	if ((rc = ZPARSE_ARGS ("l", &eid)) == FAILURE)
+	if ((rc = ZPARSE_ARGS ("lO", &eid, &msg, msg_ce)) == FAILURE)
 		return;
-	sp_recv ((int) eid, &ubuf);
-	RETURN_LONG ((long) ubuf);
+	if ((rc = sp_recv ((int) eid, &ubuf)))
+		RETURN_LONG (rc);
+
+	MAKE_STD_ZVAL (data);
+	ZVAL_STRINGL (data, ubuf, ubuf_len (ubuf), 1);
+	DEBUG_ON ("%d %s", ubuf_len (ubuf), ubuf);
+
+	if (zend_hash_update (Z_OBJPROP_P (msg), "data", sizeof ("data"), &data, sizeof (data), 0) == FAILURE)
+		BUG_ON (1);
+
+	MAKE_STD_ZVAL (__ptr);
+	ZVAL_STRINGL (__ptr, (char *) &ubuf, sizeof (ubuf) + 1, 1);
+	ALLOC_ZVAL (hdr);
+	object_init_ex (hdr, msghdr_ce);
+	if (zend_hash_update (Z_OBJPROP_P (hdr), "__ptr", sizeof ("__ptr"), &__ptr, sizeof (__ptr), 0) == FAILURE)
+		BUG_ON (1);
+
+	if (zend_hash_update (Z_OBJPROP_P (msg), "hdr", sizeof ("hdr"), &hdr, sizeof (hdr), 0) == FAILURE)
+		BUG_ON (1);
+	RETURN_LONG (rc);
 }
 
 PHP_FUNCTION (sp_listen)
