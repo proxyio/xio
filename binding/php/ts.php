@@ -31,9 +31,8 @@ for ($i = 0; $i < 10; $i++) {
 	$req = new Msg();
 	assert (($rc = sp_recv($recver, $req)) == 0);
 
-	/* testing for Msghdr class */
-	$tmp = new Msg();
-	$tmp->hdr = $req->hdr;
+	/* why coredump here */
+	$tmp = $req->hdr;
 
 	$req->data = "Hello you ?";
 	assert (($rc = sp_send($recver, $req)) == 0);
