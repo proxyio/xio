@@ -59,10 +59,10 @@ static inline char *ubufctl_first (char *ubuf)
 	return first;
 }
 
-static inline char *ubufctl_next (char *ubuf)
+static inline char *ubufctl_next (char *ubuf, char *cur)
 {
-	ubufctl (ubuf, SNEXT, &ubuf);
-	return ubuf;
+	ubufctl (ubuf, SNEXT, &cur);
+	return cur;
 }
 
 static inline char *ubufctl_last (char *ubuf)
