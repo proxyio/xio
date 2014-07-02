@@ -257,7 +257,7 @@ PHP_MINIT_FUNCTION (xio)
 	msghdr_ce = zend_register_internal_class (&msghdr_ce_ptr TSRMLS_CC);
 	zend_declare_property_null (msghdr_ce, "__ptr", strlen("__ptr"), ZEND_ACC_PUBLIC TSRMLS_CC);
 	
-	assert (sizeof (long) == sizeof (void *));
+	BUG_ON (sizeof (long) != sizeof (void *));
 
 	for (i = 0; i < NELEM (const_symbols, struct sym_kv); i++) {
 		sb = &const_symbols[i];
