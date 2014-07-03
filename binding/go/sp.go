@@ -52,6 +52,7 @@ func sp_recv(eid int) (rc int, msg Msg) {
 			cur = C.ubufctl_next (ubuf, cur)
 			msg.hdr = append (msg.hdr, C.GoBytes (unsafe.Pointer (cur), C.ubuf_len (cur)))
 		}
+		C.ubuf_free (ubuf)
 	}
 	return rc, msg
 }
