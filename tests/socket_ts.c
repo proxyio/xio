@@ -116,8 +116,9 @@ static void ipc_client()
 	int sfd;
 	int64_t nbytes;
 	char buf[1024] = {};
+	char *sockaddr = "pio_ipc_socket";
 
-	if ( (sfd = ipc_connect ("pio_ipc_socket") ) < 0)
+	if ( (sfd = ipc_connect (sockaddr) ) < 0)
 		BUG_ON (1);
 	randstr (buf, 1024);
 	BUG_ON (sizeof (buf) != (nbytes = ipc_send (sfd, buf, sizeof (buf) ) ) );
@@ -155,10 +156,11 @@ static void ipc_server_thread()
 	thread_t cli_thread = {};
 	eloop_t el = {};
 	ev_t et = {};
+	char *sockaddr = "pio_ipc_socket";
 
 	eloop_init (&el, 1024, 100, 10);
 
-	BUG_ON ( (afd = ipc_bind ("pio_ipc_socket") ) <= 0);
+	BUG_ON ( (afd = ipc_bind (sockaddr) ) <= 0);
 	thread_start (&cli_thread, ipc_client_thread, NULL);
 	BUG_ON ( (sfd = ipc_accept (afd) ) <= 0);
 	et.f = ipc_client_event_handler;
@@ -179,6 +181,7 @@ static void ipc_server_thread()
 	close (sfd);
 
 	close (afd);
+	unlink (sockaddr);
 }
 
 static void tcp_test_sock_opt (int sfd)
