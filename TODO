@@ -6,3 +6,9 @@
 6. optimize the atomic API                                   -- 2014/06/10 done
 7. optimize the socket recv
 8. more sp_reqrep target algorithms
+9. when socket fd added into sp_endpoint without setting
+   the some options, set it using the value given from
+   sp_setopt ().
+10. MAC os support and BSD unix support
+11. Windows support
+12. adding XRECONNECT options for socket
