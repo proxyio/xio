@@ -95,6 +95,7 @@ XIO_UTILS = \
 	src/utils/bufio.c \
 	src/utils/mstats_base.c \
 	src/utils/slab.c \
+	src/utils/str_array.c \
 	src/utils/crc16.c \
 	src/utils/sockaddr.c
 
