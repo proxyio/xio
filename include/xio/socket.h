@@ -38,12 +38,12 @@
 #define XCONNECTOR      2
 
 int xsocket (int pf, int socktype);
-int xbind (int fd, const char *addr);
+int xbind (int fd, const char *sockaddr);
 
 #define XSOCKADDRLEN 128
-int xlisten (const char *addr);
+int xlisten (const char *sockaddr);
 int xaccept (int fd);
-int xconnect (const char *peer);
+int xconnect (const char *sockaddr);
 
 int xrecv (int fd, char **ubuf);
 int xsend (int fd, char *ubuf);
