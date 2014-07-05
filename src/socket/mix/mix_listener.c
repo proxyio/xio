@@ -29,7 +29,7 @@
 
 extern int _xlisten (int pf, const char *addr);
 
-static int mul_listener_bind (struct sockbase *sb, const char *sock)
+static int mix_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct sockbase_vfptr *vfptr, *ss;
 	struct sockbase *sub, *nsub, *new;
@@ -70,7 +70,7 @@ BAD:
 	return -1;
 }
 
-static void mul_listener_close (struct sockbase *sb)
+static void mix_listener_close (struct sockbase *sb)
 {
 	struct sockbase *nsb;
 	struct sockbase *sub, *nx;
@@ -90,7 +90,7 @@ static void mul_listener_close (struct sockbase *sb)
 	mem_free (sb, sizeof (*sb) );
 }
 
-static struct sockbase *mul_alloc() {
+static struct sockbase *mix_alloc() {
 	struct sockbase *sb = TNEW (struct sockbase);
 
 	if (sb)
@@ -98,13 +98,13 @@ static struct sockbase *mul_alloc() {
 	return sb;
 }
 
-struct sockbase_vfptr mul_listener_spec[4] = {
+struct sockbase_vfptr mix_listener_spec[4] = {
 	{
 		.type = XLISTENER,
 		.pf = XPF_TCP|XPF_IPC,
-		.alloc = mul_alloc,
-		.bind = mul_listener_bind,
-		.close = mul_listener_close,
+		.alloc = mix_alloc,
+		.bind = mix_listener_bind,
+		.close = mix_listener_close,
 		.setopt = 0,
 		.getopt = 0,
 		.notify = 0,
@@ -112,9 +112,9 @@ struct sockbase_vfptr mul_listener_spec[4] = {
 	{
 		.type = XLISTENER,
 		.pf = XPF_IPC|XPF_INPROC,
-		.alloc = mul_alloc,
-		.bind = mul_listener_bind,
-		.close = mul_listener_close,
+		.alloc = mix_alloc,
+		.bind = mix_listener_bind,
+		.close = mix_listener_close,
 		.setopt = 0,
 		.getopt = 0,
 		.notify = 0,
@@ -122,9 +122,9 @@ struct sockbase_vfptr mul_listener_spec[4] = {
 	{
 		.type = XLISTENER,
 		.pf = XPF_TCP|XPF_INPROC,
-		.alloc = mul_alloc,
-		.bind = mul_listener_bind,
-		.close = mul_listener_close,
+		.alloc = mix_alloc,
+		.bind = mix_listener_bind,
+		.close = mix_listener_close,
 		.setopt = 0,
 		.getopt = 0,
 		.notify = 0,
@@ -132,9 +132,9 @@ struct sockbase_vfptr mul_listener_spec[4] = {
 	{
 		.type = XLISTENER,
 		.pf = XPF_TCP|XPF_IPC|XPF_INPROC,
-		.alloc = mul_alloc,
-		.bind = mul_listener_bind,
-		.close = mul_listener_close,
+		.alloc = mix_alloc,
+		.bind = mix_listener_bind,
+		.close = mix_listener_close,
 		.setopt = 0,
 		.getopt = 0,
 		.notify = 0,

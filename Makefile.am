@@ -24,7 +24,7 @@ lib_LTLIBRARIES = libxio.la
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \
 	src/socket/xlisten.c \
-	src/socket/mul/mul_listener.c \
+	src/socket/mix/mix_listener.c \
 	src/socket/stats.c \
 	src/socket/xsend.c \
 	src/socket/xrecv.c \

@@ -110,7 +110,7 @@ struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
 	return 0;
 }
 
-extern struct sockbase_vfptr mul_listener_spec[3];
+extern struct sockbase_vfptr mix_listener_spec[3];
 
 void socket_module_init()
 {
@@ -153,10 +153,10 @@ void socket_module_init()
 	list_add_tail (&ipc_connector_spec.link, protocol_head);
 	list_add_tail (&tcp_listener_spec.link, protocol_head);
 	list_add_tail (&tcp_connector_spec.link, protocol_head);
-	list_add_tail (&mul_listener_spec[0].link, protocol_head);
-	list_add_tail (&mul_listener_spec[1].link, protocol_head);
-	list_add_tail (&mul_listener_spec[2].link, protocol_head);
-	list_add_tail (&mul_listener_spec[3].link, protocol_head);
+	list_add_tail (&mix_listener_spec[0].link, protocol_head);
+	list_add_tail (&mix_listener_spec[1].link, protocol_head);
+	list_add_tail (&mix_listener_spec[2].link, protocol_head);
+	list_add_tail (&mix_listener_spec[3].link, protocol_head);
 }
 
 void socket_module_exit()
