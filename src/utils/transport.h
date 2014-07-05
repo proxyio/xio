@@ -29,6 +29,7 @@
 #define TP_TCP            1
 #define TP_IPC            2
 #define TP_INPROC         4
+#define TP_MIX            8
 
 #define TP_LINGER         1
 #define TP_SNDBUF         2
