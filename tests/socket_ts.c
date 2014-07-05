@@ -273,6 +273,9 @@ static void tcp_sg_send()
 
 int main (int argc, char **argv)
 {
+	int sfd = tcp_connect ("127.0.0.1:15199");
+	BUG_ON (sfd >= 0);
+
 	ipc_server_thread();
 	tcp_server_thread();
 	tcp_option();

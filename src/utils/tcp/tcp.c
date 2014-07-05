@@ -124,6 +124,7 @@ int __unp_connect (const char *host, const char *serv)
 		if (connect (sockfd, res->ai_addr, res->ai_addrlen) == 0)
 			break;
 		close (sockfd);
+		sockfd = -1;
 	} while ( (res = res->ai_next) != NULL);
 	freeaddrinfo (res);
 	return sockfd;
