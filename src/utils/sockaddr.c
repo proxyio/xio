@@ -25,10 +25,10 @@
 #include "sockaddr.h"
 
 /* SOCKADDR example :
- * ipc    token@ipc://tmp/ipc.sock
- * net    token@net://182.33.49.10:8080
- * inproc token@inproc://inproc.sock
- */
+   ipc    token@ipc://tmp/ipc.sock
+   net    token@net://182.33.49.10:8080
+   inproc token@inproc://inproc.sock
+   mix    token@ipc://tmp/ipc.sock + token@net://127.0.0.1:1880 */
 int sockaddr_token (const char *url, char *buff, u32 size)
 {
 	char *at = strchr (url, '@');;
