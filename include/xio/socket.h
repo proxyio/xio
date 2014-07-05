@@ -32,6 +32,7 @@
 #define XPF_TCP        1
 #define XPF_IPC        2
 #define XPF_INPROC     4
+#define XPF_MIX        8
 
 /* Following socktype are provided */
 #define XLISTENER       1

@@ -47,8 +47,8 @@ volatile static int proxy_stopped = 1;
 
 static int proxy_thread (void *args)
 {
-	char *fronthost = "tcp+inproc+ipc://127.0.0.1:15100";
-	char *backhost = "tcp+inproc+ipc://127.0.0.1:15200";
+	char *fronthost = "mix://ipc://127.0.0.1:15100+tcp://127.0.0.1:15100+inproc://127.0.0.1:15100";
+	char *backhost = "mix://ipc://127.0.0.1:15200+tcp://127.0.0.1:15200+inproc://127.0.0.1:15200";
 	int s;
 	int front_eid, back_eid;
 

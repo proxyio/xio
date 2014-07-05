@@ -20,6 +20,7 @@
   IN THE SOFTWARE.
 */
 
+#include <config.h>
 #include "base.h"
 #include "transport.h"
 #include "sockaddr.h"
@@ -55,7 +56,7 @@ int sockaddr_pf (const char *url)
 		++at;
 	else
 		at = (char *) url;
-#ifdef strndup
+#if defined HAVE_STRNDUP
 	pfp = strndup (at, pfp - at);
 #else
 	pfp = strdup (at);

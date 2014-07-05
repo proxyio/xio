@@ -48,7 +48,7 @@ int main (int argc, char **argv)
 	int afd, sfd, tmp;
 	thread_t cli_thread = {};
 
-	BUG_ON ( (afd = xlisten ("tcp+ipc+inproc://127.0.0.1:18897") ) < 0);
+	BUG_ON ( (afd = xlisten ("mix://inproc://127.0.0.1:18897+tcp://127.0.0.1:18897+ipc://127.0.0.1:18897") ) < 0);
 	thread_start (&cli_thread, xclient_thread, 0);
 	usleep (100000);
 	BUG_ON (xselect (XPOLLIN, 1, &afd, 1, &tmp) <= 0);
