@@ -141,23 +141,21 @@ static int ti_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
-	int sys_fd;
 	int on = 1;
 	int blen = max (default_sndbuf, default_rcvbuf);
 
 	BUG_ON (!cpu);
 	BUG_ON (! (self->vtp = transport_lookup (sb->vfptr->pf) ) );
-	if ( (sys_fd = self->vtp->connect (sock) ) < 0)
+	if ( (self->sys_fd = self->vtp->connect (sock) ) < 0)
 		return -1;
-	BUG_ON (self->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on) ) );
-	self->vtp->setopt (sys_fd, TP_SNDBUF, &blen, sizeof (blen) );
-	self->vtp->setopt (sys_fd, TP_RCVBUF, &blen, sizeof (blen) );
+	BUG_ON (self->vtp->setopt (self->sys_fd, TP_NOBLOCK, &on, sizeof (on) ) );
+	self->vtp->setopt (self->sys_fd, TP_SNDBUF, &blen, sizeof (blen) );
+	self->vtp->setopt (self->sys_fd, TP_RCVBUF, &blen, sizeof (blen) );
 
 	strncpy (sb->peer, sock, TP_SOCKADDRLEN);
-	self->sys_fd = sys_fd;
 	self->ops = default_xops;
 	self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
-	self->et.fd = sys_fd;
+	self->et.fd = self->sys_fd;
 	self->et.f = ti_connector_hndl;
 	self->et.data = self;
 	BUG_ON (eloop_add (&cpu->el, &self->et) != 0);
@@ -170,15 +168,17 @@ static void ti_connector_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
-
+	
 	BUG_ON (!self->vtp);
 
 	/* Try flush buf massage into network before close */
 	ti_connector_snd (sb);
 
 	/* Detach sock low-level file descriptor from poller */
-	BUG_ON (eloop_del (&cpu->el, &self->et) != 0);
-	self->vtp->close (self->sys_fd);
+	if (self->sys_fd > 0) {
+		BUG_ON (eloop_del (&cpu->el, &self->et) != 0);
+		self->vtp->close (self->sys_fd);
+	}
 
 	self->sys_fd = -1;
 	self->et.events = -1;
