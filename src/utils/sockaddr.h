@@ -26,11 +26,11 @@
 #include "base.h"
 
 /* SOCKADDR example :
- * ipc    group@ipc://tmp/ipc.sock
- * net    group@net://182.33.49.10:8080
- * inproc group@inproc://inproc.sock
+ * ipc    token@ipc://tmp/ipc.sock
+ * net    token@net://182.33.49.10:8080
+ * inproc token@inproc://inproc.sock
  */
-int sockaddr_group (const char *url, char *buff, u32 size);
+int sockaddr_token (const char *url, char *buff, u32 size);
 
 int sockaddr_pf (const char *url);
 
