@@ -72,7 +72,7 @@ static int repep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 		uuid_copy (get_rep_tgtd (tg)->uuid, rt->uuid);
 	DEBUG_OFF ("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	mutex_lock (&ep->lock);
-	skbuf_head_in (&ep->rcv, ubuf);
+	msgbuf_head_in (&ep->rcv, ubuf);
 	BUG_ON (ep->rcv.waiters < 0);
 	if (ep->rcv.waiters)
 		condition_broadcast (&ep->cond);
@@ -93,7 +93,7 @@ static struct tgtd *repep_join (struct epbase *ep, int fd) {
 
 	if (!rep_tg)
 		return 0;
-	skbuf_head_init (&rep_tg->ls_head, SP_SNDWND);
+	msgbuf_head_init (&rep_tg->ls_head, SP_SNDWND);
 	generic_tgtd_init (ep, &rep_tg->tg, fd);
 	return &rep_tg->tg;
 }

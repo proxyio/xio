@@ -28,8 +28,8 @@
 #include <utils/taskpool.h>
 #include "global.h"
 
-struct skbuf *recvq_rm (struct sockbase *sb) {
-	struct skbuf *msg = 0;
+struct msgbuf *recvq_rm (struct sockbase *sb) {
+	struct msgbuf *msg = 0;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	i64 sz;
 	u32 events = 0;
@@ -41,9 +41,9 @@ struct skbuf *recvq_rm (struct sockbase *sb) {
 		sb->rcv.waiters--;
 	}
 	if (!list_empty (&sb->rcv.head) ) {
-		msg = list_first (&sb->rcv.head, struct skbuf, item);
+		msg = list_first (&sb->rcv.head, struct msgbuf, item);
 		list_del_init (&msg->item);
-		sz = skbuf_len (msg);
+		sz = msgbuf_len (msg);
 		sb->rcv.buf -= sz;
 		events |= XMQ_POP;
 		if (sb->rcv.wnd - sb->rcv.buf <= sz)
@@ -62,11 +62,11 @@ struct skbuf *recvq_rm (struct sockbase *sb) {
 	return msg;
 }
 
-int recvq_add (struct sockbase *sb, struct skbuf *msg)
+int recvq_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	u32 events = 0;
-	i64 sz = skbuf_len (msg);
+	i64 sz = msgbuf_len (msg);
 
 	mutex_lock (&sb->lock);
 	if (list_empty (&sb->rcv.head) )
@@ -93,7 +93,7 @@ int xrecv (int fd, char **ubuf)
 {
 	int rc = 0;
 	struct sockbase *sb;
-	struct skbuf *msg = 0;
+	struct msgbuf *msg = 0;
 
 	if (!ubuf) {
 		errno = EINVAL;

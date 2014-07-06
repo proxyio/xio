@@ -146,7 +146,7 @@ void sockbase_init (struct sockbase *sb)
 void sockbase_exit (struct sockbase *sb)
 {
 	struct list_head head = {};
-	struct skbuf *msg, *nmsg;
+	struct msgbuf *msg, *nmsg;
 
 	mutex_destroy (&sb->lock);
 	condition_destroy (&sb->cond);
@@ -174,7 +174,7 @@ void sockbase_exit (struct sockbase *sb)
 	list_splice (&sb->snd.head, &head);
 
 	walk_msg_s (msg, nmsg, &head) {
-		skbuf_free (msg);
+		msgbuf_free (msg);
 	}
 
 	/* It's possible that user call xclose() and xpoll_add()

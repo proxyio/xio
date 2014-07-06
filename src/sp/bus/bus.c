@@ -52,7 +52,7 @@ static int bus_ep_send (struct epbase *ep, char *ubuf)
 		/* for the last target. send the ubuf directly */
 		if (list_next (&dst->item) != &ep->connectors)
 			tmp = clone_ubuf (ubuf);
-		skbuf_head_in (&get_bus_tgtd (dst)->ls_head, tmp);
+		msgbuf_head_in (&get_bus_tgtd (dst)->ls_head, tmp);
 		tgtd_try_enable_out (dst);
 	}
 	mutex_unlock (&ep->lock);
@@ -74,10 +74,10 @@ static int bus_ep_add (struct epbase *ep, struct tgtd *src, char *ubuf)
 		if (tg == src)
 			continue;
 		tmp = clone_ubuf (ubuf);
-		skbuf_head_in (&get_bus_tgtd (tg)->ls_head, tmp);
+		msgbuf_head_in (&get_bus_tgtd (tg)->ls_head, tmp);
 		tgtd_try_enable_out (tg);
 	}
-	skbuf_head_in (&ep->rcv, ubuf);
+	msgbuf_head_in (&ep->rcv, ubuf);
 	if (ep->rcv.waiters)
 		condition_broadcast (&ep->cond);
 	mutex_unlock (&ep->lock);
@@ -87,12 +87,12 @@ static int bus_ep_add (struct epbase *ep, struct tgtd *src, char *ubuf)
 static int bus_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	mutex_lock (&ep->lock);
-	if (skbuf_head_empty (&get_bus_tgtd (tg)->ls_head)) {
+	if (msgbuf_head_empty (&get_bus_tgtd (tg)->ls_head)) {
 		tgtd_try_disable_out (tg);
 		mutex_unlock (&ep->lock);
 		return -1;
 	}
-	skbuf_head_out (&get_bus_tgtd (tg)->ls_head, *ubuf);
+	msgbuf_head_out (&get_bus_tgtd (tg)->ls_head, *ubuf);
 	mutex_unlock (&ep->lock);
 	return 0;
 }
@@ -103,7 +103,7 @@ static struct tgtd *bus_ep_join (struct epbase *ep, int fd)
 
 	if (!ps_tg)
 		return 0;
-	skbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
+	msgbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
 	generic_tgtd_init (ep, &ps_tg->tg, fd);
 	return &ps_tg->tg;
 }

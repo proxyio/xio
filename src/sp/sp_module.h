@@ -54,11 +54,11 @@ DEFINE_MSTATS (tgtd, TGTD_STATS_KEYRANGE);
 
 
 
-static inline struct skbuf *get_skbuf (char *ubuf) {
-	return cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+static inline struct msgbuf *get_msgbuf (char *ubuf) {
+	return cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 }
 
-static inline char *get_ubuf (struct skbuf *skb)
+static inline char *get_ubuf (struct msgbuf *skb)
 {
 	return skb->chunk.ubuf_base;
 }
@@ -145,35 +145,35 @@ static inline void tgtd_try_disable_out (struct tgtd *tg)
 	}
 }
 
-struct skbuf_head {
-	int wnd;                        /* skbuff windows */
+struct msgbuf_head {
+	int wnd;                        /* msgbuff windows */
 	int size;                       /* current buffer size */
 	int waiters;                    /* wait the empty or non-empty events */
-	struct list_head head;          /* skbuff head */
+	struct list_head head;          /* msgbuff head */
 };
 
-#define skbuf_head_init(q, windows) do {	\
+#define msgbuf_head_init(q, windows) do {	\
 	(q)->wnd = windows;			\
 	(q)->size = 0;				\
 	(q)->waiters = 0;			\
 	INIT_LIST_HEAD(&(q)->head);		\
     } while (0)
 
-#define skbuf_head_empty(q) ({					\
+#define msgbuf_head_empty(q) ({					\
 	    BUG_ON(list_empty(&(q)->head) && (q)->size != 0);	\
 	    list_empty(&(q)->head);				\
 	})
 
-#define skbuf_head_out(q, ubuf) do {				\
-	struct skbuf *msg = 0;					\
-	msg = list_first(&(q)->head, struct skbuf, item);	\
+#define msgbuf_head_out(q, ubuf) do {				\
+	struct msgbuf *msg = 0;					\
+	msg = list_first(&(q)->head, struct msgbuf, item);	\
 	list_del_init(&msg->item);				\
 	ubuf = get_ubuf(msg);					\
 	(q)->size -= ubuf_len(ubuf);				\
     } while (0)
 
-#define skbuf_head_in(q, ubuf) do {		\
-	struct skbuf *msg = get_skbuf(ubuf);	\
+#define msgbuf_head_in(q, ubuf) do {		\
+	struct msgbuf *msg = get_msgbuf(ubuf);	\
 	list_add_tail(&msg->item, &(q)->head);	\
 	(q)->size += ubuf_len(ubuf);		\
     } while (0)
@@ -193,8 +193,8 @@ struct epbase {
 	int eid;                        /* endpoint id, the index of sp_global.endpoints array */
 	mutex_t lock;                   /* per epbase lock and condition */
 	condition_t cond;
-	struct skbuf_head rcv;          /* recv buffer */
-	struct skbuf_head snd;          /* send buffer */
+	struct msgbuf_head rcv;          /* recv buffer */
+	struct msgbuf_head snd;          /* send buffer */
 	struct list_head item;
 
 	/*
@@ -315,7 +315,7 @@ static inline char *clone_ubuf (char *src)
 	BUG_ON (!dst);
 	memcpy (dst, src, ubuf_len (src));
 
-	/* copy the sub skbuff into dst */
+	/* copy the sub msgbuf into dst */
 	rc = ubufctl (src, SCOPY, dst);
 	BUG_ON (rc);
 	return dst;

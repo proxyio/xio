@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_SKBUF_
-#define _H_PROXYIO_SKBUF_
+#ifndef _H_PROXYIO_MSGBUF_
+#define _H_PROXYIO_MSGBUF_
 
 #include <utils/base.h>
 #include <utils/list.h>
@@ -38,11 +38,11 @@
  */
 
 
-#define SKBUF_SUBNUMMARK 0xf           // 16
-#define SKBUF_CMSGLENMARK 0xfff        // 4k
+#define MSGBUF_SUBNUMMARK 0xf           // 16
+#define MSGBUF_CMSGLENMARK 0xfff        // 4k
 
 /* TODO: little endian and big endian */
-struct skbuf {
+struct msgbuf {
 	struct list_head item;
 	struct list_head cmsg_head;
 	atomic_t ref;
@@ -56,15 +56,15 @@ struct skbuf {
 	} chunk;
 };
 
-u32 skbuf_len (struct skbuf *msg);
-char *skbuf_base (struct skbuf *msg);
-struct skbuf *skbuf_alloc (int size);
-void skbuf_free (struct skbuf *msg);
+u32 msgbuf_len (struct msgbuf *msg);
+char *msgbuf_base (struct msgbuf *msg);
+struct msgbuf *msgbuf_alloc (int size);
+void msgbuf_free (struct msgbuf *msg);
 
 #define walk_msg_s(pos, next, head)				\
-    walk_each_entry_s(pos, next, head, struct skbuf, item)
+    walk_each_entry_s(pos, next, head, struct msgbuf, item)
 
-int skbuf_serialize (struct skbuf *msg, struct list_head *head);
+int msgbuf_serialize (struct msgbuf *msg, struct list_head *head);
 
 
 

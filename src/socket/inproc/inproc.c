@@ -35,7 +35,7 @@ static int snd_head_push (struct sockbase *sb)
 {
 	int rc = 0;
 	int can = false;
-	struct skbuf *msg;
+	struct msgbuf *msg;
 	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base) )->peer;
 
 	/* TODO: maybe the peer sock can't recv anymore after the check. */

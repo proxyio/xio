@@ -300,8 +300,8 @@ void epbase_init (struct epbase *ep)
 	mutex_init (&ep->lock);
 	condition_init (&ep->cond);
 
-	skbuf_head_init (&ep->rcv, SP_RCVWND);
-	skbuf_head_init (&ep->snd, SP_SNDWND);
+	msgbuf_head_init (&ep->rcv, SP_RCVWND);
+	msgbuf_head_init (&ep->snd, SP_SNDWND);
 
 	ep->nlisteners = 0;
 	ep->nconnectors = 0;
@@ -315,13 +315,13 @@ void epbase_init (struct epbase *ep)
 
 void epbase_exit (struct epbase *ep)
 {
-	struct skbuf *msg, *tmp;
+	struct msgbuf *msg, *tmp;
 	BUG_ON (atomic_fetch (&ep->ref) );
 
 	list_splice (&ep->snd.head, &ep->rcv.head);
 	walk_msg_s (msg, tmp, &ep->rcv.head) {
 		list_del_init (&msg->item);
-		skbuf_free (msg);
+		msgbuf_free (msg);
 	}
 	BUG_ON (!list_empty (&ep->rcv.head) );
 

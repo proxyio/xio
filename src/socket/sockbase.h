@@ -36,7 +36,7 @@
 #include <utils/transport.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
-#include "skbuf.h"
+#include <msgbuf/msgbuf.h>
 #include "worker.h"
 #include "stats.h"
 
@@ -163,11 +163,11 @@ void xput (int fd);
 void sockbase_init (struct sockbase *sb);
 void sockbase_exit (struct sockbase *sb);
 
-int recvq_add (struct sockbase *sb, struct skbuf *msg);
-struct skbuf *recvq_rm (struct sockbase *sb);
+int recvq_add (struct sockbase *sb, struct msgbuf *msg);
+struct msgbuf *recvq_rm (struct sockbase *sb);
 
-int sendq_add (struct sockbase *sb, struct skbuf *msg);
-struct skbuf *sendq_rm (struct sockbase *sb);
+int sendq_add (struct sockbase *sb, struct msgbuf *msg);
+struct msgbuf *sendq_rm (struct sockbase *sb);
 
 
 int acceptq_add (struct sockbase *sb, struct sockbase *new);

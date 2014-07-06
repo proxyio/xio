@@ -33,7 +33,7 @@ struct bus_ep {
 
 struct bus_tgtd {
 	struct tgtd tg;
-	struct skbuf_head ls_head;   /* local storage */
+	struct msgbuf_head ls_head;   /* local storage */
 };
 
 static inline void bus_tgtd_free(struct bus_tgtd *ps_tg) {

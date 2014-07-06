@@ -226,24 +226,24 @@ static void ti_connector_notify (struct sockbase *sb, int type, u32 events)
 
 static int bufio_check_msg (struct bio *b)
 {
-	struct skbuf aim = {};
+	struct msgbuf aim = {};
 
 	if (b->bsize < sizeof (aim.chunk) )
 		return false;
 	bio_copy (b, (char *) (&aim.chunk), sizeof (aim.chunk) );
-	if (b->bsize < skbuf_len (&aim) + (u32) aim.chunk.cmsg_length)
+	if (b->bsize < msgbuf_len (&aim) + (u32) aim.chunk.cmsg_length)
 		return false;
 	return true;
 }
 
 
-static void bufio_rm (struct bio *b, struct skbuf **msg)
+static void bufio_rm (struct bio *b, struct msgbuf **msg)
 {
-	struct skbuf one = {};
+	struct msgbuf one = {};
 
 	bio_copy (b, (char *) (&one.chunk), sizeof (one.chunk) );
-	*msg = skbuf_alloc (one.chunk.ubuf_len);
-	bio_read (b, skbuf_base (*msg), skbuf_len (*msg) );
+	*msg = msgbuf_alloc (one.chunk.ubuf_len);
+	bio_read (b, msgbuf_base (*msg), msgbuf_len (*msg) );
 }
 
 static int ti_connector_rcv (struct sockbase *sb)
@@ -251,7 +251,7 @@ static int ti_connector_rcv (struct sockbase *sb)
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc = 0;
 	u16 cmsg_num;
-	struct skbuf *aim = 0, *cmsg = 0;
+	struct msgbuf *aim = 0, *cmsg = 0;
 
 	rc = bio_prefetch (&self->in, &self->ops);
 	if (rc < 0 && errno != EAGAIN)
@@ -273,17 +273,17 @@ static int ti_connector_rcv (struct sockbase *sb)
 	return rc;
 }
 
-static void bufio_add (struct bio *b, struct skbuf *msg)
+static void bufio_add (struct bio *b, struct msgbuf *msg)
 {
 	struct list_head head = {};
-	struct skbuf *nmsg;
+	struct msgbuf *nmsg;
 
 	INIT_LIST_HEAD (&head);
-	skbuf_serialize (msg, &head);
+	msgbuf_serialize (msg, &head);
 
 	walk_msg_s (msg, nmsg, &head) {
-		bio_write (b, skbuf_base (msg), skbuf_len (msg) );
-		skbuf_free (msg);
+		bio_write (b, msgbuf_base (msg), msgbuf_len (msg) );
+		msgbuf_free (msg);
 	}
 }
 
@@ -292,7 +292,7 @@ static int sg_send (struct sockbase *sb)
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
 	struct iovec *iov;
-	struct skbuf *msg;
+	struct msgbuf *msg;
 	struct msghdr msghdr = {};
 
 	/* First. sending the bufio caching */
@@ -315,17 +315,17 @@ static int sg_send (struct sockbase *sb)
 	iov = &self->biov[self->iov_start];
 	while (rc >= iov->iov_len && iov < &self->biov[self->iov_end]) {
 		rc -= iov->iov_len;
-		msg = cont_of (iov->iov_base, struct skbuf, chunk);
+		msg = cont_of (iov->iov_base, struct msgbuf, chunk);
 		list_del_init (&msg->item);
-		skbuf_free (msg);
+		msgbuf_free (msg);
 		iov++;
 	}
 	/* Cache the reset iovec into bufio  */
 	if (rc > 0) {
 		bio_write (&self->out, iov->iov_base + rc, iov->iov_len - rc);
-		msg = cont_of (iov->iov_base, struct skbuf, chunk);
+		msg = cont_of (iov->iov_base, struct msgbuf, chunk);
 		list_del_init (&msg->item);
-		skbuf_free (msg);
+		msgbuf_free (msg);
 		rc = 0;
 		iov++;
 	}
@@ -346,7 +346,7 @@ static int ti_connector_sg (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
-	struct skbuf *msg, *nmsg;
+	struct msgbuf *msg, *nmsg;
 	struct iovec *iov;
 
 	while ( (rc = sg_send (sb) ) == 0) {
@@ -354,7 +354,7 @@ static int ti_connector_sg (struct sockbase *sb)
 
 		/* Third. serialize the queue message for send */
 		while ( (msg = sendq_rm (sb) ) )
-			self->iov_length += skbuf_serialize (msg, &self->sg_head);
+			self->iov_length += msgbuf_serialize (msg, &self->sg_head);
 		if (self->iov_length <= 0) {
 			errno = EAGAIN;
 			return -1;
@@ -370,8 +370,8 @@ static int ti_connector_sg (struct sockbase *sb)
 		iov = self->biov;
 		walk_msg_s (msg, nmsg, &self->sg_head) {
 			list_del_init (&msg->item);
-			iov->iov_base = skbuf_base (msg);
-			iov->iov_len = skbuf_len (msg);
+			iov->iov_base = msgbuf_base (msg);
+			iov->iov_len = msgbuf_len (msg);
 			iov++;
 		}
 	}
@@ -382,7 +382,7 @@ static int ti_connector_snd (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
-	struct skbuf *msg;
+	struct msgbuf *msg;
 
 	if (self->vtp->sendmsg)
 		return ti_connector_sg (sb);

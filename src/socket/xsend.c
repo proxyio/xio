@@ -28,18 +28,18 @@
 #include <utils/taskpool.h>
 #include "global.h"
 
-struct skbuf *sendq_rm (struct sockbase *sb) {
+struct msgbuf *sendq_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
-	struct skbuf *msg = 0;
+	struct msgbuf *msg = 0;
 	i64 sz;
 	u32 events = 0;
 
 	mutex_lock (&sb->lock);
 	if (!list_empty (&sb->snd.head) ) {
 		DEBUG_OFF ("xsock %d", sb->fd);
-		msg = list_first (&sb->snd.head, struct skbuf, item);
+		msg = list_first (&sb->snd.head, struct msgbuf, item);
 		list_del_init (&msg->item);
-		sz = skbuf_len (msg);
+		sz = msgbuf_len (msg);
 		sb->snd.buf -= sz;
 		events |= XMQ_POP;
 		if (sb->snd.wnd - sb->snd.buf <= sz)
@@ -62,12 +62,12 @@ struct skbuf *sendq_rm (struct sockbase *sb) {
 	return msg;
 }
 
-int sendq_add (struct sockbase *sb, struct skbuf *msg)
+int sendq_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
 	u32 events = 0;
-	i64 sz = skbuf_len (msg);
+	i64 sz = msgbuf_len (msg);
 
 	mutex_lock (&sb->lock);
 	while (!sb->fepipe && !can_send (sb) && !sb->fasync) {
@@ -98,7 +98,7 @@ int sendq_add (struct sockbase *sb, struct skbuf *msg)
 int xsend (int fd, char *ubuf)
 {
 	int rc = 0;
-	struct skbuf *msg = 0;
+	struct msgbuf *msg = 0;
 	struct sockbase *sb;
 
 	if (!ubuf) {
@@ -109,7 +109,7 @@ int xsend (int fd, char *ubuf)
 		errno = EBADF;
 		return -1;
 	}
-	msg = cont_of (ubuf, struct skbuf, chunk.ubuf_base);
+	msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 	if ( (rc = sendq_add (sb, msg) ) < 0) {
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 	}

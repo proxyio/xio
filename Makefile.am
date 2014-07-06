@@ -21,6 +21,9 @@ xinclude_HEADERS = \
 
 lib_LTLIBRARIES = libxio.la
 
+XIO_MSGBUF = \
+	src/msgbuf/msgbuf.c
+
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \
 	src/socket/xlisten.c \
@@ -38,7 +41,6 @@ XIO_SOCKET = \
 	src/socket/tcp/tcpipc.c \
 	src/socket/sockbase.c \
 	src/socket/xgetsockopt.c \
-	src/socket/skbuf.c \
 	src/socket/inproc/inproc.c \
 	src/socket/inproc/inproc_listener.c
 
@@ -100,6 +102,7 @@ XIO_UTILS = \
 	src/utils/sockaddr.c
 
 libxio_la_SOURCES = \
+	$(XIO_MSGBUF) \
 	$(XIO_UTILS) \
 	$(XIO_SOCKET) \
 	$(XIO_POLL) \

@@ -46,7 +46,7 @@ static int sub_ep_send (struct epbase *ep, char *ubuf)
 static int sub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	mutex_lock (&ep->lock);
-	skbuf_head_in (&ep->rcv, ubuf);
+	msgbuf_head_in (&ep->rcv, ubuf);
 	if (ep->rcv.waiters)
 		condition_broadcast (&ep->cond);
 	mutex_unlock (&ep->lock);
@@ -65,7 +65,7 @@ static struct tgtd *sub_ep_join (struct epbase *ep, int fd)
 
 	if (!ps_tg)
 		return 0;
-	skbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
+	msgbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
 	generic_tgtd_init (ep, &ps_tg->tg, fd);
 	return &ps_tg->tg;
 }

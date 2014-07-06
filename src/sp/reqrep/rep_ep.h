@@ -36,7 +36,7 @@ struct repep {
 struct rep_tgtd {
 	struct tgtd tg;
 	uuid_t uuid;                 /* global unique id for distributed system */
-	struct skbuf_head ls_head;   /* local storage */
+	struct msgbuf_head ls_head;   /* local storage */
 };
 
 static inline struct rep_tgtd *get_rep_tgtd (struct tgtd *tg) {

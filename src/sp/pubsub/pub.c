@@ -49,7 +49,7 @@ static int pub_ep_send (struct epbase *ep, char *ubuf)
 		dst = ubuf;
 		if (list_next (&tg->item) != &ep->connectors)
 			dst = clone_ubuf (ubuf);
-		skbuf_head_in (&get_pubsub_tgtd (tg)->ls_head, dst);
+		msgbuf_head_in (&get_pubsub_tgtd (tg)->ls_head, dst);
 		tgtd_try_enable_out (tg);
 	}
 	mutex_unlock (&ep->lock);
@@ -67,12 +67,12 @@ static int pub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int pub_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	mutex_lock (&ep->lock);
-	if (skbuf_head_empty (&get_pubsub_tgtd (tg)->ls_head)) {
+	if (msgbuf_head_empty (&get_pubsub_tgtd (tg)->ls_head)) {
 		tgtd_try_disable_out (tg);
 		mutex_unlock (&ep->lock);
 		return -1;
 	}
-	skbuf_head_out (&get_pubsub_tgtd (tg)->ls_head, *ubuf);
+	msgbuf_head_out (&get_pubsub_tgtd (tg)->ls_head, *ubuf);
 	mutex_unlock (&ep->lock);
 	return 0;
 }
@@ -83,7 +83,7 @@ static struct tgtd *pub_ep_join (struct epbase *ep, int fd)
 
 	if (!ps_tg)
 		return 0;
-	skbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
+	msgbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
 	generic_tgtd_init (ep, &ps_tg->tg, fd);
 	return &ps_tg->tg;
 }

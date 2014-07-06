@@ -27,7 +27,7 @@
 
 struct pubsub_tgtd {
 	struct tgtd tg;
-	struct skbuf_head ls_head;   /* local storage */
+	struct msgbuf_head ls_head;   /* local storage */
 };
 
 static inline void pubsub_tgtd_free(struct pubsub_tgtd *ps_tg) {

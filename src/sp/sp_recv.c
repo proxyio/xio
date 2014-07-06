@@ -49,7 +49,7 @@ int sp_recv (int eid, char **ubuf)
 		eid_put (eid);
 		ERRNO_RETURN (EBADF);
 	}
-	skbuf_head_out (&ep->rcv, *ubuf);
+	msgbuf_head_out (&ep->rcv, *ubuf);
 
 	mutex_unlock (&ep->lock);
 	eid_put (eid);
