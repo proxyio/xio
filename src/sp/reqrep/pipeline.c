@@ -68,7 +68,7 @@ static int dispatcher_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 		return -1;
 	}
 	uuid_copy (rt.uuid, get_req_tgtd (tg)->uuid);
-	msgbuf_head_out (&get_req_tgtd (tg)->ls_head, *ubuf);
+	msgbuf_head_out (&get_req_tgtd (tg)->ls_head, ubuf);
 	rt_append (*ubuf, &rt);
 	DEBUG_OFF ("ep %d req %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
 	return 0;
@@ -96,7 +96,7 @@ static int receiver_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 		tgtd_try_disable_out (tg);
 		return -1;
 	}
-	msgbuf_head_out (&get_rep_tgtd (tg)->ls_head, *ubuf);
+	msgbuf_head_out (&get_rep_tgtd (tg)->ls_head, ubuf);
 	DEBUG_OFF ("ep %d resp %10.10s to socket %d", ep->eid, *ubuf, tg->fd);
 	return 0;
 }

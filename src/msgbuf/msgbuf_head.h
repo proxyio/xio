@@ -20,38 +20,30 @@
   IN THE SOFTWARE.
 */
 
-#include <xio/sp.h>
-#include "sp_module.h"
+#ifndef _H_PROXYIO_MSGBUF_HEAD_
+#define _H_PROXYIO_MSGBUF_HEAD_
 
-int sp_recv (int eid, char **ubuf)
-{
-	struct epbase *ep = eid_get (eid);
+#include "msgbuf.h"
 
-	if (!ep) {
-		ERRNO_RETURN (EBADF);
-	}
-	mutex_lock (&ep->lock);
+struct msgbuf_head {
+	int wnd;                    /* msgbuf windows                     */
+	int size;                   /* current buffer size                */
+	int waiters;                /* wait the empty or non-empty events */
+	struct list_head head;      /* msgbuf head                        */
+};
 
-	/* All the received message would saved in the rcv.head. if the endpoint
-	 * status ok and the rcv.head is empty, we wait here. when the endpoint
-	 * status is bad or has messages come, the wait return.
-	 * TODO: can condition_wait support timeout.
-	 */
-	while (!ep->status.shutdown && list_empty (&ep->rcv.head) ) {
-		ep->rcv.waiters++;
-		condition_wait (&ep->cond, &ep->lock);
-		ep->rcv.waiters--;
-	}
+void msgbuf_head_init (struct msgbuf_head *bh, int wnd);
 
-	/* Check the endpoint status, maybe it's bad */
-	if (ep->status.shutdown) {
-		mutex_unlock (&ep->lock);
-		eid_put (eid);
-		ERRNO_RETURN (EBADF);
-	}
-	msgbuf_head_out (&ep->rcv, ubuf);
+/* check the msgbuf_head is empty. return 1 if true, otherwise return 0 */
+int msgbuf_head_empty (struct msgbuf_head *bh);
 
-	mutex_unlock (&ep->lock);
-	eid_put (eid);
-	return 0;
-}
+/* dequeue the first msgbuf from head. return 0 if head is non-empty and set
+   ubuf correctly. otherwise return -1 (head is empty) */
+int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf);
+
+/* enqueue the ubuf into head. return 0 if success, otherwise return -1
+   (head is full) */
+int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf);
+
+
+#endif

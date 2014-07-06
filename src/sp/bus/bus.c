@@ -92,7 +92,7 @@ static int bus_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 		mutex_unlock (&ep->lock);
 		return -1;
 	}
-	msgbuf_head_out (&get_bus_tgtd (tg)->ls_head, *ubuf);
+	msgbuf_head_out (&get_bus_tgtd (tg)->ls_head, ubuf);
 	mutex_unlock (&ep->lock);
 	return 0;
 }

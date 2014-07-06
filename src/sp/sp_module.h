@@ -34,6 +34,7 @@
 #include <socket/global.h>
 #include <xio/poll.h>
 #include <xio/sp_reqrep.h>
+#include <msgbuf/msgbuf_head.h>
 #include "sp_hdr.h"
 
 enum {
@@ -52,16 +53,6 @@ enum {
 
 DEFINE_MSTATS (tgtd, TGTD_STATS_KEYRANGE);
 
-
-
-static inline struct msgbuf *get_msgbuf (char *ubuf) {
-	return cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-}
-
-static inline char *get_ubuf (struct msgbuf *skb)
-{
-	return skb->chunk.ubuf_base;
-}
 
 static inline int get_socktype (int fd)
 {
@@ -144,39 +135,6 @@ static inline void tgtd_try_disable_out (struct tgtd *tg)
 		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
 	}
 }
-
-struct msgbuf_head {
-	int wnd;                        /* msgbuff windows */
-	int size;                       /* current buffer size */
-	int waiters;                    /* wait the empty or non-empty events */
-	struct list_head head;          /* msgbuff head */
-};
-
-#define msgbuf_head_init(q, windows) do {	\
-	(q)->wnd = windows;			\
-	(q)->size = 0;				\
-	(q)->waiters = 0;			\
-	INIT_LIST_HEAD(&(q)->head);		\
-    } while (0)
-
-#define msgbuf_head_empty(q) ({					\
-	    BUG_ON(list_empty(&(q)->head) && (q)->size != 0);	\
-	    list_empty(&(q)->head);				\
-	})
-
-#define msgbuf_head_out(q, ubuf) do {				\
-	struct msgbuf *msg = 0;					\
-	msg = list_first(&(q)->head, struct msgbuf, item);	\
-	list_del_init(&msg->item);				\
-	ubuf = get_ubuf(msg);					\
-	(q)->size -= ubuf_len(ubuf);				\
-    } while (0)
-
-#define msgbuf_head_in(q, ubuf) do {		\
-	struct msgbuf *msg = get_msgbuf(ubuf);	\
-	list_add_tail(&msg->item, &(q)->head);	\
-	(q)->size += ubuf_len(ubuf);		\
-    } while (0)
 
 
 /* Default snd/rcv buffer size = 1G */

@@ -68,5 +68,14 @@ int msgbuf_serialize (struct msgbuf *msg, struct list_head *head);
 
 
 
+static inline struct msgbuf *get_msgbuf (char *ubuf) {
+	return cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+}
+
+static inline char *get_ubuf (struct msgbuf *skb)
+{
+	return skb->chunk.ubuf_base;
+}
+
 
 #endif

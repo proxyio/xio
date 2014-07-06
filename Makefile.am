@@ -22,7 +22,8 @@ xinclude_HEADERS = \
 lib_LTLIBRARIES = libxio.la
 
 XIO_MSGBUF = \
-	src/msgbuf/msgbuf.c
+	src/msgbuf/msgbuf.c \
+	src/msgbuf/msgbuf_head.c
 
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \

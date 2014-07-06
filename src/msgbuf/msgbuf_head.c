@@ -20,38 +20,44 @@
   IN THE SOFTWARE.
 */
 
-#include <xio/sp.h>
-#include "sp_module.h"
+#include "msgbuf_head.h"
 
-int sp_recv (int eid, char **ubuf)
+void msgbuf_head_init (struct msgbuf_head *bh, int wnd)
 {
-	struct epbase *ep = eid_get (eid);
+	bh->wnd = wnd;
+	bh->size = 0;
+	bh->waiters = 0;
+	INIT_LIST_HEAD (&bh->head);
+}
 
-	if (!ep) {
-		ERRNO_RETURN (EBADF);
-	}
-	mutex_lock (&ep->lock);
+int msgbuf_head_empty (struct msgbuf_head *bh)
+{
+	int rc;
 
-	/* All the received message would saved in the rcv.head. if the endpoint
-	 * status ok and the rcv.head is empty, we wait here. when the endpoint
-	 * status is bad or has messages come, the wait return.
-	 * TODO: can condition_wait support timeout.
-	 */
-	while (!ep->status.shutdown && list_empty (&ep->rcv.head) ) {
-		ep->rcv.waiters++;
-		condition_wait (&ep->cond, &ep->lock);
-		ep->rcv.waiters--;
-	}
+	BUG_ON (list_empty (&bh->head) && bh->size != 0);
+	rc = list_empty (&bh->head);
+	return rc;
+}
 
-	/* Check the endpoint status, maybe it's bad */
-	if (ep->status.shutdown) {
-		mutex_unlock (&ep->lock);
-		eid_put (eid);
-		ERRNO_RETURN (EBADF);
-	}
-	msgbuf_head_out (&ep->rcv, ubuf);
+int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf)
+{
+	struct msgbuf *msg = 0;
 
-	mutex_unlock (&ep->lock);
-	eid_put (eid);
+	if (msgbuf_head_empty (bh))
+		return -1;
+	msg = list_first (&bh->head, struct msgbuf, item);
+	list_del_init (&msg->item);
+	*ubuf = get_ubuf (msg);
+	bh->size -= ubuf_len (*ubuf);
 	return 0;
 }
+
+int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
+{
+	struct msgbuf *msg = get_msgbuf (ubuf);
+
+	list_add_tail (&msg->item, &bh->head);
+	bh->size += ubuf_len(ubuf);
+	return 0;
+}
+
