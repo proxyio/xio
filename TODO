@@ -12,3 +12,4 @@
 10. MAC os support and BSD unix support
 11. Windows support
 12. adding XRECONNECT options for socket
+13. msgbuf_head_in* without hung-up
