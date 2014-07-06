@@ -100,22 +100,9 @@ int xaccept (int fd)
 	return new->fd;
 }
 
-int _xlisten (int pf, const char *addr)
-{
-	int fd;
-
-	if ( (fd = xsocket (pf, XLISTENER) ) < 0)
-		return -1;
-	if (xbind (fd, addr) != 0) {
-		xclose (fd);
-		return -1;
-	}
-	return fd;
-}
-
-
 int xlisten (const char *addr)
 {
+	int fd;
 	int pf = sockaddr_pf (addr);
 	char sockaddr[TP_SOCKADDRLEN] = {};
 
@@ -123,5 +110,11 @@ int xlisten (const char *addr)
 		errno = EPROTO;
 		return -1;
 	}
-	return _xlisten (pf, sockaddr);
+	if ((fd = xsocket (pf, XLISTENER)) < 0)
+		return -1;
+	if (xbind (fd, sockaddr) != 0) {
+		xclose (fd);
+		return -1;
+	}
+	return fd;
 }
