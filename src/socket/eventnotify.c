@@ -28,21 +28,21 @@
 #include <utils/taskpool.h>
 #include "global.h"
 
-int check_pollevents (struct sockbase *self, int events)
+int check_pollevents (struct sockbase *sb, int events)
 {
 	int happened = 0;
 
 	if (events & XPOLLIN) {
-		if (self->vfptr->type == XCONNECTOR)
-			happened |= !list_empty (&self->rcv.head) ? XPOLLIN : 0;
-		else if (self->vfptr->type == XLISTENER)
-			happened |= !list_empty (&self->acceptq.head) ? XPOLLIN : 0;
+		if (sb->vfptr->type == XCONNECTOR)
+			happened |= !list_empty (&sb->rcv.head) ? XPOLLIN : 0;
+		else if (sb->vfptr->type == XLISTENER)
+			happened |= !list_empty (&sb->acceptq.head) ? XPOLLIN : 0;
 	}
 	if (events & XPOLLOUT)
-		happened |= can_send (self) ? XPOLLOUT : 0;
+		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
 	if (events & XPOLLERR)
-		happened |= self->fepipe ? XPOLLERR : 0;
-	DEBUG_OFF ("%d happen %s", self->fd, xpoll_str[happened]);
+		happened |= sb->fepipe ? XPOLLERR : 0;
+	DEBUG_OFF ("%d happen %s", sb->fd, xpoll_str[happened]);
 	return happened;
 }
 
@@ -52,21 +52,21 @@ int check_pollevents (struct sockbase *self, int events)
  * here we only check the mq events and proto_spec saved the other
  * events gived by sockbase_vfptr
  */
-void __emit_pollevents (struct sockbase *self)
+void __emit_pollevents (struct sockbase *sb)
 {
 	int happened = 0;
 	struct pollbase *pb, *tmp;
 
-	happened |= check_pollevents (self, XPOLLIN|XPOLLOUT|XPOLLERR);
-	walk_pollbase_s (pb, tmp, &self->poll_entries) {
+	happened |= check_pollevents (sb, XPOLLIN|XPOLLOUT|XPOLLERR);
+	walk_pollbase_s (pb, tmp, &sb->poll_entries) {
 		BUG_ON (!pb->vfptr);
 		pb->vfptr->emit (pb, happened & pb->pollfd.events);
 	}
 }
 
-void emit_pollevents (struct sockbase *self)
+void emit_pollevents (struct sockbase *sb)
 {
-	mutex_lock (&self->lock);
-	__emit_pollevents (self);
-	mutex_unlock (&self->lock);
+	mutex_lock (&sb->lock);
+	__emit_pollevents (sb);
+	mutex_unlock (&sb->lock);
 }

@@ -42,7 +42,7 @@ static int snd_head_push (struct sockbase *sb)
 	mutex_unlock (&sb->lock);
 
 	mutex_lock (&peer->lock);
-	if (can_recv (peer) )
+	if (msgbuf_can_in (&peer->rcv) )
 		can = true;
 	mutex_unlock (&peer->lock);
 	if (!can)

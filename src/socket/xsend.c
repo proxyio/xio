@@ -70,12 +70,12 @@ int sendq_add (struct sockbase *sb, struct msgbuf *msg)
 	i64 sz = msgbuf_len (msg);
 
 	mutex_lock (&sb->lock);
-	while (!sb->fepipe && !can_send (sb) && !sb->fasync) {
+	while (!sb->fepipe && !msgbuf_can_in (&sb->snd) && !sb->fasync) {
 		sb->snd.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->snd.waiters--;
 	}
-	if (can_send (sb) ) {
+	if (msgbuf_can_in (&sb->snd) ) {
 		rc = 0;
 		if (list_empty (&sb->snd.head) )
 			events |= XMQ_NONEMPTY;

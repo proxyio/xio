@@ -34,6 +34,12 @@ struct msgbuf_head {
 
 void msgbuf_head_init (struct msgbuf_head *bh, int wnd);
 
+/* we must guarantee that we can push one massage at least. */
+static inline int msgbuf_can_in (struct msgbuf_head *bh)
+{
+	return (list_empty (&bh->head) || bh->size < bh->wnd);
+}
+
 /* check the msgbuf_head is empty. return 1 if true, otherwise return 0 */
 int msgbuf_head_empty (struct msgbuf_head *bh);
 
@@ -44,6 +50,11 @@ int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf);
 /* enqueue the ubuf into head. return 0 if success, otherwise return -1
    (head is full) */
 int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf);
+
+static inline void msgbuf_dequeue_all (struct msgbuf_head *bh, struct list_head *head)
+{
+	list_splice (&bh->head, head);
+}
 
 
 #endif

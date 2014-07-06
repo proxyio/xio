@@ -37,6 +37,7 @@
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include <msgbuf/msgbuf.h>
+#include <msgbuf/msgbuf_head.h>
 #include "worker.h"
 #include "stats.h"
 
@@ -118,19 +119,8 @@ struct sockbase {
 	struct list_head sib_link;
 	struct socket_mstats stats;
 
-	struct {
-		int waiters;
-		int wnd;
-		int size;
-		struct list_head head;
-	} rcv;
-
-	struct {
-		int waiters;
-		int wnd;
-		int size;
-		struct list_head head;
-	} snd;
+	struct msgbuf_head rcv;
+	struct msgbuf_head snd;
 
 	struct {
 		condition_t cond;
@@ -146,16 +136,6 @@ struct sockbase {
 #define walk_sub_sock(sub, nx, head)				\
     walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 
-/* We guarantee that we can push one massage at least. */
-static inline int can_send (struct sockbase *sb)
-{
-	return list_empty (&sb->snd.head) || sb->snd.size < sb->snd.wnd;
-}
-
-static inline int can_recv (struct sockbase *sb)
-{
-	return list_empty (&sb->rcv.head) || sb->rcv.size < sb->rcv.wnd;
-}
 
 int xalloc (int family, int socktype);
 struct sockbase *xget (int fd);

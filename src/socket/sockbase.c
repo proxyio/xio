@@ -124,15 +124,8 @@ void sockbase_init (struct sockbase *sb)
 	sb->cpu_no = worker_choosed (sb->fd);
 	socket_mstats_init (&sb->stats);
 
-	sb->rcv.waiters = 0;
-	sb->rcv.size = 0;
-	sb->rcv.wnd = default_rcvbuf;
-	INIT_LIST_HEAD (&sb->rcv.head);
-
-	sb->snd.waiters = 0;
-	sb->snd.size = 0;
-	sb->snd.wnd = default_sndbuf;
-	INIT_LIST_HEAD (&sb->snd.head);
+	msgbuf_head_init (&sb->rcv, default_rcvbuf);
+	msgbuf_head_init (&sb->snd, default_sndbuf);
 
 	INIT_LIST_HEAD (&sb->poll_entries);
 	sb->shutdown.f = xshutdown_task_f;
@@ -146,7 +139,7 @@ void sockbase_init (struct sockbase *sb)
 void sockbase_exit (struct sockbase *sb)
 {
 	struct list_head head = {};
-	struct msgbuf *msg, *nmsg;
+	struct msgbuf *msg, *tmp;
 
 	mutex_destroy (&sb->lock);
 	condition_destroy (&sb->cond);
@@ -163,17 +156,10 @@ void sockbase_exit (struct sockbase *sb)
 
 	INIT_LIST_HEAD (&head);
 
-	sb->rcv.waiters = -1;
-	sb->rcv.size = -1;
-	sb->rcv.wnd = -1;
-	list_splice (&sb->rcv.head, &head);
+	msgbuf_dequeue_all (&sb->rcv, &head);
+	msgbuf_dequeue_all (&sb->snd, &head);
 
-	sb->snd.waiters = -1;
-	sb->snd.size = -1;
-	sb->snd.wnd = -1;
-	list_splice (&sb->snd.head, &head);
-
-	walk_msg_s (msg, nmsg, &head) {
+	walk_msg_s (msg, tmp, &head) {
 		msgbuf_free (msg);
 	}
 
