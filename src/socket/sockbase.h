@@ -121,14 +121,14 @@ struct sockbase {
 	struct {
 		int waiters;
 		int wnd;
-		int buf;
+		int size;
 		struct list_head head;
 	} rcv;
 
 	struct {
 		int waiters;
 		int wnd;
-		int buf;
+		int size;
 		struct list_head head;
 	} snd;
 
@@ -149,12 +149,12 @@ struct sockbase {
 /* We guarantee that we can push one massage at least. */
 static inline int can_send (struct sockbase *sb)
 {
-	return list_empty (&sb->snd.head) || sb->snd.buf < sb->snd.wnd;
+	return list_empty (&sb->snd.head) || sb->snd.size < sb->snd.wnd;
 }
 
 static inline int can_recv (struct sockbase *sb)
 {
-	return list_empty (&sb->rcv.head) || sb->rcv.buf < sb->rcv.wnd;
+	return list_empty (&sb->rcv.head) || sb->rcv.size < sb->rcv.wnd;
 }
 
 int xalloc (int family, int socktype);

@@ -40,12 +40,12 @@ struct msgbuf *sendq_rm (struct sockbase *sb) {
 		msg = list_first (&sb->snd.head, struct msgbuf, item);
 		list_del_init (&msg->item);
 		sz = msgbuf_len (msg);
-		sb->snd.buf -= sz;
+		sb->snd.size -= sz;
 		events |= XMQ_POP;
-		if (sb->snd.wnd - sb->snd.buf <= sz)
+		if (sb->snd.wnd - sb->snd.size <= sz)
 			events |= XMQ_NONFULL;
 		if (list_empty (&sb->snd.head) ) {
-			BUG_ON (sb->snd.buf);
+			BUG_ON (sb->snd.size);
 			events |= XMQ_EMPTY;
 		}
 
@@ -79,10 +79,10 @@ int sendq_add (struct sockbase *sb, struct msgbuf *msg)
 		rc = 0;
 		if (list_empty (&sb->snd.head) )
 			events |= XMQ_NONEMPTY;
-		if (sb->snd.wnd - sb->snd.buf <= sz)
+		if (sb->snd.wnd - sb->snd.size <= sz)
 			events |= XMQ_FULL;
 		events |= XMQ_PUSH;
-		sb->snd.buf += sz;
+		sb->snd.size += sz;
 		list_add_tail (&msg->item, &sb->snd.head);
 		DEBUG_OFF ("xsock %d", sb->fd);
 	}

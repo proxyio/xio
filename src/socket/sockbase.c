@@ -125,12 +125,12 @@ void sockbase_init (struct sockbase *sb)
 	socket_mstats_init (&sb->stats);
 
 	sb->rcv.waiters = 0;
-	sb->rcv.buf = 0;
+	sb->rcv.size = 0;
 	sb->rcv.wnd = default_rcvbuf;
 	INIT_LIST_HEAD (&sb->rcv.head);
 
 	sb->snd.waiters = 0;
-	sb->snd.buf = 0;
+	sb->snd.size = 0;
 	sb->snd.wnd = default_sndbuf;
 	INIT_LIST_HEAD (&sb->snd.head);
 
@@ -164,12 +164,12 @@ void sockbase_exit (struct sockbase *sb)
 	INIT_LIST_HEAD (&head);
 
 	sb->rcv.waiters = -1;
-	sb->rcv.buf = -1;
+	sb->rcv.size = -1;
 	sb->rcv.wnd = -1;
 	list_splice (&sb->rcv.head, &head);
 
 	sb->snd.waiters = -1;
-	sb->snd.buf = -1;
+	sb->snd.size = -1;
 	sb->snd.wnd = -1;
 	list_splice (&sb->snd.head, &head);
 

@@ -44,12 +44,12 @@ struct msgbuf *recvq_rm (struct sockbase *sb) {
 		msg = list_first (&sb->rcv.head, struct msgbuf, item);
 		list_del_init (&msg->item);
 		sz = msgbuf_len (msg);
-		sb->rcv.buf -= sz;
+		sb->rcv.size -= sz;
 		events |= XMQ_POP;
-		if (sb->rcv.wnd - sb->rcv.buf <= sz)
+		if (sb->rcv.wnd - sb->rcv.size <= sz)
 			events |= XMQ_NONFULL;
 		if (list_empty (&sb->rcv.head) ) {
-			BUG_ON (sb->rcv.buf);
+			BUG_ON (sb->rcv.size);
 			events |= XMQ_EMPTY;
 		}
 	}
@@ -71,10 +71,10 @@ int recvq_add (struct sockbase *sb, struct msgbuf *msg)
 	mutex_lock (&sb->lock);
 	if (list_empty (&sb->rcv.head) )
 		events |= XMQ_NONEMPTY;
-	if (sb->rcv.wnd - sb->rcv.buf <= sz)
+	if (sb->rcv.wnd - sb->rcv.size <= sz)
 		events |= XMQ_FULL;
 	events |= XMQ_PUSH;
-	sb->rcv.buf += sz;
+	sb->rcv.size += sz;
 	list_add_tail (&msg->item, &sb->rcv.head);
 
 	/* Wakeup the blocking waiters. */

@@ -58,7 +58,7 @@ static int get_rcvwin (struct sockbase *self, void *optval, int *optlen)
 static int get_sndbuf (struct sockbase *self, void *optval, int *optlen)
 {
 	mutex_lock (&self->lock);
-	* (int *) optval = self->snd.buf;
+	* (int *) optval = self->snd.size;
 	mutex_unlock (&self->lock);
 	return 0;
 }
@@ -66,7 +66,7 @@ static int get_sndbuf (struct sockbase *self, void *optval, int *optlen)
 static int get_rcvbuf (struct sockbase *self, void *optval, int *optlen)
 {
 	mutex_lock (&self->lock);
-	* (int *) optval = self->rcv.buf;
+	* (int *) optval = self->rcv.size;
 	mutex_unlock (&self->lock);
 	return 0;
 }
