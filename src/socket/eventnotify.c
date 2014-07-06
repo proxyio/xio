@@ -34,7 +34,7 @@ int check_pollevents (struct sockbase *sb, int events)
 
 	if (events & XPOLLIN) {
 		if (sb->vfptr->type == XCONNECTOR)
-			happened |= !list_empty (&sb->rcv.head) ? XPOLLIN : 0;
+			happened |= !msgbuf_head_empty (&sb->rcv) ? XPOLLIN : 0;
 		else if (sb->vfptr->type == XLISTENER)
 			happened |= !list_empty (&sb->acceptq.head) ? XPOLLIN : 0;
 	}

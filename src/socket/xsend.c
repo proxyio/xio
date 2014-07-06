@@ -29,25 +29,20 @@
 #include "global.h"
 
 struct msgbuf *sendq_rm (struct sockbase *sb) {
+	int rc;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct msgbuf *msg = 0;
-	i64 sz;
 	u32 events = 0;
 
 	mutex_lock (&sb->lock);
-	if (!list_empty (&sb->snd.head) ) {
-		DEBUG_OFF ("xsock %d", sb->fd);
-		msg = list_first (&sb->snd.head, struct msgbuf, item);
-		list_del_init (&msg->item);
-		sz = msgbuf_len (msg);
-		sb->snd.size -= sz;
+	if ((rc = msgbuf_head_out_msg (&sb->snd, &msg)) == 0) {
 		events |= XMQ_POP;
-		if (sb->snd.wnd - sb->snd.size <= sz)
+
+		/* the first time when msgbuf_head is non-full */
+		if (sb->snd.wnd - sb->snd.size <= msgbuf_len (msg))
 			events |= XMQ_NONFULL;
-		if (list_empty (&sb->snd.head) ) {
-			BUG_ON (sb->snd.size);
+		if (msgbuf_head_empty (&sb->snd))
 			events |= XMQ_EMPTY;
-		}
 
 		/* Wakeup the blocking waiters */
 		if (sb->snd.waiters > 0)
@@ -67,7 +62,6 @@ int sendq_add (struct sockbase *sb, struct msgbuf *msg)
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
 	u32 events = 0;
-	i64 sz = msgbuf_len (msg);
 
 	mutex_lock (&sb->lock);
 	while (!sb->fepipe && !msgbuf_can_in (&sb->snd) && !sb->fasync) {
@@ -77,14 +71,14 @@ int sendq_add (struct sockbase *sb, struct msgbuf *msg)
 	}
 	if (msgbuf_can_in (&sb->snd) ) {
 		rc = 0;
-		if (list_empty (&sb->snd.head) )
+		if (msgbuf_head_empty (&sb->snd))
 			events |= XMQ_NONEMPTY;
-		if (sb->snd.wnd - sb->snd.size <= sz)
+
+		/* the first time when msgbuf_head is full */
+		if (sb->snd.wnd - sb->snd.size <= msgbuf_len (msg))
 			events |= XMQ_FULL;
 		events |= XMQ_PUSH;
-		sb->snd.size += sz;
-		list_add_tail (&msg->item, &sb->snd.head);
-		DEBUG_OFF ("xsock %d", sb->fd);
+		msgbuf_head_in_msg (&sb->snd, msg);
 	}
 
 	if (events && vfptr->notify)

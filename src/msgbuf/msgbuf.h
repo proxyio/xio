@@ -72,9 +72,9 @@ static inline struct msgbuf *get_msgbuf (char *ubuf) {
 	return cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 }
 
-static inline char *get_ubuf (struct msgbuf *skb)
+static inline char *get_ubuf (struct msgbuf *msg)
 {
-	return skb->chunk.ubuf_base;
+	return msg->chunk.ubuf_base;
 }
 
 

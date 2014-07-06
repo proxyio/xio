@@ -51,6 +51,23 @@ int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf);
    (head is full) */
 int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf);
 
+static inline int msgbuf_head_out_msg (struct msgbuf_head *bh, struct msgbuf **msg)
+{
+	int rc;
+	char *ubuf = 0;
+
+	if ((rc = msgbuf_head_out (bh, &ubuf)) == 0) {
+		*msg = get_msgbuf (ubuf);
+	}
+	return rc;
+}
+
+static inline int msgbuf_head_in_msg (struct msgbuf_head *bh, struct msgbuf *msg)
+{
+	return msgbuf_head_in (bh, get_ubuf (msg));
+}
+
+
 static inline void msgbuf_dequeue_all (struct msgbuf_head *bh, struct list_head *head)
 {
 	list_splice (&bh->head, head);

@@ -29,26 +29,24 @@
 #include "global.h"
 
 struct msgbuf *recvq_rm (struct sockbase *sb) {
+	int rc;
 	struct msgbuf *msg = 0;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
-	i64 sz;
 	u32 events = 0;
 
 	mutex_lock (&sb->lock);
-	while (!sb->fepipe && list_empty (&sb->rcv.head) && !sb->fasync) {
+	while (!sb->fepipe && msgbuf_head_empty (&sb->rcv) && !sb->fasync) {
 		sb->rcv.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->rcv.waiters--;
 	}
-	if (!list_empty (&sb->rcv.head) ) {
-		msg = list_first (&sb->rcv.head, struct msgbuf, item);
-		list_del_init (&msg->item);
-		sz = msgbuf_len (msg);
-		sb->rcv.size -= sz;
+	if ((rc = msgbuf_head_out_msg (&sb->rcv, &msg)) == 0) {
 		events |= XMQ_POP;
-		if (sb->rcv.wnd - sb->rcv.size <= sz)
+
+		/* the first time when msgbuf_head is non-full */
+		if (sb->rcv.wnd - sb->rcv.size <= msgbuf_len (msg))
 			events |= XMQ_NONFULL;
-		if (list_empty (&sb->rcv.head) ) {
+		if (msgbuf_head_empty (&sb->rcv)) {
 			BUG_ON (sb->rcv.size);
 			events |= XMQ_EMPTY;
 		}
@@ -66,16 +64,16 @@ int recvq_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	u32 events = 0;
-	i64 sz = msgbuf_len (msg);
 
 	mutex_lock (&sb->lock);
-	if (list_empty (&sb->rcv.head) )
-		events |= XMQ_NONEMPTY;
-	if (sb->rcv.wnd - sb->rcv.size <= sz)
-		events |= XMQ_FULL;
 	events |= XMQ_PUSH;
-	sb->rcv.size += sz;
-	list_add_tail (&msg->item, &sb->rcv.head);
+
+	/* the first time when msgbuf_head is non-empty */
+	if (msgbuf_head_empty (&sb->rcv))
+		events |= XMQ_NONEMPTY;
+	msgbuf_head_in_msg (&sb->rcv, msg);
+	if (!msgbuf_can_in (&sb->rcv))
+		events |= XMQ_FULL;
 
 	/* Wakeup the blocking waiters. */
 	if (sb->rcv.waiters > 0)
