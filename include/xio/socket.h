@@ -52,7 +52,6 @@ int xclose (int fd);
 #define XRECONNECT         8
 #define XSOCKTYPE          9
 #define XSOCKPROTO         10
-#define XTRACEDEBUG        11
 
 int xsetopt (int fd, int level, int opt, void *optval, int optlen);
 int xgetopt (int fd, int level, int opt, void *optval, int *optlen);
