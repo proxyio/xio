@@ -45,8 +45,6 @@
 typedef int (*tp_setopt) (int fd, void *optval, int optlen);
 typedef int (*tp_getopt) (int fd, void *optval, int *optlen);
 
-#define TP_SNDBUFLEN      104857600
-#define TP_RCVBUFLEN      104857600
 #define TP_SOCKADDRLEN    128
 
 struct transport {

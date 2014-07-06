@@ -44,8 +44,10 @@ static int set_sndbuf (int fd, void *optval, int optlen)
 	int rc;
 	int buf = * (int *) optval;
 
-	if (buf <= 0)
-		buf = TP_RCVBUFLEN;
+	if (buf < 0) {
+		errno = EINVAL;
+		return -1;
+	}
 	rc = setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof (buf) );
 	return rc;
 }
@@ -55,8 +57,10 @@ static int set_rcvbuf (int fd, void *optval, int optlen)
 	int rc;
 	int buf = * (int *) optval;
 
-	if (buf <= 0)
-		buf = TP_SNDBUFLEN;
+	if (buf < 0) {
+		errno = EINVAL;
+		return -1;
+	}
 	rc = setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof (buf) );
 	return rc;
 }
