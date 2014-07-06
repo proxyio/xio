@@ -17,19 +17,19 @@ int main (int argc, char **argv)
 	char *ubuf;
 
 	rc = sp_listen (n_eid1, "tcp://127.0.0.1:15100");
-	BUG_ON (rc);
+	BUG_ON (rc < 0);
 
 	rc = sp_listen (n_eid2, "tcp://127.0.0.1:15200");
-	BUG_ON (rc);
+	BUG_ON (rc < 0);
 
 	rc = sp_connect (n_eid1, "tcp://127.0.0.1:15200");
-	BUG_ON (rc);
+	BUG_ON (rc < 0);
 
 	rc = sp_connect (cli1, "tcp://127.0.0.1:15100");
-	BUG_ON (rc);
+	BUG_ON (rc < 0);
 
 	rc = sp_connect (cli2, "tcp://127.0.0.1:15200");
-	BUG_ON (rc);
+	BUG_ON (rc < 0);
 
 	ubuf = ubuf_alloc (strlen (hello));
 	memcpy (ubuf, hello, strlen (hello));

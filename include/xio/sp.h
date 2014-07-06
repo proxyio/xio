@@ -47,20 +47,30 @@ int sp_getopt (int eid, int opt, void *optval, int *optlen);
 
 static inline int sp_connect (int eid, const char *sockaddr)
 {
+	int rc;
 	int fd = xconnect (sockaddr);
 
 	if (fd < 0)
 		return -1;
-	return sp_add (eid, fd);
+	if ((rc = sp_add (eid, fd)) < 0) {
+		xclose (fd);
+		return rc;
+	}
+	return fd;
 }
 
 static inline int sp_listen (int eid, const char *sockaddr)
 {
+	int rc;
 	int fd = xlisten (sockaddr);
 
 	if (fd < 0)
 		return -1;
-	return sp_add (eid, fd);
+	if ((rc = sp_add (eid, fd)) < 0) {
+		xclose (fd);
+		return rc;
+	}
+	return fd;
 }
 
 
