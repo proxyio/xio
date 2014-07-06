@@ -1,12 +1,5 @@
-```
-                              _       
-                             (_)      
- ____    __  __  _   _ _   _  _   __  
-|  _ \ / __)/  \( \ / ) | | || | /  \
-| |_| | |  ( () )) X (| |_| || |( () )
-|  __/|_|   \__/(_/ \_)\__  ||_| \__/
-|_|                    (___/        
-```
+PROXYIO
+-------
 
 [![Build Status](https://api.travis-ci.org/pipul/xio.png?branch=master)](https://travis-ci.org/pipul/xio)
 
