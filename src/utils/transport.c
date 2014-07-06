@@ -56,7 +56,7 @@ void transport_module_exit()
 	}
 }
 
-struct transport *transport_lookup (int pf) {
+struct transport *tp_get (int pf) {
 	struct transport *tp = 0;
 
 	walk_transpotr_vfptr_s (tp) {

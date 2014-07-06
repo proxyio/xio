@@ -145,8 +145,8 @@ static int ti_connector_bind (struct sockbase *sb, const char *sock)
 	int blen = max (default_sndbuf, default_rcvbuf);
 
 	BUG_ON (!cpu);
-	BUG_ON (! (self->vtp = transport_lookup (sb->vfptr->pf) ) );
-	if ( (self->sys_fd = self->vtp->connect (sock) ) < 0)
+	self->vtp = tp_get (sb->vfptr->pf);
+	if ((self->sys_fd = self->vtp->connect (sock)) < 0)
 		return -1;
 	BUG_ON (self->vtp->setopt (self->sys_fd, TP_NOBLOCK, &on, sizeof (on) ) );
 	self->vtp->setopt (self->sys_fd, TP_SNDBUF, &blen, sizeof (blen) );

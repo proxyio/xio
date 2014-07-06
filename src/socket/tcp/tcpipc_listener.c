@@ -50,7 +50,7 @@ static void request_socks_nonfull (struct sockbase *sb)
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if (! (self->et.events & EPOLLIN) ) {
+	if (!(self->et.events & EPOLLIN)) {
 		self->et.events |= EPOLLIN;
 		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);
 	}
@@ -64,8 +64,8 @@ static int ti_listener_bind (struct sockbase *sb, const char *sock)
 	int sys_fd, on = 1;
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	BUG_ON (! (self->vtp = transport_lookup (sb->vfptr->pf) ) );
-	if ( (sys_fd = self->vtp->bind (sock) ) < 0)
+	self->vtp = tp_get (sb->vfptr->pf);
+	if ((sys_fd = self->vtp->bind (sock)) < 0)
 		return -1;
 	strncpy (sb->addr, sock, TP_SOCKADDRLEN);
 	self->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on) );
