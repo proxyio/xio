@@ -50,8 +50,6 @@ typedef int (*tp_getopt) (int fd, void *optval, int *optlen);
 struct transport {
 	const char *name;
 	int proto;
-	void (*init)     (void);
-	void (*exit)     (void);
 	void (*close)    (int fd);
 	int  (*bind)     (const char *sock);
 	int  (*accept)   (int fd);

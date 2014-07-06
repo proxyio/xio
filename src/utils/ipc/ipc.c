@@ -173,8 +173,6 @@ int ipc_peername (int fd, char *peer, int size)
 static struct transport ipc_ops = {
 	.name = "ipc",
 	.proto = TP_IPC,
-	.init = 0,
-	.exit = 0,
 	.close = ipc_close,
 	.bind = ipc_bind,
 	.accept = ipc_accept,

@@ -256,8 +256,6 @@ int tcp_peername (int fd, char *peer, int size)
 static struct transport tcp_ops = {
 	.name = "tcp",
 	.proto = TP_TCP,
-	.init = 0,
-	.exit = 0,
 	.close = tcp_close,
 	.bind = tcp_bind,
 	.accept = tcp_accept,

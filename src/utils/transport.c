@@ -32,36 +32,23 @@ static struct list_head transport_head = {};
 extern struct transport *tcp_vfptr;
 extern struct transport *ipc_vfptr;
 
-#define walk_transpotr_vfptr_s(tp_vfptr)				\
-    walk_each_entry(tp_vfptr, &transport_head, struct transport, item)
-
 void transport_module_init()
 {
 	INIT_LIST_HEAD (&transport_head);
 	list_add (&tcp_vfptr->item, &transport_head);
-	if (tcp_vfptr->init)
-		tcp_vfptr->init();
 	list_add (&ipc_vfptr->item, &transport_head);
-	if (ipc_vfptr->init)
-		ipc_vfptr->init();
 }
 
 void transport_module_exit()
 {
-	struct transport *tp_vfptr;
-
-	walk_transpotr_vfptr_s (tp_vfptr) {
-		if (tp_vfptr->exit)
-			tp_vfptr->exit();
-	}
 }
 
 struct transport *tp_get (int pf) {
-	struct transport *tp = 0;
+	struct transport *tp_vfptr = 0;
 
-	walk_transpotr_vfptr_s (tp) {
-		if (tp->proto == pf)
-			return tp;
+	walk_each_entry(tp_vfptr, &transport_head, struct transport, item) {
+		if (tp_vfptr->proto == pf)
+			return tp_vfptr;
 	}
 	return 0;
 }
