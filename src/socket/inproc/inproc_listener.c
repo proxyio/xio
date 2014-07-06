@@ -131,7 +131,7 @@ static void inp_listener_close (struct sockbase *sb)
 
 struct sockbase_vfptr inp_listener_spec = {
 	.type = XLISTENER,
-	.pf = XPF_INPROC,
+	.pf = TP_INPROC,
 	.alloc = inp_alloc,
 	.bind = inp_listener_bind,
 	.close = inp_listener_close,

@@ -120,11 +120,6 @@ void socket_module_init()
 	int i;
 	struct list_head *protocol_head = &xgb.sockbase_vfptr_head;
 
-	BUG_ON (TP_TCP != XPF_TCP);
-	BUG_ON (TP_IPC != XPF_IPC);
-	BUG_ON (TP_INPROC != XPF_INPROC);
-
-
 	xgb.exiting = false;
 	mutex_init (&xgb.lock);
 

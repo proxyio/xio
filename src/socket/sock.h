@@ -174,6 +174,13 @@ int acceptq_add (struct sockbase *sb, struct sockbase *new);
 int acceptq_rm (struct sockbase *sb, struct sockbase **new);
 int acceptq_rm_nohup (struct sockbase *sb, struct sockbase **new);
 
+/* Following socktype are provided */
+#define XLISTENER       1
+#define XCONNECTOR      2
+
+int xsocket (int pf, int socktype);
+int xbind (int fd, const char *sockaddr);
+
 
 static inline int add_pollbase (int fd, struct pollbase *pb)
 {

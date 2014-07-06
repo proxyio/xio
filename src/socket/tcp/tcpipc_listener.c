@@ -177,7 +177,7 @@ extern struct sockbase *ti_alloc();
 
 struct sockbase_vfptr tcp_listener_spec = {
 	.type = XLISTENER,
-	.pf = XPF_TCP,
+	.pf = TP_TCP,
 	.alloc = ti_alloc,
 	.bind = ti_listener_bind,
 	.close = ti_listener_close,
@@ -188,7 +188,7 @@ struct sockbase_vfptr tcp_listener_spec = {
 
 struct sockbase_vfptr ipc_listener_spec = {
 	.type = XLISTENER,
-	.pf = XPF_IPC,
+	.pf = TP_IPC,
 	.alloc = ti_alloc,
 	.bind = ti_listener_bind,
 	.close = ti_listener_close,

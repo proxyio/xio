@@ -28,19 +28,6 @@
 #include <xio/cmsghdr.h>
 
 
-/* Following address family are provided */
-#define XPF_TCP        1
-#define XPF_IPC        2
-#define XPF_INPROC     4
-#define XPF_MIX        8
-
-/* Following socktype are provided */
-#define XLISTENER       1
-#define XCONNECTOR      2
-
-int xsocket (int pf, int socktype);
-int xbind (int fd, const char *sockaddr);
-
 #define XSOCKADDRLEN 128
 int xlisten (const char *sockaddr);
 int xaccept (int fd);

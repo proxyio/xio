@@ -185,7 +185,7 @@ static void inp_connector_notify (struct sockbase *sb, int type, u32 events)
 
 struct sockbase_vfptr inp_connector_spec = {
 	.type = XCONNECTOR,
-	.pf = XPF_INPROC,
+	.pf = TP_INPROC,
 	.alloc = inp_alloc,
 	.bind = inp_connector_bind,
 	.close = inp_connector_close,

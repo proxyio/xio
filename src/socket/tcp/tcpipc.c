@@ -424,7 +424,7 @@ int ti_connector_hndl (eloop_t *el, ev_t *et)
 
 struct sockbase_vfptr tcp_connector_spec = {
 	.type = XCONNECTOR,
-	.pf = XPF_TCP,
+	.pf = TP_TCP,
 	.alloc = ti_alloc,
 	.bind = ti_connector_bind,
 	.close = ti_connector_close,
@@ -435,7 +435,7 @@ struct sockbase_vfptr tcp_connector_spec = {
 
 struct sockbase_vfptr ipc_connector_spec = {
 	.type = XCONNECTOR,
-	.pf = XPF_IPC,
+	.pf = TP_IPC,
 	.alloc = ti_alloc,
 	.bind = ti_connector_bind,
 	.close = ti_connector_close,

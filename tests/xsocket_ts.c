@@ -227,15 +227,6 @@ static void inproc_server_thread2()
 
 static void xexp_test()
 {
-	int i;
-	int fd1 = xsocket (XPF_INPROC, XCONNECTOR);
-	int fd2 = xsocket (XPF_INPROC, XCONNECTOR);
-	BUG_ON (xbind (fd1, "inproc://a_inproc") == 0);
-	xclose (fd1);
-	BUG_ON (xbind (fd2, "inproc://a_inproc") == 0);
-	for (i = 0; i < 100; i++) {
-		xclose (fd2);
-	}
 	inproc_server_thread2();
 }
 
