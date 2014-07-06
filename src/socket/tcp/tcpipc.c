@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include "../global.h"
-#include "../sock.h"
 
 static i64 ti_connector_read (struct io *ops, char *buff, i64 sz)
 {

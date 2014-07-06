@@ -36,7 +36,7 @@ XIO_SOCKET = \
 	src/socket/xconnect.c \
 	src/socket/tcp/tcpipc_listener.c \
 	src/socket/tcp/tcpipc.c \
-	src/socket/sock.c \
+	src/socket/sockbase.c \
 	src/socket/xgetsockopt.c \
 	src/socket/skbuf.c \
 	src/socket/inproc/inproc.c \
