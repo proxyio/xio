@@ -36,18 +36,18 @@ static int snd_head_push (struct sockbase *sb)
 	int rc = 0;
 	int can = false;
 	struct msgbuf *msg;
-	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base) )->peer;
+	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base))->peer;
 
 	/* TODO: maybe the peer sock can't recv anymore after the check. */
 	mutex_unlock (&sb->lock);
 
 	mutex_lock (&peer->lock);
-	if (msgbuf_can_in (&peer->rcv) )
+	if (msgbuf_can_in (&peer->rcv))
 		can = true;
 	mutex_unlock (&peer->lock);
 	if (!can)
 		return -1;
-	if ( (msg = snd_msgbuf_head_rm (sb) ) )
+	if ((msg = snd_msgbuf_head_rm (sb)))
 		rcv_msgbuf_head_add (peer, msg);
 	mutex_lock (&sb->lock);
 	return rc;
@@ -66,16 +66,18 @@ static int rcv_head_pop (struct sockbase *sb)
 }
 
 
-static struct sockbase *inp_alloc() {
+static struct sockbase *inp_alloc () {
+	struct sockbase *sb;
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
-	if (self) {
-		sockbase_init (&self->base);
-		atomic_init (&self->ref);
-		atomic_incr (&self->ref);
-		return &self->base;
-	}
-	return 0;
+	if (!self)
+		return 0;
+	sockbase_init (&self->base);
+	atomic_init (&self->ref);
+	atomic_incr (&self->ref);
+	efd_init (&self->efd);
+	sb = &self->base;
+	return sb;
 }
 
 
@@ -95,7 +97,7 @@ static int inp_connector_bind (struct sockbase *sb, const char *sock)
 		errno = ECONNREFUSED;
 		return -1;
 	}
-	if ( (nfd = xalloc (sb->vfptr->pf, sb->vfptr->type) ) < 0) {
+	if ((nfd = xalloc (sb->vfptr->pf, sb->vfptr->type)) < 0) {
 		errno = EMFILE;
 		xput (listener->fd);
 		return -1;
@@ -135,7 +137,7 @@ static void inp_peer_close (struct inproc_sock *peer)
 	if (atomic_decr (&peer->ref) == 1) {
 		sockbase_exit (&peer->base);
 		atomic_destroy (&peer->ref);
-		mem_free (peer, sizeof (*peer) );
+		mem_free (peer, sizeof (*peer));
 	}
 }
 
@@ -152,7 +154,7 @@ static void inp_connector_close (struct sockbase *sb)
 	if (atomic_decr (&self->ref) == 1) {
 		sockbase_exit (&self->base);
 		atomic_destroy (&self->ref);
-		mem_free (self, sizeof (*self) );
+		mem_free (self, sizeof (*self));
 	}
 }
 

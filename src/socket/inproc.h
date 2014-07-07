@@ -28,6 +28,8 @@
 struct inproc_sock {
 	struct sockbase base;
 	atomic_t ref;
+	ev_t et;
+	struct efd efd;
 
 	/* the listener_head's entry of inproc-listener */
 	struct str_rbe lhentry;
