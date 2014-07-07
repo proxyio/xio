@@ -37,14 +37,14 @@ int xsocket (int pf, int socktype)
 int xbind (int fd, const char *addr)
 {
 	int rc;
-	struct sockbase *self = xget (fd);
+	struct sockbase *sb = xget (fd);
 
-	if (!self) {
+	if (!sb) {
 		errno = EBADF;
 		return -1;
 	}
-	BUG_ON (!self->vfptr);
-	rc = self->vfptr->bind (self, addr);
+	BUG_ON (!sb->vfptr);
+	rc = sb->vfptr->bind (sb, addr);
 	xput (fd);
 	return rc;
 }
