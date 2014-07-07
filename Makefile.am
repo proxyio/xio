@@ -78,7 +78,7 @@ XIO_UTILS = \
 	src/utils/ipc/ipc_setopt.c \
 	src/utils/ipc/ipc.c \
 	src/utils/timer.c \
-	src/utils/rb_str.c \
+	src/utils/str_rb.c \
 	src/utils/condition.c \
 	src/utils/taskpool.c \
 	src/utils/mutex.c \

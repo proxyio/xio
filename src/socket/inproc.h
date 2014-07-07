@@ -29,8 +29,8 @@ struct inproc_sock {
 	struct sockbase base;
 	atomic_t ref;
 
-	/* For inproc-listener */
-	struct rb_str_node rb_link;
+	/* the listener_head's entry of inproc-listener */
+	struct str_rbe lhentry;
 
 	/* For inproc-connector and inproc-accepter */
 	struct sockbase *peer;

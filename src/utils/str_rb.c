@@ -20,47 +20,47 @@
   IN THE SOFTWARE.
 */
 
-#include "rb_str.h"
+#include "str_rb.h"
 
-struct rb_str_node *rb_str_min (struct rb_str *map)
+struct str_rbe *str_rb_min (struct str_rb *map)
 {
 	struct rb_root *root = &map->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
-	struct rb_str_node *_min = NULL;
+	struct str_rbe *_min = NULL;
 
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_left;
-		_min = rb_entry (parent, struct rb_str_node, rb);
+		_min = rb_entry (parent, struct str_rbe, rb);
 	}
 	return _min;
 }
 
 
-struct rb_str_node *rb_str_max (struct rb_str *map)
+struct str_rbe *str_rb_max (struct str_rb *map)
 {
 	struct rb_root *root = &map->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
-	struct rb_str_node *_max = NULL;
+	struct str_rbe *_max = NULL;
 
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_right;
-		_max = rb_entry (parent, struct rb_str_node, rb);
+		_max = rb_entry (parent, struct str_rbe, rb);
 	}
 	return _max;
 }
 
-struct rb_str_node *rb_str_find (struct rb_str *map, const char *key, int size)
+struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size)
 {
-	struct rb_str_node *cur;
+	struct str_rbe *cur;
 	struct rb_root *root = &map->root;
 	struct rb_node **np = &root->rb_node, *parent = NULL;
 	int keylen = size, rc;
 
 	while (*np) {
 		parent = *np;
-		cur = rb_entry (parent, struct rb_str_node, rb);
+		cur = rb_entry (parent, struct str_rbe, rb);
 		keylen = cur->keylen > size ? size : cur->keylen;
 		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && size == cur->keylen)
 			return cur;
@@ -72,34 +72,34 @@ struct rb_str_node *rb_str_find (struct rb_str *map, const char *key, int size)
 	return NULL;
 }
 
-int rb_str_insert (struct rb_str *map, struct rb_str_node *node)
+int str_rb_insert (struct str_rb *map, struct str_rbe *entry)
 {
-	struct rb_str_node *cur;
+	struct str_rbe *cur;
 	struct rb_root *root = &map->root;
 	struct rb_node **np = &root->rb_node, *parent = NULL;
 	int keylen, rc;
-	char *key = node->key;
+	char *key = entry->key;
 
 	map->size++;
 	while (*np) {
 		parent = *np;
-		cur = rb_entry (parent, struct rb_str_node, rb);
-		keylen = cur->keylen > node->keylen ? node->keylen : cur->keylen;
-		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && node->keylen == cur->keylen)
+		cur = rb_entry (parent, struct str_rbe, rb);
+		keylen = cur->keylen > entry->keylen ? entry->keylen : cur->keylen;
+		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && entry->keylen == cur->keylen)
 			return -1;
-		if ( (!rc && node->keylen < cur->keylen) || rc > 0)
+		if ( (!rc && entry->keylen < cur->keylen) || rc > 0)
 			np = &parent->rb_left;
-		else if ( (!rc && node->keylen > cur->keylen) || rc < 0)
+		else if ( (!rc && entry->keylen > cur->keylen) || rc < 0)
 			np = &parent->rb_right;
 	}
-	rb_link_node (&node->rb, parent, np);
-	rb_insert_color (&node->rb, root);
+	rb_link_node (&entry->rb, parent, np);
+	rb_insert_color (&entry->rb, root);
 	return 0;
 }
 
 
-void rb_str_delete (struct rb_str *map, struct rb_str_node *node)
+void str_rb_delete (struct str_rb *map, struct str_rbe *entry)
 {
 	map->size--;
-	rb_erase (&node->rb, &map->root);
+	rb_erase (&entry->rb, &map->root);
 }

@@ -20,41 +20,41 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_RB_STR_
-#define _H_PROXYIO_RB_STR_
+#ifndef _H_PROXYIO_STR_RB_
+#define _H_PROXYIO_STR_RB_
 
 #include "krb.h"
 #include <inttypes.h>
 #include <string.h>
 
-struct rb_str_node {
+struct str_rbe {
 	struct rb_node  rb;
 	int             keylen;
 	char            *key;
 	void            *data;
 };
 
-struct rb_str {
+struct str_rb {
 	int64_t size;
 	struct rb_root root;
 };
 
-#define rb_str_init(map)	do {		\
+#define str_rb_init(map)	do {		\
 		INIT_RB_ROOT(&(map)->root);	\
 		(map)->size = 0;		\
 	} while (0)
 
-#define rb_str_empty(map) RB_EMPTY_ROOT(&(map)->root)
+#define str_rb_empty(map) RB_EMPTY_ROOT(&(map)->root)
 
-struct rb_str_node *rb_str_min (struct rb_str *map);
+struct str_rbe *str_rb_min (struct str_rb *map);
 
-struct rb_str_node *rb_str_max (struct rb_str *map);
+struct str_rbe *str_rb_max (struct str_rb *map);
 
-struct rb_str_node *rb_str_find (struct rb_str *map, const char *key, int size);
+struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size);
 
-int rb_str_insert (struct rb_str *map, struct rb_str_node *node);
+int str_rb_insert (struct str_rb *map, struct str_rbe *entry);
 
-void rb_str_delete (struct rb_str *map, struct rb_str_node *node);
+void str_rb_delete (struct str_rb *map, struct str_rbe *entry);
 
 
 #endif

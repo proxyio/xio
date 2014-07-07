@@ -24,7 +24,7 @@
 #define _H_PROXYIO_SOCKBASE_
 
 #include <utils/base.h>
-#include <utils/rb_str.h>
+#include <utils/str_rb.h>
 #include <utils/eventloop.h>
 #include <utils/bufio.h>
 #include <utils/alloc.h>

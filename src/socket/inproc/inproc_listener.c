@@ -33,14 +33,14 @@
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
 	u32 size = strlen (addr);
-	struct rb_str_node *node;
+	struct str_rbe *entry;
 	struct sockbase *sb = 0;
 
 	if (size > TP_SOCKADDRLEN)
 		size = TP_SOCKADDRLEN;
 	xglobal_lock();
-	if ( (node = rb_str_find (&xgb.inproc_listeners, addr, size) ) ) {
-		sb = & (cont_of (node, struct inproc_sock, rb_link) )->base;
+	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, size))) {
+		sb = & (cont_of (entry, struct inproc_sock, lhentry) )->base;
 		mutex_lock (&sb->lock);
 		if (!sb->fepipe) {
 			refed = true;
@@ -54,25 +54,25 @@ struct sockbase *getlistener (const char *addr) {
 	return sb;
 }
 
-static int addlistener (struct rb_str_node *node)
+static int addlistener (struct str_rbe *entry)
 {
 	int rc = -1;
 
 	xglobal_lock();
-	if (!rb_str_find (&xgb.inproc_listeners, node->key, node->keylen) ) {
+	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen) ) {
 		rc = 0;
-		DEBUG_OFF ("add listener %s", node->key);
-		rb_str_insert (&xgb.inproc_listeners, node);
+		DEBUG_OFF ("add listener %s", entry->key);
+		str_rb_insert (&xgb.inproc_listeners, entry);
 	}
 	xglobal_unlock();
 	return rc;
 }
 
 
-static void rmlistener (struct rb_str_node *node)
+static void rmlistener (struct str_rbe *entry)
 {
 	xglobal_lock();
-	rb_str_delete (&xgb.inproc_listeners, node);
+	str_rb_delete (&xgb.inproc_listeners, entry);
 	xglobal_unlock();
 }
 
@@ -91,14 +91,14 @@ static struct sockbase *inp_alloc() {
 
 static int inp_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct rb_str_node *node = 0;
+	struct str_rbe *entry = 0;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
 	strncpy (sb->addr, sock, TP_SOCKADDRLEN);
-	node = &self->rb_link;
-	node->key = sb->addr;
-	node->keylen = strlen (sb->addr);
-	if (addlistener (node) ) {
+	entry = &self->lhentry;
+	entry->key = sb->addr;
+	entry->keylen = strlen (sb->addr);
+	if (addlistener (entry)) {
 		errno = EADDRINUSE;
 		return -1;
 	}
@@ -111,7 +111,7 @@ static void inp_listener_close (struct sockbase *sb)
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
 	/* Avoiding the new connectors and remove listen file */
-	rmlistener (&self->rb_link);
+	rmlistener (&self->lhentry);
 
 	/* we remove the file here because of Unix domain socket doesn't unlink
 	 * the file when socket closed. and don't support getsockname ()
