@@ -161,7 +161,7 @@ static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 	self->vtp->setopt (self->sys_fd, TP_SNDBUF, &blen, sizeof (blen) );
 	self->vtp->setopt (self->sys_fd, TP_RCVBUF, &blen, sizeof (blen) );
 
-	strncpy (sb->peer, sock, TP_SOCKADDRLEN);
+	strcpy (sb->peer, sock);
 	self->ops = default_xops;
 	self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
 	self->et.fd = self->sys_fd;

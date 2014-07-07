@@ -32,14 +32,11 @@
 
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
-	u32 size = strlen (addr);
 	struct str_rbe *entry;
 	struct sockbase *sb = 0;
 
-	if (size > TP_SOCKADDRLEN)
-		size = TP_SOCKADDRLEN;
 	xglobal_lock();
-	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, size))) {
+	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, strlen (addr)))) {
 		sb = & (cont_of (entry, struct inproc_sock, lhentry) )->base;
 		mutex_lock (&sb->lock);
 		if (!sb->fepipe) {
@@ -94,7 +91,7 @@ static int inproc_listener_bind (struct sockbase *sb, const char *sock)
 	struct str_rbe *entry = 0;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
-	strncpy (sb->addr, sock, TP_SOCKADDRLEN);
+	strcpy (sb->addr, sock);
 	entry = &self->lhentry;
 	entry->key = sb->addr;
 	entry->keylen = strlen (sb->addr);

@@ -67,7 +67,7 @@ static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 	self->vtp = tp_get (sb->vfptr->pf);
 	if ((sys_fd = self->vtp->bind (sock)) < 0)
 		return -1;
-	strncpy (sb->addr, sock, TP_SOCKADDRLEN);
+	strcpy (sb->addr, sock);
 	self->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on) );
 
 	self->sys_fd = sys_fd;

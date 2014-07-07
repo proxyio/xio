@@ -116,8 +116,8 @@ static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 	self = cont_of (sb, struct inproc_sock, base);
 	peer = cont_of (nsb, struct inproc_sock, base);
 	nsb->vfptr = sb->vfptr;
-	strncpy (sb->peer, sock, TP_SOCKADDRLEN);
-	strncpy (nsb->addr, sock, TP_SOCKADDRLEN);
+	strcpy (sb->peer, sock);
+	strcpy (nsb->addr, sock);
 
 	atomic_incr (&self->ref);
 	atomic_incr (&peer->ref);

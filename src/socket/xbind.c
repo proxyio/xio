@@ -43,6 +43,11 @@ int xbind (int fd, const char *addr)
 		errno = EBADF;
 		return -1;
 	}
+	if (strlen (addr) >= TP_SOCKADDRLEN) {
+		xput (fd);
+		errno = EINVAL;
+		return -1;
+	}
 	BUG_ON (!sb->vfptr);
 	rc = sb->vfptr->bind (sb, addr);
 	xput (fd);
