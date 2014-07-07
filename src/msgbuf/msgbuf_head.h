@@ -73,5 +73,23 @@ static inline void msgbuf_dequeue_all (struct msgbuf_head *bh, struct list_head 
 	list_splice (&bh->head, head);
 }
 
+static inline int msgbuf_head_has_waiters (struct msgbuf_head *bh)
+{
+	return bh->waiters > 0;
+}
+
+static inline void msgbuf_head_incr_waiters (struct msgbuf_head *bh)
+{
+	bh->waiters++;
+}
+
+static inline void msgbuf_head_decr_waiters (struct msgbuf_head *bh)
+{
+	bh->waiters--;
+}
+
+
+
+
 
 #endif

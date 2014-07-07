@@ -28,7 +28,7 @@
 #include <utils/taskpool.h>
 #include "global.h"
 
-struct msgbuf *sendq_rm (struct sockbase *sb) {
+struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
 	int rc;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct msgbuf *msg = 0;
@@ -57,7 +57,7 @@ struct msgbuf *sendq_rm (struct sockbase *sb) {
 	return msg;
 }
 
-int sendq_add (struct sockbase *sb, struct msgbuf *msg)
+int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
@@ -104,7 +104,7 @@ int xsend (int fd, char *ubuf)
 		return -1;
 	}
 	msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	if ( (rc = sendq_add (sb, msg) ) < 0) {
+	if ( (rc = snd_msgbuf_head_add (sb, msg) ) < 0) {
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 	}
 	xput (fd);

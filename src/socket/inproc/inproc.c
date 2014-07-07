@@ -47,8 +47,8 @@ static int snd_head_push (struct sockbase *sb)
 	mutex_unlock (&peer->lock);
 	if (!can)
 		return -1;
-	if ( (msg = sendq_rm (sb) ) )
-		recvq_add (peer, msg);
+	if ( (msg = snd_msgbuf_head_rm (sb) ) )
+		rcv_msgbuf_head_add (peer, msg);
 	mutex_lock (&sb->lock);
 	return rc;
 }

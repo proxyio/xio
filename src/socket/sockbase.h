@@ -143,11 +143,11 @@ void xput (int fd);
 void sockbase_init (struct sockbase *sb);
 void sockbase_exit (struct sockbase *sb);
 
-int recvq_add (struct sockbase *sb, struct msgbuf *msg);
-struct msgbuf *recvq_rm (struct sockbase *sb);
+int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg);
+struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb);
 
-int sendq_add (struct sockbase *sb, struct msgbuf *msg);
-struct msgbuf *sendq_rm (struct sockbase *sb);
+int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg);
+struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb);
 
 
 int acceptq_add (struct sockbase *sb, struct sockbase *new);

@@ -28,7 +28,7 @@
 #include <utils/taskpool.h>
 #include "global.h"
 
-struct msgbuf *recvq_rm (struct sockbase *sb) {
+struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
 	int rc;
 	struct msgbuf *msg = 0;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
@@ -60,7 +60,7 @@ struct msgbuf *recvq_rm (struct sockbase *sb) {
 	return msg;
 }
 
-int recvq_add (struct sockbase *sb, struct msgbuf *msg)
+int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	u32 events = 0;
@@ -101,7 +101,7 @@ int xrecv (int fd, char **ubuf)
 		errno = EBADF;
 		return -1;
 	}
-	if (! (msg = recvq_rm (sb) ) ) {
+	if (! (msg = rcv_msgbuf_head_rm (sb) ) ) {
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 		rc = -1;
 	} else {
