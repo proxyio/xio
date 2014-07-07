@@ -93,6 +93,7 @@ struct sockbase_vfptr {
 	int pf;
 	struct sockbase * (*alloc) ();
 	void  (*close)  (struct sockbase *sb);
+	int   (*send)   (struct sockbase *sb, char *ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
 	void  (*notify) (struct sockbase *sb, int type, u32 events);
 	int   (*setopt) (struct sockbase *sb, int level, int opt, void *optval,

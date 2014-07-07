@@ -92,21 +92,19 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 int xsend (int fd, char *ubuf)
 {
 	int rc = 0;
-	struct msgbuf *msg = 0;
 	struct sockbase *sb;
 
-	if (!ubuf) {
-		errno = EINVAL;
-		return -1;
-	}
-	if (! (sb = xget (fd) ) ) {
+	BUG_ON (!ubuf);
+	if (!(sb = xget (fd))) {
 		errno = EBADF;
 		return -1;
 	}
-	msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	if ( (rc = snd_msgbuf_head_add (sb, msg) ) < 0) {
-		errno = sb->fepipe ? EPIPE : EAGAIN;
+	if (!sb->vfptr->send) {
+		xput (fd);
+		errno = EINVAL;
+		return -1;
 	}
+	rc = sb->vfptr->send (sb, ubuf);
 	xput (fd);
 	return rc;
 }

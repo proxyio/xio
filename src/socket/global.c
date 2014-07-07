@@ -142,8 +142,8 @@ void socket_module_init()
 
 	/* The priority of sockbase_vfptr: inproc > ipc > tcp */
 	INIT_LIST_HEAD (protocol_head);
-	list_add_tail (&inp_listener_spec.link, protocol_head);
-	list_add_tail (&inp_connector_spec.link, protocol_head);
+	list_add_tail (&inproc_listener_spec.link, protocol_head);
+	list_add_tail (&inproc_connector_spec.link, protocol_head);
 	list_add_tail (&ipc_listener_spec.link, protocol_head);
 	list_add_tail (&ipc_connector_spec.link, protocol_head);
 	list_add_tail (&tcp_listener_spec.link, protocol_head);

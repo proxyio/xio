@@ -66,7 +66,8 @@ static int rcv_head_pop (struct sockbase *sb)
 }
 
 
-static struct sockbase *inp_alloc () {
+static struct sockbase *inproc_alloc ()
+{
 	struct sockbase *sb;
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
@@ -80,12 +81,21 @@ static struct sockbase *inp_alloc () {
 	return sb;
 }
 
+static int inproc_send (struct sockbase *sb, char *ubuf)
+{
+	int rc;
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+
+	if ((rc = snd_msgbuf_head_add (sb, msg)) < 0)
+		errno = sb->fepipe ? EPIPE : EAGAIN;
+	return rc;
+}
 
 
 /* sock_inproc_spec
  */
 
-static int inp_connector_bind (struct sockbase *sb, const char *sock)
+static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 {
 	int nfd = 0;
 	struct sockbase *nsb = 0;
@@ -126,7 +136,7 @@ static int inp_connector_bind (struct sockbase *sb, const char *sock)
 	return 0;
 }
 
-static void inp_peer_close (struct inproc_sock *peer)
+static void inproc_peer_close (struct inproc_sock *peer)
 {
 	/* Destroy the sock and free sock id if i hold the last ref. */
 	mutex_lock (&peer->base.lock);
@@ -141,7 +151,7 @@ static void inp_peer_close (struct inproc_sock *peer)
 	}
 }
 
-static void inp_connector_close (struct sockbase *sb)
+static void inproc_connector_close (struct sockbase *sb)
 {
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 	struct inproc_sock *peer = 0;
@@ -149,7 +159,7 @@ static void inp_connector_close (struct sockbase *sb)
 	/* TODO: bug on here */
 	if (self->peer) {
 		peer = cont_of (self->peer, struct inproc_sock, base);
-		inp_peer_close (peer);
+		inproc_peer_close (peer);
 	}
 	if (atomic_decr (&self->ref) == 1) {
 		sockbase_exit (&self->base);
@@ -171,7 +181,7 @@ static void rcv_head_notify (struct sockbase *sb, u32 events)
 		rcv_head_pop (sb);
 }
 
-static void inp_connector_notify (struct sockbase *sb, int type, u32 events)
+static void inproc_connector_notify (struct sockbase *sb, int type, u32 events)
 {
 	switch (type) {
 	case RECV_Q:
@@ -185,13 +195,14 @@ static void inp_connector_notify (struct sockbase *sb, int type, u32 events)
 	}
 }
 
-struct sockbase_vfptr inp_connector_spec = {
+struct sockbase_vfptr inproc_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = TP_INPROC,
-	.alloc = inp_alloc,
-	.bind = inp_connector_bind,
-	.close = inp_connector_close,
-	.notify = inp_connector_notify,
+	.alloc = inproc_alloc,
+	.send = inproc_send,
+	.bind = inproc_connector_bind,
+	.close = inproc_connector_close,
+	.notify = inproc_connector_notify,
 	.getopt = 0,
 	.setopt = 0,
 };

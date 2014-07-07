@@ -31,7 +31,7 @@ static void xclient (const char *pf)
 			memcpy (oob, buf, nbytes);
 
 			ubufctl_add (xbuf, oob);
-			BUG_ON (xsend (sfd, xbuf) );
+			BUG_ON (xsend (sfd, xbuf));
 			DEBUG_OFF ("%d send request %d", sfd, j);
 		}
 		for (j = 0; j < 10; j++) {

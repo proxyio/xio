@@ -79,7 +79,7 @@ static void rmlistener (struct str_rbe *entry)
 /* sock_inproc_spec
  */
 
-static struct sockbase *inp_alloc() {
+static struct sockbase *inproc_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
 	if (self) {
@@ -89,7 +89,7 @@ static struct sockbase *inp_alloc() {
 	return 0;
 }
 
-static int inp_listener_bind (struct sockbase *sb, const char *sock)
+static int inproc_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct str_rbe *entry = 0;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
@@ -105,7 +105,7 @@ static int inp_listener_bind (struct sockbase *sb, const char *sock)
 	return 0;
 }
 
-static void inp_listener_close (struct sockbase *sb)
+static void inproc_listener_close (struct sockbase *sb)
 {
 	struct sockbase *nsb;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
@@ -129,12 +129,13 @@ static void inp_listener_close (struct sockbase *sb)
 	mem_free (self, sizeof (*self) );
 }
 
-struct sockbase_vfptr inp_listener_spec = {
+struct sockbase_vfptr inproc_listener_spec = {
 	.type = XLISTENER,
 	.pf = TP_INPROC,
-	.alloc = inp_alloc,
-	.bind = inp_listener_bind,
-	.close = inp_listener_close,
+	.alloc = inproc_alloc,
+	.send = 0,
+	.bind = inproc_listener_bind,
+	.close = inproc_listener_close,
 	.notify = 0,
 	.getopt = 0,
 	.setopt = 0,

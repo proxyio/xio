@@ -27,7 +27,7 @@
 #include <utils/taskpool.h>
 #include "../global.h"
 
-static i64 ti_connector_read (struct io *ops, char *buff, i64 sz)
+static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
 {
 	struct tcpipc_sock *self = cont_of (ops, struct tcpipc_sock, ops);
 	struct transport *vtp = self->vtp;
@@ -37,7 +37,7 @@ static i64 ti_connector_read (struct io *ops, char *buff, i64 sz)
 	return rc;
 }
 
-static i64 ti_connector_write (struct io *ops, char *buff, i64 sz)
+static i64 tcp_connector_write (struct io *ops, char *buff, i64 sz)
 {
 	struct tcpipc_sock *self = cont_of (ops, struct tcpipc_sock, ops);
 	struct transport *vtp = self->vtp;
@@ -48,8 +48,8 @@ static i64 ti_connector_write (struct io *ops, char *buff, i64 sz)
 }
 
 struct io default_xops = {
-	.read = ti_connector_read,
-	.write = ti_connector_write,
+	.read = tcp_connector_read,
+	.write = tcp_connector_write,
 };
 
 
@@ -121,22 +121,32 @@ static void rcv_head_nonfull (struct sockbase *sb)
 	}
 }
 
-int ti_connector_hndl (eloop_t *el, ev_t *et);
+int tcp_connector_hndl (eloop_t *el, ev_t *et);
 
-struct sockbase *ti_alloc() {
+struct sockbase *tcp_alloc()
+{
 	struct tcpipc_sock *self = TNEW (struct tcpipc_sock);
 
-	if (self) {
-		sockbase_init (&self->base);
-		bio_init (&self->in);
-		bio_init (&self->out);
-		INIT_LIST_HEAD (&self->sg_head);
-		return &self->base;
-	}
-	return 0;
+	if (!self)
+		return 0;
+	sockbase_init (&self->base);
+	bio_init (&self->in);
+	bio_init (&self->out);
+	INIT_LIST_HEAD (&self->sg_head);
+	return &self->base;
 }
 
-static int ti_connector_bind (struct sockbase *sb, const char *sock)
+static int tcp_send (struct sockbase *sb, char *ubuf)
+{
+	int rc;
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+
+	if ((rc = snd_msgbuf_head_add (sb, msg)) < 0)
+		errno = sb->fepipe ? EPIPE : EAGAIN;
+	return rc;
+}
+
+static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
@@ -155,15 +165,15 @@ static int ti_connector_bind (struct sockbase *sb, const char *sock)
 	self->ops = default_xops;
 	self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
 	self->et.fd = self->sys_fd;
-	self->et.f = ti_connector_hndl;
+	self->et.f = tcp_connector_hndl;
 	self->et.data = self;
 	BUG_ON (eloop_add (&cpu->el, &self->et) != 0);
 	return 0;
 }
 
-static int ti_connector_snd (struct sockbase *sb);
+static int tcp_connector_snd (struct sockbase *sb);
 
-static void ti_connector_close (struct sockbase *sb)
+static void tcp_connector_close (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
@@ -171,7 +181,7 @@ static void ti_connector_close (struct sockbase *sb)
 	BUG_ON (!self->vtp);
 
 	/* Try flush buf massage into network before close */
-	ti_connector_snd (sb);
+	tcp_connector_snd (sb);
 
 	/* Detach sock low-level file descriptor from poller */
 	if (self->sys_fd > 0) {
@@ -210,7 +220,7 @@ static void snd_head_notify (struct sockbase *sb, u32 events)
 		snd_head_nonempty (sb);
 }
 
-static void ti_connector_notify (struct sockbase *sb, int type, u32 events)
+static void tcp_connector_notify (struct sockbase *sb, int type, u32 events)
 {
 	switch (type) {
 	case RECV_Q:
@@ -246,7 +256,7 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 	bio_read (b, msgbuf_base (*msg), msgbuf_len (*msg) );
 }
 
-static int ti_connector_rcv (struct sockbase *sb)
+static int tcp_connector_rcv (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc = 0;
@@ -342,7 +352,7 @@ static int sg_send (struct sockbase *sb)
 	return 0;
 }
 
-static int ti_connector_sg (struct sockbase *sb)
+static int tcp_connector_sg (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
@@ -378,21 +388,21 @@ static int ti_connector_sg (struct sockbase *sb)
 	return rc;
 }
 
-static int ti_connector_snd (struct sockbase *sb)
+static int tcp_connector_snd (struct sockbase *sb)
 {
 	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
 	struct msgbuf *msg;
 
 	if (self->vtp->sendmsg)
-		return ti_connector_sg (sb);
+		return tcp_connector_sg (sb);
 	while ( (msg = snd_msgbuf_head_rm (sb) ) )
 		bufio_add (&self->out, msg);
 	rc = bio_flush (&self->out, &self->ops);
 	return rc;
 }
 
-int ti_connector_hndl (eloop_t *el, ev_t *et)
+int tcp_connector_hndl (eloop_t *el, ev_t *et)
 {
 	int rc = 0;
 	struct tcpipc_sock *self = cont_of (et, struct tcpipc_sock, et);
@@ -400,11 +410,11 @@ int ti_connector_hndl (eloop_t *el, ev_t *et)
 
 	if (et->happened & EPOLLIN) {
 		DEBUG_OFF ("io sock %d EPOLLIN", sb->fd);
-		rc = ti_connector_rcv (sb);
+		rc = tcp_connector_rcv (sb);
 	}
 	if (et->happened & EPOLLOUT) {
 		DEBUG_OFF ("io sock %d EPOLLOUT", sb->fd);
-		rc = ti_connector_snd (sb);
+		rc = tcp_connector_snd (sb);
 	}
 	if ( (rc < 0 && errno != EAGAIN) ||
 	     et->happened & (EPOLLERR|EPOLLRDHUP|EPOLLHUP) ) {
@@ -424,10 +434,11 @@ int ti_connector_hndl (eloop_t *el, ev_t *et)
 struct sockbase_vfptr tcp_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = TP_TCP,
-	.alloc = ti_alloc,
-	.bind = ti_connector_bind,
-	.close = ti_connector_close,
-	.notify = ti_connector_notify,
+	.alloc = tcp_alloc,
+	.send = tcp_send,
+	.bind = tcp_connector_bind,
+	.close = tcp_connector_close,
+	.notify = tcp_connector_notify,
 	.setopt = 0,
 	.getopt = 0,
 };
@@ -435,10 +446,11 @@ struct sockbase_vfptr tcp_connector_spec = {
 struct sockbase_vfptr ipc_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = TP_IPC,
-	.alloc = ti_alloc,
-	.bind = ti_connector_bind,
-	.close = ti_connector_close,
-	.notify = ti_connector_notify,
+	.alloc = tcp_alloc,
+	.send = tcp_send,
+	.bind = tcp_connector_bind,
+	.close = tcp_connector_close,
+	.notify = tcp_connector_notify,
 	.setopt = 0,
 	.getopt = 0,
 };
