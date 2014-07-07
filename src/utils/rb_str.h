@@ -20,24 +20,41 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_INPROC_INTERN_
-#define _H_PROXYIO_INPROC_INTERN_
+#ifndef _H_PROXYIO_RB_STR_
+#define _H_PROXYIO_RB_STR_
 
-#include "sockbase.h"
+#include "krb.h"
+#include <inttypes.h>
+#include <string.h>
 
-struct inproc_sock {
-	struct sockbase base;
-	atomic_t ref;
-
-	/* For inproc-listener */
-	struct rb_str_node rb_link;
-
-	/* For inproc-connector and inproc-accepter */
-	struct sockbase *peer;
+struct rb_str_node {
+	struct rb_node  rb;
+	int             keylen;
+	char            *key;
+	void            *data;
 };
 
-extern struct sockbase_vfptr inp_listener_spec;
-extern struct sockbase_vfptr inp_connector_spec;
+struct rb_str {
+	int64_t size;
+	struct rb_root root;
+};
+
+#define rb_str_init(map)	do {		\
+		INIT_RB_ROOT(&(map)->root);	\
+		(map)->size = 0;		\
+	} while (0)
+
+#define rb_str_empty(map) RB_EMPTY_ROOT(&(map)->root)
+
+struct rb_str_node *rb_str_min (struct rb_str *map);
+
+struct rb_str_node *rb_str_max (struct rb_str *map);
+
+struct rb_str_node *rb_str_find (struct rb_str *map, const char *key, int size);
+
+int rb_str_insert (struct rb_str *map, struct rb_str_node *node);
+
+void rb_str_delete (struct rb_str *map, struct rb_str_node *node);
 
 
 #endif

@@ -69,7 +69,7 @@ struct xglobal {
 	struct taskpool tpool;
 
 	/* INPROC global listening address mapping */
-	struct ssmap inproc_listeners;
+	struct rb_str inproc_listeners;
 
 	/* Sockbase_vfptr head */
 	struct list_head sockbase_vfptr_head;

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <utils/base.h>
 #include <utils/skrb.h>
-#include <utils/map.h>
+#include <utils/rb_str.h>
 #include <utils/alloc.h>
 
 #define cnt 1000
@@ -50,10 +50,10 @@ static int skrb_test_single()
 
 static int map_test_single()
 {
-	struct ssmap_node n[5];
-	ssmap_t map;
+	struct rb_str_node n[5];
+	struct rb_str map;
 
-	ssmap_init (&map);
+	rb_str_init (&map);
 	n[0].key = "11111";
 	n[0].keylen = strlen (n[0].key);
 	n[1].key = "11112";
@@ -65,20 +65,20 @@ static int map_test_single()
 	n[4].key = "1111";
 	n[4].keylen = strlen (n[4].key);
 
-	ssmap_insert (&map, &n[0]);
-	ssmap_insert (&map, &n[1]);
-	ssmap_insert (&map, &n[2]);
-	ssmap_insert (&map, &n[3]);
-	ssmap_insert (&map, &n[4]);
+	rb_str_insert (&map, &n[0]);
+	rb_str_insert (&map, &n[1]);
+	rb_str_insert (&map, &n[2]);
+	rb_str_insert (&map, &n[3]);
+	rb_str_insert (&map, &n[4]);
 
-	BUG_ON (ssmap_min (&map) != &n[2]);
-	BUG_ON (ssmap_max (&map) != &n[1]);
+	BUG_ON (rb_str_min (&map) != &n[2]);
+	BUG_ON (rb_str_max (&map) != &n[1]);
 
-	BUG_ON (ssmap_find (&map, n[0].key, n[0].keylen) != &n[0]);
-	BUG_ON (ssmap_find (&map, n[1].key, n[1].keylen) != &n[1]);
-	BUG_ON (ssmap_find (&map, n[2].key, n[2].keylen) != &n[2]);
-	BUG_ON (ssmap_find (&map, n[3].key, n[3].keylen) != &n[3]);
-	BUG_ON (ssmap_find (&map, n[4].key, n[4].keylen) != &n[4]);
+	BUG_ON (rb_str_find (&map, n[0].key, n[0].keylen) != &n[0]);
+	BUG_ON (rb_str_find (&map, n[1].key, n[1].keylen) != &n[1]);
+	BUG_ON (rb_str_find (&map, n[2].key, n[2].keylen) != &n[2]);
+	BUG_ON (rb_str_find (&map, n[3].key, n[3].keylen) != &n[3]);
+	BUG_ON (rb_str_find (&map, n[4].key, n[4].keylen) != &n[4]);
 
 	return 0;
 }

@@ -20,71 +20,47 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_MAP_
-#define _H_PROXYIO_MAP_
+#include "rb_str.h"
 
-#include "krb.h"
-#include <string.h>
-
-typedef struct ssmap_node {
-	struct rb_node  rb;
-	int             keylen;
-	char            *key;
-	void            *data;
-} ssmap_node_t;
-
-typedef struct ssmap {
-	int64_t size;
-	struct rb_root root;
-} ssmap_t;
-
-#define ssmap_init(map)	do {			\
-	INIT_RB_ROOT(&(map)->root);		\
-	(map)->size = 0;			\
-    } while (0)
-
-#define ssmap_empty(map) RB_EMPTY_ROOT(&(map)->root)
-
-
-static inline ssmap_node_t *ssmap_min (ssmap_t *map)
+struct rb_str_node *rb_str_min (struct rb_str *map)
 {
 	struct rb_root *root = &map->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
-	ssmap_node_t *_min = NULL;
+	struct rb_str_node *_min = NULL;
 
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_left;
-		_min = rb_entry (parent, ssmap_node_t, rb);
+		_min = rb_entry (parent, struct rb_str_node, rb);
 	}
 	return _min;
 }
 
 
-static inline ssmap_node_t *ssmap_max (ssmap_t *map)
+struct rb_str_node *rb_str_max (struct rb_str *map)
 {
 	struct rb_root *root = &map->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
-	ssmap_node_t *_max = NULL;
+	struct rb_str_node *_max = NULL;
 
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_right;
-		_max = rb_entry (parent, ssmap_node_t, rb);
+		_max = rb_entry (parent, struct rb_str_node, rb);
 	}
 	return _max;
 }
 
-static inline ssmap_node_t *ssmap_find (ssmap_t *map, const char *key, int size)
+struct rb_str_node *rb_str_find (struct rb_str *map, const char *key, int size)
 {
-	ssmap_node_t *cur;
+	struct rb_str_node *cur;
 	struct rb_root *root = &map->root;
 	struct rb_node **np = &root->rb_node, *parent = NULL;
 	int keylen = size, rc;
 
 	while (*np) {
 		parent = *np;
-		cur = rb_entry (parent, ssmap_node_t, rb);
+		cur = rb_entry (parent, struct rb_str_node, rb);
 		keylen = cur->keylen > size ? size : cur->keylen;
 		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && size == cur->keylen)
 			return cur;
@@ -96,9 +72,9 @@ static inline ssmap_node_t *ssmap_find (ssmap_t *map, const char *key, int size)
 	return NULL;
 }
 
-static inline int ssmap_insert (ssmap_t *map, ssmap_node_t *node)
+int rb_str_insert (struct rb_str *map, struct rb_str_node *node)
 {
-	ssmap_node_t *cur;
+	struct rb_str_node *cur;
 	struct rb_root *root = &map->root;
 	struct rb_node **np = &root->rb_node, *parent = NULL;
 	int keylen, rc;
@@ -107,7 +83,7 @@ static inline int ssmap_insert (ssmap_t *map, ssmap_node_t *node)
 	map->size++;
 	while (*np) {
 		parent = *np;
-		cur = rb_entry (parent, ssmap_node_t, rb);
+		cur = rb_entry (parent, struct rb_str_node, rb);
 		keylen = cur->keylen > node->keylen ? node->keylen : cur->keylen;
 		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && node->keylen == cur->keylen)
 			return -1;
@@ -122,10 +98,8 @@ static inline int ssmap_insert (ssmap_t *map, ssmap_node_t *node)
 }
 
 
-static inline void ssmap_delete (ssmap_t *map, ssmap_node_t *node)
+void rb_str_delete (struct rb_str *map, struct rb_str_node *node)
 {
 	map->size--;
 	rb_erase (&node->rb, &map->root);
 }
-
-#endif

@@ -33,13 +33,13 @@
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
 	u32 size = strlen (addr);
-	struct ssmap_node *node;
+	struct rb_str_node *node;
 	struct sockbase *sb = 0;
 
 	if (size > TP_SOCKADDRLEN)
 		size = TP_SOCKADDRLEN;
 	xglobal_lock();
-	if ( (node = ssmap_find (&xgb.inproc_listeners, addr, size) ) ) {
+	if ( (node = rb_str_find (&xgb.inproc_listeners, addr, size) ) ) {
 		sb = & (cont_of (node, struct inproc_sock, rb_link) )->base;
 		mutex_lock (&sb->lock);
 		if (!sb->fepipe) {
@@ -54,25 +54,25 @@ struct sockbase *getlistener (const char *addr) {
 	return sb;
 }
 
-static int addlistener (struct ssmap_node *node)
+static int addlistener (struct rb_str_node *node)
 {
 	int rc = -1;
 
 	xglobal_lock();
-	if (!ssmap_find (&xgb.inproc_listeners, node->key, node->keylen) ) {
+	if (!rb_str_find (&xgb.inproc_listeners, node->key, node->keylen) ) {
 		rc = 0;
 		DEBUG_OFF ("add listener %s", node->key);
-		ssmap_insert (&xgb.inproc_listeners, node);
+		rb_str_insert (&xgb.inproc_listeners, node);
 	}
 	xglobal_unlock();
 	return rc;
 }
 
 
-static void rmlistener (struct ssmap_node *node)
+static void rmlistener (struct rb_str_node *node)
 {
 	xglobal_lock();
-	ssmap_delete (&xgb.inproc_listeners, node);
+	rb_str_delete (&xgb.inproc_listeners, node);
 	xglobal_unlock();
 }
 
@@ -91,7 +91,7 @@ static struct sockbase *inp_alloc() {
 
 static int inp_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct ssmap_node *node = 0;
+	struct rb_str_node *node = 0;
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 
 	strncpy (sb->addr, sock, TP_SOCKADDRLEN);
