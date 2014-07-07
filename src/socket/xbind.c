@@ -30,8 +30,8 @@
 
 int xsocket (int pf, int socktype)
 {
-	int rc = xalloc (pf, socktype);
-	return rc;
+	int fd = xalloc (pf, socktype);
+	return fd;
 }
 
 int xbind (int fd, const char *addr)
