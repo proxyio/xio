@@ -411,7 +411,7 @@ int tcp_connector_hndl (eloop_t *el, ev_t *et)
 	return rc;
 }
 
-struct sockbase_vfptr tcp_connector_spec = {
+struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_TCP,
 	.alloc = tcp_alloc,

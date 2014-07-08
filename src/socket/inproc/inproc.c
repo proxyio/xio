@@ -82,7 +82,7 @@ static int inproc_send (struct sockbase *sb, char *ubuf)
 }
 
 
-/* sock_inproc_spec
+/* sock_inproc_vfptr
  */
 
 static int inproc_connector_bind (struct sockbase *sb, const char *sock)
@@ -163,7 +163,7 @@ static void inproc_connector_close (struct sockbase *sb)
 	}
 }
 
-struct sockbase_vfptr inproc_connector_spec = {
+struct sockbase_vfptr inproc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_INPROC,
 	.alloc = inproc_alloc,

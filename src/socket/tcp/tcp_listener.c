@@ -118,7 +118,7 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 
 extern struct sockbase *tcp_alloc();
 
-struct sockbase_vfptr tcp_listener_spec = {
+struct sockbase_vfptr tcp_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = TP_TCP,
 	.alloc = tcp_alloc,

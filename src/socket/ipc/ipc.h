@@ -41,7 +41,7 @@ struct ipc_sock {
 	struct transport *vtp;
 };
 
-extern struct sockbase_vfptr ipc_listener_spec;
-extern struct sockbase_vfptr ipc_connector_spec;
+extern struct sockbase_vfptr ipc_listener_vfptr;
+extern struct sockbase_vfptr ipc_connector_vfptr;
 
 #endif

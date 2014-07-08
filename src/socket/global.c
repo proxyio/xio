@@ -110,8 +110,6 @@ struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
 	return 0;
 }
 
-extern struct sockbase_vfptr mix_listener_spec[3];
-
 void socket_module_init()
 {
 	waitgroup_t wg;
@@ -142,16 +140,13 @@ void socket_module_init()
 
 	/* The priority of sockbase_vfptr: inproc > ipc > tcp */
 	INIT_LIST_HEAD (protocol_head);
-	list_add_tail (&inproc_listener_spec.link, protocol_head);
-	list_add_tail (&inproc_connector_spec.link, protocol_head);
-	list_add_tail (&ipc_listener_spec.link, protocol_head);
-	list_add_tail (&ipc_connector_spec.link, protocol_head);
-	list_add_tail (&tcp_listener_spec.link, protocol_head);
-	list_add_tail (&tcp_connector_spec.link, protocol_head);
-	list_add_tail (&mix_listener_spec[0].link, protocol_head);
-	list_add_tail (&mix_listener_spec[1].link, protocol_head);
-	list_add_tail (&mix_listener_spec[2].link, protocol_head);
-	list_add_tail (&mix_listener_spec[3].link, protocol_head);
+	list_add_tail (&inproc_listener_vfptr.link, protocol_head);
+	list_add_tail (&inproc_connector_vfptr.link, protocol_head);
+	list_add_tail (&ipc_listener_vfptr.link, protocol_head);
+	list_add_tail (&ipc_connector_vfptr.link, protocol_head);
+	list_add_tail (&tcp_listener_vfptr.link, protocol_head);
+	list_add_tail (&tcp_connector_vfptr.link, protocol_head);
+	list_add_tail (&mix_listener_vfptr.link, protocol_head);
 }
 
 void socket_module_exit()

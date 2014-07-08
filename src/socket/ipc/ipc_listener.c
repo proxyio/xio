@@ -118,7 +118,7 @@ static int ipc_listener_hndl (eloop_t *el, ev_t *et)
 
 extern struct sockbase *ipc_alloc();
 
-struct sockbase_vfptr ipc_listener_spec = {
+struct sockbase_vfptr ipc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = TP_IPC,
 	.alloc = ipc_alloc,

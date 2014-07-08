@@ -20,26 +20,16 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_INPROC_INTERN_
-#define _H_PROXYIO_INPROC_INTERN_
+#ifndef _H_PROXYIO_MIX_INTERN_
+#define _H_PROXYIO_MIX_INTERN_
 
 #include "../sockbase.h"
 
-struct inproc_sock {
+struct mix_sock {
 	struct sockbase base;
-	atomic_t ref;
-	ev_t et;
-	struct efd efd;
-
-	/* the listener_head's entry of inproc-listener */
-	struct str_rbe lhentry;
-
-	/* For inproc-connector and inproc-accepter */
-	struct sockbase *peer;
 };
 
-extern struct sockbase_vfptr inproc_listener_vfptr;
-extern struct sockbase_vfptr inproc_connector_vfptr;
+extern struct sockbase_vfptr mix_listener_vfptr;
 
 
 #endif

@@ -73,7 +73,7 @@ static void rmlistener (struct str_rbe *entry)
 	xglobal_unlock();
 }
 
-/* sock_inproc_spec
+/* sock_inproc_vfptr
  */
 
 static struct sockbase *inproc_alloc() {
@@ -126,7 +126,7 @@ static void inproc_listener_close (struct sockbase *sb)
 	mem_free (self, sizeof (*self) );
 }
 
-struct sockbase_vfptr inproc_listener_spec = {
+struct sockbase_vfptr inproc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = TP_INPROC,
 	.alloc = inproc_alloc,
