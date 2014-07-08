@@ -26,7 +26,7 @@
 #include <utils/mutex.h>
 #include <utils/list.h>
 #include "inproc.h"
-#include "tcpipc.h"
+#include "tcp.h"
 #include "worker.h"
 
 /* Max number of cpu core */

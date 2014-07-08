@@ -20,12 +20,12 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_TCPIPC_INTERN_
-#define _H_PROXYIO_TCPIPC_INTERN_
+#ifndef _H_PROXYIO_TCP_INTERN_
+#define _H_PROXYIO_TCP_INTERN_
 
 #include "sockbase.h"
 
-struct tcpipc_sock {
+struct tcp_sock {
 	struct sockbase base;
 	ev_t et;
 	struct bio in;

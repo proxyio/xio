@@ -33,7 +33,7 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et);
 
 static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	int sys_fd, on = 1;
 	struct worker *cpu = get_worker (sb->cpu_no);
 
@@ -54,7 +54,7 @@ static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 
 static void tcp_listener_close (struct sockbase *sb)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	struct sockbase *nsb;
 
@@ -85,7 +85,7 @@ extern int tcp_socket_init (struct sockbase *sb, int sys_fd);
 
 static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 {
-	struct tcpipc_sock *tcpsk = cont_of (et, struct tcpipc_sock, et);
+	struct tcp_sock *tcpsk = cont_of (et, struct tcp_sock, et);
 	struct sockbase *sb = &tcpsk->base;
 	int sys_fd;
 	int fd_new;

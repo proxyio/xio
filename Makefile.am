@@ -38,8 +38,8 @@ XIO_SOCKET = \
 	src/socket/global.c \
 	src/socket/xclose.c \
 	src/socket/xconnect.c \
-	src/socket/tcp/tcpipc_listener.c \
-	src/socket/tcp/tcpipc.c \
+	src/socket/tcp/tcp_listener.c \
+	src/socket/tcp/tcp.c \
 	src/socket/sockbase.c \
 	src/socket/xgetsockopt.c \
 	src/socket/inproc/inproc.c \

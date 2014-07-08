@@ -29,7 +29,7 @@
 
 static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
 {
-	struct tcpipc_sock *tcpsk = cont_of (ops, struct tcpipc_sock, ops);
+	struct tcp_sock *tcpsk = cont_of (ops, struct tcp_sock, ops);
 	struct transport *vtp = tcpsk->vtp;
 
 	BUG_ON (!vtp);
@@ -39,7 +39,7 @@ static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
 
 static i64 tcp_connector_write (struct io *ops, char *buff, i64 sz)
 {
-	struct tcpipc_sock *tcpsk = cont_of (ops, struct tcpipc_sock, ops);
+	struct tcp_sock *tcpsk = cont_of (ops, struct tcp_sock, ops);
 	struct transport *vtp = tcpsk->vtp;
 
 	BUG_ON (!vtp);
@@ -55,7 +55,7 @@ struct io default_xops = {
 void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	int64_t sndbuf = bio_size (&tcpsk->out);
 
@@ -71,7 +71,7 @@ void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
@@ -93,7 +93,7 @@ void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
@@ -107,7 +107,7 @@ void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
@@ -122,7 +122,7 @@ int tcp_connector_hndl (eloop_t *el, ev_t *et);
 
 struct sockbase *tcp_alloc()
 {
-	struct tcpipc_sock *tcpsk = TNEW (struct tcpipc_sock);
+	struct tcp_sock *tcpsk = TNEW (struct tcp_sock);
 
 	if (!tcpsk)
 		return 0;
@@ -145,7 +145,7 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 
 int tcp_socket_init (struct sockbase *sb, int sys_fd)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	int on = 1;
 	int blen = max (default_sndbuf, default_rcvbuf);
@@ -174,7 +174,7 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 
 static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	int sys_fd = 0;
 
@@ -190,7 +190,7 @@ static int tcp_connector_snd (struct sockbase *sb);
 
 static void tcp_connector_close (struct sockbase *sb)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	
 	BUG_ON (!tcpsk->vtp);
@@ -241,7 +241,7 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 
 static int tcp_connector_rcv (struct sockbase *sb)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	int rc = 0;
 	u16 cmsg_num;
 	struct msgbuf *aim = 0, *cmsg = 0;
@@ -282,7 +282,7 @@ static void bufio_add (struct bio *b, struct msgbuf *msg)
 
 static int sg_send (struct sockbase *sb)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	int rc;
 	struct iovec *iov;
 	struct msgbuf *msg;
@@ -337,7 +337,7 @@ static int sg_send (struct sockbase *sb)
 
 static int tcp_connector_sg (struct sockbase *sb)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	int rc;
 	struct msgbuf *msg, *nmsg;
 	struct iovec *iov;
@@ -373,7 +373,7 @@ static int tcp_connector_sg (struct sockbase *sb)
 
 static int tcp_connector_snd (struct sockbase *sb)
 {
-	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	int rc;
 	struct msgbuf *msg;
 
@@ -388,7 +388,7 @@ static int tcp_connector_snd (struct sockbase *sb)
 int tcp_connector_hndl (eloop_t *el, ev_t *et)
 {
 	int rc = 0;
-	struct tcpipc_sock *tcpsk = cont_of (et, struct tcpipc_sock, et);
+	struct tcp_sock *tcpsk = cont_of (et, struct tcp_sock, et);
 	struct sockbase *sb = &tcpsk->base;
 
 	if (et->happened & EPOLLIN) {
