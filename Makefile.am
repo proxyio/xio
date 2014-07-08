@@ -125,14 +125,14 @@ bin_PROGRAMS =
 UTILS_TESTS = \
 	tests/stl_ts \
 	tests/bufio_ts \
-	tests/krb_ts \
+	tests/str_rb_ts \
 	tests/modstat_ts \
 	tests/path_ts \
 	tests/runner_ts \
 	tests/sync_ts \
+	tests/transport_ts \
+	tests/msgbuf_ts \
 	tests/socket_ts \
-	tests/xubuf_ts \
-	tests/xsocket_ts \
 	tests/poll_ts \
 	tests/sp_bus_ts \
 	tests/sp_reqrep_ts \

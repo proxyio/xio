@@ -52,7 +52,7 @@ struct io default_xops = {
 	.write = tcp_connector_write,
 };
 
-static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
+void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
 	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
@@ -68,7 +68,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 	}
 }
 
-static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
 	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
@@ -82,7 +82,7 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 	}
 }
 
-static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
 
@@ -90,7 +90,7 @@ static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 		condition_signal (&sb->cond);
 }
 
-static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
 	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
@@ -104,7 +104,7 @@ static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 	}
 }
 
-static void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
+void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
 	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
@@ -384,7 +384,7 @@ int tcp_connector_hndl (eloop_t *el, ev_t *et)
 		rc = tcp_connector_rcv (sb);
 	}
 	if (et->happened & EPOLLOUT) {
-		DEBUG_ON ("io sock %d EPOLLOUT", sb->fd);
+		DEBUG_OFF ("io sock %d EPOLLOUT", sb->fd);
 		rc = tcp_connector_snd (sb);
 	}
 	if ( (rc < 0 && errno != EAGAIN) ||

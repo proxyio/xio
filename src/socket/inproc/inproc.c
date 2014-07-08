@@ -87,8 +87,8 @@ static int inproc_send (struct sockbase *sb, char *ubuf)
 
 static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 {
-	int nfd = 0;
-	struct sockbase *nsb = 0;
+	int new_fd = 0;
+	struct sockbase *new_sb = 0;
 	struct sockbase *listener = getlistener (sock);
 	struct inproc_sock *self = 0;
 	struct inproc_sock *peer = 0;
@@ -97,34 +97,37 @@ static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 		errno = ECONNREFUSED;
 		return -1;
 	}
-	if ((nfd = xalloc (sb->vfptr->pf, sb->vfptr->type)) < 0) {
+	if ((new_fd = xalloc (sb->vfptr->pf, sb->vfptr->type)) < 0) {
 		errno = EMFILE;
 		xput (listener->fd);
 		return -1;
 	}
-	nsb = xgb.sockbases[nfd];
+	new_sb = xgb.sockbases[new_fd];
 	self = cont_of (sb, struct inproc_sock, base);
-	peer = cont_of (nsb, struct inproc_sock, base);
-	nsb->vfptr = sb->vfptr;
+	peer = cont_of (new_sb, struct inproc_sock, base);
+	new_sb->vfptr = sb->vfptr;
 	strcpy (sb->peer, sock);
-	strcpy (nsb->addr, sock);
+	strcpy (new_sb->addr, sock);
 
 	atomic_incr (&self->ref);
 	atomic_incr (&peer->ref);
 	self->peer = &peer->base;
 	peer->peer = &self->base;
 
-	if (acceptq_add (listener, nsb) < 0) {
+	msgbuf_head_handle_add (&sb->snd, snd_msgbuf_head_add_ev_hndl);
+	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
+	msgbuf_head_handle_add (&new_sb->snd, snd_msgbuf_head_add_ev_hndl);
+	msgbuf_head_handle_rm (&new_sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
+	
+	if (acceptq_add (listener, new_sb) < 0) {
 		atomic_decr (&peer->ref);
-		sb->vfptr->close (nsb);
+		sb->vfptr->close (new_sb);
 		xput (listener->fd);
 		errno = ECONNREFUSED;
 		return -1;
 	}
-	msgbuf_head_handle_add (&sb->snd, snd_msgbuf_head_add_ev_hndl);
-	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
 	xput (listener->fd);
-	DEBUG_OFF ("%d accept new connection %d", sb->fd, nfd);
+	DEBUG_OFF ("%d accept new connection %d", sb->fd, new_fd);
 	return 0;
 }
 

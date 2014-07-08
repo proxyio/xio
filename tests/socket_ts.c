@@ -1,284 +1,257 @@
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <utils/waitgroup.h>
-#include <utils/eventloop.h>
-#include <utils/tcp/tcp.h>
-#include <utils/ipc/ipc.h>
+#include <utils/spinlock.h>
 #include <utils/thread.h>
+#include <xio/poll.h>
+#include <xio/socket.h>
+#include <xio/cmsghdr.h>
 #include "testutil.h"
 
-/* Compatiple for HAVE_DEBUG flags */
-static int64_t tcp_send_full (int fd, char *buff, int len)
+#define cnt 3
+
+static void xclient (const char *pf)
 {
-	int rc = 0;
-	int full = len;
-
-	while (len > 0) {
-		if ((rc = tcp_send (fd, buff, len)) >= 0) {
-			buff += rc;
-			len -= rc;
-		} else
-			break;
-	}
-	return full - len;
-}
-
-static int64_t tcp_recv_full (int fd, char *buff, int len)
-{
-	int rc = 0;
-	int full = len;
-
-	while (len > 0) {
-		if ((rc = tcp_recv (fd, buff, len)) >= 0) {
-			buff += rc;
-			len -= rc;
-		} else
-			break;
-	}
-	return full - len;
-}
-
-
-static void tcp_client()
-{
-	int sfd;
+	int sfd, i, j;
 	int64_t nbytes;
 	char buf[1024] = {};
+	char *xbuf, *oob;
+	char host[1024];
 
-	BUG_ON ( (sfd = tcp_connect ("127.0.0.1:15100") ) <= 0);
+	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
-	BUG_ON (sizeof (buf) != (nbytes = tcp_send_full (sfd, buf, sizeof (buf) ) ) );
-	BUG_ON (nbytes != tcp_recv_full (sfd, buf, nbytes) );
-	close (sfd);
+	BUG_ON ( (sfd = xconnect (host) ) < 0);
+	for (i = 0; i < cnt; i++) {
+		nbytes = rand() % 1024;
+		for (j = 0; j < 10; j++) {
+			xbuf = ubuf_alloc (nbytes);
+			memcpy (xbuf, buf, nbytes);
+
+			oob = ubuf_alloc (nbytes);
+			memcpy (oob, buf, nbytes);
+
+			ubufctl_add (xbuf, oob);
+			BUG_ON (xsend (sfd, xbuf));
+			DEBUG_OFF ("%d send request %d", sfd, j);
+		}
+		for (j = 0; j < 10; j++) {
+			BUG_ON (0 != xrecv (sfd, &xbuf) );
+			DEBUG_OFF ("%d recv response %d", sfd, j);
+			BUG_ON (memcmp (xbuf, buf, nbytes) != 0);
+			oob = ubufctl_first (xbuf);
+			BUG_ON (memcmp (oob, buf, nbytes) != 0);
+			ubuf_free (xbuf);
+		}
+	}
+	xclose (sfd);
 }
 
-static int tcp_client_thread (void *arg)
+static int xclient_thread (void *arg)
 {
-	tcp_client();
-	tcp_client();
+	xclient ("tcp");
+	xclient ("inproc");
 	return 0;
 }
 
-int tcp_client_event_handler (eloop_t *el, ev_t *et)
+static void xserver()
 {
-	char buf[1024] = {};
-
-	randstr (buf, sizeof (buf) );
-	if (et->happened & EPOLLIN) {
-		BUG_ON (sizeof (buf) != tcp_recv_full (et->fd, buf, sizeof (buf) ) );
-		BUG_ON (sizeof (buf) != tcp_send_full (et->fd, buf, sizeof (buf) ) );
-	}
-	if (et->happened & EPOLLRDHUP) {
-		eloop_del (el, et);
-		close (et->fd);
-	}
-	return 0;
-}
-
-
-static void tcp_server_thread()
-{
+	int i, j;
 	int afd, sfd;
 	thread_t cli_thread = {};
-	eloop_t el = {};
-	ev_t et = {};
+	char *xbuf, *ubuf;
+	char *host = "mix://tcp://127.0.0.1:15100+inproc://127.0.0.1:15100";
 
-	eloop_init (&el, 1024, 100, 10);
+	BUG_ON ( (afd = xlisten (host) ) < 0);
+	thread_start (&cli_thread, xclient_thread, 0);
 
-	BUG_ON ( (afd = tcp_bind ("*:15100") ) <= 0);
-	thread_start (&cli_thread, tcp_client_thread, NULL);
-
-	BUG_ON ( (sfd = tcp_accept (afd) ) <= 0);
-	et.f = tcp_client_event_handler;
-	et.fd = sfd;
-	et.events = EPOLLIN|EPOLLRDHUP;
-
-	eloop_add (&el, &et);
-	eloop_once (&el);
-
-	eloop_del (&el, &et);
-	close (sfd);
-	BUG_ON ( (sfd = tcp_accept (afd) ) <= 0);
-	et.fd = sfd;
-	eloop_add (&el, &et);
-	eloop_once (&el);
+	for (j = 0; j < 2; j++) {
+		BUG_ON ( (sfd = xaccept (afd) ) < 0);
+		DEBUG_OFF ("xserver accept %d", sfd);
+		for (i = 0; i < cnt * 10; i++) {
+			BUG_ON (0 != xrecv (sfd, &xbuf) );
+			DEBUG_OFF ("%d recv", sfd);
+			ubuf = ubuf_alloc (ubuf_len (xbuf));
+			memcpy (ubuf, xbuf, ubuf_len (xbuf));
+			ubufctl (xbuf, SSWITCH, ubuf);
+			BUG_ON (0 != xsend (sfd, ubuf) );
+			ubuf_free (xbuf);
+		}
+		xclose (sfd);
+	}
 	thread_stop (&cli_thread);
-	eloop_destroy (&el);
-	close (sfd);
-
-	close (afd);
+	DEBUG_OFF ("%s", "xclient thread return");
+	xclose (afd);
 }
 
+static int pollid;
 
-static void ipc_client()
+static void xclient2 (const char *pf)
 {
-	int sfd;
-	int64_t nbytes;
-	char buf[1024] = {};
-	char *sockaddr = "pio_ipc_socket";
+	int i;
+	int sfd[cnt];
+	struct poll_fd ent[cnt] = {};
+	char host[1024] = {};
 
-	if ( (sfd = ipc_connect (sockaddr) ) < 0)
-		BUG_ON (1);
-	randstr (buf, 1024);
-	BUG_ON (sizeof (buf) != (nbytes = ipc_send (sfd, buf, sizeof (buf) ) ) );
-	BUG_ON (nbytes != ipc_recv (sfd, buf, nbytes) );
-	close (sfd);
+	sprintf (host, "%s%s", pf, "://127.0.0.1:15200");
+	for (i = 0; i < cnt; i++) {
+		BUG_ON ( (sfd[i] = xconnect (host) ) < 0);
+		ent[i].fd = sfd[i];
+		ent[i].hndl = 0;
+		ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
+		assert (xpoll_ctl (pollid, XPOLL_ADD, &ent[i]) == 0);
+	}
+	for (i = 0; i < cnt; i++)
+		xclose (sfd[i]);
 }
 
-static int ipc_client_thread (void *arg)
+static int xclient_thread2 (void *arg)
 {
-	ipc_client();
-	ipc_client();
+	xclient2 ("tcp");
+	xclient2 ("ipc");
+	xclient2 ("inproc");
 	return 0;
 }
 
-int ipc_client_event_handler (eloop_t *el, ev_t *et)
+static void xserver2()
 {
-	char buf[1024] = {};
-
-	randstr (buf, sizeof (buf) );
-	if (et->happened & EPOLLIN) {
-		BUG_ON (sizeof (buf) != ipc_recv (et->fd, buf, sizeof (buf) ) );
-		BUG_ON (sizeof (buf) != ipc_send (et->fd, buf, sizeof (buf) ) );
-	}
-	if (et->happened & EPOLLRDHUP) {
-		eloop_del (el, et);
-		close (et->fd);
-	}
-	return 0;
-}
-
-
-static void ipc_server_thread()
-{
-	int afd, sfd;
+	int i, j, mycnt;
+	int afd, sfd[cnt];
 	thread_t cli_thread = {};
-	eloop_t el = {};
-	ev_t et = {};
-	char *sockaddr = "pio_ipc_socket";
+	struct poll_fd ent[cnt] = {};
 
-	eloop_init (&el, 1024, 100, 10);
+	pollid = xpoll_create();
+	DEBUG_OFF ("%d", pollid);
+	BUG_ON ( (afd = xlisten ("mix://tcp://127.0.0.1:15200+ipc://127.0.0.1:15200+inproc://127.0.0.1:15200") ) < 0);
+	thread_start (&cli_thread, xclient_thread2, 0);
+	ent[0].fd = afd;
+	ent[0].hndl = 0;
+	ent[0].events = XPOLLERR;
+	BUG_ON (xpoll_ctl (pollid, XPOLL_ADD, &ent[0]) != 0);
 
-	BUG_ON ( (afd = ipc_bind (sockaddr) ) <= 0);
-	thread_start (&cli_thread, ipc_client_thread, NULL);
-	BUG_ON ( (sfd = ipc_accept (afd) ) <= 0);
-	et.f = ipc_client_event_handler;
-	et.fd = sfd;
-	et.events = EPOLLIN|EPOLLRDHUP;
+	for (j = 0; j < 3; j++) {
+		for (i = 0; i < cnt; i++) {
+			BUG_ON ( (sfd[i] = xaccept (afd) ) < 0);
+			DEBUG_OFF ("%d", sfd[i]);
+			ent[i].fd = sfd[i];
+			ent[i].hndl = 0;
+			ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
+			BUG_ON (xpoll_ctl (pollid, XPOLL_ADD, &ent[i]) != 0);
+		}
+		mycnt = rand() % (cnt);
+		for (i = 0; i < mycnt; i++) {
+			DEBUG_OFF ("%d", sfd[i]);
+			ent[i].fd = sfd[i];
+			ent[i].hndl = 0;
+			ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
+			BUG_ON (xpoll_ctl (pollid, XPOLL_MOD, &ent[i]) != 0);
+			BUG_ON (xpoll_ctl (pollid, XPOLL_MOD, &ent[i]) != 0);
+			BUG_ON (xpoll_ctl (pollid, XPOLL_DEL, &ent[i]) != 0);
+			BUG_ON (xpoll_ctl (pollid, XPOLL_DEL, &ent[i]) != -1);
+		}
+		for (i = 0; i < cnt; i++)
+			xclose (sfd[i]);
+	}
 
-	eloop_add (&el, &et);
-	eloop_once (&el);
-
-	eloop_del (&el, &et);
-	close (sfd);
-	BUG_ON ( (sfd = ipc_accept (afd) ) <= 0);
-	et.fd = sfd;
-	eloop_add (&el, &et);
-	eloop_once (&el);
+	xpoll_close (pollid);
 	thread_stop (&cli_thread);
-	eloop_destroy (&el);
-	close (sfd);
-
-	close (afd);
-	unlink (sockaddr);
+	xclose (afd);
 }
 
-static void tcp_test_sock_opt (int sfd)
+static void xsock_test (int count)
 {
-	int on;
-	int optlen = 0;
-
-	on = 1;
-	BUG_ON (tcp_setopt (sfd, TP_NOBLOCK, &on, sizeof (on) ) );
-	BUG_ON (tcp_getopt (sfd, TP_NOBLOCK, &on, &optlen) );
-	BUG_ON (on != 1);
-
-	on = 0;
-	BUG_ON (tcp_setopt (sfd, TP_NOBLOCK, &on, sizeof (on) ) );
-	BUG_ON (tcp_getopt (sfd, TP_NOBLOCK, &on, &optlen) );
-	BUG_ON (on != 0);
-
-	on = 99;
-	BUG_ON (tcp_setopt (sfd, TP_SNDTIMEO, &on, sizeof (on) ) );
-	BUG_ON (tcp_getopt (sfd, TP_SNDTIMEO, &on, &optlen) );
-	BUG_ON (on != 99);
-
-	on = 98;
-	BUG_ON (tcp_setopt (sfd, TP_RCVTIMEO, &on, sizeof (on) ) );
-	BUG_ON (tcp_getopt (sfd, TP_RCVTIMEO, &on, &optlen) );
-	BUG_ON (on != 98);
+	while (count-- > 0) {
+		xserver();
+		DEBUG_OFF ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+		xserver2();
+	}
 }
 
-static int can_exit = 0;
 
-static int server_thread (void *args)
+#define cnt2 100
+
+static void inproc_client2()
 {
-	waitgroup_t *wg = (waitgroup_t *) args;
-	int afd = tcp_bind ("*:15100");
-	int sfd;
-	int on;
-	int optlen = 0;
+	int sfd, i;
 
-	on = 1;
-	BUG_ON (tcp_setopt (afd, TP_NOBLOCK, &on, sizeof (on) ) );
-	BUG_ON (tcp_getopt (afd, TP_NOBLOCK, &on, &optlen) );
-	BUG_ON (on != 1);
+	for (i = 0; i < cnt2/2; i++) {
+		if ( (sfd = xconnect ("inproc://b_inproc") ) < 0) {
+			BUG_ON (errno != ECONNREFUSED);
+			continue;
+		}
+		xclose (sfd);
+	}
+}
 
-	on = 0;
-	BUG_ON (tcp_setopt (afd, TP_NOBLOCK, &on, sizeof (on) ) );
-	BUG_ON (tcp_getopt (afd, TP_NOBLOCK, &on, &optlen) );
-	BUG_ON (on != 0);
-
-	BUG_ON (afd < 0);
-	waitgroup_done (wg);
-	sfd = tcp_accept (afd);
-	BUG_ON (sfd < 0);
-	tcp_test_sock_opt (sfd);
-
-	while (!can_exit)
-		usleep (20000);
-	tcp_close (sfd);
-	tcp_close (afd);
+static int inproc_client_thread2 (void *args)
+{
+	inproc_client2();
 	return 0;
 }
 
-static void tcp_option()
+static void inproc_client3()
 {
-	waitgroup_t wg;
-	int sfd;
-	thread_t t;
+	int sfd, i;
 
-	waitgroup_init (&wg);
-	waitgroup_add (&wg);
-	thread_start (&t, server_thread, &wg);
-	waitgroup_wait (&wg);
-
-	sfd = tcp_connect ("127.0.0.1:15100");
-	BUG_ON (sfd < 0);
-	tcp_test_sock_opt (sfd);
-	can_exit = 1;
-	thread_stop (&t);
-	tcp_close (sfd);
+	for (i = 0; i < cnt2/2; i++) {
+		if ( (sfd = xconnect ("inproc://b_inproc") ) < 0) {
+			BUG_ON (errno != ECONNREFUSED);
+			continue;
+		}
+		xclose (sfd);
+	}
 }
 
-static void ipc_option()
+static int inproc_client_thread3 (void *args)
 {
+	inproc_client3();
+	return 0;
 }
+
+static void inproc_server_thread2()
+{
+	int i, afd, sfd;
+	thread_t cli_thread[2] = {};
+
+	BUG_ON ( (afd = xlisten ("inproc://b_inproc") ) < 0);
+	thread_start (&cli_thread[0], inproc_client_thread2, NULL);
+	thread_start (&cli_thread[1], inproc_client_thread3, NULL);
+
+	for (i = 0; i < cnt2 - 10; i++) {
+		BUG_ON ( (sfd = xaccept (afd) ) < 0);
+		xclose (sfd);
+	}
+	xclose (afd);
+	thread_stop (&cli_thread[0]);
+	thread_stop (&cli_thread[1]);
+}
+
+static void xexp_test()
+{
+	inproc_server_thread2();
+}
+
+
 
 static void tcp_sg_send()
 {
+	int afd = xlisten ("tcp://127.0.0.1:15100");
+	int cfd = xconnect ("tcp://127.0.0.1:15100");
+	int i;
+	char *ubuf;
+	
+	BUG_ON (afd < 0 || cfd < 0);
+	for (i = 0; i < 1000; i++) {
+		ubuf = ubuf_alloc (12);
+		BUG_ON (xsend (cfd, ubuf));
+	}
+	xclose (afd);
+	xclose (cfd);
 }
-
 
 int main (int argc, char **argv)
 {
-	int sfd = tcp_connect ("127.0.0.1:15199");
-	BUG_ON (sfd >= 0);
-
-	ipc_server_thread();
-	tcp_server_thread();
-	tcp_option();
-	ipc_option();
+	xsock_test (1);
+	xexp_test ();
+	tcp_sg_send ();
 	return 0;
 }

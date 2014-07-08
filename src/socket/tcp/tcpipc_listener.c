@@ -41,7 +41,7 @@ static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 	if ((sys_fd = tcpsk->vtp->bind (sock)) < 0)
 		return -1;
 	strcpy (sb->addr, sock);
-	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on) );
+	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
 
 	tcpsk->sys_fd = sys_fd;
 	tcpsk->et.events = EPOLLIN|EPOLLERR;
@@ -78,10 +78,16 @@ static void tcp_listener_close (struct sockbase *sb)
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
-	mem_free (tcpsk, sizeof (*tcpsk) );
+	mem_free (tcpsk, sizeof (*tcpsk));
 }
 
 extern int tcp_connector_hndl (eloop_t *el, ev_t *et);
+
+extern void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh);
+extern void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh);
+extern void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh);
+extern void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh);
+extern void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh);
 
 static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 {
@@ -91,10 +97,10 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 	int on = 1;
 	int nfd;
 	struct worker *cpu;
-	struct sockbase *nsb = 0;
-	struct tcpipc_sock *ntcpsk = 0;
+	struct sockbase *sb_new = 0;
+	struct tcpipc_sock *tcpsk_new = 0;
 
-	if ( (et->happened & EPOLLERR) && ! (et->happened & EPOLLIN) ) {
+	if ( (et->happened & EPOLLERR) && ! (et->happened & EPOLLIN)) {
 		mutex_lock (&sb->lock);
 		sb->fepipe = true;
 		if (sb->acceptq.waiters)
@@ -103,28 +109,35 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 		return -1;
 	}
 	BUG_ON (!tcpsk->vtp);
-	if ( (sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd) ) < 0) {
+	if ((sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd)) < 0) {
 		return -1;
 	}
-	if ( (nfd = xalloc (sb->vfptr->pf, XCONNECTOR) ) < 0) {
+	if ((nfd = xalloc (sb->vfptr->pf, XCONNECTOR)) < 0) {
 		tcpsk->vtp->close (sys_fd);
 		return -1;
 	}
-	nsb = xgb.sockbases[nfd];
-	cpu = get_worker (nsb->cpu_no);
-	ntcpsk = cont_of (nsb, struct tcpipc_sock, base);
+	sb_new = xgb.sockbases[nfd];
+	cpu = get_worker (sb_new->cpu_no);
+	tcpsk_new = cont_of (sb_new, struct tcpipc_sock, base);
 
 	DEBUG_OFF ("%d accept new connection %d", sb->fd, nfd);
-	ntcpsk->sys_fd = sys_fd;
-	ntcpsk->vtp = tcpsk->vtp;
-	BUG_ON (ntcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on) ) );
-	ntcpsk->ops = default_xops;
-	ntcpsk->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
-	ntcpsk->et.fd = sys_fd;
-	ntcpsk->et.f = tcp_connector_hndl;
-	ntcpsk->et.data = ntcpsk;
-	BUG_ON (eloop_add (&cpu->el, &ntcpsk->et) != 0);
-	return acceptq_add (sb, nsb);
+	tcpsk_new->sys_fd = sys_fd;
+	tcpsk_new->vtp = tcpsk->vtp;
+	BUG_ON (tcpsk_new->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on)));
+	tcpsk_new->ops = default_xops;
+	tcpsk_new->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
+	tcpsk_new->et.fd = sys_fd;
+	tcpsk_new->et.f = tcp_connector_hndl;
+	tcpsk_new->et.data = tcpsk_new;
+	BUG_ON (eloop_add (&cpu->el, &tcpsk_new->et) != 0);
+
+	msgbuf_head_handle_rm (&sb_new->rcv, rcv_msgbuf_head_rm_ev_hndl);
+	msgbuf_head_handle_full (&sb_new->rcv, rcv_msgbuf_head_full_ev_hndl);
+	msgbuf_head_handle_nonfull (&sb_new->rcv, rcv_msgbuf_head_nonfull_ev_hndl);
+	msgbuf_head_handle_empty (&sb_new->snd, snd_msgbuf_head_empty_ev_hndl);
+	msgbuf_head_handle_nonempty (&sb_new->snd, snd_msgbuf_head_nonempty_ev_hndl);
+	/* BUG: if fault */
+	return acceptq_add (sb, sb_new);
 }
 
 extern struct sockbase *tcp_alloc();
