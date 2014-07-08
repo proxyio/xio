@@ -26,10 +26,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "i64_rb.h"
 #include "taskpool.h"
 #include "timer.h"
 #include "eventloop.h"
-#include "skrb_sync.h"
 
 int eloop_add (eloop_t *el, ev_t *ev)
 {
@@ -39,7 +39,9 @@ int eloop_add (eloop_t *el, ev_t *ev)
 
 	if (ev->to_nsec > 0) {
 		ev->tr_node.key = _cur_nsec + ev->to_nsec;
-		skrb_mutex_insert (&el->tr_tree, &ev->tr_node, &el->mutex);
+		mutex_lock (&el->mutex);
+		i64_rb_insert (&el->tr_tree, &ev->tr_node);
+		mutex_unlock (&el->mutex);
 	}
 	if (ev->fd >= 0) {
 		ee.events = ev->events;
@@ -58,10 +60,12 @@ int eloop_mod (eloop_t *el, ev_t *ev)
 	struct epoll_event ee = {};
 
 	if (ev->to_nsec > 0) {
+		mutex_lock (&el->mutex);
 		if (ev->tr_node.key)
-			skrb_mutex_delete (&el->tr_tree, &ev->tr_node, &el->mutex);
+			i64_rb_delete (&el->tr_tree, &ev->tr_node);
 		ev->tr_node.key = _cur_nsec + ev->to_nsec;
-		skrb_mutex_insert (&el->tr_tree, &ev->tr_node, &el->mutex);
+		i64_rb_insert (&el->tr_tree, &ev->tr_node);
+		mutex_unlock (&el->mutex);
 	}
 
 	if (ev->fd >= 0) {
@@ -78,8 +82,10 @@ int eloop_del (eloop_t *el, ev_t *ev)
 	struct epoll_event ee = {};
 
 	if (ev->to_nsec > 0 && ev->tr_node.key) {
-		skrb_mutex_delete (&el->tr_tree, &ev->tr_node, &el->mutex);
+		mutex_lock (&el->mutex);
+		i64_rb_delete (&el->tr_tree, &ev->tr_node);
 		ev->tr_node.key = 0;
+		mutex_unlock (&el->mutex);
 	}
 
 	if (ev->fd >= 0) {
@@ -95,20 +101,28 @@ static void eloop_update_timer (eloop_t *el, ev_t *ev, int64_t cur)
 {
 	if (!ev->to_nsec || !ev->tr_node.key)
 		return;
-	skrb_mutex_delete (&el->tr_tree, &ev->tr_node, &el->mutex);
+	mutex_lock (&el->mutex);
+	i64_rb_delete (&el->tr_tree, &ev->tr_node);
 	ev->tr_node.key = cur + ev->to_nsec;
-	skrb_mutex_insert (&el->tr_tree, &ev->tr_node, &el->mutex);
+	i64_rb_insert (&el->tr_tree, &ev->tr_node);
+	mutex_unlock (&el->mutex);
 }
 
 static int64_t eloop_find_timer (eloop_t *el, int64_t to)
 {
-	skrb_node_t *node = NULL;
+	int rc;
+	struct i64_rbe *node = NULL;
 
-	if (skrb_mutex_empty (&el->tr_tree, &el->mutex) )
+	mutex_lock (&el->mutex);
+	if (i64_rb_empty (&el->tr_tree)) {
+		mutex_unlock (&el->mutex);
 		return to;
-	node = skrb_mutex_min (&el->tr_tree, &el->mutex);
+	}
+	node = i64_rb_min (&el->tr_tree);
+	mutex_unlock (&el->mutex);
+
 	if (node->key < to)
-		return node->key;
+		to = node->key;
 	return to;
 }
 
@@ -118,7 +132,7 @@ static int __eloop_wait (eloop_t *el)
 	int64_t max_to = el->max_to;
 	ev_t *ev = NULL;
 	struct epoll_event *ev_buf = el->ev_buf;
-	skrb_node_t *node = NULL;
+	struct i64_rbe *node = NULL;
 	int64_t to = 0, _cur_nsec = gettimeof (ns);
 
 	to = _cur_nsec + max_to * 1000000;
@@ -135,19 +149,22 @@ static int __eloop_wait (eloop_t *el)
 		ev_buf++;
 	}
 
+	mutex_lock (&el->mutex);
 	size -= n;
-	while (size && !skrb_mutex_empty (&el->tr_tree, &el->mutex) ) {
-		node = skrb_mutex_min (&el->tr_tree, &el->mutex);
+	while (size && !i64_rb_empty (&el->tr_tree)) {
+		node = i64_rb_min (&el->tr_tree);
 		if (node->key > _cur_nsec)
 			break;
 		ev = (ev_t *) node->data;
-		skrb_mutex_delete (&el->tr_tree, &ev->tr_node, &el->mutex);
+		i64_rb_delete (&el->tr_tree, &ev->tr_node);
 		ev->tr_node.key = 0;
 		ev_buf->data.ptr = ev;
 		ev_buf->events = EPOLLTIMEOUT;
 		size--;
 		ev_buf++;
 	}
+	mutex_unlock (&el->mutex);
+
 	return ev_buf - el->ev_buf;
 }
 

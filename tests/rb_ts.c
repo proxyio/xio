@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <utils/base.h>
-#include <utils/skrb.h>
+#include <utils/i64_rb.h>
 #include <utils/str_rb.h>
 #include <utils/alloc.h>
 
@@ -17,31 +17,31 @@ static int cmpint64 (const void *p1, const void *p2)
 }
 
 
-static int skrb_test_single()
+static int i64_rb_test_single()
 {
 	int i;
 	int64_t allval[cnt] = {}, *allval_ptr = &allval[0];
 	int64_t min_val = 0;
-	skrb_t tree;
-	skrb_node_t *node = NULL, *min_node = NULL;
+	struct i64_rb tree;
+	struct i64_rbe *node = NULL, *min_node = NULL;
 
-	skrb_init (&tree);
+	i64_rb_init (&tree);
 
 	for (i = 0; i < cnt; i++) {
-		BUG_ON ( (node = (skrb_node_t *) mem_zalloc (sizeof (skrb_node_t) ) ) == NULL);
+		BUG_ON ( (node = (struct i64_rbe *) mem_zalloc (sizeof (struct i64_rbe) ) ) == NULL);
 		node->key = rand() + 1;
 		if (min_val == 0 || node->key < min_val)
 			min_val = node->key;
 		*allval_ptr++ = node->key;
-		skrb_insert (&tree, node);
-		min_node = skrb_min (&tree);
+		i64_rb_insert (&tree, node);
+		min_node = i64_rb_min (&tree);
 		BUG_ON (min_node->key != min_val);
 	}
 	qsort (allval, allval_ptr - allval, sizeof (int64_t), cmpint64);
 	for (i = 0; allval + i < allval_ptr; i++) {
-		min_node = skrb_min (&tree);
+		min_node = i64_rb_min (&tree);
 		BUG_ON (min_node->key != allval[i]);
-		skrb_delete (&tree, min_node);
+		i64_rb_delete (&tree, min_node);
 		free (min_node);
 	}
 	return 0;
@@ -86,7 +86,7 @@ static int map_test_single()
 
 int main (int argc, char **argv)
 {
-	skrb_test_single();
+	i64_rb_test_single();
 	map_test_single();
 	return 0;
 }

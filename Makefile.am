@@ -78,6 +78,7 @@ XIO_UTILS = \
 	src/utils/ipc/ipc_setopt.c \
 	src/utils/ipc/ipc.c \
 	src/utils/timer.c \
+	src/utils/i64_rb.c \
 	src/utils/str_rb.c \
 	src/utils/condition.c \
 	src/utils/taskpool.c \
@@ -98,7 +99,7 @@ XIO_UTILS = \
 	src/utils/tcp/tcp_setopt.c \
 	src/utils/bufio.c \
 	src/utils/mstats_base.c \
-	src/utils/slab.c \
+	src/utils/mem_cache.c \
 	src/utils/str_array.c \
 	src/utils/crc16.c \
 	src/utils/sockaddr.c
@@ -125,7 +126,7 @@ bin_PROGRAMS =
 UTILS_TESTS = \
 	tests/stl_ts \
 	tests/bufio_ts \
-	tests/str_rb_ts \
+	tests/rb_ts \
 	tests/modstat_ts \
 	tests/path_ts \
 	tests/runner_ts \

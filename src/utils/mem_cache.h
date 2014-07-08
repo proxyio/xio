@@ -20,8 +20,8 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_SLAB_
-#define _H_PROXYIO_SLAB_
+#ifndef _H_PROXYIO_MEMCACHE_
+#define _H_PROXYIO_MEMCACHE_
 
 #include "alloc.h"
 

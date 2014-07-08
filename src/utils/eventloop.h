@@ -27,7 +27,7 @@
 #include <sys/epoll.h>
 #include "alloc.h"
 #include "list.h"
-#include "skrb.h"
+#include "i64_rb.h"
 #include "mutex.h"
 
 
@@ -47,7 +47,7 @@ typedef struct ev {
 	int64_t to_nsec;
 	uint32_t events;
 	uint32_t happened;
-	skrb_node_t tr_node;
+	struct i64_rbe tr_node;
 	struct list_head el_link;
 } ev_t;
 
@@ -58,7 +58,7 @@ typedef struct eloop {
 	int stopping;
 	int efd, max_io_events, event_size;
 	int64_t max_to;
-	skrb_t tr_tree;
+	struct i64_rb tr_tree;
 	mutex_t mutex;
 	struct list_head link;
 	struct epoll_event *ev_buf;
@@ -89,7 +89,7 @@ static inline int eloop_init (eloop_t *el, int size, int max_io_events, int max_
 		return -1;
 	}
 	el->max_to = max_to;
-	skrb_init (&el->tr_tree);
+	i64_rb_init (&el->tr_tree);
 	mutex_init (&el->mutex);
 	el->max_io_events = max_io_events;
 	return 0;
@@ -99,9 +99,9 @@ static inline int eloop_destroy (eloop_t *el)
 {
 	ev_t *ev = NULL;
 	mutex_destroy (&el->mutex);
-	while (!skrb_empty (&el->tr_tree) ) {
-		ev = (ev_t *) (skrb_min (&el->tr_tree) )->data;
-		skrb_delete (&el->tr_tree, &ev->tr_node);
+	while (!i64_rb_empty (&el->tr_tree) ) {
+		ev = (ev_t *) (i64_rb_min (&el->tr_tree) )->data;
+		i64_rb_delete (&el->tr_tree, &ev->tr_node);
 	}
 	if (el->efd > 0)
 		close (el->efd);

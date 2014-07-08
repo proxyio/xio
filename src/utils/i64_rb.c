@@ -20,62 +20,40 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_SKRB_
-#define _H_PROXYIO_SKRB_
-
 #include <stdint.h>
 #include <inttypes.h>
-#include "krb.h"
+#include "i64_rb.h"
 
-typedef struct skrb_node {
-	struct rb_node  rb;
-	int64_t         key;
-	void            *data;
-} skrb_node_t;
-
-typedef struct skrb {
-	int64_t elem_size;
-	struct rb_root root;
-} skrb_t;
-
-#define skrb_init(tree)	do {			\
-	INIT_RB_ROOT(&(tree)->root);		\
-	(tree)->elem_size = 0;			\
-    } while (0)
-
-#define skrb_empty(tree) RB_EMPTY_ROOT(&(tree)->root)
-
-
-static inline skrb_node_t *skrb_min (skrb_t *tree)
+struct i64_rbe *i64_rb_min (struct i64_rb *tree)
 {
 	struct rb_root *root = &tree->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
-	skrb_node_t *_min = NULL;
+	struct i64_rbe *_min = NULL;
 
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_left;
-		_min = rb_entry (parent, skrb_node_t, rb);
+		_min = rb_entry (parent, struct i64_rbe, rb);
 	}
 	return _min;
 }
 
 
-static inline skrb_node_t *skrb_max (skrb_t *tree)
+struct i64_rbe *i64_rb_max (struct i64_rb *tree)
 {
 	struct rb_root *root = &tree->root;
 	struct rb_node *cur = root->rb_node, *parent = NULL;
-	skrb_node_t *_max = NULL;
+	struct i64_rbe *_max = NULL;
 
 	while (cur) {
 		parent = cur;
 		cur = parent->rb_right;
-		_max = rb_entry (parent, skrb_node_t, rb);
+		_max = rb_entry (parent, struct i64_rbe, rb);
 	}
 	return _max;
 }
 
-static inline void skrb_insert (skrb_t *tree, skrb_node_t *node)
+void i64_rb_insert (struct i64_rb *tree, struct i64_rbe *node)
 {
 	struct rb_root *root = &tree->root;
 	struct rb_node **np = &root->rb_node, *parent = NULL;
@@ -84,7 +62,7 @@ static inline void skrb_insert (skrb_t *tree, skrb_node_t *node)
 	tree->elem_size++;
 	while (*np) {
 		parent = *np;
-		if (key < rb_entry (parent, skrb_node_t, rb)->key)
+		if (key < rb_entry (parent, struct i64_rbe, rb)->key)
 			np = &parent->rb_left;
 		else
 			np = &parent->rb_right;
@@ -95,10 +73,8 @@ static inline void skrb_insert (skrb_t *tree, skrb_node_t *node)
 }
 
 
-static inline void skrb_delete (skrb_t *tree, skrb_node_t *node)
+void i64_rb_delete (struct i64_rb *tree, struct i64_rbe *node)
 {
 	tree->elem_size--;
 	rb_erase (&node->rb, &tree->root);
 }
-
-#endif /* _H_PROXYIO_SKRB_ */
