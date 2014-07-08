@@ -148,14 +148,13 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	int on = 1;
-	int blen = max (default_sndbuf, default_rcvbuf);
-	
+
 	BUG_ON (!cpu);
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
 	tcpsk->sys_fd = sys_fd;
 	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
-	tcpsk->vtp->setopt (sys_fd, TP_SNDBUF, &blen, sizeof (blen));
-	tcpsk->vtp->setopt (sys_fd, TP_RCVBUF, &blen, sizeof (blen));
+	tcpsk->vtp->setopt (sys_fd, TP_SNDBUF, &default_sndbuf, sizeof (default_sndbuf));
+	tcpsk->vtp->setopt (sys_fd, TP_RCVBUF, &default_rcvbuf, sizeof (default_rcvbuf));
 
 	tcpsk->ops = default_xops;
 	tcpsk->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
