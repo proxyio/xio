@@ -81,26 +81,17 @@ static void tcp_listener_close (struct sockbase *sb)
 	mem_free (tcpsk, sizeof (*tcpsk));
 }
 
-extern int tcp_connector_hndl (eloop_t *el, ev_t *et);
-
-extern void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh);
-extern void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh);
-extern void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh);
-extern void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh);
-extern void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh);
+extern int tcp_socket_init (struct sockbase *sb, int sys_fd);
 
 static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 {
 	struct tcpipc_sock *tcpsk = cont_of (et, struct tcpipc_sock, et);
-	int sys_fd;
 	struct sockbase *sb = &tcpsk->base;
-	int on = 1;
-	int nfd;
-	struct worker *cpu;
+	int sys_fd;
+	int fd_new;
 	struct sockbase *sb_new = 0;
-	struct tcpipc_sock *tcpsk_new = 0;
 
-	if ( (et->happened & EPOLLERR) && ! (et->happened & EPOLLIN)) {
+	if ((et->happened & EPOLLERR) && !(et->happened & EPOLLIN)) {
 		mutex_lock (&sb->lock);
 		sb->fepipe = true;
 		if (sb->acceptq.waiters)
@@ -112,30 +103,15 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 	if ((sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd)) < 0) {
 		return -1;
 	}
-	if ((nfd = xalloc (sb->vfptr->pf, XCONNECTOR)) < 0) {
+	if ((fd_new = xalloc (sb->vfptr->pf, XCONNECTOR)) < 0) {
 		tcpsk->vtp->close (sys_fd);
 		return -1;
 	}
-	sb_new = xgb.sockbases[nfd];
-	cpu = get_worker (sb_new->cpu_no);
-	tcpsk_new = cont_of (sb_new, struct tcpipc_sock, base);
+	sb_new = xgb.sockbases[fd_new];
+	DEBUG_OFF ("%d accept new connection %d", sb->fd, fd_new);
 
-	DEBUG_OFF ("%d accept new connection %d", sb->fd, nfd);
-	tcpsk_new->sys_fd = sys_fd;
-	tcpsk_new->vtp = tcpsk->vtp;
-	BUG_ON (tcpsk_new->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on)));
-	tcpsk_new->ops = default_xops;
-	tcpsk_new->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR;
-	tcpsk_new->et.fd = sys_fd;
-	tcpsk_new->et.f = tcp_connector_hndl;
-	tcpsk_new->et.data = tcpsk_new;
-	BUG_ON (eloop_add (&cpu->el, &tcpsk_new->et) != 0);
+	BUG_ON (tcp_socket_init (sb_new, sys_fd));
 
-	msgbuf_head_handle_rm (&sb_new->rcv, rcv_msgbuf_head_rm_ev_hndl);
-	msgbuf_head_handle_full (&sb_new->rcv, rcv_msgbuf_head_full_ev_hndl);
-	msgbuf_head_handle_nonfull (&sb_new->rcv, rcv_msgbuf_head_nonfull_ev_hndl);
-	msgbuf_head_handle_empty (&sb_new->snd, snd_msgbuf_head_empty_ev_hndl);
-	msgbuf_head_handle_nonempty (&sb_new->snd, snd_msgbuf_head_nonempty_ev_hndl);
 	/* BUG: if fault */
 	return acceptq_add (sb, sb_new);
 }

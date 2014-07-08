@@ -143,7 +143,7 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 	return rc;
 }
 
-static int tcp_connector_bind (struct sockbase *sb, const char *sock)
+int tcp_socket_init (struct sockbase *sb, int sys_fd)
 {
 	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
@@ -152,16 +152,14 @@ static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 	
 	BUG_ON (!cpu);
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
-	if ((tcpsk->sys_fd = tcpsk->vtp->connect (sock)) < 0)
-		return -1;
-	tcpsk->vtp->setopt (tcpsk->sys_fd, TP_NOBLOCK, &on, sizeof (on));
-	tcpsk->vtp->setopt (tcpsk->sys_fd, TP_SNDBUF, &blen, sizeof (blen) );
-	tcpsk->vtp->setopt (tcpsk->sys_fd, TP_RCVBUF, &blen, sizeof (blen) );
+	tcpsk->sys_fd = sys_fd;
+	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
+	tcpsk->vtp->setopt (sys_fd, TP_SNDBUF, &blen, sizeof (blen));
+	tcpsk->vtp->setopt (sys_fd, TP_RCVBUF, &blen, sizeof (blen));
 
-	strcpy (sb->peer, sock);
 	tcpsk->ops = default_xops;
 	tcpsk->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
-	tcpsk->et.fd = tcpsk->sys_fd;
+	tcpsk->et.fd = sys_fd;
 	tcpsk->et.f = tcp_connector_hndl;
 	tcpsk->et.data = tcpsk;
 	BUG_ON (eloop_add (&cpu->el, &tcpsk->et) != 0);
@@ -172,6 +170,20 @@ static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 	msgbuf_head_handle_empty (&sb->snd, snd_msgbuf_head_empty_ev_hndl);
 	msgbuf_head_handle_nonempty (&sb->snd, snd_msgbuf_head_nonempty_ev_hndl);
 	return 0;
+}
+
+static int tcp_connector_bind (struct sockbase *sb, const char *sock)
+{
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
+	struct worker *cpu = get_worker (sb->cpu_no);
+	int sys_fd = 0;
+
+	BUG_ON (!cpu);
+	tcpsk->vtp = tp_get (sb->vfptr->pf);
+	if ((sys_fd = tcpsk->vtp->connect (sock)) < 0)
+		return -1;
+	strcpy (sb->peer, sock);
+	return tcp_socket_init (sb, sys_fd);
 }
 
 static int tcp_connector_snd (struct sockbase *sb);
