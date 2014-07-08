@@ -32,25 +32,12 @@ struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
 	int rc;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct msgbuf *msg = 0;
-	u32 events = 0;
 
 	mutex_lock (&sb->lock);
 	if ((rc = msgbuf_head_out_msg (&sb->snd, &msg)) == 0) {
-		events |= XMQ_POP;
-
-		/* the first time when msgbuf_head is non-full */
-		if (sb->snd.wnd - sb->snd.size <= msgbuf_len (msg))
-			events |= XMQ_NONFULL;
-		if (msgbuf_head_empty (&sb->snd))
-			events |= XMQ_EMPTY;
-
-		/* Wakeup the blocking waiters */
 		if (sb->snd.waiters > 0)
 			condition_broadcast (&sb->cond);
 	}
-
-	if (events && vfptr->notify)
-		vfptr->notify (sb, SEND_Q, events);
 
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
@@ -61,7 +48,6 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
-	u32 events = 0;
 
 	mutex_lock (&sb->lock);
 	while (!sb->fepipe && !msgbuf_can_in (&sb->snd) && !sb->fasync) {
@@ -71,18 +57,8 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 	}
 	if (msgbuf_can_in (&sb->snd) ) {
 		rc = 0;
-		if (msgbuf_head_empty (&sb->snd))
-			events |= XMQ_NONEMPTY;
-
-		/* the first time when msgbuf_head is full */
-		if (sb->snd.wnd - sb->snd.size <= msgbuf_len (msg))
-			events |= XMQ_FULL;
-		events |= XMQ_PUSH;
 		msgbuf_head_in_msg (&sb->snd, msg);
 	}
-
-	if (events && vfptr->notify)
-		vfptr->notify (sb, SEND_Q, events);
 
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);

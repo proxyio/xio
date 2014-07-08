@@ -38,9 +38,9 @@ struct msgbuf_head {
 	msgbuf_head_event_hndl add_ev_hndl;
 	msgbuf_head_event_hndl rm_ev_hndl;
 	msgbuf_head_event_hndl empty_ev_hndl;
-	msgbuf_head_event_hndl non_empty_ev_hndl;
+	msgbuf_head_event_hndl nonempty_ev_hndl;
 	msgbuf_head_event_hndl full_ev_hndl;
-	msgbuf_head_event_hndl non_full_ev_hndl;
+	msgbuf_head_event_hndl nonfull_ev_hndl;
 };
 
 void msgbuf_head_init (struct msgbuf_head *bh, int wnd);
@@ -99,37 +99,37 @@ static inline void msgbuf_head_decr_waiters (struct msgbuf_head *bh)
 	bh->waiters--;
 }
 
-static inline void msgbuf_head_handler_empty (struct msgbuf_head *bh,
+static inline void msgbuf_head_handle_empty (struct msgbuf_head *bh,
     msgbuf_head_event_hndl empty_ev_hndl)
 {
 	bh->empty_ev_hndl = empty_ev_hndl;
 }
 
-static inline void msgbuf_head_handler_non_empty (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl non_empty_ev_hndl)
+static inline void msgbuf_head_handle_nonempty (struct msgbuf_head *bh,
+    msgbuf_head_event_hndl nonempty_ev_hndl)
 {
-	bh->non_empty_ev_hndl = non_empty_ev_hndl;
+	bh->nonempty_ev_hndl = nonempty_ev_hndl;
 }
 
-static inline void msgbuf_head_handler_full (struct msgbuf_head *bh,
+static inline void msgbuf_head_handle_full (struct msgbuf_head *bh,
     msgbuf_head_event_hndl full_ev_hndl)
 {
 	bh->full_ev_hndl = full_ev_hndl;
 }
 
-static inline void msgbuf_head_handler_non_full (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl non_full_ev_hndl)
+static inline void msgbuf_head_handle_nonfull (struct msgbuf_head *bh,
+    msgbuf_head_event_hndl nonfull_ev_hndl)
 {
-	bh->non_full_ev_hndl = non_full_ev_hndl;
+	bh->nonfull_ev_hndl = nonfull_ev_hndl;
 }
 
-static inline void msgbuf_head_handler_add (struct msgbuf_head *bh,
+static inline void msgbuf_head_handle_add (struct msgbuf_head *bh,
     msgbuf_head_event_hndl add_ev_hndl)
 {
 	bh->add_ev_hndl = add_ev_hndl;
 }
 
-static inline void msgbuf_head_handler_rm (struct msgbuf_head *bh,
+static inline void msgbuf_head_handle_rm (struct msgbuf_head *bh,
     msgbuf_head_event_hndl rm_ev_hndl)
 {
 	bh->rm_ev_hndl = rm_ev_hndl;

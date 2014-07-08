@@ -31,38 +31,28 @@ extern struct sockbase *getlistener (const char *addr);
 
 /* snd_head events trigger. */
 
-static int snd_head_push (struct sockbase *sb)
+static void snd_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
 {
-	int rc = 0;
-	int can = false;
 	struct msgbuf *msg;
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
 	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base))->peer;
 
 	/* TODO: maybe the peer sock can't recv anymore after the check. */
 	mutex_unlock (&sb->lock);
-
-	mutex_lock (&peer->lock);
-	if (msgbuf_can_in (&peer->rcv))
-		can = true;
-	mutex_unlock (&peer->lock);
-	if (!can)
-		return -1;
 	if ((msg = snd_msgbuf_head_rm (sb)))
 		rcv_msgbuf_head_add (peer, msg);
 	mutex_lock (&sb->lock);
-	return rc;
 }
 
 /* rcv_head events trigger.
  */
 
-static int rcv_head_pop (struct sockbase *sb)
+static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 {
-	int rc = 0;
-
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	
 	if (sb->snd.waiters)
 		condition_signal (&sb->cond);
-	return rc;
 }
 
 
@@ -131,6 +121,8 @@ static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 		errno = ECONNREFUSED;
 		return -1;
 	}
+	msgbuf_head_handle_add (&sb->snd, snd_msgbuf_head_add_ev_hndl);
+	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
 	xput (listener->fd);
 	DEBUG_OFF ("%d accept new connection %d", sb->fd, nfd);
 	return 0;
@@ -168,33 +160,6 @@ static void inproc_connector_close (struct sockbase *sb)
 	}
 }
 
-
-static void snd_head_notify (struct sockbase *sb, u32 events)
-{
-	if (events & XMQ_PUSH)
-		snd_head_push (sb);
-}
-
-static void rcv_head_notify (struct sockbase *sb, u32 events)
-{
-	if (events & XMQ_POP)
-		rcv_head_pop (sb);
-}
-
-static void inproc_connector_notify (struct sockbase *sb, int type, u32 events)
-{
-	switch (type) {
-	case RECV_Q:
-		rcv_head_notify (sb, events);
-		break;
-	case SEND_Q:
-		snd_head_notify (sb, events);
-		break;
-	default:
-		BUG_ON (1);
-	}
-}
-
 struct sockbase_vfptr inproc_connector_spec = {
 	.type = XCONNECTOR,
 	.pf = TP_INPROC,
@@ -202,7 +167,6 @@ struct sockbase_vfptr inproc_connector_spec = {
 	.send = inproc_send,
 	.bind = inproc_connector_bind,
 	.close = inproc_connector_close,
-	.notify = inproc_connector_notify,
 	.getopt = 0,
 	.setopt = 0,
 };

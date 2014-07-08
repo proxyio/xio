@@ -90,10 +90,10 @@ struct sockbase_vfptr mix_listener_spec[4] = {
 		.type = XLISTENER,
 		.pf = TP_MIX,
 		.alloc = mix_alloc,
+		.send = 0,
 		.bind = mix_listener_bind,
 		.close = mix_listener_close,
 		.setopt = 0,
 		.getopt = 0,
-		.notify = 0,
 	},
 };

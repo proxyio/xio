@@ -32,11 +32,11 @@ static void xclient (const char *pf)
 
 			ubufctl_add (xbuf, oob);
 			BUG_ON (xsend (sfd, xbuf));
-			DEBUG_OFF ("%d send request %d", sfd, j);
+			DEBUG_ON ("%d send request %d", sfd, j);
 		}
 		for (j = 0; j < 10; j++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
-			DEBUG_OFF ("%d recv response %d", sfd, j);
+			DEBUG_ON("%d recv response %d", sfd, j);
 			BUG_ON (memcmp (xbuf, buf, nbytes) != 0);
 			oob = ubufctl_first (xbuf);
 			BUG_ON (memcmp (oob, buf, nbytes) != 0);
@@ -69,7 +69,7 @@ static void xserver()
 		DEBUG_OFF ("xserver accept %d", sfd);
 		for (i = 0; i < cnt * 10; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
-			DEBUG_OFF ("%d recv", sfd);
+			DEBUG_ON ("%d recv", sfd);
 			ubuf = ubuf_alloc (ubuf_len (xbuf));
 			memcpy (ubuf, xbuf, ubuf_len (xbuf));
 			ubufctl (xbuf, SSWITCH, ubuf);

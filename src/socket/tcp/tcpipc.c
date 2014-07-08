@@ -29,21 +29,21 @@
 
 static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
 {
-	struct tcpipc_sock *self = cont_of (ops, struct tcpipc_sock, ops);
-	struct transport *vtp = self->vtp;
+	struct tcpipc_sock *tcpsk = cont_of (ops, struct tcpipc_sock, ops);
+	struct transport *vtp = tcpsk->vtp;
 
 	BUG_ON (!vtp);
-	int rc = vtp->recv (self->sys_fd, buff, sz);
+	int rc = vtp->recv (tcpsk->sys_fd, buff, sz);
 	return rc;
 }
 
 static i64 tcp_connector_write (struct io *ops, char *buff, i64 sz)
 {
-	struct tcpipc_sock *self = cont_of (ops, struct tcpipc_sock, ops);
-	struct transport *vtp = self->vtp;
+	struct tcpipc_sock *tcpsk = cont_of (ops, struct tcpipc_sock, ops);
+	struct transport *vtp = tcpsk->vtp;
 
 	BUG_ON (!vtp);
-	int rc = vtp->send (self->sys_fd, buff, sz);
+	int rc = vtp->send (tcpsk->sys_fd, buff, sz);
 	return rc;
 }
 
@@ -52,72 +52,69 @@ struct io default_xops = {
 	.write = tcp_connector_write,
 };
 
-
-
-/* snd_head events trigger.
- */
-
-static void snd_head_empty (struct sockbase *sb)
+static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
-	int64_t sndbuf = bio_size (&self->out);
+	int64_t sndbuf = bio_size (&tcpsk->out);
 
 	/* Disable POLLOUT event when snd_head is empty */
 	BUG_ON (sndbuf < 0);
-	if (bio_size (&self->out) == 0 && (self->et.events & EPOLLOUT) ) {
+	if (bio_size (&tcpsk->out) == 0 && (tcpsk->et.events & EPOLLOUT) ) {
 		DEBUG_OFF ("%d disable EPOLLOUT", sb->fd);
-		self->et.events &= ~EPOLLOUT;
-		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);
+		tcpsk->et.events &= ~EPOLLOUT;
+		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
 	}
 }
 
-static void snd_head_nonempty (struct sockbase *sb)
+static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if (! (self->et.events & EPOLLOUT) ) {
+	if (! (tcpsk->et.events & EPOLLOUT) ) {
 		DEBUG_OFF ("%d enable EPOLLOUT", sb->fd);
-		self->et.events |= EPOLLOUT;
-		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);
+		tcpsk->et.events |= EPOLLOUT;
+		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
 	}
 }
 
-
-/* rcv_head events trigger.
- */
-
-static void rcv_head_pop (struct sockbase *sb)
+static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 {
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+
 	if (sb->snd.waiters)
 		condition_signal (&sb->cond);
 }
 
-static void rcv_head_full (struct sockbase *sb)
+static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if ( (self->et.events & EPOLLIN) ) {
+	if ( (tcpsk->et.events & EPOLLIN) ) {
 		DEBUG_OFF ("%d disable EPOLLIN", sb->fd);
-		self->et.events &= ~EPOLLIN;
-		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);
+		tcpsk->et.events &= ~EPOLLIN;
+		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
 	}
 }
 
-static void rcv_head_nonfull (struct sockbase *sb)
+static void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if (! (self->et.events & EPOLLIN) ) {
+	if (! (tcpsk->et.events & EPOLLIN) ) {
 		DEBUG_OFF ("%d enable EPOLLIN", sb->fd);
-		self->et.events |= EPOLLIN;
-		BUG_ON (eloop_mod (&cpu->el, &self->et) != 0);
+		tcpsk->et.events |= EPOLLIN;
+		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
 	}
 }
 
@@ -125,15 +122,15 @@ int tcp_connector_hndl (eloop_t *el, ev_t *et);
 
 struct sockbase *tcp_alloc()
 {
-	struct tcpipc_sock *self = TNEW (struct tcpipc_sock);
+	struct tcpipc_sock *tcpsk = TNEW (struct tcpipc_sock);
 
-	if (!self)
+	if (!tcpsk)
 		return 0;
-	sockbase_init (&self->base);
-	bio_init (&self->in);
-	bio_init (&self->out);
-	INIT_LIST_HEAD (&self->sg_head);
-	return &self->base;
+	sockbase_init (&tcpsk->base);
+	bio_init (&tcpsk->in);
+	bio_init (&tcpsk->out);
+	INIT_LIST_HEAD (&tcpsk->sg_head);
+	return &tcpsk->base;
 }
 
 static int tcp_send (struct sockbase *sb, char *ubuf)
@@ -148,26 +145,32 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 
 static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	int on = 1;
 	int blen = max (default_sndbuf, default_rcvbuf);
-
+	
 	BUG_ON (!cpu);
-	self->vtp = tp_get (sb->vfptr->pf);
-	if ((self->sys_fd = self->vtp->connect (sock)) < 0)
+	tcpsk->vtp = tp_get (sb->vfptr->pf);
+	if ((tcpsk->sys_fd = tcpsk->vtp->connect (sock)) < 0)
 		return -1;
-	BUG_ON (self->vtp->setopt (self->sys_fd, TP_NOBLOCK, &on, sizeof (on) ) );
-	self->vtp->setopt (self->sys_fd, TP_SNDBUF, &blen, sizeof (blen) );
-	self->vtp->setopt (self->sys_fd, TP_RCVBUF, &blen, sizeof (blen) );
+	tcpsk->vtp->setopt (tcpsk->sys_fd, TP_NOBLOCK, &on, sizeof (on));
+	tcpsk->vtp->setopt (tcpsk->sys_fd, TP_SNDBUF, &blen, sizeof (blen) );
+	tcpsk->vtp->setopt (tcpsk->sys_fd, TP_RCVBUF, &blen, sizeof (blen) );
 
 	strcpy (sb->peer, sock);
-	self->ops = default_xops;
-	self->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
-	self->et.fd = self->sys_fd;
-	self->et.f = tcp_connector_hndl;
-	self->et.data = self;
-	BUG_ON (eloop_add (&cpu->el, &self->et) != 0);
+	tcpsk->ops = default_xops;
+	tcpsk->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
+	tcpsk->et.fd = tcpsk->sys_fd;
+	tcpsk->et.f = tcp_connector_hndl;
+	tcpsk->et.data = tcpsk;
+	BUG_ON (eloop_add (&cpu->el, &tcpsk->et) != 0);
+
+	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
+	msgbuf_head_handle_full (&sb->rcv, rcv_msgbuf_head_full_ev_hndl);
+	msgbuf_head_handle_nonfull (&sb->rcv, rcv_msgbuf_head_nonfull_ev_hndl);
+	msgbuf_head_handle_empty (&sb->snd, snd_msgbuf_head_empty_ev_hndl);
+	msgbuf_head_handle_nonempty (&sb->snd, snd_msgbuf_head_nonempty_ev_hndl);
 	return 0;
 }
 
@@ -175,64 +178,32 @@ static int tcp_connector_snd (struct sockbase *sb);
 
 static void tcp_connector_close (struct sockbase *sb)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	
-	BUG_ON (!self->vtp);
+	BUG_ON (!tcpsk->vtp);
 
 	/* Try flush buf massage into network before close */
 	tcp_connector_snd (sb);
 
 	/* Detach sock low-level file descriptor from poller */
-	if (self->sys_fd > 0) {
-		BUG_ON (eloop_del (&cpu->el, &self->et) != 0);
-		self->vtp->close (self->sys_fd);
+	if (tcpsk->sys_fd > 0) {
+		BUG_ON (eloop_del (&cpu->el, &tcpsk->et) != 0);
+		tcpsk->vtp->close (tcpsk->sys_fd);
 	}
 
-	self->sys_fd = -1;
-	self->et.events = -1;
-	self->et.fd = -1;
-	self->et.f = 0;
-	self->et.data = 0;
-	self->vtp = 0;
+	tcpsk->sys_fd = -1;
+	tcpsk->et.events = -1;
+	tcpsk->et.fd = -1;
+	tcpsk->et.f = 0;
+	tcpsk->et.data = 0;
+	tcpsk->vtp = 0;
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
-	mem_free (self, sizeof (*self) );
+	mem_free (tcpsk, sizeof (*tcpsk) );
 }
 
-
-static void rcv_head_notify (struct sockbase *sb, u32 events)
-{
-	if (events & XMQ_POP)
-		rcv_head_pop (sb);
-	if (events & XMQ_FULL)
-		rcv_head_full (sb);
-	else if (events & XMQ_NONFULL)
-		rcv_head_nonfull (sb);
-}
-
-static void snd_head_notify (struct sockbase *sb, u32 events)
-{
-	if (events & XMQ_EMPTY)
-		snd_head_empty (sb);
-	else if (events & XMQ_NONEMPTY)
-		snd_head_nonempty (sb);
-}
-
-static void tcp_connector_notify (struct sockbase *sb, int type, u32 events)
-{
-	switch (type) {
-	case RECV_Q:
-		rcv_head_notify (sb, events);
-		break;
-	case SEND_Q:
-		snd_head_notify (sb, events);
-		break;
-	default:
-		BUG_ON (1);
-	}
-}
 
 static int bufio_check_msg (struct bio *b)
 {
@@ -258,22 +229,22 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 
 static int tcp_connector_rcv (struct sockbase *sb)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	int rc = 0;
 	u16 cmsg_num;
 	struct msgbuf *aim = 0, *cmsg = 0;
 
-	rc = bio_prefetch (&self->in, &self->ops);
+	rc = bio_prefetch (&tcpsk->in, &tcpsk->ops);
 	if (rc < 0 && errno != EAGAIN)
 		return rc;
-	while (bufio_check_msg (&self->in) ) {
+	while (bufio_check_msg (&tcpsk->in) ) {
 		aim = 0;
-		bufio_rm (&self->in, &aim);
+		bufio_rm (&tcpsk->in, &aim);
 		BUG_ON (!aim);
 		cmsg_num = aim->chunk.cmsg_num;
 		while (cmsg_num--) {
 			cmsg = 0;
-			bufio_rm (&self->in, &cmsg);
+			bufio_rm (&tcpsk->in, &cmsg);
 			BUG_ON (!cmsg);
 			list_add_tail (&cmsg->item, &aim->cmsg_head);
 		}
@@ -299,31 +270,31 @@ static void bufio_add (struct bio *b, struct msgbuf *msg)
 
 static int sg_send (struct sockbase *sb)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
 	struct iovec *iov;
 	struct msgbuf *msg;
 	struct msghdr msghdr = {};
 
 	/* First. sending the bufio caching */
-	if (bio_size (&self->out) > 0) {
-		if ( (rc = bio_flush (&self->out, &self->ops) ) < 0)
+	if (bio_size (&tcpsk->out) > 0) {
+		if ( (rc = bio_flush (&tcpsk->out, &tcpsk->ops) ) < 0)
 			return rc;
-		if (bio_size (&self->out) > 0) {
+		if (bio_size (&tcpsk->out) > 0) {
 			errno = EAGAIN;
 			return -1;
 		}
 	}
 	/* Second. sending the scatter-gather iovec */
-	BUG_ON (bio_size (&self->out) );
-	if (!self->iov_length)
+	BUG_ON (bio_size (&tcpsk->out) );
+	if (!tcpsk->iov_length)
 		return 0;
-	msghdr.msg_iov = self->biov + self->iov_start;
-	msghdr.msg_iovlen = self->iov_end - self->iov_start;
-	if ( (rc = self->vtp->sendmsg (self->sys_fd, &msghdr, 0) ) < 0)
+	msghdr.msg_iov = tcpsk->biov + tcpsk->iov_start;
+	msghdr.msg_iovlen = tcpsk->iov_end - tcpsk->iov_start;
+	if ( (rc = tcpsk->vtp->sendmsg (tcpsk->sys_fd, &msghdr, 0) ) < 0)
 		return rc;
-	iov = &self->biov[self->iov_start];
-	while (rc >= iov->iov_len && iov < &self->biov[self->iov_end]) {
+	iov = &tcpsk->biov[tcpsk->iov_start];
+	while (rc >= iov->iov_len && iov < &tcpsk->biov[tcpsk->iov_end]) {
 		rc -= iov->iov_len;
 		msg = cont_of (iov->iov_base, struct msgbuf, chunk);
 		list_del_init (&msg->item);
@@ -332,53 +303,53 @@ static int sg_send (struct sockbase *sb)
 	}
 	/* Cache the reset iovec into bufio  */
 	if (rc > 0) {
-		bio_write (&self->out, iov->iov_base + rc, iov->iov_len - rc);
+		bio_write (&tcpsk->out, iov->iov_base + rc, iov->iov_len - rc);
 		msg = cont_of (iov->iov_base, struct msgbuf, chunk);
 		list_del_init (&msg->item);
 		msgbuf_free (msg);
 		rc = 0;
 		iov++;
 	}
-	self->iov_start = iov - self->biov;
-	BUG_ON (iov > &self->biov[self->iov_end]);
-	if (bio_size (&self->out) || self->iov_start < self->iov_end) {
+	tcpsk->iov_start = iov - tcpsk->biov;
+	BUG_ON (iov > &tcpsk->biov[tcpsk->iov_end]);
+	if (bio_size (&tcpsk->out) || tcpsk->iov_start < tcpsk->iov_end) {
 		errno = EAGAIN;
 		return -1;
 	}
-	if (self->iov_length > NELEM (self->iov, struct iovec) )
-		mem_free (self->biov, self->iov_length * sizeof (struct iovec) );
-	self->biov = 0;
-	self->iov_start = self->iov_end = self->iov_length = 0;
+	if (tcpsk->iov_length > NELEM (tcpsk->iov, struct iovec) )
+		mem_free (tcpsk->biov, tcpsk->iov_length * sizeof (struct iovec) );
+	tcpsk->biov = 0;
+	tcpsk->iov_start = tcpsk->iov_end = tcpsk->iov_length = 0;
 	return 0;
 }
 
 static int tcp_connector_sg (struct sockbase *sb)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
 	struct msgbuf *msg, *nmsg;
 	struct iovec *iov;
 
 	while ( (rc = sg_send (sb) ) == 0) {
-		BUG_ON (!list_empty (&self->sg_head) );
+		BUG_ON (!list_empty (&tcpsk->sg_head) );
 
 		/* Third. serialize the queue message for send */
 		while ( (msg = snd_msgbuf_head_rm (sb) ) )
-			self->iov_length += msgbuf_serialize (msg, &self->sg_head);
-		if (self->iov_length <= 0) {
+			tcpsk->iov_length += msgbuf_serialize (msg, &tcpsk->sg_head);
+		if (tcpsk->iov_length <= 0) {
 			errno = EAGAIN;
 			return -1;
 		}
-		self->iov_end = self->iov_length;
-		if (self->iov_length <= NELEM (self->iov, struct iovec) ) {
-			self->biov = &self->iov[0];
+		tcpsk->iov_end = tcpsk->iov_length;
+		if (tcpsk->iov_length <= NELEM (tcpsk->iov, struct iovec) ) {
+			tcpsk->biov = &tcpsk->iov[0];
 		} else {
 			/* BUG here ? */
-			self->biov = NTNEW (struct iovec, self->iov_length);
-			BUG_ON (!self->biov);
+			tcpsk->biov = NTNEW (struct iovec, tcpsk->iov_length);
+			BUG_ON (!tcpsk->biov);
 		}
-		iov = self->biov;
-		walk_msg_s (msg, nmsg, &self->sg_head) {
+		iov = tcpsk->biov;
+		walk_msg_s (msg, nmsg, &tcpsk->sg_head) {
 			list_del_init (&msg->item);
 			iov->iov_base = msgbuf_base (msg);
 			iov->iov_len = msgbuf_len (msg);
@@ -390,30 +361,30 @@ static int tcp_connector_sg (struct sockbase *sb)
 
 static int tcp_connector_snd (struct sockbase *sb)
 {
-	struct tcpipc_sock *self = cont_of (sb, struct tcpipc_sock, base);
+	struct tcpipc_sock *tcpsk = cont_of (sb, struct tcpipc_sock, base);
 	int rc;
 	struct msgbuf *msg;
 
-	if (self->vtp->sendmsg)
+	if (tcpsk->vtp->sendmsg)
 		return tcp_connector_sg (sb);
 	while ( (msg = snd_msgbuf_head_rm (sb) ) )
-		bufio_add (&self->out, msg);
-	rc = bio_flush (&self->out, &self->ops);
+		bufio_add (&tcpsk->out, msg);
+	rc = bio_flush (&tcpsk->out, &tcpsk->ops);
 	return rc;
 }
 
 int tcp_connector_hndl (eloop_t *el, ev_t *et)
 {
 	int rc = 0;
-	struct tcpipc_sock *self = cont_of (et, struct tcpipc_sock, et);
-	struct sockbase *sb = &self->base;
+	struct tcpipc_sock *tcpsk = cont_of (et, struct tcpipc_sock, et);
+	struct sockbase *sb = &tcpsk->base;
 
 	if (et->happened & EPOLLIN) {
 		DEBUG_OFF ("io sock %d EPOLLIN", sb->fd);
 		rc = tcp_connector_rcv (sb);
 	}
 	if (et->happened & EPOLLOUT) {
-		DEBUG_OFF ("io sock %d EPOLLOUT", sb->fd);
+		DEBUG_ON ("io sock %d EPOLLOUT", sb->fd);
 		rc = tcp_connector_snd (sb);
 	}
 	if ( (rc < 0 && errno != EAGAIN) ||
@@ -438,7 +409,6 @@ struct sockbase_vfptr tcp_connector_spec = {
 	.send = tcp_send,
 	.bind = tcp_connector_bind,
 	.close = tcp_connector_close,
-	.notify = tcp_connector_notify,
 	.setopt = 0,
 	.getopt = 0,
 };
@@ -450,7 +420,6 @@ struct sockbase_vfptr ipc_connector_spec = {
 	.send = tcp_send,
 	.bind = tcp_connector_bind,
 	.close = tcp_connector_close,
-	.notify = tcp_connector_notify,
 	.setopt = 0,
 	.getopt = 0,
 };
