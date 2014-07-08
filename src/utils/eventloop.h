@@ -47,26 +47,21 @@ typedef struct ev {
 	int64_t to_nsec;
 	uint32_t events;
 	uint32_t happened;
-	struct i64_rbe tr_node;
-	struct list_head el_link;
+	struct i64_rbe rbe;
+	struct list_head item;
 } ev_t;
 
-#define list_for_each_et_safe(pos, tmp, head)				\
-    list_for_each_entry_safe(pos, tmp, head, ev_t, el_link)
+#define list_for_each_et_safe(pos, tmp, head)			\
+    list_for_each_entry_safe(pos, tmp, head, ev_t, item)
 
 typedef struct eloop {
 	int stopping;
 	int efd, max_io_events, event_size;
 	int64_t max_to;
-	struct i64_rb tr_tree;
+	struct i64_rb ev_tree;
 	mutex_t mutex;
-	struct list_head link;
 	struct epoll_event *ev_buf;
 } eloop_t;
-
-#define list_for_each_el_safe(pos, tmp, head)			\
-    list_for_each_entry_safe(pos, tmp, head, eloop_t, link)
-
 
 static inline ev_t *ev_new()
 {
@@ -80,41 +75,20 @@ static inline eloop_t *eloop_new()
 	return el;
 }
 
-static inline int eloop_init (eloop_t *el, int size, int max_io_events, int max_to)
-{
-	if ( (el->efd = epoll_create (size) ) < 0)
-		return -1;
-	if (! (el->ev_buf = NTNEW (struct epoll_event, max_io_events) ) ) {
-		close (el->efd);
-		return -1;
-	}
-	el->max_to = max_to;
-	i64_rb_init (&el->tr_tree);
-	mutex_init (&el->mutex);
-	el->max_io_events = max_io_events;
-	return 0;
-}
+int eloop_init (eloop_t *el, int size, int max_io_events, int max_to);
 
-static inline int eloop_destroy (eloop_t *el)
-{
-	ev_t *ev = NULL;
-	mutex_destroy (&el->mutex);
-	while (!i64_rb_empty (&el->tr_tree) ) {
-		ev = (ev_t *) (i64_rb_min (&el->tr_tree) )->data;
-		i64_rb_delete (&el->tr_tree, &ev->tr_node);
-	}
-	if (el->efd > 0)
-		close (el->efd);
-	if (el->ev_buf)
-		mem_free (el->ev_buf, sizeof (*el->ev_buf) * el->max_io_events);
-	return 0;
-}
+int eloop_destroy (eloop_t *el);
 
 int eloop_add (eloop_t *el, ev_t *ev);
+
 int eloop_del (eloop_t *el, ev_t *ev);
+
 int eloop_mod (eloop_t *el, ev_t *ev);
+
 int eloop_once (eloop_t *el);
+
 int eloop_start (eloop_t *el);
+
 void eloop_stop (eloop_t *el);
 
 

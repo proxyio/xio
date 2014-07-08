@@ -31,6 +31,37 @@
 #include "timer.h"
 #include "eventloop.h"
 
+int eloop_init (eloop_t *el, int size, int max_io_events, int max_to)
+{
+	if ( (el->efd = epoll_create (size) ) < 0)
+		return -1;
+	if (! (el->ev_buf = NTNEW (struct epoll_event, max_io_events) ) ) {
+		close (el->efd);
+		return -1;
+	}
+	el->max_to = max_to;
+	i64_rb_init (&el->ev_tree);
+	mutex_init (&el->mutex);
+	el->max_io_events = max_io_events;
+	return 0;
+}
+
+int eloop_destroy (eloop_t *el)
+{
+	ev_t *ev = NULL;
+	mutex_destroy (&el->mutex);
+	while (!i64_rb_empty (&el->ev_tree) ) {
+		ev = (ev_t *) (i64_rb_min (&el->ev_tree) )->data;
+		i64_rb_delete (&el->ev_tree, &ev->rbe);
+	}
+	if (el->efd > 0)
+		close (el->efd);
+	if (el->ev_buf)
+		mem_free (el->ev_buf, sizeof (*el->ev_buf) * el->max_io_events);
+	return 0;
+}
+
+
 int eloop_add (eloop_t *el, ev_t *ev)
 {
 	int rc = 0;
@@ -38,9 +69,9 @@ int eloop_add (eloop_t *el, ev_t *ev)
 	struct epoll_event ee = {};
 
 	if (ev->to_nsec > 0) {
-		ev->tr_node.key = _cur_nsec + ev->to_nsec;
+		ev->rbe.key = _cur_nsec + ev->to_nsec;
 		mutex_lock (&el->mutex);
-		i64_rb_insert (&el->tr_tree, &ev->tr_node);
+		i64_rb_insert (&el->ev_tree, &ev->rbe);
 		mutex_unlock (&el->mutex);
 	}
 	if (ev->fd >= 0) {
@@ -61,10 +92,10 @@ int eloop_mod (eloop_t *el, ev_t *ev)
 
 	if (ev->to_nsec > 0) {
 		mutex_lock (&el->mutex);
-		if (ev->tr_node.key)
-			i64_rb_delete (&el->tr_tree, &ev->tr_node);
-		ev->tr_node.key = _cur_nsec + ev->to_nsec;
-		i64_rb_insert (&el->tr_tree, &ev->tr_node);
+		if (ev->rbe.key)
+			i64_rb_delete (&el->ev_tree, &ev->rbe);
+		ev->rbe.key = _cur_nsec + ev->to_nsec;
+		i64_rb_insert (&el->ev_tree, &ev->rbe);
 		mutex_unlock (&el->mutex);
 	}
 
@@ -81,10 +112,10 @@ int eloop_del (eloop_t *el, ev_t *ev)
 	int rc = 0;
 	struct epoll_event ee = {};
 
-	if (ev->to_nsec > 0 && ev->tr_node.key) {
+	if (ev->to_nsec > 0 && ev->rbe.key) {
 		mutex_lock (&el->mutex);
-		i64_rb_delete (&el->tr_tree, &ev->tr_node);
-		ev->tr_node.key = 0;
+		i64_rb_delete (&el->ev_tree, &ev->rbe);
+		ev->rbe.key = 0;
 		mutex_unlock (&el->mutex);
 	}
 
@@ -99,12 +130,12 @@ int eloop_del (eloop_t *el, ev_t *ev)
 
 static void eloop_update_timer (eloop_t *el, ev_t *ev, int64_t cur)
 {
-	if (!ev->to_nsec || !ev->tr_node.key)
+	if (!ev->to_nsec || !ev->rbe.key)
 		return;
 	mutex_lock (&el->mutex);
-	i64_rb_delete (&el->tr_tree, &ev->tr_node);
-	ev->tr_node.key = cur + ev->to_nsec;
-	i64_rb_insert (&el->tr_tree, &ev->tr_node);
+	i64_rb_delete (&el->ev_tree, &ev->rbe);
+	ev->rbe.key = cur + ev->to_nsec;
+	i64_rb_insert (&el->ev_tree, &ev->rbe);
 	mutex_unlock (&el->mutex);
 }
 
@@ -114,11 +145,11 @@ static int64_t eloop_find_timer (eloop_t *el, int64_t to)
 	struct i64_rbe *node = NULL;
 
 	mutex_lock (&el->mutex);
-	if (i64_rb_empty (&el->tr_tree)) {
+	if (i64_rb_empty (&el->ev_tree)) {
 		mutex_unlock (&el->mutex);
 		return to;
 	}
-	node = i64_rb_min (&el->tr_tree);
+	node = i64_rb_min (&el->ev_tree);
 	mutex_unlock (&el->mutex);
 
 	if (node->key < to)
@@ -151,13 +182,13 @@ static int __eloop_wait (eloop_t *el)
 
 	mutex_lock (&el->mutex);
 	size -= n;
-	while (size && !i64_rb_empty (&el->tr_tree)) {
-		node = i64_rb_min (&el->tr_tree);
+	while (size && !i64_rb_empty (&el->ev_tree)) {
+		node = i64_rb_min (&el->ev_tree);
 		if (node->key > _cur_nsec)
 			break;
 		ev = (ev_t *) node->data;
-		i64_rb_delete (&el->tr_tree, &ev->tr_node);
-		ev->tr_node.key = 0;
+		i64_rb_delete (&el->ev_tree, &ev->rbe);
+		ev->rbe.key = 0;
 		ev_buf->data.ptr = ev;
 		ev_buf->events = EPOLLTIMEOUT;
 		size--;
