@@ -20,14 +20,28 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_IPC_INTERN_
-#define _H_PROXYIO_IPC_INTERN_
+#ifndef _H_PROXYIO_UNIX_IPC_INTERN_
+#define _H_PROXYIO_UNIX_IPC_INTERN_
 
-#include <config.h>
 #include <socket/sockbase.h>
 
-#if defined HAVE_SOCKET
-#include "unix/ipc.h"
-#endif
+struct ipc_sock {
+	struct sockbase base;
+	ev_t et;
+	struct bio in;
+	struct bio out;
+	struct io ops;
+	int sys_fd;
+	struct iovec iov[100];
+	struct iovec *biov;
+	int iov_start;
+	int iov_end;
+	int iov_length;
+	struct list_head sg_head;
+	struct transport *vtp;
+};
+
+extern struct sockbase_vfptr ipc_listener_vfptr;
+extern struct sockbase_vfptr ipc_connector_vfptr;
 
 #endif

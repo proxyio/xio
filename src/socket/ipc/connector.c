@@ -20,14 +20,14 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_IPC_INTERN_
-#define _H_PROXYIO_IPC_INTERN_
-
 #include <config.h>
-#include <socket/sockbase.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <utils/taskpool.h>
+#include <socket/global.h>
 
 #if defined HAVE_SOCKET
-#include "unix/ipc.h"
-#endif
-
+#include "unix/connector.c"
 #endif
