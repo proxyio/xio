@@ -20,12 +20,12 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_TCP_INTERN_
-#define _H_PROXYIO_TCP_INTERN_
+#ifndef _H_PROXYIO_IPC_INTERN_
+#define _H_PROXYIO_IPC_INTERN_
 
 #include "sockbase.h"
 
-struct tcp_sock {
+struct ipc_sock {
 	struct sockbase base;
 	ev_t et;
 	struct bio in;
@@ -41,8 +41,7 @@ struct tcp_sock {
 	struct transport *vtp;
 };
 
-extern struct sockbase_vfptr tcp_listener_spec;
-extern struct sockbase_vfptr tcp_connector_spec;
-
+extern struct sockbase_vfptr ipc_listener_spec;
+extern struct sockbase_vfptr ipc_connector_spec;
 
 #endif

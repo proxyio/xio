@@ -27,6 +27,7 @@
 #include <utils/list.h>
 #include "inproc.h"
 #include "tcp.h"
+#include "ipc.h"
 #include "worker.h"
 
 /* Max number of cpu core */

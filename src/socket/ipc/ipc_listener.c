@@ -29,47 +29,47 @@
 
 extern struct io default_xops;
 
-static int tcp_listener_hndl (eloop_t *el, ev_t *et);
+static int ipc_listener_hndl (eloop_t *el, ev_t *et);
 
-static int tcp_listener_bind (struct sockbase *sb, const char *sock)
+static int ipc_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct ipc_sock *ipcsk = cont_of (sb, struct ipc_sock, base);
 	int sys_fd, on = 1;
 	struct worker *cpu = get_worker (sb->cpu_no);
 
-	tcpsk->vtp = tp_get (sb->vfptr->pf);
-	if ((sys_fd = tcpsk->vtp->bind (sock)) < 0)
+	ipcsk->vtp = tp_get (sb->vfptr->pf);
+	if ((sys_fd = ipcsk->vtp->bind (sock)) < 0)
 		return -1;
 	strcpy (sb->addr, sock);
-	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
+	ipcsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
 
-	tcpsk->sys_fd = sys_fd;
-	tcpsk->et.events = EPOLLIN|EPOLLERR;
-	tcpsk->et.fd = sys_fd;
-	tcpsk->et.f = tcp_listener_hndl;
-	tcpsk->et.data = tcpsk;
-	BUG_ON (eloop_add (&cpu->el, &tcpsk->et) != 0);
+	ipcsk->sys_fd = sys_fd;
+	ipcsk->et.events = EPOLLIN|EPOLLERR;
+	ipcsk->et.fd = sys_fd;
+	ipcsk->et.f = ipc_listener_hndl;
+	ipcsk->et.data = ipcsk;
+	BUG_ON (eloop_add (&cpu->el, &ipcsk->et) != 0);
 	return 0;
 }
 
-static void tcp_listener_close (struct sockbase *sb)
+static void ipc_listener_close (struct sockbase *sb)
 {
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct ipc_sock *ipcsk = cont_of (sb, struct ipc_sock, base);
 	struct worker *cpu = get_worker (sb->cpu_no);
 	struct sockbase *nsb;
 
-	BUG_ON (!tcpsk->vtp);
+	BUG_ON (!ipcsk->vtp);
 
 	/* Detach sock low-level file descriptor from poller */
-	BUG_ON (eloop_del (&cpu->el, &tcpsk->et) != 0);
-	tcpsk->vtp->close (tcpsk->sys_fd);
+	BUG_ON (eloop_del (&cpu->el, &ipcsk->et) != 0);
+	ipcsk->vtp->close (ipcsk->sys_fd);
 
-	tcpsk->sys_fd = -1;
-	tcpsk->et.events = -1;
-	tcpsk->et.fd = -1;
-	tcpsk->et.f = 0;
-	tcpsk->et.data = 0;
-	tcpsk->vtp = 0;
+	ipcsk->sys_fd = -1;
+	ipcsk->et.events = -1;
+	ipcsk->et.fd = -1;
+	ipcsk->et.f = 0;
+	ipcsk->et.data = 0;
+	ipcsk->vtp = 0;
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &nsb) == 0) {
@@ -78,15 +78,15 @@ static void tcp_listener_close (struct sockbase *sb)
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
-	mem_free (tcpsk, sizeof (*tcpsk));
+	mem_free (ipcsk, sizeof (*ipcsk));
 }
 
-extern int tcp_socket_init (struct sockbase *sb, int sys_fd);
+extern int ipc_socket_init (struct sockbase *sb, int sys_fd);
 
-static int tcp_listener_hndl (eloop_t *el, ev_t *et)
+static int ipc_listener_hndl (eloop_t *el, ev_t *et)
 {
-	struct tcp_sock *tcpsk = cont_of (et, struct tcp_sock, et);
-	struct sockbase *sb = &tcpsk->base;
+	struct ipc_sock *ipcsk = cont_of (et, struct ipc_sock, et);
+	struct sockbase *sb = &ipcsk->base;
 	int sys_fd;
 	int fd_new;
 	struct sockbase *sb_new = 0;
@@ -99,32 +99,32 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et)
 		mutex_unlock (&sb->lock);
 		return -1;
 	}
-	BUG_ON (!tcpsk->vtp);
-	if ((sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd)) < 0) {
+	BUG_ON (!ipcsk->vtp);
+	if ((sys_fd = ipcsk->vtp->accept (ipcsk->sys_fd)) < 0) {
 		return -1;
 	}
 	if ((fd_new = xalloc (sb->vfptr->pf, XCONNECTOR)) < 0) {
-		tcpsk->vtp->close (sys_fd);
+		ipcsk->vtp->close (sys_fd);
 		return -1;
 	}
 	sb_new = xgb.sockbases[fd_new];
 	DEBUG_OFF ("%d accept new connection %d", sb->fd, fd_new);
 
-	BUG_ON (tcp_socket_init (sb_new, sys_fd));
+	BUG_ON (ipc_socket_init (sb_new, sys_fd));
 
 	/* BUG: if fault */
 	return acceptq_add (sb, sb_new);
 }
 
-extern struct sockbase *tcp_alloc();
+extern struct sockbase *ipc_alloc();
 
-struct sockbase_vfptr tcp_listener_spec = {
+struct sockbase_vfptr ipc_listener_spec = {
 	.type = XLISTENER,
-	.pf = TP_TCP,
-	.alloc = tcp_alloc,
+	.pf = TP_IPC,
+	.alloc = ipc_alloc,
 	.send = 0,
-	.bind = tcp_listener_bind,
-	.close = tcp_listener_close,
+	.bind = ipc_listener_bind,
+	.close = ipc_listener_close,
 	.getopt = 0,
 	.setopt = 0,
 };
