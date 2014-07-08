@@ -47,11 +47,6 @@
 extern int default_sndbuf;
 extern int default_rcvbuf;
 
-/* Sockspec_vfptr notify types */
-#define RECV_Q           1
-#define SEND_Q           2
-#define SOCKS_REQ        3
-
 /* Following xmq events are provided by sockbase */
 #define XMQ_PUSH         0x01
 #define XMQ_POP          0x02
