@@ -110,6 +110,8 @@ struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
 	return 0;
 }
 
+extern struct sockbase_vfptr mix_listener_vfptr;
+
 void socket_module_init()
 {
 	waitgroup_t wg;

@@ -47,12 +47,12 @@ static i64 tcp_connector_write (struct io *ops, char *buff, i64 sz)
 	return rc;
 }
 
-struct io tcp_io_ops = {
+struct io stream_ops = {
 	.read = tcp_connector_read,
 	.write = tcp_connector_write,
 };
 
-static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
+void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
@@ -68,7 +68,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 	}
 }
 
-static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
@@ -82,7 +82,7 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 	}
 }
 
-static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
 
@@ -90,7 +90,7 @@ static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 		condition_signal (&sb->cond);
 }
 
-static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
@@ -104,7 +104,7 @@ static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 	}
 }
 
-static void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
+void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
@@ -156,7 +156,7 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 	tcpsk->vtp->setopt (sys_fd, TP_SNDBUF, &default_sndbuf, sizeof (default_sndbuf));
 	tcpsk->vtp->setopt (sys_fd, TP_RCVBUF, &default_rcvbuf, sizeof (default_rcvbuf));
 
-	tcpsk->ops = tcp_io_ops;
+	tcpsk->ops = stream_ops;
 	tcpsk->et.events = EPOLLIN|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
 	tcpsk->et.fd = sys_fd;
 	tcpsk->et.f = tcp_connector_hndl;
@@ -411,9 +411,22 @@ int tcp_connector_hndl (eloop_t *el, ev_t *et)
 	return rc;
 }
 
+
+
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_TCP,
+	.alloc = tcp_alloc,
+	.send = tcp_send,
+	.bind = tcp_connector_bind,
+	.close = tcp_connector_close,
+	.setopt = 0,
+	.getopt = 0,
+};
+
+struct sockbase_vfptr ipc_connector_vfptr = {
+	.type = XCONNECTOR,
+	.pf = TP_IPC,
 	.alloc = tcp_alloc,
 	.send = tcp_send,
 	.bind = tcp_connector_bind,

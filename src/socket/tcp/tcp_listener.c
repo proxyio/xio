@@ -128,3 +128,14 @@ struct sockbase_vfptr tcp_listener_vfptr = {
 	.getopt = 0,
 	.setopt = 0,
 };
+
+struct sockbase_vfptr ipc_listener_vfptr = {
+	.type = XLISTENER,
+	.pf = TP_IPC,
+	.alloc = tcp_alloc,
+	.send = 0,
+	.bind = tcp_listener_bind,
+	.close = tcp_listener_close,
+	.getopt = 0,
+	.setopt = 0,
+};
