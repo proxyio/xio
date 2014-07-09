@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include <utils/str_array.h>
-#include "../global.h"
+#include <socket/global.h>
 
 static int mix_listener_bind (struct sockbase *sb, const char *sock)
 {
@@ -78,11 +78,11 @@ static void mix_listener_close (struct sockbase *sb)
 }
 
 static struct sockbase *mix_alloc() {
-	struct sockbase *sb = TNEW (struct sockbase);
+	struct mix_sock *self = TNEW (struct mix_sock);
 
-	if (sb)
-		sockbase_init (sb);
-	return sb;
+	BUG_ON (!self);
+	sockbase_init (&self->base);
+	return &self->base;
 }
 
 struct sockbase_vfptr mix_listener_vfptr = {

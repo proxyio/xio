@@ -20,26 +20,30 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_INPROC_INTERN_
-#define _H_PROXYIO_INPROC_INTERN_
+#ifndef _H_PROXYIO_TCP_INTERN_
+#define _H_PROXYIO_TCP_INTERN_
 
-#include "sockbase.h"
+#include <socket/sockbase.h>
 
-struct inproc_sock {
+struct tcp_sock {
 	struct sockbase base;
-	atomic_t ref;
 	ev_t et;
-	struct efd efd;
-
-	/* the listener_head's entry of inproc-listener */
-	struct str_rbe lhentry;
-
-	/* For inproc-connector and inproc-accepter */
-	struct sockbase *peer;
+	struct bio in;
+	struct bio out;
+	struct io ops;
+	int sys_fd;
+	struct iovec iov[100];
+	struct iovec *biov;
+	int iov_start;
+	int iov_end;
+	int iov_length;
+	struct list_head sg_head;
+	struct transport *vtp;
 };
 
-extern struct sockbase_vfptr inproc_listener_vfptr;
-extern struct sockbase_vfptr inproc_connector_vfptr;
-
+extern struct sockbase_vfptr tcp_listener_vfptr;
+extern struct sockbase_vfptr tcp_connector_vfptr;
+extern struct sockbase_vfptr ipc_listener_vfptr;
+extern struct sockbase_vfptr ipc_connector_vfptr;
 
 #endif

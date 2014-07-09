@@ -25,8 +25,9 @@
 
 #include <utils/mutex.h>
 #include <utils/list.h>
-#include "inproc.h"
-#include "tcp.h"
+#include "inproc/inproc.h"
+#include "tcp/tcp.h"
+#include "mix/mix.h"
 #include "worker.h"
 
 /* Max number of cpu core */
