@@ -24,6 +24,7 @@
 #define _H_PROXYIO_EV_
 
 #include <utils/list.h>
+#include <ev/eventpoll.h>
 
 enum {
 	EV_READ     =        0x01, /* ev_io detected read will not block */
@@ -72,6 +73,7 @@ typedef void (*ev_fd_hndl) (struct ev_fd *evfd, int events /* EV_READ|EV_WRITE *
 
 struct ev_fd {
 	struct list_head item;
+	struct fdd fdd;
 	int fd;
 	int events;
 	ev_fd_hndl hndl;
@@ -102,6 +104,8 @@ int ev_fdset_rm (struct ev_fdset *evfds, struct ev_fd *evfd);
 
 /* process the underlying eventpoll and then process the happened fd events */
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);
+
+
 
 
 #endif

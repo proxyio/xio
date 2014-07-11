@@ -77,5 +77,39 @@ if test "$enable_debug" = "yes"; then
 fi
 
 
+#  If --enable-poll is specified, set the HAVE_DEBUG macro.
+AC_ARG_ENABLE([poll],
+    [AS_HELP_STRING([--enable-poll], [poll eventpoll support [default=no]])]
+)
+if test "$enable_poll" = "yes"; then
+    AC_DEFINE([USE_POLL], [], [use poll for eventpoll])
+fi
+
+#  If --enable-epoll is specified, set the HAVE_DEBUG macro.
+AC_ARG_ENABLE([epoll],
+    [AS_HELP_STRING([--enable-epoll], [epoll eventpoll support [default=no]])]
+)
+if test "$enable_epoll" = "yes"; then
+    AC_DEFINE([USE_EPOLL], [], [use epoll for eventpoll])
+fi
+
+#  If --enable-epoll is specified, set the HAVE_DEBUG macro.
+AC_ARG_ENABLE([select],
+    [AS_HELP_STRING([--enable-select], [select eventpoll support [default=no]])]
+)
+if test "$enable_select" = "yes"; then
+    AC_DEFINE([USE_SELECT], [], [use select for eventpoll])
+fi
+
+#  If --enable-epoll is specified, set the HAVE_DEBUG macro.
+AC_ARG_ENABLE([kqueue],
+    [AS_HELP_STRING([--enable-kqueue], [kqueue eventpoll support [default=no]])]
+)
+if test "$enable_kqueue" = "yes"; then
+    AC_DEFINE([USE_KQUEUE], [], [use kqueue for eventpoll])
+fi
+
+
+
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

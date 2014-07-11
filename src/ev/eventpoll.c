@@ -23,7 +23,7 @@
 #include <config.h>
 #include "eventpoll.h"
 
-#if defined USE_EPOLL_CREATE
+#if defined USE_EPOLL
 
 #include "ev_epoll.c"
 

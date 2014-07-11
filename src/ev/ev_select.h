@@ -23,6 +23,30 @@
 #ifndef _H_PROXYIO_EV_SELECT_
 #define _H_PROXYIO_EV_SELECT_
 
+/* According to POSIX.1-2001 */
+#include <sys/select.h>
+
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <utils/list.h>
+
+struct fdd {
+	struct list_head item;
+	int fd;
+	int events;
+};
+
+struct eventpoll {
+	struct list_head fds;
+};
+
+#define walk_fdd_s (fdd, tmp, head)					\
+	list_for_each_entry_safe (fdd, tmp, head, struct fdd, item)
+
+
 
 
 #endif
