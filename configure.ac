@@ -48,6 +48,7 @@ AC_TYPE_UINT8_T
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getcwd gettimeofday memmove memset socket strchr strdup strndup strrchr strstr])
+AC_CHECK_FUNCS([epoll_create select poll kqueue])
 
 #  If --enable-lua is specified, building xio modules for lua.
 AC_ARG_ENABLE([lua],

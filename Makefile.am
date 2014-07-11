@@ -25,6 +25,9 @@ XIO_MSGBUF = \
 	src/msgbuf/msgbuf.c \
 	src/msgbuf/msgbuf_head.c
 
+XIO_EV = \
+	src/ev/eventpoll.c
+
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \
 	src/socket/xlisten.c \
@@ -109,7 +112,8 @@ libxio_la_SOURCES = \
 	$(XIO_UTILS) \
 	$(XIO_SOCKET) \
 	$(XIO_POLL) \
-	$(XIO_SP)
+	$(XIO_SP) \
+	$(XIO_EV)
 
 LDADD = libxio.la
 

@@ -20,43 +20,39 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_EVENTPOLL_
-#define _H_PROXYIO_EVENTPOLL_
-
 #include <config.h>
+#include "eventpoll.h"
 
 #if defined USE_EPOLL_CREATE
 
-#include "ev_epoll.h"
+#include "ev_epoll.c"
 
 #elif defined USE_SELECT
 
-#include "ev_select.h"
+#include "ev_select.c"
 
 #elif defined USE_POLL
 
-#include "ev_poll.h"
+#include "ev_poll.c"
 
 #elif defined USE_KQUEUE
 
-#include "ev_kqueue.h"
+#include "ev_kqueue.c"
 
 #elif defined HAVE_EPOLL_CREATE
 
-#include "ev_epoll.h"
+#include "ev_epoll.c"
 
 #elif defined HAVE_SELECT
 
-#include "ev_select.h"
+#include "ev_select.c"
 
 #elif defined HAVE_POLL
 
-#include "ev_poll.h"
+#include "ev_poll.c"
 
 #elif defined HAVE_KQUEUE
 
-#include "ev_kqueue.h"
-
-#endif
+#include "ev_kqueue.c"
 
 #endif
