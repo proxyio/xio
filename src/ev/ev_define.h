@@ -20,33 +20,14 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_EV_SELECT_
-#define _H_PROXYIO_EV_SELECT_
+#ifndef _H_PROXYIO_EV_DEFINE_
+#define _H_PROXYIO_EV_DEFINE_
 
-/* According to POSIX.1-2001 */
-#include <sys/select.h>
-
-/* According to earlier standards */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <utils/list.h>
-
-struct fdd {
-	struct list_head item;
-	int fd;
-	int events;
+enum {
+	EV_READ     =        0x01, /* ev_io detected read will not block */
+	EV_WRITE    =        0x02, /* ev_io detected write will not block */
+	EV_TIMER    =        0x04, /* timer timed out */
+	EV_EXIT     =        0x08, /* ev_io exit event */
 };
-
-struct eventpoll {
-	struct list_head fds;
-};
-
-#define walk_fdd_s(pos, tmp, head)				\
-	walk_each_entry_s (pos, tmp, head, struct fdd, item)
-
-
-
 
 #endif
