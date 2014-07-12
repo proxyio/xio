@@ -33,7 +33,7 @@ typedef struct waitgroup {
 } waitgroup_t;
 
 int waitgroup_init (waitgroup_t *wg);
-int waitgroup_destroy (waitgroup_t *wg);
+int waitgroup_term (waitgroup_t *wg);
 int waitgroup_add (waitgroup_t *wg);
 int waitgroup_adds (waitgroup_t *wg, int refs);
 int waitgroup_done (waitgroup_t *wg);

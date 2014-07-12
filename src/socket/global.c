@@ -138,7 +138,7 @@ void socket_module_init()
 		taskpool_run (&xgb.tpool, kcpud, &wg);
 	/* Waiting all poll's kcpud start properly */
 	waitgroup_wait (&wg);
-	waitgroup_destroy (&wg);
+	waitgroup_term (&wg);
 
 	/* The priority of sockbase_vfptr: inproc > ipc > tcp */
 	INIT_LIST_HEAD (protocol_head);

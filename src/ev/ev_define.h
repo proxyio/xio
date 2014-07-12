@@ -23,11 +23,5 @@
 #ifndef _H_PROXYIO_EV_DEFINE_
 #define _H_PROXYIO_EV_DEFINE_
 
-enum {
-	EV_READ     =        0x01, /* ev_io detected read will not block */
-	EV_WRITE    =        0x02, /* ev_io detected write will not block */
-	EV_TIMER    =        0x04, /* timer timed out */
-	EV_EXIT     =        0x08, /* ev_io exit event */
-};
 
 #endif

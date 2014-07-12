@@ -21,16 +21,16 @@
 */
 
 #include "ev_select.h"
-#include <ev/ev_define.h>
+#include <ev/ev.h>
 
-
-void fdd_init (struct fdd *fdd, int fd, int events)
+void fdd_init (struct fdd *fdd)
 {
 	INIT_LIST_HEAD (&fdd->item);
-	fdd->fd = fd;
-	fdd->events = events;
 }
 
+void fdd_term (struct fdd *fdd)
+{
+}
 
 void eventpoll_init (struct eventpoll *evp)
 {
@@ -47,9 +47,43 @@ void eventpoll_term (struct eventpoll *evp)
 	}
 }
 
+typedef int (*eventpoll_ctl_op) (struct eventpoll *evp, struct fdd *fdd);
+
+static int eventpoll_add (struct eventpoll *evp, struct fdd *fdd)
+{
+	BUG_ON (!list_empty (&fdd->item));
+	list_add_tail (&fdd->item, &evp->fds);
+	return 0;
+}
+
+static int eventpoll_del (struct eventpoll *evp, struct fdd *fdd)
+{
+	BUG_ON (list_empty (&fdd->item));
+	list_del_init (&fdd->item);
+	return 0;
+}
+
+static int eventpoll_mod (struct eventpoll *evp, struct fdd *fdd)
+{
+	BUG_ON (list_empty (&fdd->item));
+	return 0;
+}
+
+static eventpoll_ctl_op evp_ctl_vfptr[] = {
+	eventpoll_add,
+	eventpoll_del,
+	eventpoll_mod,
+};
 
 int eventpoll_ctl (struct eventpoll *evp, int op, struct fdd *fdd)
 {
+	int rc;
+	if (op >= NELEM (evp_ctl_vfptr, eventpoll_ctl_op) || !evp_ctl_vfptr[op]) {
+		errno = EINVAL;
+		return -1;
+	}
+	rc = evp_ctl_vfptr[op] (evp, fdd);
+	return rc;
 }
 
 /* intialize timeval structure from timeout value */
@@ -60,7 +94,7 @@ static void timeval_init (struct timeval *tv, int timeout /* millisecond */)
 }
 
 
-int eventpoll_wait (struct eventpoll *evp, struct fdd *fdds, int max, int timeout)
+int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeout)
 {
 	fd_set readfds;
 	fd_set writefds;
@@ -85,15 +119,19 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd *fdds, int max, int timeou
 			FD_SET (fdd->fd, &readfds);
 		if (fdd->events & EV_WRITE)
 			FD_SET (fdd->fd, &writefds);
-		fdds[fd_size++] = *fdd;
+		fdds[fd_size++] = fdd;
 	}
 	if ((rc = select (fd_size, &readfds, &writefds, NULL, &tv)) < 0)
 		return -1;
 	for (i = 0, rc = 0; i < fd_size; i++) {
-		fdd = &fdds[i];
-		if (!FD_ISSET (fdd->fd, &readfds) && !FD_ISSET (fdd->fd, &writefds))
-			continue;
-		fdds[rc++] = fdds[i];
+		fdd = fdds[i];
+		fdd->ready_events = 0;
+		if (FD_ISSET (fdd->fd, &readfds))
+			fdd->ready_events |= EV_READ;
+		if (FD_ISSET (fdd->fd, &writefds))
+			fdd->ready_events |= EV_WRITE;
+		if (fdd->ready_events)
+			fdds[rc++] = fdd;
 	}
 	return rc;
 }

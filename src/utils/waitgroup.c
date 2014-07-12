@@ -31,7 +31,7 @@ int waitgroup_init (waitgroup_t *wg)
 	return mutex_init (&wg->mutex);
 }
 
-int waitgroup_destroy (waitgroup_t *wg)
+int waitgroup_term (waitgroup_t *wg)
 {
 	condition_destroy (&wg->cond);
 	mutex_destroy (&wg->mutex);

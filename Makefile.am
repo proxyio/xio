@@ -26,7 +26,8 @@ XIO_MSGBUF = \
 	src/msgbuf/msgbuf_head.c
 
 XIO_EV = \
-	src/ev/eventpoll.c
+	src/ev/eventpoll.c \
+	src/ev/ev.c
 
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \
@@ -129,6 +130,7 @@ bin_PROGRAMS =
 #  automated tests
 UTILS_TESTS = \
 	tests/stl_ts \
+	tests/ev_ts \
 	tests/bufio_ts \
 	tests/rb_ts \
 	tests/modstat_ts \

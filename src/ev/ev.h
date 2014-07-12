@@ -24,11 +24,24 @@
 #define _H_PROXYIO_EV_
 
 #include <utils/list.h>
+#include <utils/spinlock.h>
+#include <utils/waitgroup.h>
 #include <ev/eventpoll.h>
-#include <ev/ev_define.h>
+
+enum {
+	EV_READ     =        0x01, /* ev_io detected read will not block */
+	EV_WRITE    =        0x02, /* ev_io detected write will not block */
+	EV_TIMER    =        0x04, /* timer timed out */
+	EV_EXIT     =        0x08, /* ev_io exit event */
+
+};
+
+enum {
+	EV_MAXEVENTS   =     100,  /* the max number of poll events */
+};
 
 
-struct ev_timer;
+	struct ev_timer;
 typedef void (*ev_timer_hndl) (struct ev_timer *timer, int events /* EV_TIMER */);
 
 struct ev_timer {
@@ -63,39 +76,68 @@ int ev_timerset_timeout (struct ev_timerset *timerset);
 
 
 
+enum {
+	EV_ADD  =  0x00,   /* register the target fd on the eventpoll instance referred to by evp */
+	EV_DEL  =  0x01,   /* remove the target fd from the eventpoll instance referred to by evp */
+	EV_MOD  =  0x02,   /* change the event event associated with the target file descriptor fd. */
+};
+
 struct ev_fd;
+struct ev_fdset;
 typedef void (*ev_fd_hndl) (struct ev_fd *evfd, int events /* EV_READ|EV_WRITE */);
+
+struct ev_task {
+	struct list_head item;
+	waitgroup_t *wg;
+	int rc;
+	int (*hndl) (struct ev_fdset *evfds, struct ev_fd *evfd);
+};
 
 struct ev_fd {
 	struct list_head item;
+	struct ev_task task;
 	struct fdd fdd;
 	int fd;
 	int events;
 	ev_fd_hndl hndl;
 };
 
+#define walk_ev_task_s(pos, tmp, head)					\
+	walk_each_entry_s (pos, tmp, head, struct ev_fd, task.item)
+
+
 /* initialize the ev_fd by file descriptor and a hndl for process watched events
    if happened */
-void ev_fd_init (struct ev_fd *evfd, int fd, int events, ev_fd_hndl hndl);
+static inline void ev_fd_init (struct ev_fd *evfd)
+{
+	INIT_LIST_HEAD (&evfd->item);
+	evfd->task.wg = 0;
+	evfd->task.rc = 0;
+	INIT_LIST_HEAD (&evfd->task.item);
+	fdd_init (&evfd->fdd);
+}
 
 struct ev_fdset {
+	spin_t lock;                /* protect task_head fields */
+	struct list_head task_head;
 	struct list_head head;
 	int fd_size;
 	struct eventpoll eventpoll;
 };
 
-/* initialize the ev_fds head for storing a list of ev_fd and initialize the underlying
-   eventpoll */
+/* initialize the ev_fds head for storing a list of ev_fd and initialize the
+   underlying eventpoll */
 void ev_fdset_init (struct ev_fdset *evfds);
 
 /* terminate ev_fdset, remove all fd from eventpool and then close it (eventpoll) */
 void ev_fdset_term (struct ev_fdset *evfds);
 
-/* add evfd into ev_fdset */
-int ev_fdset_add (struct ev_fdset *evfds, struct ev_fd *evfd);
+int ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
+		  struct ev_fd *evfd);
 
-/* remove the evfd from evfds */
-int ev_fdset_rm (struct ev_fdset *evfds, struct ev_fd *evfd);
+/* nolock version of ev_fdset_ctl, only called in ev_fd.hndl() */
+int __ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
+		    struct ev_fd *evfd);
 
 /* process the underlying eventpoll and then process the happened fd events */
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);

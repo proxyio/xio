@@ -25,19 +25,14 @@
 
 #include <config.h>
 
-enum {
-	EVP_ADD  =  0x01,   /* register the target fd on the eventpoll instance referred to by evp */
-	EVP_DEL  =  0x02,   /* remove the target fd from the eventpoll instance referred to by evp */
-	EVP_MOD  =  0x04,   /* change the event event associated with the target file descriptor fd. */
-};
-
 struct eventpoll;
-struct fdd;         /* store the event data for file descriptor */
 
-/* initialize the underlying eventpoll data, such as mapping the
-   EV_READ|EV_WRITE into special underlying poller */
-void fdd_init (struct fdd *fdd, int fd, int events);
+/* store the event data for file descriptor, the underlying impl must contain
+   three fields, fdd->fd|fdd->events|fdd->ready_events */
+struct fdd;
 
+void fdd_init (struct fdd *fdd);
+void fdd_term (struct fdd *fdd);
 
 /* initialize the underlying eventpoll */
 void eventpoll_init (struct eventpoll *evp);
@@ -49,7 +44,7 @@ int eventpoll_ctl (struct eventpoll *evp, int op /* EVP_ADD|EVP_DEL|EVP_MOD */,
 		   struct fdd *fdd);
 
 /* waiting events happened for a maximum time of timeout milliseconds */
-int eventpoll_wait (struct eventpoll *evp, struct fdd *fdds, int max, int timeout);
+int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeout);
 
 
 
