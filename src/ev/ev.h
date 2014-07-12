@@ -41,7 +41,7 @@ enum {
 };
 
 
-	struct ev_timer;
+struct ev_timer;
 typedef void (*ev_timer_hndl) (struct ev_timer *timer, int events /* EV_TIMER */);
 
 struct ev_timer {
