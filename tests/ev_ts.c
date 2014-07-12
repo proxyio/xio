@@ -48,7 +48,8 @@ int main (int argc, char **argv)
 	__ev_fdset_ctl (&fds, EV_ADD, &ev_fd[2]);
 
 	ev_fdset_poll (&fds, 10);
-	BUG_ON (size != 2);
+	__ev_fdset_ctl (&fds, EV_DEL, &ev_fd[0]);
+	ev_fdset_poll (&fds, 10);
 
 	ev_fdset_term (&fds);
 	return 0;
