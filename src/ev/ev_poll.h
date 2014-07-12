@@ -23,6 +23,25 @@
 #ifndef _H_PROXYIO_EV_POLL_
 #define _H_PROXYIO_EV_POLL_
 
+#include <poll.h>
+#include <utils/list.h>
+
+struct fdd {
+	struct list_head item;
+	int fd;
+	int events;
+	int ready_events;
+};
+
+
+struct eventpoll {
+	struct list_head fds;
+};
+
+
+#define walk_fdd_s(pos, tmp, head)				\
+	walk_each_entry_s (pos, tmp, head, struct fdd, item)
+
 
 
 #endif
