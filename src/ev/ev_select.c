@@ -20,7 +20,6 @@
   IN THE SOFTWARE.
 */
 
-#include "ev_select.h"
 #include <ev/ev.h>
 
 void fdd_init (struct fdd *fdd)
