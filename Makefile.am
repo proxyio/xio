@@ -135,7 +135,7 @@ UTILS_TESTS = \
 	tests/rb_ts \
 	tests/modstat_ts \
 	tests/path_ts \
-	tests/runner_ts \
+	tests/taskpool_ts \
 	tests/sync_ts \
 	tests/transport_ts \
 	tests/msgbuf_ts \
