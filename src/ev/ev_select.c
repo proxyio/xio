@@ -104,6 +104,7 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	int i;
 	int fd_size = 0;
 	struct timeval tv;
+	struct list_head fd_head = LIST_HEAD_INITIALIZE (fd_head);
 
 	timeval_init (&tv, timeout);
 	FD_ZERO (&readfds);
@@ -119,8 +120,11 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 			FD_SET (fdd->fd, &readfds);
 		if (fdd->events & EV_WRITE)
 			FD_SET (fdd->fd, &writefds);
+		list_move (&fdd->item, &fd_head);
 		fdds[fd_size++] = fdd;
 	}
+	list_splice (&fd_head, &evp->fds);
+
 	if ((rc = select (fd_size, &readfds, &writefds, NULL, &tv)) < 0)
 		return -1;
 	for (i = 0, rc = 0; i < fd_size; i++) {

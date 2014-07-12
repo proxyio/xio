@@ -93,6 +93,7 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	struct fdd *tmp;
 	int fd_size = 0;
 	struct pollfd fds[EV_MAXEVENTS] = {};
+	struct list_head fd_head = LIST_HEAD_INITIALIZE (fd_head);
 	
 	if (max > EV_MAXEVENTS)
 		max = EV_MAXEVENTS;
@@ -105,8 +106,11 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 			fds[fd_size].events |= POLLIN|POLLHUP|POLLERR;
 		if (fdd->events & EV_WRITE)
 			fds[fd_size].events |= POLLOUT;
+		list_move (&fdd->item, &fd_head);
 		fdds[fd_size++] = fdd;
 	}
+	list_splice (&fd_head, &evp->fds);
+
 	if ((rc = poll (fds, fd_size, timeout)) <= 0)
 		return rc;
 	for (i = 0, rc = 0; i < fd_size; i++) {
