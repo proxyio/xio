@@ -121,7 +121,6 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 			FD_SET (fdd->fd, &writefds);
 		fdds[fd_size++] = fdd;
 	}
-	printf("%d\n", fd_size);
 	if ((rc = select (fd_size, &readfds, &writefds, NULL, &tv)) < 0)
 		return -1;
 	for (i = 0, rc = 0; i < fd_size; i++) {
