@@ -29,7 +29,7 @@
 #include <utils/condition.h>
 #include <utils/list.h>
 #include <xio/poll.h>
-#include <socket/sockbase.h>
+#include <xsocket/sockbase.h>
 #include "stats.h"
 
 struct poll_entry {

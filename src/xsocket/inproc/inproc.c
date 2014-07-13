@@ -25,7 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include <socket/global.h>
+#include <xsocket/global.h>
 
 extern struct sockbase *getlistener (const char *addr);
 

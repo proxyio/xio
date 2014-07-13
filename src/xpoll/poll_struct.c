@@ -22,7 +22,7 @@
 
 
 #include <utils/timer.h>
-#include <socket/global.h>
+#include <xsocket/global.h>
 #include "pglobal.h"
 #include "poll_struct.h"
 

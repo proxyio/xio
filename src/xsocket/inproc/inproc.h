@@ -23,7 +23,7 @@
 #ifndef _H_PROXYIO_INPROC_INTERN_
 #define _H_PROXYIO_INPROC_INTERN_
 
-#include <socket/sockbase.h>
+#include <xsocket/sockbase.h>
 
 struct inproc_sock {
 	struct sockbase base;
