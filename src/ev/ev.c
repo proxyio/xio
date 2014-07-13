@@ -91,23 +91,24 @@ static fds_ctl_op fds_ctl_vfptr [] = {
 int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 {
 	waitgroup_t wg;
-
+	struct ev_task *task = &evfd->task;
+	
 	if (op >= NELEM (fds_ctl_vfptr, fds_ctl_op) || !fds_ctl_vfptr[op]) {
 		errno = EINVAL;
 		return -1;
 	}
 	waitgroup_init (&wg);
-	evfd->task.hndl = fds_ctl_vfptr[op];
-	evfd->task.wg = &wg;
+	task->hndl = fds_ctl_vfptr[op];
+	task->wg = &wg;
 	waitgroup_add (&wg);
 
 	spin_lock (&evfds->lock);
-	list_add_tail (&evfd->task.item, &evfds->task_head);
+	list_add_tail (&task->item, &evfds->task_head);
 	spin_unlock (&evfds->lock);
 
 	waitgroup_wait (&wg);
 	waitgroup_term (&wg);
-	return evfd->task.rc;
+	return task->rc;
 }
 
 int __ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
