@@ -36,6 +36,13 @@ enum {
 
 };
 
+/* register/remove/update ev_hndl, such as ev_timer or ev_fd */
+enum {
+	EV_ADD  =  0x00,
+	EV_DEL  =  0x01,
+	EV_MOD  =  0x02,
+};
+
 enum {
 	EV_MAXEVENTS      =     100,  /* the max number of poll events */
 	EV_MAXPROCESSORS  =     32,   /* the number of processors currently configured */
@@ -53,7 +60,8 @@ struct ev_timer {
 	ev_timer_hndl hndl;
 };
 
-/* initialize the timer by timeouts value and a hndl for processing the timeout events */
+/* initialize the timer by timeouts value and a hndl for processing the
+   timeout events */
 void ev_timer_init (struct ev_timer *w, uint64_t timeout, ev_timer_hndl hndl);
 
 /* ev_timerset stores a list of timers and reports the next one to expire
@@ -68,22 +76,15 @@ void ev_timerset_init (struct ev_timerset *timerset);
 /* terminate the timerset and trigger EV_EXIT event for each timer */
 void ev_timerset_term (struct ev_timerset *timerset);
 
-/* Add timer into timerset, timer must be initial by ev_timer_init () */
-int ev_timerset_add (struct ev_timerset *timerset, struct ev_timer *timer);
-
-/* Remove timer from timerset */
-int ev_timerset_rm (struct ev_timerset *timerset, struct ev_timer *timer);
+/* EV_ADD: Add timer into timerset, timer must be initial by ev_timer_init ()
+   EV_DEL: Remove timer from timerset */
+int ev_timerset_ctl (struct ev_timerset *timerset, int op /* EV_ADD|EV_DEL */,
+		     struct ev_timer *timer);
 
 /* process all timers if it is timeouted */
 int ev_timerset_timeout (struct ev_timerset *timerset);
 
 
-
-enum {
-	EV_ADD  =  0x00,   /* register the target fd on the eventpoll */
-	EV_DEL  =  0x01,   /* remove the target fd from the eventpoll */
-	EV_MOD  =  0x02,   /* change the event event associated with the target fd. */
-};
 
 struct ev_fd;
 struct ev_fdset;
