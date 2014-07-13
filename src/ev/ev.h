@@ -37,7 +37,8 @@ enum {
 };
 
 enum {
-	EV_MAXEVENTS   =     100,  /* the max number of poll events */
+	EV_MAXEVENTS      =     100,  /* the max number of poll events */
+	EV_MAXPROCESSORS  =     32,   /* the number of processors currently configured */
 };
 
 
@@ -138,7 +139,7 @@ void ev_fdset_term (struct ev_fdset *evfds);
 int ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 		  struct ev_fd *evfd);
 
-/* nolock version of ev_fdset_ctl, only called in ev_fd.hndl() */
+/* nolock version of ev_fdset_ctl, only called in ev_fd's hndl */
 int __ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 		    struct ev_fd *evfd);
 
@@ -149,6 +150,14 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);
 int uev_ctl (int op /* EV_ADD|EV_DEL|EV_MOD */, struct ev_fd *evfd);
 int __uev_ctl (int op /* EV_ADD|EV_DEL|EV_MOD */, struct ev_fd *evfd);
 
+
+
+struct ev_loop {
+	waitgroup_t wg;
+	int stopped;
+	struct ev_timerset timerset;
+	struct ev_fdset fdset;
+};
 
 
 

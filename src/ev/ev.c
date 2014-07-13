@@ -21,6 +21,8 @@
 */
 
 #include <ev/ev.h>
+#include <unistd.h>
+#include <utils/taskpool.h>
 
 void ev_fdset_init (struct ev_fdset *evfds)
 {
@@ -152,4 +154,51 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 			waitgroup_done (task->wg);
 	}
 	return 0;
+}
+
+static int ev_processors = 1;    /* The number of processors currently online */
+static struct taskpool ev_pool;
+static struct ev_loop ev_loops[EV_MAXPROCESSORS];
+
+static int ev_hndl (void *hndl)
+{
+	struct ev_loop *ev_loop = (struct ev_loop *) hndl;
+	ev_fdset_init (&ev_loop->fdset);
+	waitgroup_done (&ev_loop->wg);
+
+	while (!ev_loop->stopped)
+		ev_fdset_poll (&ev_loop->fdset, 1);
+	return 0;
+}
+	
+
+void __attribute__ ((constructor)) __ev_init (void)
+{
+	int i;
+	struct ev_loop *ev_loop;
+
+#if defined _SC_NPROCESSORS_ONLN
+	if ((ev_processors = sysconf (_SC_NPROCESSORS_ONLN)) < 1)
+		ev_processors = 1;
+#endif
+	taskpool_init (&ev_pool, ev_processors);
+	taskpool_start (&ev_pool);
+
+	for (i = 0; i < ev_processors; i++) {
+		ev_loop = &ev_loops[i];
+		waitgroup_init (&ev_loop->wg);
+		waitgroup_add (&ev_loop->wg);
+		ev_loop->stopped = false;
+		taskpool_run (&ev_pool, ev_hndl, ev_loop);
+		waitgroup_wait (&ev_loop->wg);
+	}
+}
+
+void __attribute__ ((destructor)) __ev_exit (void)
+{
+	int i;
+
+	for (i = 0; i < ev_processors; i++)
+		ev_loops[i].stopped = true;
+	taskpool_stop (&ev_pool);
 }
