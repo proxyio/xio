@@ -33,10 +33,14 @@ static int tcp_listener_hndl (eloop_t *el, ev_t *et);
 
 static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	int sys_fd, on = 1;
-	struct worker *cpu = get_worker (sb->cpu_no);
+	struct worker *ev_loop;
+	struct tcp_sock *tcpsk;
+	int on = 1;
+	int sys_fd;
 
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
+	
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
 	if ((sys_fd = tcpsk->vtp->bind (sock)) < 0)
 		return -1;
@@ -48,33 +52,26 @@ static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 	tcpsk->et.fd = sys_fd;
 	tcpsk->et.f = tcp_listener_hndl;
 	tcpsk->et.data = tcpsk;
-	BUG_ON (eloop_add (&cpu->el, &tcpsk->et) != 0);
+	BUG_ON (eloop_add (&ev_loop->el, &tcpsk->et) != 0);
 	return 0;
 }
 
 static void tcp_listener_close (struct sockbase *sb)
 {
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
-	struct sockbase *nsb;
+	struct worker *ev_loop;
+	struct tcp_sock *tcpsk;
+	struct sockbase *tmp;
 
-	BUG_ON (!tcpsk->vtp);
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
-	BUG_ON (eloop_del (&cpu->el, &tcpsk->et) != 0);
+	BUG_ON (eloop_del (&ev_loop->el, &tcpsk->et) != 0);
 	tcpsk->vtp->close (tcpsk->sys_fd);
 
-	tcpsk->sys_fd = -1;
-	tcpsk->et.events = -1;
-	tcpsk->et.fd = -1;
-	tcpsk->et.f = 0;
-	tcpsk->et.data = 0;
-	tcpsk->vtp = 0;
-
 	/* Destroy acceptq's connection */
-	while (acceptq_rm_nohup (sb, &nsb) == 0) {
-		xclose (nsb->fd);
-	}
+	while (acceptq_rm_nohup (sb, &tmp) == 0)
+		xclose (tmp->fd);
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);

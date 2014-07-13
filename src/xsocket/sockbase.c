@@ -84,7 +84,7 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct worker *cpu = get_worker (sb->cpu_no);
+	struct worker *ev_loop = sb->ev_loop;
 
 	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
@@ -93,11 +93,11 @@ void xput (int fd)
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 
-		worker_lock (cpu);
-		while (efd_signal (&cpu->efd) < 0)
-			worker_relock (cpu);
-		list_add_tail (&sb->shutdown.link, &cpu->shutdown_socks);
-		worker_unlock (cpu);
+		worker_lock (ev_loop);
+		while (efd_signal (&ev_loop->efd) < 0)
+			worker_relock (ev_loop);
+		list_add_tail (&sb->shutdown.link, &ev_loop->shutdown_socks);
+		worker_unlock (ev_loop);
 	}
 	mutex_unlock (&xgb.lock);
 }
@@ -121,7 +121,7 @@ void sockbase_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->cpu_no = worker_choosed (sb->fd);
+	sb->ev_loop = get_worker (worker_choosed (rand ()));
 	socket_mstats_init (&sb->stats);
 
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
@@ -150,18 +150,14 @@ void sockbase_exit (struct sockbase *sb)
 	sb->owner = 0;
 	BUG_ON (!list_empty (&sb->sub_socks) );
 	BUG_ON (attached (&sb->sib_link) );
-
 	sb->fd = -1;
-	sb->cpu_no = -1;
-
 	INIT_LIST_HEAD (&head);
 
 	msgbuf_dequeue_all (&sb->rcv, &head);
 	msgbuf_dequeue_all (&sb->snd, &head);
 
-	walk_msg_s (msg, tmp, &head) {
+	walk_msg_s (msg, tmp, &head)
 		msgbuf_free (msg);
-	}
 
 	/* It's possible that user call xclose() and xpoll_add()
 	 * at the same time. and attach_to_sock() happen after xclose().

@@ -38,7 +38,6 @@ struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
 		if (sb->snd.waiters > 0)
 			condition_broadcast (&sb->cond);
 	}
-
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return msg;
@@ -59,7 +58,6 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 		rc = 0;
 		msgbuf_head_in_msg (&sb->snd, msg);
 	}
-
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return rc;

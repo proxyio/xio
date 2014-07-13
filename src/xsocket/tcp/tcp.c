@@ -54,31 +54,39 @@ struct io stream_ops = {
 
 void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
-	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
-	int64_t sndbuf = bio_size (&tcpsk->out);
+	struct sockbase *sb;
+	struct worker *ev_loop;
+	struct tcp_sock *tcpsk;
+	
+	sb = cont_of (bh, struct sockbase, snd);
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
+
 
 	/* Disable POLLOUT event when snd_head is empty */
-	BUG_ON (sndbuf < 0);
+	BUG_ON (bio_size (&tcpsk->out) < 0);
 	if (bio_size (&tcpsk->out) == 0 && (tcpsk->et.events & EPOLLOUT) ) {
 		DEBUG_OFF ("%d disable EPOLLOUT", sb->fd);
 		tcpsk->et.events &= ~EPOLLOUT;
-		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
+		BUG_ON (eloop_mod (&ev_loop->el, &tcpsk->et) != 0);
 	}
 }
 
 void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
-	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
+	struct sockbase *sb;
+	struct worker *ev_loop;
+	struct tcp_sock *tcpsk;
+
+	sb = cont_of (bh, struct sockbase, snd);
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if (! (tcpsk->et.events & EPOLLOUT) ) {
+	if (!(tcpsk->et.events & EPOLLOUT)) {
 		DEBUG_OFF ("%d enable EPOLLOUT", sb->fd);
 		tcpsk->et.events |= EPOLLOUT;
-		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
+		BUG_ON (eloop_mod (&ev_loop->el, &tcpsk->et) != 0);
 	}
 }
 
@@ -92,29 +100,37 @@ void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 
 void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
-	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
+	struct sockbase *sb;
+	struct worker *ev_loop;
+	struct tcp_sock *tcpsk;
+
+	sb = cont_of (bh, struct sockbase, rcv);
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if ( (tcpsk->et.events & EPOLLIN) ) {
+	if ((tcpsk->et.events & EPOLLIN)) {
 		DEBUG_OFF ("%d disable EPOLLIN", sb->fd);
 		tcpsk->et.events &= ~EPOLLIN;
-		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
+		BUG_ON (eloop_mod (&ev_loop->el, &tcpsk->et) != 0);
 	}
 }
 
 void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
-	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
+	struct sockbase *sb;
+	struct worker *ev_loop;
+	struct tcp_sock *tcpsk;
+	
+	sb = cont_of (bh, struct sockbase, rcv);
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
 
 	/* Enable POLLOUT event when snd_head isn't empty */
-	if (! (tcpsk->et.events & EPOLLIN) ) {
+	if (!(tcpsk->et.events & EPOLLIN)) {
 		DEBUG_OFF ("%d enable EPOLLIN", sb->fd);
 		tcpsk->et.events |= EPOLLIN;
-		BUG_ON (eloop_mod (&cpu->el, &tcpsk->et) != 0);
+		BUG_ON (eloop_mod (&ev_loop->el, &tcpsk->et) != 0);
 	}
 }
 
@@ -145,11 +161,13 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 
 int tcp_socket_init (struct sockbase *sb, int sys_fd)
 {
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
+	struct tcp_sock *tcpsk;
+	struct worker *ev_loop;
 	int on = 1;
 
-	BUG_ON (!cpu);
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
+
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
 	tcpsk->sys_fd = sys_fd;
 	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
@@ -161,7 +179,7 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 	tcpsk->et.fd = sys_fd;
 	tcpsk->et.f = tcp_connector_hndl;
 	tcpsk->et.data = tcpsk;
-	BUG_ON (eloop_add (&cpu->el, &tcpsk->et) != 0);
+	BUG_ON (eloop_add (&ev_loop->el, &tcpsk->et) != 0);
 
 	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
 	msgbuf_head_handle_full (&sb->rcv, rcv_msgbuf_head_full_ev_hndl);
@@ -174,10 +192,8 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
 	int sys_fd = 0;
 
-	BUG_ON (!cpu);
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
 	if ((sys_fd = tcpsk->vtp->connect (sock)) < 0)
 		return -1;
@@ -189,26 +205,20 @@ static int tcp_connector_snd (struct sockbase *sb);
 
 static void tcp_connector_close (struct sockbase *sb)
 {
-	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
-	struct worker *cpu = get_worker (sb->cpu_no);
-	
-	BUG_ON (!tcpsk->vtp);
+	struct tcp_sock *tcpsk;
+	struct worker *ev_loop;
+
+	ev_loop = sb->ev_loop;
+	tcpsk = cont_of (sb, struct tcp_sock, base);
 
 	/* Try flush buf massage into network before close */
 	tcp_connector_snd (sb);
 
 	/* Detach sock low-level file descriptor from poller */
 	if (tcpsk->sys_fd > 0) {
-		BUG_ON (eloop_del (&cpu->el, &tcpsk->et) != 0);
+		BUG_ON (eloop_del (&ev_loop->el, &tcpsk->et) != 0);
 		tcpsk->vtp->close (tcpsk->sys_fd);
 	}
-
-	tcpsk->sys_fd = -1;
-	tcpsk->et.events = -1;
-	tcpsk->et.fd = -1;
-	tcpsk->et.f = 0;
-	tcpsk->et.data = 0;
-	tcpsk->vtp = 0;
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
