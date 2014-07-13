@@ -66,7 +66,6 @@ static struct sockbase *inproc_alloc ()
 	sockbase_init (&self->base);
 	atomic_init (&self->ref);
 	atomic_incr (&self->ref);
-	efd_init (&self->efd);
 	sb = &self->base;
 	return sb;
 }

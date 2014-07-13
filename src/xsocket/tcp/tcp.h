@@ -27,7 +27,7 @@
 
 struct tcp_sock {
 	struct sockbase base;
-	ev_t et;
+	struct ev_fd et;
 	struct bio in;
 	struct bio out;
 	struct io ops;

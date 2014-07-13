@@ -84,28 +84,15 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct worker *ev_loop = sb->ev_loop;
 
-	BUG_ON (fd != sb->fd);
 	mutex_lock (&xgb.lock);
 	if (atomic_decr (&sb->ref) == 1) {
 		xgb.sockbases[sb->fd] = 0;
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
-
-		worker_lock (ev_loop);
-		while (efd_signal (&ev_loop->efd) < 0)
-			worker_relock (ev_loop);
-		list_add_tail (&sb->shutdown.link, &ev_loop->shutdown_socks);
-		worker_unlock (ev_loop);
+		sb->vfptr->close (sb);
 	}
 	mutex_unlock (&xgb.lock);
-}
-
-static void xshutdown_task_f (struct task_ent *te)
-{
-	struct sockbase *sb = cont_of (te, struct sockbase, shutdown);
-	sb->vfptr->close (sb);
 }
 
 void sockbase_init (struct sockbase *sb)
@@ -121,15 +108,13 @@ void sockbase_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->ev_loop = get_worker (worker_choosed (rand ()));
+	sb->evl = ev_get_loop (rand ());
 	socket_mstats_init (&sb->stats);
 
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
 	msgbuf_head_init (&sb->snd, default_sndbuf);
 
 	INIT_LIST_HEAD (&sb->poll_entries);
-	sb->shutdown.f = xshutdown_task_f;
-	INIT_LIST_HEAD (&sb->shutdown.link);
 	condition_init (&sb->acceptq.cond);
 	sb->acceptq.waiters = 0;
 	INIT_LIST_HEAD (&sb->acceptq.head);

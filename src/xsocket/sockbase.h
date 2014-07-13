@@ -38,7 +38,7 @@
 #include <xio/poll.h>
 #include <msgbuf/msgbuf.h>
 #include <msgbuf/msgbuf_head.h>
-#include "worker.h"
+#include <ev/ev.h>
 #include "stats.h"
 
 #define null NULL
@@ -107,8 +107,7 @@ struct sockbase {
 	char peer[TP_SOCKADDRLEN];
 	u64 fasync:1;
 	u64 fepipe:1;
-
-	struct worker *ev_loop;
+	struct ev_loop *evl;
 	struct sockbase *owner;
 	struct list_head sub_socks;
 	struct list_head sib_link;
@@ -123,8 +122,6 @@ struct sockbase {
 		struct list_head head;
 		struct list_head link;
 	} acceptq;
-
-	struct task_ent shutdown;
 	struct list_head poll_entries;
 };
 

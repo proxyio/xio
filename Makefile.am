@@ -37,7 +37,6 @@ XIO_SOCKET = \
 	src/xsocket/xsend.c \
 	src/xsocket/xrecv.c \
 	src/xsocket/eventnotify.c \
-	src/xsocket/worker.c \
 	src/xsocket/xbind.c \
 	src/xsocket/xg.c \
 	src/xsocket/xclose.c \
