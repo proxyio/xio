@@ -21,7 +21,7 @@
 */
 
 #include <utils/timer.h>
-#include "pglobal.h"
+#include "pg.h"
 
 extern int check_pollevents (struct sockbase *sb, int events);
 

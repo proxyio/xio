@@ -27,6 +27,9 @@
 #include <xio/cplusplus_define.h>
 #include <xio/cmsghdr.h>
 
+/* Following socktype are provided */
+#define XLISTENER       1
+#define XCONNECTOR      2
 
 #define XSOCKADDRLEN 128
 int xlisten (const char *sockaddr);

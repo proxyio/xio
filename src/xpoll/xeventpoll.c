@@ -22,7 +22,7 @@
 
 #include <utils/timer.h>
 #include <utils/base.h>
-#include "pglobal.h"
+#include "pg.h"
 
 const char *event_str[] = {
 	"",

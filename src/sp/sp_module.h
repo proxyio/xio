@@ -31,7 +31,6 @@
 #include <utils/condition.h>
 #include <utils/thread.h>
 #include <utils/mstats_base.h>
-#include <xsocket/global.h>
 #include <xio/poll.h>
 #include <xio/sp_reqrep.h>
 #include <msgbuf/msgbuf_head.h>

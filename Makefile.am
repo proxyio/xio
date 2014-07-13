@@ -39,7 +39,7 @@ XIO_SOCKET = \
 	src/xsocket/eventnotify.c \
 	src/xsocket/worker.c \
 	src/xsocket/xbind.c \
-	src/xsocket/global.c \
+	src/xsocket/xg.c \
 	src/xsocket/xclose.c \
 	src/xsocket/xconnect.c \
 	src/xsocket/tcp/tcp_listener.c \
@@ -52,7 +52,7 @@ XIO_SOCKET = \
 
 XIO_POLL = \
 	src/xpoll/poll_struct.c \
-	src/xpoll/pglobal.c \
+	src/xpoll/pg.c \
 	src/xpoll/stats.c \
 	src/xpoll/xselect.c \
 	src/xpoll/xeventpoll.c

@@ -22,8 +22,8 @@
 
 
 #include <utils/timer.h>
-#include <xsocket/global.h>
-#include "pglobal.h"
+#include <xsocket/xg.h>
+#include "pg.h"
 #include "poll_struct.h"
 
 

@@ -21,7 +21,7 @@
 */
 
 
-#include "pglobal.h"
+#include "pg.h"
 
 struct pglobal pg = {};
 

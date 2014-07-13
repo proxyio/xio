@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include <utils/str_array.h>
-#include <xsocket/global.h>
+#include <xsocket/xg.h>
 
 static int mix_listener_bind (struct sockbase *sb, const char *sock)
 {
