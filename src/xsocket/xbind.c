@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-#include "global.h"
+#include "xg.h"
 
 int xsocket (int pf, int socktype)
 {

@@ -27,7 +27,7 @@
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
 #include <utils/sockaddr.h>
-#include "global.h"
+#include "xg.h"
 
 int xconnect (const char *peer)
 {
