@@ -67,8 +67,9 @@ static int eventpoll_add (struct eventpoll *evp, struct fdd *fdd)
 
 	BUG_ON (!list_empty (&fdd->item));
 	epoll_event_init (&et, fdd);
-	if ((rc = epoll_ctl (evp->epfd, EPOLL_CTL_ADD, fdd->fd, &et)) == 0)
+	if ((rc = epoll_ctl (evp->epfd, EPOLL_CTL_ADD, fdd->fd, &et)) == 0) {
 		list_add_tail (&fdd->item, &evp->fds);
+	}
 	return rc;
 }
 
@@ -79,8 +80,9 @@ static int eventpoll_del (struct eventpoll *evp, struct fdd *fdd)
 
 	BUG_ON (list_empty (&fdd->item));
 	epoll_event_init (&et, fdd);
-	if ((rc = epoll_ctl (evp->epfd, EPOLL_CTL_DEL, fdd->fd, &et)) == 0)
+	if ((rc = epoll_ctl (evp->epfd, EPOLL_CTL_DEL, fdd->fd, &et)) == 0) {
 		list_del_init (&fdd->item);
+	}
 	return rc;
 }
 
