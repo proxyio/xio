@@ -42,7 +42,9 @@ enum {
 
 
 struct ev_timer;
-typedef void (*ev_timer_hndl) (struct ev_timer *timer, int events /* EV_TIMER */);
+struct ev_timerset;
+typedef void (*ev_timer_hndl) (struct ev_timerset *evts, struct ev_timer *timer,
+    int events /* EV_TIMER */);
 
 struct ev_timer {
 	struct list_head item;
@@ -77,14 +79,15 @@ int ev_timerset_timeout (struct ev_timerset *timerset);
 
 
 enum {
-	EV_ADD  =  0x00,   /* register the target fd on the eventpoll instance referred to by evp */
-	EV_DEL  =  0x01,   /* remove the target fd from the eventpoll instance referred to by evp */
-	EV_MOD  =  0x02,   /* change the event event associated with the target file descriptor fd. */
+	EV_ADD  =  0x00,   /* register the target fd on the eventpoll */
+	EV_DEL  =  0x01,   /* remove the target fd from the eventpoll */
+	EV_MOD  =  0x02,   /* change the event event associated with the target fd. */
 };
 
 struct ev_fd;
 struct ev_fdset;
-typedef void (*ev_fd_hndl) (struct ev_fd *evfd, int events /* EV_READ|EV_WRITE */);
+typedef void (*ev_fd_hndl) (struct ev_fdset *evfds, struct ev_fd *evfd,
+    int events /* EV_READ|EV_WRITE */);
 
 struct ev_task {
 	struct list_head item;
@@ -141,6 +144,14 @@ int __ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 
 /* process the underlying eventpoll and then process the happened fd events */
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);
+
+
+int uev_ctl (int op /* EV_ADD|EV_DEL|EV_MOD */, struct ev_fd *evfd);
+int __uev_ctl (int op /* EV_ADD|EV_DEL|EV_MOD */, struct ev_fd *evfd);
+
+
+
+
 
 
 

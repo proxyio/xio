@@ -3,19 +3,19 @@
 
 static int size = 0;
 
-static void stdin_hndl (struct ev_fd *evfd, int events)
+static void stdin_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	BUG_ON (events != 0);
 	size++;
 }
 
-static void stdout_hndl (struct ev_fd *evfd, int events)
+static void stdout_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	BUG_ON (events != EV_WRITE);
 	size++;
 }
 
-static void stderr_hndl (struct ev_fd *evfd, int events)
+static void stderr_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	BUG_ON (events != EV_WRITE);
 	size++;

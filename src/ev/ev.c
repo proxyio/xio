@@ -136,7 +136,7 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 		return rc;
 	for (i = 0; i < rc; i++) {
 		evfd = cont_of (fdds[i], struct ev_fd, fdd);
-		evfd->hndl (evfd, fdds[i]->ready_events);
+		evfd->hndl (evfds, evfd, fdds[i]->ready_events);
 	}
 	walk_ev_task_s (evfd, tmp, &evfds->task_head) {
 		evfd->task.rc = evfd->task.hndl (evfds, evfd);
