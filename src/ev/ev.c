@@ -90,6 +90,7 @@ static fds_ctl_op fds_ctl_vfptr [] = {
 
 int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 {
+	int rc = 0;
 	waitgroup_t wg;
 	struct ev_task *task = &evfd->task;
 	
@@ -105,10 +106,14 @@ int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 	spin_lock (&evfds->lock);
 	list_add_tail (&task->item, &evfds->task_head);
 	spin_unlock (&evfds->lock);
-
 	waitgroup_wait (&wg);
+
 	waitgroup_term (&wg);
-	return task->rc;
+	if (task->rc < 0) {
+		errno = -task->rc;
+		rc = -1;
+	}
+	return rc;
 }
 
 int __ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
@@ -129,6 +134,7 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 	int i;
 	struct ev_fd *evfd;
 	struct ev_fd *tmp;
+	struct ev_task *task;
 	struct fdd *fdds[EV_MAXEVENTS] = {};
 
 
@@ -139,9 +145,11 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 		evfd->hndl (evfds, evfd, fdds[i]->ready_events);
 	}
 	walk_ev_task_s (evfd, tmp, &evfds->task_head) {
-		evfd->task.rc = evfd->task.hndl (evfds, evfd);
-		if (evfd->task.wg)
-			waitgroup_done (evfd->task.wg);
+		task = &evfd->task;
+		if ((task->rc = task->hndl (evfds, evfd)) < 0)
+			task->rc = -errno;
+		if (task->wg)
+			waitgroup_done (task->wg);
 	}
 	return 0;
 }
