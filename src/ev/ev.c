@@ -158,7 +158,8 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 
 static int ev_processors = 1;    /* The number of processors currently online */
 static struct taskpool ev_pool;
-static struct ev_loop ev_loops[EV_MAXPROCESSORS];
+
+struct ev_loop ev_loops[EV_MAXPROCESSORS];
 
 static int ev_hndl (void *hndl)
 {
@@ -201,4 +202,10 @@ void __attribute__ ((destructor)) __ev_exit (void)
 	for (i = 0; i < ev_processors; i++)
 		ev_loops[i].stopped = true;
 	taskpool_stop (&ev_pool);
+}
+
+
+struct ev_loop *ev_get_loop (int hash)
+{
+	return &ev_loops[hash % ev_processors];
 }

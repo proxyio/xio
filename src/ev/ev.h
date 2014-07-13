@@ -146,12 +146,6 @@ int __ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 /* process the underlying eventpoll and then process the happened fd events */
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);
 
-
-int uev_ctl (int op /* EV_ADD|EV_DEL|EV_MOD */, struct ev_fd *evfd);
-int __uev_ctl (int op /* EV_ADD|EV_DEL|EV_MOD */, struct ev_fd *evfd);
-
-
-
 struct ev_loop {
 	waitgroup_t wg;
 	int stopped;
@@ -159,7 +153,9 @@ struct ev_loop {
 	struct ev_fdset fdset;
 };
 
-
+/* get one ev_loop from the backend ev_loops pool, hash is a hint to ev_kernel
+   how to chosed ev_loop, the same hash mapped into the same ev_loop */
+struct ev_loop *ev_get_loop (int hash);
 
 
 
