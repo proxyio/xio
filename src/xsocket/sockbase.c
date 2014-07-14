@@ -112,6 +112,7 @@ void sockbase_init (struct sockbase *sb)
 	socket_mstats_init (&sb->stats);
 
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
+	msgbuf_head_init (&sb->evl_rcv, default_rcvbuf);
 	msgbuf_head_init (&sb->snd, default_sndbuf);
 
 	INIT_LIST_HEAD (&sb->poll_entries);

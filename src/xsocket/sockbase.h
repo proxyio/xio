@@ -114,6 +114,7 @@ struct sockbase {
 	struct socket_mstats stats;
 
 	struct msgbuf_head rcv;
+	struct msgbuf_head evl_rcv;
 	struct msgbuf_head snd;
 
 	struct {
