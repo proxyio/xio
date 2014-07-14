@@ -24,6 +24,55 @@
 #include <unistd.h>
 #include <utils/taskpool.h>
 
+static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
+
+void ev_sig_init (struct ev_sig *sig, ev_sig_hndl hndl)
+{
+	spin_init (&sig->lock);
+	efd_init (&sig->efd);
+	sig->hndl = hndl;
+	ev_fd_init (&sig->evfd);
+	sig->evfd.fd = sig->efd.r;
+	sig->evfd.events = EV_READ;
+	sig->evfd.hndl = ev_sigfd_hndl;
+}
+
+void ev_sig_term (struct ev_sig *sig)
+{
+	spin_destroy (&sig->lock);
+	efd_destroy (&sig->efd);
+}
+
+void ev_signal (struct ev_sig *sig, int signo)
+{
+	spin_lock (&sig->lock);
+	efd_signal (&sig->efd, signo);
+	spin_unlock (&sig->lock);
+}
+
+int ev_unsignal (struct ev_sig *sig)
+{
+	int signo;
+	spin_lock (&sig->lock);
+	signo = efd_unsignal (&sig->efd);
+	spin_unlock (&sig->lock);
+	return signo;
+}
+
+static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
+    int events)
+{
+	int signo;
+	struct ev_sig *sig = cont_of (evfd, struct ev_sig, evfd);
+
+	if ((signo = ev_unsignal (sig)) > 0)
+		sig->hndl (sig, signo);
+}
+
+
+
+
+
 void ev_fdset_init (struct ev_fdset *evfds)
 {
 	spin_init (&evfds->lock);
@@ -131,6 +180,13 @@ int __ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 	rc = fds_ctl_vfptr[op] (evfds, evfd);
 	return rc;
 }
+
+
+int ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig)
+{
+	return ev_fdset_ctl (evfds, EV_ADD, &sig->evfd);
+}
+
 
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 {
