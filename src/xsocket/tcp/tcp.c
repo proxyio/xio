@@ -32,7 +32,6 @@ static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
 	struct tcp_sock *tcpsk = cont_of (ops, struct tcp_sock, ops);
 	struct transport *vtp = tcpsk->vtp;
 
-	BUG_ON (!vtp);
 	int rc = vtp->recv (tcpsk->sys_fd, buff, sz);
 	return rc;
 }
@@ -42,7 +41,6 @@ static i64 tcp_connector_write (struct io *ops, char *buff, i64 sz)
 	struct tcp_sock *tcpsk = cont_of (ops, struct tcp_sock, ops);
 	struct transport *vtp = tcpsk->vtp;
 
-	BUG_ON (!vtp);
 	int rc = vtp->send (tcpsk->sys_fd, buff, sz);
 	return rc;
 }
@@ -175,7 +173,7 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 	tcpsk->vtp->setopt (sys_fd, TP_RCVBUF, &default_rcvbuf, sizeof (default_rcvbuf));
 
 	tcpsk->ops = stream_ops;
-	tcpsk->et.events = EV_READ|EPOLLRDHUP|EPOLLERR|EPOLLHUP;
+	tcpsk->et.events = EV_READ;
 	tcpsk->et.fd = sys_fd;
 	tcpsk->et.hndl = tcp_connector_hndl;
 	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_ADD, &tcpsk->et) != 0);

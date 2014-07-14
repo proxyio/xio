@@ -34,6 +34,7 @@
 #include <utils/condition.h>
 #include <utils/taskpool.h>
 #include <utils/transport.h>
+#include <utils/efd.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
 #include <msgbuf/msgbuf.h>
@@ -87,6 +88,7 @@ struct sockbase_vfptr {
 	int type;
 	int pf;
 	struct sockbase * (*alloc) ();
+	void  (*usig) (struct sockbase *sb);
 	void  (*close)  (struct sockbase *sb);
 	int   (*send)   (struct sockbase *sb, char *ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
@@ -108,6 +110,9 @@ struct sockbase {
 	u64 fasync:1;
 	u64 fepipe:1;
 	struct ev_loop *evl;
+	struct efd usig;
+	struct ev_fd ev_usig;
+
 	struct sockbase *owner;
 	struct list_head sub_socks;
 	struct list_head sib_link;

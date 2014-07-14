@@ -147,8 +147,8 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 	spin_unlock (&evfds->lock);
 
 	walk_ev_task_s (evfd, tmp, &task_head) {
-		list_del_init (&evfd->item);
 		task = &evfd->task;
+		list_del_init (&task->item);
 		if ((task->rc = task->hndl (evfds, evfd)) < 0)
 			task->rc = -errno;
 		if (task->wg)

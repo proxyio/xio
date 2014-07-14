@@ -102,7 +102,7 @@ static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 		return;
 	}
 	sb_new = xgb.sockbases[fd_new];
-	DEBUG_OFF ("%d accept new connection %d", sb->fd, fd_new);
+	DEBUG_ON ("%d accept new connection %d", sb->fd, fd_new);
 
 	BUG_ON (tcp_socket_init (sb_new, sys_fd));
 	acceptq_add (sb, sb_new);

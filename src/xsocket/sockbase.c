@@ -85,15 +85,25 @@ void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
 
-	mutex_lock (&xgb.lock);
 	if (atomic_decr (&sb->ref) == 1) {
+		mutex_lock (&xgb.lock);
 		xgb.sockbases[sb->fd] = 0;
 		xgb.unused[--xgb.nsockbases] = sb->fd;
+		mutex_unlock (&xgb.lock);
+
 		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 		sb->vfptr->close (sb);
 	}
-	mutex_unlock (&xgb.lock);
 }
+
+static void sockbase_usig_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
+    int events)
+{
+	struct sockbase *sb = cont_of (evfd, struct sockbase, usig);
+	if (sb->vfptr->usig)
+		sb->vfptr->usig (sb);
+}
+
 
 void sockbase_init (struct sockbase *sb)
 {
@@ -109,12 +119,18 @@ void sockbase_init (struct sockbase *sb)
 
 	atomic_init (&sb->ref);
 	sb->evl = ev_get_loop (rand ());
-	socket_mstats_init (&sb->stats);
+	efd_init (&sb->usig);
+	ev_fd_init (&sb->ev_usig);
+	sb->ev_usig.fd = sb->usig.r;
+	sb->ev_usig.events = EV_READ;
+	sb->ev_usig.hndl = sockbase_usig_hndl;
+	ev_fdset_ctl (&sb->evl->fdset, EV_ADD, &sb->ev_usig);
 
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
 	msgbuf_head_init (&sb->evl_rcv, default_rcvbuf);
 	msgbuf_head_init (&sb->snd, default_sndbuf);
-
+	socket_mstats_init (&sb->stats);
+	
 	INIT_LIST_HEAD (&sb->poll_entries);
 	condition_init (&sb->acceptq.cond);
 	sb->acceptq.waiters = 0;
@@ -139,6 +155,8 @@ void sockbase_exit (struct sockbase *sb)
 	sb->fd = -1;
 	INIT_LIST_HEAD (&head);
 
+	ev_fdset_ctl (&sb->evl->fdset, EV_DEL, &sb->ev_usig);
+	efd_destroy (&sb->usig);
 	msgbuf_dequeue_all (&sb->rcv, &head);
 	msgbuf_dequeue_all (&sb->snd, &head);
 

@@ -33,7 +33,6 @@
 #define PROXYIO_MAX_SOCKS 10240
 
 struct xglobal {
-	int exiting;
 	mutex_t lock;
 
 	/* The global table of existing xsock. The descriptor representing

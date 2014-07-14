@@ -79,8 +79,8 @@ int xsend (int fd, char *ubuf)
 		errno = EINVAL;
 		return -1;
 	}
-	rc = sb->vfptr->send (sb, ubuf);
-	xput (fd);
+	if ((rc = sb->vfptr->send (sb, ubuf)) || 1)
+		xput (fd);
 	return rc;
 }
 

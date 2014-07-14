@@ -34,8 +34,8 @@ int msgbuf_head_empty (struct msgbuf_head *bh)
 {
 	int rc;
 
-	BUG_ON (list_empty (&bh->head) && bh->size != 0);
-	rc = list_empty (&bh->head);
+	if ((rc = list_empty (&bh->head)))
+		BUG_ON (bh->size != 0);
 	return rc;
 }
 

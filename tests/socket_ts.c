@@ -162,7 +162,7 @@ static void xsock_test (int count)
 	while (count-- > 0) {
 		xserver();
 		DEBUG_OFF ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-		xserver2();
+		//xserver2();
 	}
 }
 
