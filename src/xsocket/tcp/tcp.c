@@ -76,7 +76,7 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 	if (!(tcpsk->et.events & EV_WRITE)) {
 		DEBUG_OFF ("%d enable EV_WRITE", sb->fd);
 		tcpsk->et.events |= EV_WRITE;
-		BUG_ON (ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
+		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
 	mutex_unlock (&sb->lock);
 }
@@ -115,7 +115,7 @@ static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 	if (!(tcpsk->et.events & EV_READ)) {
 		DEBUG_OFF ("%d enable EV_READ", sb->fd);
 		tcpsk->et.events |= EV_READ;
-		BUG_ON (ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
+		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
 	mutex_unlock (&sb->lock);
 }

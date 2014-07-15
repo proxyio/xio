@@ -33,8 +33,7 @@ struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct msgbuf *msg = 0;
 
-	if ((rc = mutex_trylock (&sb->lock)) < 0)
-		return 0;
+	mutex_trylock (&sb->lock);
 	if ((rc = msgbuf_head_out_msg (&sb->snd, &msg)) == 0) {
 		if (sb->snd.waiters > 0)
 			condition_broadcast (&sb->cond);

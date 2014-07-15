@@ -69,7 +69,7 @@ static void xserver()
 		DEBUG_OFF ("xserver accept %d", sfd);
 		for (i = 0; i < cnt * 10; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
-			DEBUG_OFF ("%d recv", sfd);
+			DEBUG_ON ("%d recv", sfd);
 			ubuf = ubuf_alloc (ubuf_len (xbuf));
 			memcpy (ubuf, xbuf, ubuf_len (xbuf));
 			ubufctl (xbuf, SSWITCH, ubuf);

@@ -35,14 +35,8 @@ static void snd_msgbuf_head_add_ev_hndl (struct sockbase *sb)
 	struct msgbuf *msg;
 	
 	/* TODO: maybe the peer sock can't recv anymore after the check. */
-	mutex_lock (&sb->lock);
-	msg = snd_msgbuf_head_rm (sb);
-	mutex_unlock (&sb->lock);
-	if (msg) {
-		mutex_lock (&peer->lock);
+	if ((msg = snd_msgbuf_head_rm (sb)))
 		rcv_msgbuf_head_add (peer, msg);
-		mutex_unlock (&peer->lock);
-	}
 }
 
 static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)

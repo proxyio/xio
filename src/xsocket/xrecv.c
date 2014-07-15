@@ -51,13 +51,8 @@ int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 	int rc;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 
-	if ((rc = mutex_trylock (&sb->lock)) < 0) {
-		msgbuf_head_in_msg (&sb->evl_rcv, msg);
-		return 0;
-	}
-	BUG_ON (msgbuf_head_in_msg (&sb->evl_rcv, msg));
-	while (msgbuf_head_out_msg (&sb->evl_rcv, &msg) == 0)
-		msgbuf_head_in_msg (&sb->rcv, msg);
+	mutex_lock (&sb->lock);
+	msgbuf_head_in_msg (&sb->rcv, msg);
 	if (sb->rcv.waiters > 0)
 		condition_broadcast (&sb->cond);
 
