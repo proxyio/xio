@@ -70,9 +70,6 @@ static void rmlistener (struct str_rbe *entry)
 	xglobal_unlock();
 }
 
-/* sock_inproc_vfptr
- */
-
 static struct sockbase *inproc_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
 
@@ -115,7 +112,7 @@ static void inproc_listener_close (struct sockbase *sb)
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &nsb) == 0) {
 		SKLOG_DEBUG (sb, "listener %d close unaccept socket %d", sb->fd, nsb->fd);
-		xclose (nsb->fd);
+		__xclose (nsb);
 	}
 
 	/* Close the sock and free sock id. */

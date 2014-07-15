@@ -22,7 +22,7 @@ static void xclient (const char *pf)
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
 	BUG_ON ( (sfd = xconnect (host) ) < 0);
-	xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
+	//xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
 		for (j = 0; j < 10; j++) {

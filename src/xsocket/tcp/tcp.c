@@ -168,7 +168,7 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 	return rc;
 }
 
-int tcp_socket_init (struct sockbase *sb, int sys_fd)
+void tcp_socket_init (struct sockbase *sb, int sys_fd)
 {
 	struct tcp_sock *tcpsk;
 	struct ev_loop *evl;
@@ -187,20 +187,21 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 	tcpsk->et.events = EV_READ;
 	tcpsk->et.fd = sys_fd;
 	tcpsk->et.hndl = tcp_connector_hndl;
-	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_ADD, &tcpsk->et) != 0);
-	return 0;
 }
 
 static int tcp_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	int rc;
 	int sys_fd = 0;
 
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
 	if ((sys_fd = tcpsk->vtp->connect (sock)) < 0)
 		return -1;
 	strcpy (sb->peer, sock);
-	return tcp_socket_init (sb, sys_fd);
+	tcp_socket_init (sb, sys_fd);
+	rc = ev_fdset_ctl (&sb->evl->fdset, EV_ADD, &tcpsk->et);
+	return rc;
 }
 
 static int tcp_connector_snd (struct sockbase *sb);

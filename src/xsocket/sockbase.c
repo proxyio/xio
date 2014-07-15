@@ -93,7 +93,6 @@ void xput (int fd)
 		mutex_unlock (&xgb.lock);
 
 		SKLOG_DEBUG (sb, "sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
-		ev_fdset_unsighndl (&sb->evl->fdset, &sb->sig);
 		sb->vfptr->close (sb);
 	}
 }
@@ -214,7 +213,6 @@ void sockbase_init (struct sockbase *sb)
 	atomic_init (&sb->ref);
 	ev_sig_init (&sb->sig, sockbase_signal_hndl);
 	sb->evl = ev_get_loop (rand ());
-	ev_fdset_sighndl (&sb->evl->fdset, &sb->sig);
 
 	socket_mstats_init (&sb->stats);
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
@@ -250,10 +248,8 @@ void sockbase_exit (struct sockbase *sb)
 	msgbuf_dequeue_all (&sb->rcv, &head);
 	msgbuf_dequeue_all (&sb->snd, &head);
 
-	walk_msg_s (msg, tmp, &head) {
+	walk_msg_s (msg, tmp, &head)
 		msgbuf_free (msg);
-		BUG_ON (1);
-	}
 
 	/* It's possible that user call xclose() and xpoll_add()
 	 * at the same time. and attach_to_sock() happen after xclose().

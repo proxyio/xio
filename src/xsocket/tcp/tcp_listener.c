@@ -71,14 +71,14 @@ static void tcp_listener_close (struct sockbase *sb)
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &tmp) == 0)
-		xclose (tmp->fd);
+		__xclose (tmp);
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
 	mem_free (tcpsk, sizeof (*tcpsk));
 }
 
-extern int tcp_socket_init (struct sockbase *sb, int sys_fd);
+extern void tcp_socket_init (struct sockbase *sb, int sys_fd);
 
 static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
@@ -86,7 +86,8 @@ static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 	struct sockbase *sb = &tcpsk->base;
 	int sys_fd;
 	int fd_new;
-	struct sockbase *sb_new = 0;
+	struct sockbase *sb_new;
+	struct tcp_sock *ntcpsk;
 
 	if ((sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd)) < 0) {
 		if (errno != EAGAIN) {
@@ -105,7 +106,9 @@ static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 	sb_new = xgb.sockbases[fd_new];
 	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, fd_new);
 
-	BUG_ON (tcp_socket_init (sb_new, sys_fd));
+	tcp_socket_init (sb_new, sys_fd);
+	ntcpsk = cont_of (sb_new, struct tcp_sock, base);
+	__ev_fdset_ctl (&sb_new->evl->fdset, EV_ADD, &ntcpsk->et);
 	acceptq_add (sb, sb_new);
 }
 

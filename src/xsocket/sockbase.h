@@ -162,7 +162,7 @@ int acceptq_rm_nohup (struct sockbase *sb, struct sockbase **new);
 
 int xsocket (int pf, int socktype);
 int xbind (int fd, const char *sockaddr);
-
+void __xclose (struct sockbase *sb);
 
 static inline int add_pollbase (int fd, struct pollbase *pb)
 {

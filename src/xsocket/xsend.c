@@ -33,7 +33,7 @@ struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct msgbuf *msg = 0;
 
-	mutex_trylock (&sb->lock);
+	mutex_lock (&sb->lock);
 	if ((rc = msgbuf_head_out_msg (&sb->snd, &msg)) == 0) {
 		if (sb->snd.waiters > 0)
 			condition_broadcast (&sb->cond);
@@ -50,7 +50,8 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 	int rc = -1;
 
 	mutex_lock (&sb->lock);
-	while (!sb->flagset.epipe && !msgbuf_can_in (&sb->snd) && !sb->flagset.non_block) {
+	while (!sb->flagset.epipe &&
+	       !msgbuf_can_in (&sb->snd) && !sb->flagset.non_block) {
 		sb->snd.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->snd.waiters--;

@@ -70,7 +70,7 @@ static void mix_listener_close (struct sockbase *sb)
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &tmp) == 0) {
-		xclose (tmp->fd);
+		__xclose (tmp);
 	}
 
 	sockbase_exit (sb);

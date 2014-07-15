@@ -30,25 +30,6 @@
 
 extern struct sockbase *getlistener (const char *addr);
 
-static void snd_msgbuf_head_add_ev_hndl (struct sockbase *sb)
-{
-	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base))->peer;
-	struct msgbuf *msg;
-	
-	/* TODO: maybe the peer sock can't recv anymore after the check. */
-	if ((msg = snd_msgbuf_head_rm (sb)))
-		rcv_msgbuf_head_add (peer, msg);
-}
-
-static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)
-{
-	mutex_lock (&sb->lock);
-	if (sb->snd.waiters)
-		condition_signal (&sb->cond);
-	mutex_unlock (&sb->lock);
-}
-
-
 static struct sockbase *inproc_alloc ()
 {
 	struct sockbase *sb;
@@ -65,23 +46,14 @@ static struct sockbase *inproc_alloc ()
 
 static void inproc_signal (struct sockbase *sb, int signo)
 {
-	switch (signo) {
-	case EV_SNDBUF_ADD:
-		snd_msgbuf_head_add_ev_hndl (sb);
-		break;
-	case EV_RCVBUF_RM:
-		rcv_msgbuf_head_rm_ev_hndl (sb);
-		break;
-	}
 }
 
 static int inproc_send (struct sockbase *sb, char *ubuf)
 {
 	int rc;
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+	struct sockbase *peer = cont_of (sb, struct inproc_sock, base)->peer;
 
-	if ((rc = snd_msgbuf_head_add (sb, msg)) < 0)
-		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
+	rc = rcv_msgbuf_head_add (peer, get_msgbuf (ubuf));
 	return rc;
 }
 
@@ -146,7 +118,7 @@ static void inproc_connector_close (struct sockbase *sb)
 	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
 	struct inproc_sock *peer = 0;
 
-	/* TODO: bug on here */
+	/* TODO: bug on here ??? */
 	if (self->peer) {
 		peer = cont_of (self->peer, struct inproc_sock, base);
 		inproc_peer_close (peer);

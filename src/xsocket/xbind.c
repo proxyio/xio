@@ -49,7 +49,8 @@ int xbind (int fd, const char *addr)
 		return -1;
 	}
 	BUG_ON (!sb->vfptr);
-	rc = sb->vfptr->bind (sb, addr);
+	if ((rc = sb->vfptr->bind (sb, addr)) == 0)
+		ev_fdset_sighndl (&sb->evl->fdset, &sb->sig);
 	xput (fd);
 	return rc;
 }

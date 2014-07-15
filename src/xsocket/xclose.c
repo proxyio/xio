@@ -28,18 +28,14 @@
 #include <utils/taskpool.h>
 #include "xg.h"
 
-int xclose (int fd)
+void __xclose (struct sockbase *sb)
 {
-	struct sockbase *sb = xget (fd);
 	struct pollbase *pb, *tmp;
 	struct list_head poll_entries = {};
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
-	}
 	INIT_LIST_HEAD (&poll_entries);
 	mutex_lock (&sb->lock);
+
 	sb->flagset.epipe = true;
 	if (sb->rcv.waiters || sb->snd.waiters)
 		condition_broadcast (&sb->cond);
@@ -54,7 +50,18 @@ int xclose (int fd)
 		pb->vfptr->close (pb);
 	}
 	BUG_ON (!list_empty (&poll_entries) );
-	xput (fd);
+	xput (sb->fd);
+}
+
+int xclose (int fd) {
+	struct sockbase *sb = xget (fd);
+
+	if (!sb) {
+		errno = EBADF;
+		return -1;
+	}
+	__xclose (sb);
+	ev_fdset_unsighndl (&sb->evl->fdset, &sb->sig);
 	xput (fd);
 	return 0;
 }
