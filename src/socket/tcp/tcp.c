@@ -180,9 +180,6 @@ void tcp_socket_init (struct sockbase *sb, int sys_fd)
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
 	tcpsk->sys_fd = sys_fd;
 	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
-	tcpsk->vtp->setopt (sys_fd, TP_SNDBUF, &default_sndbuf, sizeof (default_sndbuf));
-	tcpsk->vtp->setopt (sys_fd, TP_RCVBUF, &default_rcvbuf, sizeof (default_rcvbuf));
-
 	tcpsk->ops = stream_ops;
 	tcpsk->et.events = EV_READ;
 	tcpsk->et.fd = sys_fd;

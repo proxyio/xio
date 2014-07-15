@@ -40,10 +40,6 @@ const char *pf_str[] = {
 	"PF_TCP|PF_IPC|PF_INPROC",
 };
 
-/* Default snd/rcv buffer size */
-int default_sndbuf = 10485760;
-int default_rcvbuf = 10485760;
-
 int xalloc (int family, int socktype)
 {
 	struct sockbase_vfptr *vfptr = sockbase_vfptr_lookup (family, socktype);
@@ -215,9 +211,9 @@ void sockbase_init (struct sockbase *sb)
 	sb->evl = ev_get_loop (rand ());
 
 	socket_mstats_init (&sb->stats);
-	msgbuf_head_init (&sb->rcv, default_rcvbuf);
+	msgbuf_head_init (&sb->rcv, 0);
 	msgbuf_head_ev_hndl (&sb->rcv, &rcv_msgbuf_vfptr);
-	msgbuf_head_init (&sb->snd, default_sndbuf);
+	msgbuf_head_init (&sb->snd, 0);
 	msgbuf_head_ev_hndl (&sb->snd, &snd_msgbuf_vfptr);
 
 	INIT_LIST_HEAD (&sb->poll_entries);
