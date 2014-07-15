@@ -23,7 +23,7 @@
 #ifndef _H_PROXYIO_MIX_INTERN_
 #define _H_PROXYIO_MIX_INTERN_
 
-#include <xsocket/sockbase.h>
+#include "../sockbase.h"
 
 struct mix_sock {
 	struct sockbase base;

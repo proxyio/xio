@@ -23,7 +23,7 @@
 #ifndef _H_PROXYIO_TCP_INTERN_
 #define _H_PROXYIO_TCP_INTERN_
 
-#include <xsocket/sockbase.h>
+#include "../sockbase.h"
 
 struct tcp_sock {
 	struct sockbase base;
