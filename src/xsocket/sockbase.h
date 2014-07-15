@@ -88,7 +88,7 @@ struct sockbase_vfptr {
 	int type;
 	int pf;
 	struct sockbase * (*alloc) ();
-	void  (*usig) (struct sockbase *sb);
+	void  (*signal) (struct sockbase *sb, int signo);
 	void  (*close)  (struct sockbase *sb);
 	int   (*send)   (struct sockbase *sb, char *ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
@@ -109,9 +109,8 @@ struct sockbase {
 	char peer[TP_SOCKADDRLEN];
 	u64 fasync:1;
 	u64 fepipe:1;
+	struct ev_sig sig;
 	struct ev_loop *evl;
-	struct efd usig;
-	struct ev_fd ev_usig;
 
 	struct sockbase *owner;
 	struct list_head sub_socks;

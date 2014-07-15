@@ -187,6 +187,11 @@ int ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig)
 	return ev_fdset_ctl (evfds, EV_ADD, &sig->evfd);
 }
 
+int ev_fdset_unsighndl (struct ev_fdset *evfds, struct ev_sig *sig)
+{
+	return ev_fdset_ctl (evfds, EV_DEL, &sig->evfd);
+}
+
 
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 {

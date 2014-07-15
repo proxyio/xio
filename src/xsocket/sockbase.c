@@ -96,12 +96,11 @@ void xput (int fd)
 	}
 }
 
-static void sockbase_usig_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
-    int events)
+static void sockbase_signal_hndl (struct ev_sig *sig, int signo)
 {
-	struct sockbase *sb = cont_of (evfd, struct sockbase, usig);
-	if (sb->vfptr->usig)
-		sb->vfptr->usig (sb);
+	struct sockbase *sb = cont_of (sig, struct sockbase, sig);
+	if (sb->vfptr->signal)
+		sb->vfptr->signal (sb, signo);
 }
 
 
@@ -118,19 +117,15 @@ void sockbase_init (struct sockbase *sb)
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
+	ev_sig_init (&sb->sig, sockbase_signal_hndl);
 	sb->evl = ev_get_loop (rand ());
-	efd_init (&sb->usig);
-	ev_fd_init (&sb->ev_usig);
-	sb->ev_usig.fd = sb->usig.r;
-	sb->ev_usig.events = EV_READ;
-	sb->ev_usig.hndl = sockbase_usig_hndl;
-	ev_fdset_ctl (&sb->evl->fdset, EV_ADD, &sb->ev_usig);
+	ev_fdset_sighndl (&sb->evl->fdset, &sb->sig);
 
+	socket_mstats_init (&sb->stats);
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
 	msgbuf_head_init (&sb->evl_rcv, default_rcvbuf);
 	msgbuf_head_init (&sb->snd, default_sndbuf);
-	socket_mstats_init (&sb->stats);
-	
+
 	INIT_LIST_HEAD (&sb->poll_entries);
 	condition_init (&sb->acceptq.cond);
 	sb->acceptq.waiters = 0;
@@ -155,8 +150,8 @@ void sockbase_exit (struct sockbase *sb)
 	sb->fd = -1;
 	INIT_LIST_HEAD (&head);
 
-	ev_fdset_ctl (&sb->evl->fdset, EV_DEL, &sb->ev_usig);
-	efd_destroy (&sb->usig);
+	ev_fdset_unsighndl (&sb->evl->fdset, &sb->sig);
+	ev_sig_term (&sb->sig);
 	msgbuf_dequeue_all (&sb->rcv, &head);
 	msgbuf_dequeue_all (&sb->snd, &head);
 
