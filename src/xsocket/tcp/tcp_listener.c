@@ -25,7 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include <utils/log.h>
+#include "../log.h"
 #include "../xg.h"
 
 extern struct io default_xops;
@@ -103,7 +103,7 @@ static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 		return;
 	}
 	sb_new = xgb.sockbases[fd_new];
-	LOG_DEBUG (dlv (sb), "%d accept new connection %d", sb->fd, fd_new);
+	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, fd_new);
 
 	BUG_ON (tcp_socket_init (sb_new, sys_fd));
 	acceptq_add (sb, sb_new);

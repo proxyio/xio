@@ -24,12 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <utils/log.h>
 #include <utils/taskpool.h>
-#include <xsocket/xg.h>
-
-/* sock's proc field operation.
- */
+#include "../xg.h"
+#include "../log.h"
 
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
@@ -117,7 +114,7 @@ static void inproc_listener_close (struct sockbase *sb)
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &nsb) == 0) {
-		LOG_DEBUG (dlv (sb), "listener %d close unaccept socket %d", sb->fd, nsb->fd);
+		SKLOG_DEBUG (sb, "listener %d close unaccept socket %d", sb->fd, nsb->fd);
 		xclose (nsb->fd);
 	}
 
