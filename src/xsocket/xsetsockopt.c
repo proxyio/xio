@@ -74,6 +74,13 @@ static int set_reconnect (struct sockbase *sb, void *optval, int optlen)
 	return -1;
 }
 
+static int set_debuglv (struct sockbase *sb, void *optval, int optlen)
+{
+	mutex_lock (&sb->lock);
+	sb->flagset.debuglv =  * (int *) optval ? true : false;
+	mutex_unlock (&sb->lock);
+}
+	
 const sock_setopt setopt_vfptr[] = {
 	set_noblock,
 	set_sndwin,
@@ -86,6 +93,7 @@ const sock_setopt setopt_vfptr[] = {
 	set_reconnect,
 	0,
 	0,
+	set_debuglv,
 };
 
 static int _setopt (struct sockbase *sb, int opt, void *optval, int optlen)

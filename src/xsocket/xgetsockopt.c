@@ -94,15 +94,28 @@ static int get_reconnect (struct sockbase *self, void *optval, int *optlen)
 
 static int get_socktype (struct sockbase *self, void *optval, int *optlen)
 {
+	mutex_lock (&self->lock);
 	* (int *) optval = self->vfptr->type;
+	mutex_unlock (&self->lock);
 	return 0;
 }
 
 static int get_sockpf (struct sockbase *self, void *optval, int *optlen)
 {
+	mutex_lock (&self->lock);
 	* (int *) optval = self->vfptr->pf;
+	mutex_unlock (&self->lock);
 	return 0;
 }
+
+static int get_debuglv (struct sockbase *self, void *optval, int *optlen)
+{
+	mutex_lock (&self->lock);
+	* (int *) optval = self->flagset.debuglv;
+	mutex_unlock (&self->lock);
+	return 0;
+}
+
 
 const sock_getopt getopt_vfptr[] = {
 	get_noblock,
@@ -116,6 +129,7 @@ const sock_getopt getopt_vfptr[] = {
 	get_reconnect,
 	get_socktype,
 	get_sockpf,
+	get_debuglv,
 };
 
 
