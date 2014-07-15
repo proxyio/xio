@@ -42,7 +42,7 @@ enum {
 
 
 #define LLOG(lvs, lv, fmt, ...) do {					\
-        if (lvs && lvs > lv) {							\
+        if (lvs && lvs <= lv) {							\
             fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),	\
             basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__);	\
         }								\
