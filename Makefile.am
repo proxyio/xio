@@ -30,32 +30,31 @@ XIO_EV = \
 	src/ev/ev.c
 
 XIO_SOCKET = \
-	src/xsocket/xsetsockopt.c \
-	src/xsocket/xlisten.c \
-	src/xsocket/mix/mix_listener.c \
-	src/xsocket/stats.c \
-	src/xsocket/xsend.c \
-	src/xsocket/xrecv.c \
-	src/xsocket/eventnotify.c \
-	src/xsocket/worker.c \
-	src/xsocket/xbind.c \
-	src/xsocket/xg.c \
-	src/xsocket/xclose.c \
-	src/xsocket/xconnect.c \
-	src/xsocket/tcp/tcp_listener.c \
-	src/xsocket/tcp/tcp.c \
-	src/xsocket/sockbase.c \
-	src/xsocket/xgetsockopt.c \
-	src/xsocket/inproc/inproc.c \
-	src/xsocket/inproc/inproc_listener.c
+	src/socket/xsetsockopt.c \
+	src/socket/xlisten.c \
+	src/socket/mix/mix_listener.c \
+	src/socket/stats.c \
+	src/socket/xsend.c \
+	src/socket/xrecv.c \
+	src/socket/eventnotify.c \
+	src/socket/xbind.c \
+	src/socket/xg.c \
+	src/socket/xclose.c \
+	src/socket/xconnect.c \
+	src/socket/tcp/tcp_listener.c \
+	src/socket/tcp/tcp.c \
+	src/socket/sockbase.c \
+	src/socket/xgetsockopt.c \
+	src/socket/inproc/inproc.c \
+	src/socket/inproc/inproc_listener.c
 
 
 XIO_POLL = \
-	src/xpoll/poll_struct.c \
-	src/xpoll/pg.c \
-	src/xpoll/stats.c \
-	src/xpoll/xselect.c \
-	src/xpoll/xeventpoll.c
+	src/poll/poll_struct.c \
+	src/poll/pg.c \
+	src/poll/stats.c \
+	src/poll/xselect.c \
+	src/poll/xeventpoll.c
 
 XIO_SP = \
 	src/sp/sp_module.c \

@@ -28,17 +28,11 @@
 #include "inproc/inproc.h"
 #include "tcp/tcp.h"
 #include "mix/mix.h"
-#include "worker.h"
-
-/* Max number of cpu core */
-#define PROXYIO_MAX_CPUS 32
-
 
 /* Max number of concurrent socks. */
 #define PROXYIO_MAX_SOCKS 10240
 
 struct xglobal {
-	int exiting;
 	mutex_t lock;
 
 	/* The global table of existing xsock. The descriptor representing
@@ -54,21 +48,6 @@ struct xglobal {
 	/* Number of actual socks. */
 	size_t nsockbases;
 
-
-	struct worker cpus[PROXYIO_MAX_CPUS];
-
-	/* Stack of unused xsock descriptors.  */
-	int cpu_unused[PROXYIO_MAX_CPUS];
-
-	/* Number of actual runner poller.  */
-	size_t ncpus;
-	size_t ncpus_low;
-	size_t ncpus_high;
-
-	/* Backend cpu_cores and taskpool for cpu_worker.  */
-	int cpu_cores;
-	struct taskpool tpool;
-
 	/* INPROC global listening address mapping */
 	struct str_rb inproc_listeners;
 
@@ -77,7 +56,7 @@ struct xglobal {
 };
 
 #define walk_sockbase_vfptr_s(pos, nx, head)				\
-    walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, link)
+    walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, item)
 
 struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type);
 

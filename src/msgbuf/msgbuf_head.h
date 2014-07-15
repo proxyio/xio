@@ -29,21 +29,25 @@
 struct msgbuf_head;
 typedef void (*msgbuf_head_event_hndl) (struct msgbuf_head *bh);
 
+struct msgbuf_vfptr {
+	void (*add)         (struct msgbuf_head *bh);
+	void (*rm)          (struct msgbuf_head *bh);
+	void (*empty)       (struct msgbuf_head *bh);
+	void (*nonempty)    (struct msgbuf_head *bh);
+	void (*full)        (struct msgbuf_head *bh);
+	void (*nonfull)     (struct msgbuf_head *bh);
+};
+
 struct msgbuf_head {
+	struct msgbuf_vfptr *ev_hndl;
 	int wnd;                    /* msgbuf windows                     */
 	int size;                   /* current buffer size                */
 	int waiters;                /* wait the empty or non-empty events */
 	struct list_head head;      /* msgbuf head                        */
-
-	msgbuf_head_event_hndl add_ev_hndl;
-	msgbuf_head_event_hndl rm_ev_hndl;
-	msgbuf_head_event_hndl empty_ev_hndl;
-	msgbuf_head_event_hndl nonempty_ev_hndl;
-	msgbuf_head_event_hndl full_ev_hndl;
-	msgbuf_head_event_hndl nonfull_ev_hndl;
 };
 
 void msgbuf_head_init (struct msgbuf_head *bh, int wnd);
+void msgbuf_head_ev_hndl (struct msgbuf_head *bh, struct msgbuf_vfptr *ev_hndl);
 
 /* we must guarantee that we can push one massage at least. */
 static inline int msgbuf_can_in (struct msgbuf_head *bh)
@@ -98,46 +102,5 @@ static inline void msgbuf_head_decr_waiters (struct msgbuf_head *bh)
 {
 	bh->waiters--;
 }
-
-static inline void msgbuf_head_handle_empty (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl empty_ev_hndl)
-{
-	bh->empty_ev_hndl = empty_ev_hndl;
-}
-
-static inline void msgbuf_head_handle_nonempty (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl nonempty_ev_hndl)
-{
-	bh->nonempty_ev_hndl = nonempty_ev_hndl;
-}
-
-static inline void msgbuf_head_handle_full (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl full_ev_hndl)
-{
-	bh->full_ev_hndl = full_ev_hndl;
-}
-
-static inline void msgbuf_head_handle_nonfull (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl nonfull_ev_hndl)
-{
-	bh->nonfull_ev_hndl = nonfull_ev_hndl;
-}
-
-static inline void msgbuf_head_handle_add (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl add_ev_hndl)
-{
-	bh->add_ev_hndl = add_ev_hndl;
-}
-
-static inline void msgbuf_head_handle_rm (struct msgbuf_head *bh,
-    msgbuf_head_event_hndl rm_ev_hndl)
-{
-	bh->rm_ev_hndl = rm_ev_hndl;
-}
-
-
-
-
-
 
 #endif

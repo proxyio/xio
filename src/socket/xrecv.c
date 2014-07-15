@@ -34,13 +34,14 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 
 	mutex_lock (&sb->lock);
-	while (!sb->fepipe && msgbuf_head_empty (&sb->rcv) && !sb->fasync) {
+	while (!sb->flagset.epipe && msgbuf_head_empty (&sb->rcv)
+	       && !sb->flagset.non_block) {
 		sb->rcv.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->rcv.waiters--;
 	}
 	BUG_ON ((rc = msgbuf_head_out_msg (&sb->rcv, &msg)));
-
+	SKLOG_NOTICE (sb, "%d socket rcvbuf rm %d", sb->fd, msgbuf_len (msg));
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return msg;
@@ -48,14 +49,14 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
 
 int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 {
+	int rc;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 
 	mutex_lock (&sb->lock);
-	BUG_ON (msgbuf_head_in_msg (&sb->rcv, msg));
-
+	msgbuf_head_in_msg (&sb->rcv, msg);
 	if (sb->rcv.waiters > 0)
 		condition_broadcast (&sb->cond);
-
+	SKLOG_NOTICE (sb, "%d socket rcvbuf add %d", sb->fd, msgbuf_len (msg));
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return 0;
@@ -76,7 +77,7 @@ int xrecv (int fd, char **ubuf)
 		return -1;
 	}
 	if (! (msg = rcv_msgbuf_head_rm (sb) ) ) {
-		errno = sb->fepipe ? EPIPE : EAGAIN;
+		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 		rc = -1;
 	} else {
 		*ubuf = msg->chunk.ubuf_base;

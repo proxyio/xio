@@ -28,45 +28,47 @@
 #include <utils/taskpool.h>
 #include "xg.h"
 
-int check_pollevents (struct sockbase *sb, int events)
-{
-	int happened = 0;
+/* Backend poller wait kernel timeout msec */
+#define DEF_ELOOPTIMEOUT 1
+#define DEF_ELOOPIOMAX 100
 
-	if (events & XPOLLIN) {
-		if (sb->vfptr->type == XCONNECTOR)
-			happened |= !msgbuf_head_empty (&sb->rcv) ? XPOLLIN : 0;
-		else if (sb->vfptr->type == XLISTENER)
-			happened |= !list_empty (&sb->acceptq.head) ? XPOLLIN : 0;
+struct xglobal xgb = {};
+
+struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
+	struct sockbase_vfptr *vfptr, *ss;
+
+	walk_sockbase_vfptr_s (vfptr, ss, &xgb.sockbase_vfptr_head) {
+		if (pf == vfptr->pf && vfptr->type == type)
+			return vfptr;
 	}
-	if (events & XPOLLOUT)
-		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
-	if (events & XPOLLERR)
-		happened |= sb->fepipe ? XPOLLERR : 0;
-	DEBUG_OFF ("%d happen %s", sb->fd, xpoll_str[happened]);
-	return happened;
+	return 0;
 }
 
-/* Generic xpoll_t notify function. always called by sockbase_vfptr
- * when has any message come or can send any massage into network
- * or has a new connection wait for established.
- * here we only check the mq events and proto_spec saved the other
- * events gived by sockbase_vfptr
- */
-void __emit_pollevents (struct sockbase *sb)
-{
-	int happened = 0;
-	struct pollbase *pb, *tmp;
+extern struct sockbase_vfptr mix_listener_vfptr;
 
-	happened |= check_pollevents (sb, XPOLLIN|XPOLLOUT|XPOLLERR);
-	walk_pollbase_s (pb, tmp, &sb->poll_entries) {
-		BUG_ON (!pb->vfptr);
-		pb->vfptr->emit (pb, happened & pb->pollfd.events);
-	}
+void socket_module_init()
+{
+	waitgroup_t wg;
+	int fd;
+	int i;
+	struct list_head *protocol_head = &xgb.sockbase_vfptr_head;
+
+	mutex_init (&xgb.lock);
+	for (fd = 0; fd < PROXYIO_MAX_SOCKS; fd++)
+		xgb.unused[fd] = fd;
+
+	/* The priority of sockbase_vfptr: inproc > ipc > tcp */
+	INIT_LIST_HEAD (protocol_head);
+	list_add_tail (&inproc_listener_vfptr.item, protocol_head);
+	list_add_tail (&inproc_connector_vfptr.item, protocol_head);
+	list_add_tail (&ipc_listener_vfptr.item, protocol_head);
+	list_add_tail (&ipc_connector_vfptr.item, protocol_head);
+	list_add_tail (&tcp_listener_vfptr.item, protocol_head);
+	list_add_tail (&tcp_connector_vfptr.item, protocol_head);
+	list_add_tail (&mix_listener_vfptr.item, protocol_head);
 }
 
-void emit_pollevents (struct sockbase *sb)
+void socket_module_exit()
 {
-	mutex_lock (&sb->lock);
-	__emit_pollevents (sb);
-	mutex_unlock (&sb->lock);
+	BUG_ON (xgb.nsockbases);
 }

@@ -26,6 +26,7 @@
 #include <utils/list.h>
 #include <utils/spinlock.h>
 #include <utils/waitgroup.h>
+#include <utils/efd.h>
 #include <ev/eventpoll.h>
 
 enum {
@@ -44,8 +45,8 @@ enum {
 };
 
 enum {
-	EV_MAXEVENTS      =     100,  /* the max number of poll events */
-	EV_MAXPROCESSORS  =     32,   /* the number of processors currently configured */
+	EV_MAXEVENTS      =  100,  /* the max number of poll events */
+	EV_MAXPROCESSORS  =  32,   /* the number of processors currently configured */
 };
 
 
@@ -86,6 +87,8 @@ int ev_timerset_timeout (struct ev_timerset *timerset);
 
 
 
+
+
 struct ev_fd;
 struct ev_fdset;
 typedef void (*ev_fd_hndl) (struct ev_fdset *evfds, struct ev_fd *evfd,
@@ -122,6 +125,22 @@ static inline void ev_fd_init (struct ev_fd *evfd)
 	fdd_init (&evfd->fdd);
 }
 
+
+struct ev_sig;
+typedef void (*ev_sig_hndl) (struct ev_sig *sig, int signo);
+
+struct ev_sig {
+	spin_t lock;
+	struct efd efd;
+	struct ev_fd evfd;
+	ev_sig_hndl hndl;
+};
+
+void ev_sig_init (struct ev_sig *sig, ev_sig_hndl hndl);
+void ev_sig_term (struct ev_sig *sig);
+void ev_signal (struct ev_sig *sig, int signo);
+
+
 struct ev_fdset {
 	spin_t lock;                /* protect task_head fields */
 	struct list_head task_head;
@@ -140,12 +159,32 @@ void ev_fdset_term (struct ev_fdset *evfds);
 int ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 		  struct ev_fd *evfd);
 
+/* register the signal hndl into ev_fdset */
+int ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig);
+
+/* unregister the signal hndl from ev_fdset */
+int ev_fdset_unsighndl (struct ev_fdset *evfds, struct ev_sig *sig);
+
 /* nolock version of ev_fdset_ctl, only called in ev_fd's hndl */
 int __ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 		    struct ev_fd *evfd);
 
 /* process the underlying eventpoll and then process the happened fd events */
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 struct ev_loop {
 	waitgroup_t wg;

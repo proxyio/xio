@@ -20,15 +20,30 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_MIX_INTERN_
-#define _H_PROXYIO_MIX_INTERN_
+#ifndef _H_PROXYIO_TCP_INTERN_
+#define _H_PROXYIO_TCP_INTERN_
 
-#include <xsocket/sockbase.h>
+#include "../sockbase.h"
 
-struct mix_sock {
+struct tcp_sock {
 	struct sockbase base;
+	struct ev_fd et;
+	struct bio in;
+	struct bio out;
+	struct io ops;
+	int sys_fd;
+	struct iovec iov[100];
+	struct iovec *biov;
+	int iov_start;
+	int iov_end;
+	int iov_length;
+	struct list_head sg_head;
+	struct transport *vtp;
 };
 
-extern struct sockbase_vfptr mix_listener_vfptr;
+extern struct sockbase_vfptr tcp_listener_vfptr;
+extern struct sockbase_vfptr tcp_connector_vfptr;
+extern struct sockbase_vfptr ipc_listener_vfptr;
+extern struct sockbase_vfptr ipc_connector_vfptr;
 
 #endif

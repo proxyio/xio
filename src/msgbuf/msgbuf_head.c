@@ -24,18 +24,24 @@
 
 void msgbuf_head_init (struct msgbuf_head *bh, int wnd)
 {
+	bh->ev_hndl = 0;
 	bh->wnd = wnd;
 	bh->size = 0;
 	bh->waiters = 0;
 	INIT_LIST_HEAD (&bh->head);
 }
 
+void msgbuf_head_ev_hndl (struct msgbuf_head *bh, struct msgbuf_vfptr *ev_hndl)
+{
+	bh->ev_hndl = ev_hndl;
+}
+
 int msgbuf_head_empty (struct msgbuf_head *bh)
 {
 	int rc;
 
-	BUG_ON (list_empty (&bh->head) && bh->size != 0);
-	rc = list_empty (&bh->head);
+	if ((rc = list_empty (&bh->head)))
+		BUG_ON (bh->size != 0);
 	return rc;
 }
 
@@ -50,14 +56,14 @@ int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf)
 	*ubuf = get_ubuf (msg);
 	bh->size -= msgbuf_len (msg);
 
-	if (bh->rm_ev_hndl)
-		bh->rm_ev_hndl (bh);
+	if (bh->ev_hndl && bh->ev_hndl->rm)
+		bh->ev_hndl->rm (bh);
 
 	/* the first time when msgbuf_head is non-full */
-	if (bh->nonfull_ev_hndl && (bh->wnd - bh->size <= msgbuf_len (msg)))
-		bh->nonfull_ev_hndl (bh);
-	if (bh->empty_ev_hndl && msgbuf_head_empty (bh))
-		bh->empty_ev_hndl (bh);
+	if (bh->ev_hndl && bh->ev_hndl->nonfull && (bh->wnd - bh->size <= msgbuf_len (msg)))
+		bh->ev_hndl->nonfull (bh);
+	if (bh->ev_hndl && bh->ev_hndl->empty && msgbuf_head_empty (bh))
+		bh->ev_hndl->empty (bh);
 	return 0;
 }
 
@@ -65,21 +71,19 @@ int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
 {
 	struct msgbuf *msg = get_msgbuf (ubuf);
 
-	if (bh->add_ev_hndl)
-		bh->add_ev_hndl (bh);
 	/* the first time when msgbuf_head is non-empty */
-	if (bh->nonempty_ev_hndl && msgbuf_head_empty (bh))
-		bh->nonempty_ev_hndl (bh);
+	if (bh->ev_hndl && bh->ev_hndl->nonempty && msgbuf_head_empty (bh))
+		bh->ev_hndl->nonempty (bh);
 
 	list_add_tail (&msg->item, &bh->head);
 	bh->size += msgbuf_len (msg);
 
-	if (bh->add_ev_hndl)
-		bh->add_ev_hndl (bh);
+	if (bh->ev_hndl && bh->ev_hndl->add)
+		bh->ev_hndl->add (bh);
 
 	/* the first time when msgbuf_head is full */
-	if (bh->full_ev_hndl && bh->wnd - bh->size <= msgbuf_len (msg))
-		bh->full_ev_hndl (bh);
+	if (bh->ev_hndl && bh->ev_hndl->full && bh->wnd - bh->size <= msgbuf_len (msg))
+		bh->ev_hndl->full (bh);
 	return 0;
 }
 

@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
+#include "log.h"
 #include "xg.h"
 
 const char *pf_str[] = {
@@ -38,10 +39,6 @@ const char *pf_str[] = {
 	"PF_IPC|PF_INPROC",
 	"PF_TCP|PF_IPC|PF_INPROC",
 };
-
-/* Default snd/rcv buffer size */
-int default_sndbuf = 10485760;
-int default_rcvbuf = 10485760;
 
 int xalloc (int family, int socktype)
 {
@@ -64,7 +61,7 @@ int xalloc (int family, int socktype)
 	atomic_incr (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	BUG_ON (atomic_fetch (&sb->ref) != 1);
-	DEBUG_OFF ("sock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
+	SKLOG_DEBUG (sb, "sock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
 	return sb->fd;
 }
 
@@ -84,29 +81,118 @@ struct sockbase *xget (int fd) {
 void xput (int fd)
 {
 	struct sockbase *sb = xgb.sockbases[fd];
-	struct worker *ev_loop = sb->ev_loop;
 
-	BUG_ON (fd != sb->fd);
-	mutex_lock (&xgb.lock);
 	if (atomic_decr (&sb->ref) == 1) {
+		mutex_lock (&xgb.lock);
 		xgb.sockbases[sb->fd] = 0;
 		xgb.unused[--xgb.nsockbases] = sb->fd;
-		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+		mutex_unlock (&xgb.lock);
 
-		worker_lock (ev_loop);
-		while (efd_signal (&ev_loop->efd) < 0)
-			worker_relock (ev_loop);
-		list_add_tail (&sb->shutdown.link, &ev_loop->shutdown_socks);
-		worker_unlock (ev_loop);
+		SKLOG_DEBUG (sb, "sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+		sb->vfptr->close (sb);
 	}
-	mutex_unlock (&xgb.lock);
 }
 
-static void xshutdown_task_f (struct task_ent *te)
+static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
-	struct sockbase *sb = cont_of (te, struct sockbase, shutdown);
-	sb->vfptr->close (sb);
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_EMPTY);
 }
+
+static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_NONEMPTY);
+}
+
+static void snd_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_FULL);
+}
+
+static void snd_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_NONFULL);
+}
+
+static void snd_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_ADD);
+}
+
+static void snd_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_RM);
+}
+
+
+
+static void rcv_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_EMPTY);
+}
+
+static void rcv_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_NONEMPTY);
+}
+
+static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_FULL);
+}
+
+static void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_NONFULL);
+}
+
+static void rcv_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_ADD);
+}
+
+static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_RM);
+}
+
+
+static struct msgbuf_vfptr snd_msgbuf_vfptr = {
+	.add = snd_msgbuf_head_add_ev_hndl,
+	.rm = snd_msgbuf_head_rm_ev_hndl,
+	.empty = snd_msgbuf_head_empty_ev_hndl,
+	.nonempty = snd_msgbuf_head_nonempty_ev_hndl,
+	.full = snd_msgbuf_head_full_ev_hndl,
+	.nonfull = snd_msgbuf_head_nonfull_ev_hndl,
+};
+
+static struct msgbuf_vfptr rcv_msgbuf_vfptr = {
+	.add = rcv_msgbuf_head_add_ev_hndl,
+	.rm = rcv_msgbuf_head_rm_ev_hndl,
+	.empty = rcv_msgbuf_head_empty_ev_hndl,
+	.nonempty = rcv_msgbuf_head_nonempty_ev_hndl,
+	.full = rcv_msgbuf_head_full_ev_hndl,
+	.nonfull = rcv_msgbuf_head_nonfull_ev_hndl,
+};
+
+static void sockbase_signal_hndl (struct ev_sig *sig, int signo)
+{
+	struct sockbase *sb = cont_of (sig, struct sockbase, sig);
+	if (sb->vfptr->signal)
+		sb->vfptr->signal (sb, signo);
+}
+
 
 void sockbase_init (struct sockbase *sb)
 {
@@ -114,22 +200,23 @@ void sockbase_init (struct sockbase *sb)
 	condition_init (&sb->cond);
 	ZERO (sb->addr);
 	ZERO (sb->peer);
-	sb->fasync = false;
-	sb->fepipe = false;
+	sb->flagset.epipe = false;
+	sb->flagset.non_block = false;
 	sb->owner = 0;
 	INIT_LIST_HEAD (&sb->sub_socks);
 	INIT_LIST_HEAD (&sb->sib_link);
 
 	atomic_init (&sb->ref);
-	sb->ev_loop = get_worker (worker_choosed (rand ()));
-	socket_mstats_init (&sb->stats);
+	ev_sig_init (&sb->sig, sockbase_signal_hndl);
+	sb->evl = ev_get_loop (rand ());
 
-	msgbuf_head_init (&sb->rcv, default_rcvbuf);
-	msgbuf_head_init (&sb->snd, default_sndbuf);
+	socket_mstats_init (&sb->stats);
+	msgbuf_head_init (&sb->rcv, 0);
+	msgbuf_head_ev_hndl (&sb->rcv, &rcv_msgbuf_vfptr);
+	msgbuf_head_init (&sb->snd, 0);
+	msgbuf_head_ev_hndl (&sb->snd, &snd_msgbuf_vfptr);
 
 	INIT_LIST_HEAD (&sb->poll_entries);
-	sb->shutdown.f = xshutdown_task_f;
-	INIT_LIST_HEAD (&sb->shutdown.link);
 	condition_init (&sb->acceptq.cond);
 	sb->acceptq.waiters = 0;
 	INIT_LIST_HEAD (&sb->acceptq.head);
@@ -145,14 +232,15 @@ void sockbase_exit (struct sockbase *sb)
 	condition_destroy (&sb->cond);
 	ZERO (sb->addr);
 	ZERO (sb->peer);
-	sb->fasync = 0;
-	sb->fepipe = 0;
+	sb->flagset.epipe = 0;
+	sb->flagset.non_block = 0;
 	sb->owner = 0;
 	BUG_ON (!list_empty (&sb->sub_socks) );
 	BUG_ON (attached (&sb->sib_link) );
 	sb->fd = -1;
 	INIT_LIST_HEAD (&head);
 
+	ev_sig_term (&sb->sig);
 	msgbuf_dequeue_all (&sb->rcv, &head);
 	msgbuf_dequeue_all (&sb->snd, &head);
 

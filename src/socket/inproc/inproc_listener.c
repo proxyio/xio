@@ -25,10 +25,8 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include <xsocket/xg.h>
-
-/* sock's proc field operation.
- */
+#include "../xg.h"
+#include "../log.h"
 
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
@@ -39,7 +37,7 @@ struct sockbase *getlistener (const char *addr) {
 	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, strlen (addr)))) {
 		sb = & (cont_of (entry, struct inproc_sock, lhentry) )->base;
 		mutex_lock (&sb->lock);
-		if (!sb->fepipe) {
+		if (!sb->flagset.epipe) {
 			refed = true;
 			atomic_incr (&sb->ref);
 		}
@@ -58,7 +56,6 @@ static int addlistener (struct str_rbe *entry)
 	xglobal_lock();
 	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen) ) {
 		rc = 0;
-		DEBUG_OFF ("add listener %s", entry->key);
 		str_rb_insert (&xgb.inproc_listeners, entry);
 	}
 	xglobal_unlock();
@@ -72,9 +69,6 @@ static void rmlistener (struct str_rbe *entry)
 	str_rb_delete (&xgb.inproc_listeners, entry);
 	xglobal_unlock();
 }
-
-/* sock_inproc_vfptr
- */
 
 static struct sockbase *inproc_alloc() {
 	struct inproc_sock *self = TNEW (struct inproc_sock);
@@ -117,8 +111,8 @@ static void inproc_listener_close (struct sockbase *sb)
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &nsb) == 0) {
-		DEBUG_OFF ("listener %d close unaccept socket %d", sb->fd, nsb->fd);
-		xclose (nsb->fd);
+		SKLOG_DEBUG (sb, "listener %d close unaccept socket %d", sb->fd, nsb->fd);
+		__xclose (nsb);
 	}
 
 	/* Close the sock and free sock id. */

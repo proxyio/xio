@@ -25,20 +25,21 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
+#include "../log.h"
 #include "../xg.h"
 
 extern struct io default_xops;
 
-static int tcp_listener_hndl (eloop_t *el, ev_t *et);
+static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
 static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct worker *ev_loop;
+	struct ev_loop *evl;
 	struct tcp_sock *tcpsk;
 	int on = 1;
 	int sys_fd;
 
-	ev_loop = sb->ev_loop;
+	evl = sb->evl;
 	tcpsk = cont_of (sb, struct tcp_sock, base);
 	
 	tcpsk->vtp = tp_get (sb->vfptr->pf);
@@ -48,69 +49,67 @@ static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 	tcpsk->vtp->setopt (sys_fd, TP_NOBLOCK, &on, sizeof (on));
 
 	tcpsk->sys_fd = sys_fd;
-	tcpsk->et.events = EPOLLIN|EPOLLERR;
+	tcpsk->et.events = EV_READ;
 	tcpsk->et.fd = sys_fd;
-	tcpsk->et.f = tcp_listener_hndl;
-	tcpsk->et.data = tcpsk;
-	BUG_ON (eloop_add (&ev_loop->el, &tcpsk->et) != 0);
+	tcpsk->et.hndl = tcp_listener_hndl;
+	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_ADD, &tcpsk->et) != 0);
 	return 0;
 }
 
 static void tcp_listener_close (struct sockbase *sb)
 {
-	struct worker *ev_loop;
+	struct ev_loop *evl;
 	struct tcp_sock *tcpsk;
 	struct sockbase *tmp;
 
-	ev_loop = sb->ev_loop;
+	evl = sb->evl;
 	tcpsk = cont_of (sb, struct tcp_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
-	BUG_ON (eloop_del (&ev_loop->el, &tcpsk->et) != 0);
+	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_DEL, &tcpsk->et) != 0);
 	tcpsk->vtp->close (tcpsk->sys_fd);
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &tmp) == 0)
-		xclose (tmp->fd);
+		__xclose (tmp);
 
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
 	mem_free (tcpsk, sizeof (*tcpsk));
 }
 
-extern int tcp_socket_init (struct sockbase *sb, int sys_fd);
+extern void tcp_socket_init (struct sockbase *sb, int sys_fd);
 
-static int tcp_listener_hndl (eloop_t *el, ev_t *et)
+static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
-	struct tcp_sock *tcpsk = cont_of (et, struct tcp_sock, et);
+	struct tcp_sock *tcpsk = cont_of (evfd, struct tcp_sock, et);
 	struct sockbase *sb = &tcpsk->base;
 	int sys_fd;
 	int fd_new;
-	struct sockbase *sb_new = 0;
+	struct sockbase *sb_new;
+	struct tcp_sock *ntcpsk;
 
-	if ((et->happened & EPOLLERR) && !(et->happened & EPOLLIN)) {
-		mutex_lock (&sb->lock);
-		sb->fepipe = true;
-		if (sb->acceptq.waiters)
-			condition_broadcast (&sb->acceptq.cond);
-		mutex_unlock (&sb->lock);
-		return -1;
-	}
-	BUG_ON (!tcpsk->vtp);
 	if ((sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd)) < 0) {
-		return -1;
+		if (errno != EAGAIN) {
+			mutex_lock (&sb->lock);
+			sb->flagset.epipe = true;
+			if (sb->acceptq.waiters)
+				condition_broadcast (&sb->acceptq.cond);
+			mutex_unlock (&sb->lock);
+		}
+		return;
 	}
 	if ((fd_new = xalloc (sb->vfptr->pf, XCONNECTOR)) < 0) {
 		tcpsk->vtp->close (sys_fd);
-		return -1;
+		return;
 	}
 	sb_new = xgb.sockbases[fd_new];
-	DEBUG_OFF ("%d accept new connection %d", sb->fd, fd_new);
+	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, fd_new);
 
-	BUG_ON (tcp_socket_init (sb_new, sys_fd));
-
-	/* BUG: if fault */
-	return acceptq_add (sb, sb_new);
+	tcp_socket_init (sb_new, sys_fd);
+	ntcpsk = cont_of (sb_new, struct tcp_sock, base);
+	__ev_fdset_ctl (&sb_new->evl->fdset, EV_ADD, &ntcpsk->et);
+	acceptq_add (sb, sb_new);
 }
 
 extern struct sockbase *tcp_alloc();

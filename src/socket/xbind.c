@@ -20,28 +20,37 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_EVENTFD_
-#define _H_PROXYIO_EVENTFD_
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <utils/waitgroup.h>
+#include <utils/taskpool.h>
+#include "xg.h"
 
-struct efd {
-	int r;
-	int w;
-};
+int xsocket (int pf, int socktype)
+{
+	int fd = xalloc (pf, socktype);
+	return fd;
+}
 
-void efd_init (struct efd *self);
+int xbind (int fd, const char *addr)
+{
+	int rc;
+	struct sockbase *sb = xget (fd);
 
-void efd_destroy (struct efd *self);
-
-int efd_signal_s (struct efd *self);
-
-int efd_signal (struct efd *self, int signo);
-
-int efd_unsignal_s (struct efd *self);
-
-int efd_unsignal (struct efd *self);
-
-
-
-
-
-#endif
+	if (!sb) {
+		errno = EBADF;
+		return -1;
+	}
+	if (strlen (addr) >= TP_SOCKADDRLEN) {
+		xput (fd);
+		errno = EINVAL;
+		return -1;
+	}
+	BUG_ON (!sb->vfptr);
+	if ((rc = sb->vfptr->bind (sb, addr)) == 0)
+		ev_fdset_sighndl (&sb->evl->fdset, &sb->sig);
+	xput (fd);
+	return rc;
+}

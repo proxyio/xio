@@ -26,30 +26,50 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
+#include "log.h"
 #include "xg.h"
 
-int xsocket (int pf, int socktype)
+extern const char *event_str[];
+
+int check_pollevents (struct sockbase *sb, int events)
 {
-	int fd = xalloc (pf, socktype);
-	return fd;
+	int happened = 0;
+
+	if (events & XPOLLIN) {
+		if (sb->vfptr->type == XCONNECTOR)
+			happened |= !msgbuf_head_empty (&sb->rcv) ? XPOLLIN : 0;
+		else if (sb->vfptr->type == XLISTENER)
+			happened |= !list_empty (&sb->acceptq.head) ? XPOLLIN : 0;
+	}
+	if (events & XPOLLOUT)
+		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
+	if (events & XPOLLERR)
+		happened |= sb->flagset.epipe ? XPOLLERR : 0;
+	SKLOG_DEBUG (sb, "%d happen %s", sb->fd, event_str[happened]);
+	return happened;
 }
 
-int xbind (int fd, const char *addr)
+/* Generic xpoll_t notify function. always called by sockbase_vfptr
+ * when has any message come or can send any massage into network
+ * or has a new connection wait for established.
+ * here we only check the mq events and proto_spec saved the other
+ * events gived by sockbase_vfptr
+ */
+void __emit_pollevents (struct sockbase *sb)
 {
-	int rc;
-	struct sockbase *sb = xget (fd);
+	int happened = 0;
+	struct pollbase *pb, *tmp;
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
+	happened |= check_pollevents (sb, XPOLLIN|XPOLLOUT|XPOLLERR);
+	walk_pollbase_s (pb, tmp, &sb->poll_entries) {
+		BUG_ON (!pb->vfptr);
+		pb->vfptr->emit (pb, happened & pb->pollfd.events);
 	}
-	if (strlen (addr) >= TP_SOCKADDRLEN) {
-		xput (fd);
-		errno = EINVAL;
-		return -1;
-	}
-	BUG_ON (!sb->vfptr);
-	rc = sb->vfptr->bind (sb, addr);
-	xput (fd);
-	return rc;
+}
+
+void emit_pollevents (struct sockbase *sb)
+{
+	mutex_lock (&sb->lock);
+	__emit_pollevents (sb);
+	mutex_unlock (&sb->lock);
 }

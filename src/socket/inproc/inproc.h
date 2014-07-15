@@ -20,41 +20,24 @@
   IN THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <utils/waitgroup.h>
-#include <utils/taskpool.h>
-#include "xg.h"
+#ifndef _H_PROXYIO_INPROC_INTERN_
+#define _H_PROXYIO_INPROC_INTERN_
 
-int xclose (int fd)
-{
-	struct sockbase *sb = xget (fd);
-	struct pollbase *pb, *tmp;
-	struct list_head poll_entries = {};
+#include "../sockbase.h"
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
-	}
-	INIT_LIST_HEAD (&poll_entries);
-	mutex_lock (&sb->lock);
-	sb->fepipe = true;
-	if (sb->rcv.waiters || sb->snd.waiters)
-		condition_broadcast (&sb->cond);
-	if (sb->acceptq.waiters)
-		condition_broadcast (&sb->acceptq.cond);
-	list_splice (&sb->poll_entries, &poll_entries);
-	mutex_unlock (&sb->lock);
+struct inproc_sock {
+	struct sockbase base;
+	atomic_t ref;
 
-	walk_pollbase_s (pb, tmp, &poll_entries) {
-		list_del_init (&pb->link);
-		BUG_ON (!pb->vfptr);
-		pb->vfptr->close (pb);
-	}
-	BUG_ON (!list_empty (&poll_entries) );
-	xput (fd);
-	xput (fd);
-	return 0;
-}
+	/* the listener_head's entry of inproc-listener */
+	struct str_rbe lhentry;
+
+	/* For inproc-connector and inproc-accepter */
+	struct sockbase *peer;
+};
+
+extern struct sockbase_vfptr inproc_listener_vfptr;
+extern struct sockbase_vfptr inproc_connector_vfptr;
+
+
+#endif

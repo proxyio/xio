@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include <utils/str_array.h>
-#include <xsocket/xg.h>
+#include "mix.h"
 
 static int mix_listener_bind (struct sockbase *sb, const char *sock)
 {
@@ -70,7 +70,7 @@ static void mix_listener_close (struct sockbase *sb)
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &tmp) == 0) {
-		xclose (tmp->fd);
+		__xclose (tmp);
 	}
 
 	sockbase_exit (sb);

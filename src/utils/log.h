@@ -20,26 +20,44 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_INPROC_INTERN_
-#define _H_PROXYIO_INPROC_INTERN_
+#ifndef _H_PROXYIO_LOG_
+#define _H_PROXYIO_LOG_
 
-#include <xsocket/sockbase.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <assert.h>
+#include <errno.h>
+#include <inttypes.h>
 
-struct inproc_sock {
-	struct sockbase base;
-	atomic_t ref;
-	ev_t et;
-	struct efd efd;
-
-	/* the listener_head's entry of inproc-listener */
-	struct str_rbe lhentry;
-
-	/* For inproc-connector and inproc-accepter */
-	struct sockbase *peer;
+enum {
+	DEBUGL   =   1,
+	INFOL,
+	NOTICEL,
+	WARNL,
+	ERRORL,
+	FATALL,
 };
 
-extern struct sockbase_vfptr inproc_listener_vfptr;
-extern struct sockbase_vfptr inproc_connector_vfptr;
 
+#define LLOG(lvs, lv, fmt, ...) do {					\
+        if (lvs && lvs <= lv) {							\
+            fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),	\
+            basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__);	\
+        }								\
+    } while(0)
+
+#define LOG_DEBUG(lvs, fmt, ...)   LLOG(lvs, DEBUGL,  fmt, ##__VA_ARGS__)
+
+#define LOG_INFO(lvs, fmt, ...)    LLOG(lvs, INFOL,   fmt, ##__VA_ARGS__)
+
+#define LOG_NOTICE(lvs, fmt, ...)  LLOG(lvs, NOTICEL, fmt, ##__VA_ARGS__)
+
+#define LOG_WARN(lvs, fmt, ...)    LLOG(lvs, WARNL,   fmt, ##__VA_ARGS__)
+
+#define LOG_ERROR(lvs, fmt, ...)   LLOG(lvs, ERRORL,  fmt, ##__VA_ARGS__)
+
+#define LOG_FATAL(lvs, fmt, ...)   LLOG(lvs, FATALL,  fmt, ##__VA_ARGS__)
 
 #endif

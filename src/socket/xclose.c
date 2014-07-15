@@ -21,43 +21,47 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <utils/waitgroup.h>
+#include <utils/taskpool.h>
 #include "xg.h"
 
-int worker_alloc()
+void __xclose (struct sockbase *sb)
 {
-	int cpu_no;
+	struct pollbase *pb, *tmp;
+	struct list_head poll_entries = {};
 
-	mutex_lock (&xgb.lock);
-	BUG_ON (xgb.ncpus >= PROXYIO_MAX_CPUS);
-	cpu_no = xgb.cpu_unused[xgb.ncpus++];
-	if (xgb.ncpus <= xgb.ncpus_low)
-		xgb.ncpus_low = xgb.ncpus;
-	if (xgb.ncpus >= xgb.ncpus_high)
-		xgb.ncpus_high = xgb.ncpus;
-	mutex_unlock (&xgb.lock);
-	return cpu_no;
+	INIT_LIST_HEAD (&poll_entries);
+	mutex_lock (&sb->lock);
+
+	sb->flagset.epipe = true;
+	if (sb->rcv.waiters || sb->snd.waiters)
+		condition_broadcast (&sb->cond);
+	if (sb->acceptq.waiters)
+		condition_broadcast (&sb->acceptq.cond);
+	list_splice (&sb->poll_entries, &poll_entries);
+	mutex_unlock (&sb->lock);
+
+	walk_pollbase_s (pb, tmp, &poll_entries) {
+		list_del_init (&pb->link);
+		BUG_ON (!pb->vfptr);
+		pb->vfptr->close (pb);
+	}
+	BUG_ON (!list_empty (&poll_entries) );
+	xput (sb->fd);
 }
 
-int worker_choosed (int fd)
-{
-	if (xgb.ncpus == 0)
-		sleep (0xfffffff);
-	return fd % xgb.ncpus;
+int xclose (int fd) {
+	struct sockbase *sb = xget (fd);
+
+	if (!sb) {
+		errno = EBADF;
+		return -1;
+	}
+	__xclose (sb);
+	ev_fdset_unsighndl (&sb->evl->fdset, &sb->sig);
+	xput (fd);
+	return 0;
 }
-
-void worker_free (int cpu_no)
-{
-	mutex_lock (&xgb.lock);
-	xgb.cpu_unused[--xgb.ncpus] = cpu_no;
-	if (xgb.ncpus <= xgb.ncpus_low)
-		xgb.ncpus_low = xgb.ncpus;
-	if (xgb.ncpus >= xgb.ncpus_high)
-		xgb.ncpus_high = xgb.ncpus;
-	mutex_unlock (&xgb.lock);
-}
-
-struct worker *get_worker (int cpu_no) {
-	return &xgb.cpus[cpu_no];
-}
-
-
