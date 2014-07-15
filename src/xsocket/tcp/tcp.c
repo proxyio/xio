@@ -25,6 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
+#include <utils/log.h>
 #include "../xg.h"
 
 static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
@@ -59,7 +60,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 	/* Disable POLLOUT event when snd_head is empty */
 	if (msgbuf_head_empty(&sb->snd) && bio_size (&tcpsk->out) == 0 &&
 	    (tcpsk->et.events & EV_WRITE) ) {
-		DEBUG_OFF ("%d disable EV_WRITE", sb->fd);
+		LOG_DEBUG (dlv (sb), "%d disable EV_WRITE", sb->fd);
 		tcpsk->et.events &= ~EV_WRITE;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
@@ -74,7 +75,7 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if (!(tcpsk->et.events & EV_WRITE)) {
-		DEBUG_OFF ("%d enable EV_WRITE", sb->fd);
+		LOG_DEBUG (dlv(sb), "%d enable EV_WRITE", sb->fd);
 		tcpsk->et.events |= EV_WRITE;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
@@ -97,7 +98,7 @@ static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if ((tcpsk->et.events & EV_READ)) {
-		DEBUG_OFF ("%d disable EV_READ", sb->fd);
+		LOG_DEBUG (dlv (sb), "%d disable EV_READ", sb->fd);
 		tcpsk->et.events &= ~EV_READ;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
@@ -113,7 +114,7 @@ static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if (!(tcpsk->et.events & EV_READ)) {
-		DEBUG_OFF ("%d enable EV_READ", sb->fd);
+		LOG_DEBUG (dlv (sb), "%d enable EV_READ", sb->fd);
 		tcpsk->et.events |= EV_READ;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
@@ -270,7 +271,7 @@ static int tcp_connector_rcv (struct sockbase *sb)
 			list_add_tail (&cmsg->item, &aim->cmsg_head);
 		}
 		rcv_msgbuf_head_add (sb, aim);
-		DEBUG_OFF ("%d sock recv one message", sb->fd);
+		LOG_DEBUG (dlv (sb), "%d sock recv one message", sb->fd);
 	}
 	return rc;
 }
@@ -400,15 +401,15 @@ void tcp_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 	struct sockbase *sb = &cont_of (evfd, struct tcp_sock, et)->base;
 
 	if (events & EV_READ) {
-		DEBUG_OFF ("io sock %d EV_READ", sb->fd);
+		LOG_DEBUG (dlv (sb), "io sock %d EV_READ", sb->fd);
 		rc = tcp_connector_rcv (sb);
 	}
 	if (events & EV_WRITE) {
-		DEBUG_OFF ("io sock %d EV_WRITE", sb->fd);
+		LOG_DEBUG (dlv (sb), "io sock %d EV_WRITE", sb->fd);
 		rc = tcp_connector_snd (sb);
 	}
 	if (rc < 0 && errno != EAGAIN) {
-		DEBUG_OFF ("io sock %d EPIPE with events %d", sb->fd, events);
+		LOG_DEBUG (dlv (sb), "io sock %d EPIPE with events %d", sb->fd, events);
 		mutex_lock (&sb->lock);
 		sb->flagset.epipe = true;
 		if (sb->rcv.waiters || sb->snd.waiters)

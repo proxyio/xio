@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <utils/log.h>
 #include <utils/taskpool.h>
 #include <xsocket/xg.h>
 
@@ -121,7 +122,7 @@ static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 		return -1;
 	}
 	xput (listener->fd);
-	DEBUG_OFF ("%d accept new connection %d", sb->fd, new_fd);
+	LOG_DEBUG (dlv (sb), "%d accept new connection %d", sb->fd, new_fd);
 	return 0;
 }
 

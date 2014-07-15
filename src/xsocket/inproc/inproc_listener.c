@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <utils/log.h>
 #include <utils/taskpool.h>
 #include <xsocket/xg.h>
 
@@ -58,7 +59,6 @@ static int addlistener (struct str_rbe *entry)
 	xglobal_lock();
 	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen) ) {
 		rc = 0;
-		DEBUG_OFF ("add listener %s", entry->key);
 		str_rb_insert (&xgb.inproc_listeners, entry);
 	}
 	xglobal_unlock();
@@ -117,7 +117,7 @@ static void inproc_listener_close (struct sockbase *sb)
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &nsb) == 0) {
-		DEBUG_OFF ("listener %d close unaccept socket %d", sb->fd, nsb->fd);
+		LOG_DEBUG (dlv (sb), "listener %d close unaccept socket %d", sb->fd, nsb->fd);
 		xclose (nsb->fd);
 	}
 

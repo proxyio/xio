@@ -138,6 +138,10 @@ struct sockbase {
 	struct list_head poll_entries;
 };
 
+static inline int dlv (struct sockbase *sb) {
+	return sb->flagset.debuglv;
+}
+
 #define walk_sub_sock(sub, nx, head)				\
     walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 

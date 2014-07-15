@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <utils/log.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
 #include "xg.h"
@@ -64,7 +65,7 @@ int xalloc (int family, int socktype)
 	atomic_incr (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	BUG_ON (atomic_fetch (&sb->ref) != 1);
-	DEBUG_OFF ("sock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
+	LOG_DEBUG (dlv (sb), "sock %d alloc %s", sb->fd, pf_str[sb->vfptr->pf]);
 	return sb->fd;
 }
 
@@ -91,7 +92,7 @@ void xput (int fd)
 		xgb.unused[--xgb.nsockbases] = sb->fd;
 		mutex_unlock (&xgb.lock);
 
-		DEBUG_OFF ("sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
+		LOG_DEBUG (dlv (sb), "sock %d shutdown %s", sb->fd, pf_str[sb->vfptr->pf]);
 		ev_fdset_unsighndl (&sb->evl->fdset, &sb->sig);
 		sb->vfptr->close (sb);
 	}

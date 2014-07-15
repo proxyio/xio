@@ -24,9 +24,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <utils/log.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
 #include "xg.h"
+
+extern const char **event_str;
 
 int check_pollevents (struct sockbase *sb, int events)
 {
@@ -42,7 +45,7 @@ int check_pollevents (struct sockbase *sb, int events)
 		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
 	if (events & XPOLLERR)
 		happened |= sb->flagset.epipe ? XPOLLERR : 0;
-	DEBUG_OFF ("%d happen %s", sb->fd, xpoll_str[happened]);
+	LOG_DEBUG (dlv (sb), "%d happen %s", sb->fd, event_str[happened]);
 	return happened;
 }
 
