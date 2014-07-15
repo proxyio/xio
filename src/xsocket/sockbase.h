@@ -40,6 +40,7 @@
 #include <msgbuf/msgbuf.h>
 #include <msgbuf/msgbuf_head.h>
 #include <ev/ev.h>
+#include "log.h"
 #include "stats.h"
 
 #define null NULL

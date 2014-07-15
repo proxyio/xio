@@ -41,7 +41,7 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
 		sb->rcv.waiters--;
 	}
 	BUG_ON ((rc = msgbuf_head_out_msg (&sb->rcv, &msg)));
-
+	SKLOG_NOTICE (sb, "%d socket rcvbuf rm %d", sb->fd, msgbuf_len (msg));
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return msg;
@@ -56,7 +56,7 @@ int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 	msgbuf_head_in_msg (&sb->rcv, msg);
 	if (sb->rcv.waiters > 0)
 		condition_broadcast (&sb->cond);
-
+	SKLOG_NOTICE (sb, "%d socket rcvbuf add %d", sb->fd, msgbuf_len (msg));
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return 0;

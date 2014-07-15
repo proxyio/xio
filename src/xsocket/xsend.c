@@ -37,6 +37,7 @@ struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
 	if ((rc = msgbuf_head_out_msg (&sb->snd, &msg)) == 0) {
 		if (sb->snd.waiters > 0)
 			condition_broadcast (&sb->cond);
+		SKLOG_NOTICE (sb, "%d socket sndbuf rm %d", sb->fd, msgbuf_len (msg));
 	}
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
@@ -55,8 +56,8 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 		sb->snd.waiters--;
 	}
 	if (msgbuf_can_in (&sb->snd) ) {
-		rc = 0;
-		msgbuf_head_in_msg (&sb->snd, msg);
+		rc = msgbuf_head_in_msg (&sb->snd, msg);
+		SKLOG_NOTICE (sb, "%d socket sndbuf add %d", sb->fd, msgbuf_len (msg));
 	}
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
