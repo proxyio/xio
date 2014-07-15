@@ -22,7 +22,6 @@
 
 
 #include <utils/timer.h>
-#include <socket/xg.h>
 #include "pg.h"
 #include "poll_struct.h"
 
