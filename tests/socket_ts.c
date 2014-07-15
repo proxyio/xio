@@ -17,7 +17,7 @@ static void xclient (const char *pf)
 	char buf[1024] = {};
 	char *xbuf, *oob;
 	char host[1024];
-	int debuglv = 1;
+	int debuglv = 3;
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
@@ -71,7 +71,7 @@ static void xserver()
 		DEBUG_OFF ("xserver accept %d", sfd);
 		for (i = 0; i < cnt * 10; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
-			DEBUG_ON ("%d recv", sfd);
+			DEBUG_OFF ("%d recv", sfd);
 			ubuf = ubuf_alloc (ubuf_len (xbuf));
 			memcpy (ubuf, xbuf, ubuf_len (xbuf));
 			ubufctl (xbuf, SSWITCH, ubuf);

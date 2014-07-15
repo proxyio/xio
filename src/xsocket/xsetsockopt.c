@@ -77,7 +77,7 @@ static int set_reconnect (struct sockbase *sb, void *optval, int optlen)
 static int set_debuglv (struct sockbase *sb, void *optval, int optlen)
 {
 	mutex_lock (&sb->lock);
-	sb->flagset.debuglv =  * (int *) optval ? true : false;
+	sb->flagset.debuglv =  * (int *) optval & 0xf;
 	mutex_unlock (&sb->lock);
 }
 	

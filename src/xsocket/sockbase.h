@@ -116,7 +116,7 @@ struct sockbase {
 	struct {
 		u64 non_block:1;
 		u64 epipe:1;
-		u64 debuglv:1;
+		u64 debuglv:4;
 	} flagset;
 	struct ev_sig sig;
 	struct ev_loop *evl;
