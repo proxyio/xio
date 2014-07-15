@@ -96,6 +96,99 @@ void xput (int fd)
 	}
 }
 
+static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_EMPTY);
+}
+
+static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_NONEMPTY);
+}
+
+static void snd_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_FULL);
+}
+
+static void snd_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_NONFULL);
+}
+
+static void snd_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_ADD);
+}
+
+static void snd_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
+	ev_signal (&sb->sig, EV_SNDBUF_RM);
+}
+
+
+
+static void rcv_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_EMPTY);
+}
+
+static void rcv_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_NONEMPTY);
+}
+
+static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_FULL);
+}
+
+static void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_NONFULL);
+}
+
+static void rcv_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_ADD);
+}
+
+static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+{
+	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
+	ev_signal (&sb->sig, EV_RCVBUF_RM);
+}
+
+
+static struct msgbuf_vfptr snd_msgbuf_vfptr = {
+	.add = snd_msgbuf_head_add_ev_hndl,
+	.rm = snd_msgbuf_head_rm_ev_hndl,
+	.empty = snd_msgbuf_head_empty_ev_hndl,
+	.nonempty = snd_msgbuf_head_nonempty_ev_hndl,
+	.full = snd_msgbuf_head_full_ev_hndl,
+	.nonfull = snd_msgbuf_head_nonfull_ev_hndl,
+};
+
+static struct msgbuf_vfptr rcv_msgbuf_vfptr = {
+	.add = rcv_msgbuf_head_add_ev_hndl,
+	.rm = rcv_msgbuf_head_rm_ev_hndl,
+	.empty = rcv_msgbuf_head_empty_ev_hndl,
+	.nonempty = rcv_msgbuf_head_nonempty_ev_hndl,
+	.full = rcv_msgbuf_head_full_ev_hndl,
+	.nonfull = rcv_msgbuf_head_nonfull_ev_hndl,
+};
+
 static void sockbase_signal_hndl (struct ev_sig *sig, int signo)
 {
 	struct sockbase *sb = cont_of (sig, struct sockbase, sig);
@@ -123,8 +216,9 @@ void sockbase_init (struct sockbase *sb)
 
 	socket_mstats_init (&sb->stats);
 	msgbuf_head_init (&sb->rcv, default_rcvbuf);
-	msgbuf_head_init (&sb->evl_rcv, default_rcvbuf);
+	msgbuf_head_ev_hndl (&sb->rcv, &rcv_msgbuf_vfptr);
 	msgbuf_head_init (&sb->snd, default_sndbuf);
+	msgbuf_head_ev_hndl (&sb->snd, &snd_msgbuf_vfptr);
 
 	INIT_LIST_HEAD (&sb->poll_entries);
 	condition_init (&sb->acceptq.cond);

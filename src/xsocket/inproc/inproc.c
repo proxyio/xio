@@ -29,30 +29,28 @@
 
 extern struct sockbase *getlistener (const char *addr);
 
-/* snd_head events trigger. */
-
-static void snd_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
+static void snd_msgbuf_head_add_ev_hndl (struct sockbase *sb)
 {
-	struct msgbuf *msg;
-	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
 	struct sockbase *peer = (cont_of (sb, struct inproc_sock, base))->peer;
-
+	struct msgbuf *msg;
+	
 	/* TODO: maybe the peer sock can't recv anymore after the check. */
-	mutex_unlock (&sb->lock);
-	if ((msg = snd_msgbuf_head_rm (sb)))
-		rcv_msgbuf_head_add (peer, msg);
 	mutex_lock (&sb->lock);
+	msg = snd_msgbuf_head_rm (sb);
+	mutex_unlock (&sb->lock);
+	if (msg) {
+		mutex_lock (&peer->lock);
+		rcv_msgbuf_head_add (peer, msg);
+		mutex_unlock (&peer->lock);
+	}
 }
 
-/* rcv_head events trigger.
- */
-
-static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)
 {
-	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	
+	mutex_lock (&sb->lock);
 	if (sb->snd.waiters)
 		condition_signal (&sb->cond);
+	mutex_unlock (&sb->lock);
 }
 
 
@@ -70,6 +68,18 @@ static struct sockbase *inproc_alloc ()
 	return sb;
 }
 
+static void inproc_signal (struct sockbase *sb, int signo)
+{
+	switch (signo) {
+	case EV_SNDBUF_ADD:
+		snd_msgbuf_head_add_ev_hndl (sb);
+		break;
+	case EV_RCVBUF_RM:
+		rcv_msgbuf_head_rm_ev_hndl (sb);
+		break;
+	}
+}
+
 static int inproc_send (struct sockbase *sb, char *ubuf)
 {
 	int rc;
@@ -79,10 +89,6 @@ static int inproc_send (struct sockbase *sb, char *ubuf)
 		errno = sb->fepipe ? EPIPE : EAGAIN;
 	return rc;
 }
-
-
-/* sock_inproc_vfptr
- */
 
 static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 {
@@ -113,11 +119,6 @@ static int inproc_connector_bind (struct sockbase *sb, const char *sock)
 	self->peer = &peer->base;
 	peer->peer = &self->base;
 
-	msgbuf_head_handle_add (&sb->snd, snd_msgbuf_head_add_ev_hndl);
-	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
-	msgbuf_head_handle_add (&new_sb->snd, snd_msgbuf_head_add_ev_hndl);
-	msgbuf_head_handle_rm (&new_sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
-	
 	if (acceptq_add (listener, new_sb) < 0) {
 		atomic_decr (&peer->ref);
 		sb->vfptr->close (new_sb);
@@ -166,6 +167,7 @@ struct sockbase_vfptr inproc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_INPROC,
 	.alloc = inproc_alloc,
+	.signal = inproc_signal,
 	.send = inproc_send,
 	.bind = inproc_connector_bind,
 	.close = inproc_connector_close,

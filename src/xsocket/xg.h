@@ -56,7 +56,7 @@ struct xglobal {
 };
 
 #define walk_sockbase_vfptr_s(pos, nx, head)				\
-    walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, link)
+    walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, item)
 
 struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type);
 

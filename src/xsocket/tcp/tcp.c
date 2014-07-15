@@ -50,85 +50,74 @@ struct io stream_ops = {
 	.write = tcp_connector_write,
 };
 
-void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
+static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 {
-	struct sockbase *sb;
-	struct ev_loop *evl;
-	struct tcp_sock *tcpsk;
-	
-	sb = cont_of (bh, struct sockbase, snd);
-	evl = sb->evl;
-	tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct ev_loop *evl = sb->evl;
 
+	mutex_lock (&sb->lock);
 	/* Disable POLLOUT event when snd_head is empty */
-	BUG_ON (bio_size (&tcpsk->out) < 0);
-	if (bio_size (&tcpsk->out) == 0 && (tcpsk->et.events & EV_WRITE) ) {
+	if (msgbuf_head_empty(&sb->snd) && bio_size (&tcpsk->out) == 0 &&
+	    (tcpsk->et.events & EV_WRITE) ) {
 		DEBUG_OFF ("%d disable EV_WRITE", sb->fd);
 		tcpsk->et.events &= ~EV_WRITE;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
+	mutex_unlock (&sb->lock);
 }
 
-void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
+static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 {
-	struct sockbase *sb;
-	struct ev_loop *evl;
-	struct tcp_sock *tcpsk;
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct ev_loop *evl = sb->evl;
 
-	sb = cont_of (bh, struct sockbase, snd);
-	evl = sb->evl;
-	tcpsk = cont_of (sb, struct tcp_sock, base);
-
+	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if (!(tcpsk->et.events & EV_WRITE)) {
 		DEBUG_OFF ("%d enable EV_WRITE", sb->fd);
 		tcpsk->et.events |= EV_WRITE;
 		BUG_ON (ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
+	mutex_unlock (&sb->lock);
 }
 
-void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
+static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)
 {
-	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-
+	mutex_lock (&sb->lock);
 	if (sb->snd.waiters)
 		condition_signal (&sb->cond);
+	mutex_unlock (&sb->lock);
 }
 
-void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
+static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 {
-	struct sockbase *sb;
-	struct ev_loop *evl;
-	struct tcp_sock *tcpsk;
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct ev_loop *evl = sb->evl;
 
-	sb = cont_of (bh, struct sockbase, rcv);
-	evl = sb->evl;
-	tcpsk = cont_of (sb, struct tcp_sock, base);
-
+	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if ((tcpsk->et.events & EV_READ)) {
 		DEBUG_OFF ("%d disable EV_READ", sb->fd);
 		tcpsk->et.events &= ~EV_READ;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
+	mutex_unlock (&sb->lock);
 }
 
-void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
-{
-	struct sockbase *sb;
-	struct ev_loop *evl;
-	struct tcp_sock *tcpsk;
-	
-	sb = cont_of (bh, struct sockbase, rcv);
-	evl = sb->evl;
-	tcpsk = cont_of (sb, struct tcp_sock, base);
 
+static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
+{
+	struct tcp_sock *tcpsk = cont_of (sb, struct tcp_sock, base);
+	struct ev_loop *evl = sb->evl;
+
+	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if (!(tcpsk->et.events & EV_READ)) {
 		DEBUG_OFF ("%d enable EV_READ", sb->fd);
 		tcpsk->et.events |= EV_READ;
 		BUG_ON (ev_fdset_ctl (&evl->fdset, EV_MOD, &tcpsk->et) != 0);
 	}
+	mutex_unlock (&sb->lock);
 }
 
 void tcp_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
@@ -145,6 +134,27 @@ struct sockbase *tcp_alloc()
 	INIT_LIST_HEAD (&tcpsk->sg_head);
 	ev_fd_init (&tcpsk->et);
 	return &tcpsk->base;
+}
+
+static void tcp_signal (struct sockbase *sb, int signo)
+{
+	switch (signo) {
+	case EV_SNDBUF_EMPTY:
+		snd_msgbuf_head_empty_ev_hndl (sb);
+		break;
+	case EV_SNDBUF_NONEMPTY:
+		snd_msgbuf_head_nonempty_ev_hndl (sb);
+		break;
+	case EV_RCVBUF_RM:
+		rcv_msgbuf_head_rm_ev_hndl (sb);
+		break;
+	case EV_RCVBUF_FULL:
+		rcv_msgbuf_head_full_ev_hndl (sb);
+		break;
+	case EV_RCVBUF_NONFULL:
+		rcv_msgbuf_head_nonfull_ev_hndl (sb);
+		break;
+	}
 }
 
 static int tcp_send (struct sockbase *sb, char *ubuf)
@@ -177,12 +187,6 @@ int tcp_socket_init (struct sockbase *sb, int sys_fd)
 	tcpsk->et.fd = sys_fd;
 	tcpsk->et.hndl = tcp_connector_hndl;
 	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_ADD, &tcpsk->et) != 0);
-
-	msgbuf_head_handle_rm (&sb->rcv, rcv_msgbuf_head_rm_ev_hndl);
-	msgbuf_head_handle_full (&sb->rcv, rcv_msgbuf_head_full_ev_hndl);
-	msgbuf_head_handle_nonfull (&sb->rcv, rcv_msgbuf_head_nonfull_ev_hndl);
-	msgbuf_head_handle_empty (&sb->snd, snd_msgbuf_head_empty_ev_hndl);
-	msgbuf_head_handle_nonempty (&sb->snd, snd_msgbuf_head_nonempty_ev_hndl);
 	return 0;
 }
 
@@ -420,6 +424,7 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_TCP,
 	.alloc = tcp_alloc,
+	.signal = tcp_signal,
 	.send = tcp_send,
 	.bind = tcp_connector_bind,
 	.close = tcp_connector_close,
@@ -431,6 +436,7 @@ struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_IPC,
 	.alloc = tcp_alloc,
+	.signal = tcp_signal,
 	.send = tcp_send,
 	.bind = tcp_connector_bind,
 	.close = tcp_connector_close,
