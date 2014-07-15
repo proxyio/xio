@@ -71,7 +71,7 @@ int acceptq_rm (struct sockbase *sb, struct sockbase **new)
 	int rc = -1;
 
 	mutex_lock (&sb->lock);
-	while (list_empty (&sb->acceptq.head) && !sb->fasync) {
+	while (list_empty (&sb->acceptq.head) && !sb->flagset.non_block) {
 		sb->acceptq.waiters++;
 		condition_wait (&sb->acceptq.cond, &sb->lock);
 		sb->acceptq.waiters--;

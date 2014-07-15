@@ -33,7 +33,7 @@ typedef int (*sock_setopt) (struct sockbase *sb, void *optval, int optlen);
 static int set_noblock (struct sockbase *sb, void *optval, int optlen)
 {
 	mutex_lock (&sb->lock);
-	sb->fasync = * (int *) optval ? true : false;
+	sb->flagset.non_block = * (int *) optval ? true : false;
 	mutex_unlock (&sb->lock);
 	return 0;
 }

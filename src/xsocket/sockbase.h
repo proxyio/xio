@@ -113,8 +113,10 @@ struct sockbase {
 	atomic_t ref;
 	char addr[TP_SOCKADDRLEN];
 	char peer[TP_SOCKADDRLEN];
-	u64 fasync:1;
-	u64 fepipe:1;
+	struct {
+		u64 non_block:1;
+		u64 epipe:1;
+	} flagset;
 	struct ev_sig sig;
 	struct ev_loop *evl;
 

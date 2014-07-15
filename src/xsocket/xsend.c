@@ -49,7 +49,7 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 	int rc = -1;
 
 	mutex_lock (&sb->lock);
-	while (!sb->fepipe && !msgbuf_can_in (&sb->snd) && !sb->fasync) {
+	while (!sb->flagset.epipe && !msgbuf_can_in (&sb->snd) && !sb->flagset.non_block) {
 		sb->snd.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->snd.waiters--;

@@ -39,7 +39,7 @@ struct sockbase *getlistener (const char *addr) {
 	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, strlen (addr)))) {
 		sb = & (cont_of (entry, struct inproc_sock, lhentry) )->base;
 		mutex_lock (&sb->lock);
-		if (!sb->fepipe) {
+		if (!sb->flagset.epipe) {
 			refed = true;
 			atomic_incr (&sb->ref);
 		}

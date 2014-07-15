@@ -163,7 +163,7 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 
 	if ((rc = snd_msgbuf_head_add (sb, msg)) < 0)
-		errno = sb->fepipe ? EPIPE : EAGAIN;
+		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 	return rc;
 }
 
@@ -410,7 +410,7 @@ void tcp_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 	if (rc < 0 && errno != EAGAIN) {
 		DEBUG_OFF ("io sock %d EPIPE with events %d", sb->fd, events);
 		mutex_lock (&sb->lock);
-		sb->fepipe = true;
+		sb->flagset.epipe = true;
 		if (sb->rcv.waiters || sb->snd.waiters)
 			condition_broadcast (&sb->cond);
 		mutex_unlock (&sb->lock);

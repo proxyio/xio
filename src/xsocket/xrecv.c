@@ -34,7 +34,8 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 
 	mutex_lock (&sb->lock);
-	while (!sb->fepipe && msgbuf_head_empty (&sb->rcv) && !sb->fasync) {
+	while (!sb->flagset.epipe && msgbuf_head_empty (&sb->rcv)
+	       && !sb->flagset.non_block) {
 		sb->rcv.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->rcv.waiters--;
@@ -76,7 +77,7 @@ int xrecv (int fd, char **ubuf)
 		return -1;
 	}
 	if (! (msg = rcv_msgbuf_head_rm (sb) ) ) {
-		errno = sb->fepipe ? EPIPE : EAGAIN;
+		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 		rc = -1;
 	} else {
 		*ubuf = msg->chunk.ubuf_base;

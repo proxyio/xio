@@ -90,7 +90,7 @@ static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 	if ((sys_fd = tcpsk->vtp->accept (tcpsk->sys_fd)) < 0) {
 		if (errno != EAGAIN) {
 			mutex_lock (&sb->lock);
-			sb->fepipe = true;
+			sb->flagset.epipe = true;
 			if (sb->acceptq.waiters)
 				condition_broadcast (&sb->acceptq.cond);
 			mutex_unlock (&sb->lock);

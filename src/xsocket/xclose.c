@@ -40,7 +40,7 @@ int xclose (int fd)
 	}
 	INIT_LIST_HEAD (&poll_entries);
 	mutex_lock (&sb->lock);
-	sb->fepipe = true;
+	sb->flagset.epipe = true;
 	if (sb->rcv.waiters || sb->snd.waiters)
 		condition_broadcast (&sb->cond);
 	if (sb->acceptq.waiters)

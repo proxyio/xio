@@ -34,7 +34,7 @@ typedef int (*sock_getopt) (struct sockbase *self, void *optval, int *optlen);
 static int get_noblock (struct sockbase *self, void *optval, int *optlen)
 {
 	mutex_lock (&self->lock);
-	* (int *) optval = self->fasync ? true : false;
+	* (int *) optval = self->flagset.non_block ? true : false;
 	mutex_unlock (&self->lock);
 	return 0;
 }

@@ -41,7 +41,7 @@ int check_pollevents (struct sockbase *sb, int events)
 	if (events & XPOLLOUT)
 		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
 	if (events & XPOLLERR)
-		happened |= sb->fepipe ? XPOLLERR : 0;
+		happened |= sb->flagset.epipe ? XPOLLERR : 0;
 	DEBUG_OFF ("%d happen %s", sb->fd, xpoll_str[happened]);
 	return happened;
 }

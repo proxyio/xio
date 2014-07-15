@@ -80,7 +80,7 @@ static int inproc_send (struct sockbase *sb, char *ubuf)
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 
 	if ((rc = snd_msgbuf_head_add (sb, msg)) < 0)
-		errno = sb->fepipe ? EPIPE : EAGAIN;
+		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 	return rc;
 }
 
