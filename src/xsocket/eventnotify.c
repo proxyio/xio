@@ -29,7 +29,7 @@
 #include <utils/taskpool.h>
 #include "xg.h"
 
-extern const char **event_str;
+extern const char *event_str[];
 
 int check_pollevents (struct sockbase *sb, int events)
 {

@@ -17,10 +17,12 @@ static void xclient (const char *pf)
 	char buf[1024] = {};
 	char *xbuf, *oob;
 	char host[1024];
+	int debuglv = 1;
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
 	BUG_ON ( (sfd = xconnect (host) ) < 0);
+	xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
 		for (j = 0; j < 10; j++) {
