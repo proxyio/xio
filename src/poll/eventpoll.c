@@ -22,7 +22,7 @@
 
 #include <utils/timer.h>
 #include <utils/base.h>
-#include "pg.h"
+#include "poll_struct.h"
 
 const char *event_str[] = {
 	"",

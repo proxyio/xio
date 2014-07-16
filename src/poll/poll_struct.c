@@ -22,8 +22,24 @@
 
 
 #include <utils/timer.h>
-#include "pg.h"
 #include "poll_struct.h"
+
+struct pglobal pg = {};
+
+void __attribute__ ((constructor)) __poll_init (void)
+{
+	int pollid;
+
+	spin_init (&pg.lock);
+	for (pollid = 0; pollid < PROXYIO_MAX_POLLS; pollid++)
+		pg.unused[pollid] = pollid;
+}
+
+void __attribute__ ((destructor)) __poll_exit (void)
+{
+	spin_destroy (&pg.lock);
+	BUG_ON (pg.npolls > 0);
+}
 
 
 struct poll_entry *poll_entry_alloc() {

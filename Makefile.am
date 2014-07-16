@@ -51,10 +51,9 @@ XIO_SOCKET = \
 
 XIO_POLL = \
 	src/poll/poll_struct.c \
-	src/poll/pg.c \
 	src/poll/stats.c \
-	src/poll/xselect.c \
-	src/poll/xeventpoll.c
+	src/poll/select.c \
+	src/poll/eventpoll.c
 
 XIO_SP = \
 	src/sp/sp_module.c \
