@@ -161,7 +161,7 @@ int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 	spin_unlock (&evfds->lock);
 	waitgroup_wait (&wg);
 
-	waitgroup_term (&wg);
+	waitgroup_destroy (&wg);
 	if (task->rc < 0) {
 		errno = -task->rc;
 		rc = -1;

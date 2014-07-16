@@ -231,6 +231,7 @@ void sp_module_init()
 	thread_start (&sg.runner, sp_runner, &wg);
 	/* waiting the sp_runner finished startup */
 	waitgroup_wait (&wg);
+	waitgroup_destroy (&wg);
 }
 
 

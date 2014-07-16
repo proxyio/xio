@@ -16,7 +16,7 @@ static int test_waitgroup_single_thread()
 	waitgroup_done (&wg);
 	waitgroup_done (&wg);
 	waitgroup_wait (&wg);
-	waitgroup_term (&wg);
+	waitgroup_destroy (&wg);
 	return 0;
 }
 
