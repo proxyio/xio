@@ -270,6 +270,7 @@ void __attribute__ ((destructor)) __ev_exit (void)
 	for (i = 0; i < ev_processors; i++)
 		ev_loops[i].stopped = true;
 	taskpool_stop (&ev_pool);
+	taskpool_destroy (&ev_pool);
 }
 
 
