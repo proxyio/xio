@@ -47,6 +47,7 @@ static int path_walk_test()
 
 	filepath_init (&fp, "");
 	fp_walkdir (&fp, my_walkfn, NULL);
+	fp_walkfile (&fp, my_walkfn, NULL);
 	fp_dwalkdir (&fp, my_walkfn, NULL, -1);
 	BUG_ON (entries_cnt == 0);
 	filepath_destroy (&fp);
