@@ -37,19 +37,23 @@ struct rex_iov {
 #if defined MS_WINDOWS
 # include "rex_win.h"
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) \
-	defined(__NetBSD__) || defined(linux)
+	|| defined(__NetBSD__) || defined(linux)
 # include "rex_posix.h"
 #endif
 
-/* the following af_family are support by rex:
-   AF_LOCAL: localhost communication
-   AF_TCP:   tcp4 communication
-   AF_TCP6:  tcp6 communication */
+/* the following af_family are supported */
+
+enum {
+	REX_AF_LOCAL   =   1,     /* localhost communication */
+	REX_AF_TCP,               /* tcp4 communication */
+	REX_AF_TCP6,              /* tcp6 communication */
+};
+
 int rex_sock_init (struct rex_sock *rs, int family /* AF_LOCAL|AF_TCP|AF_TCP6 */);
 int rex_sock_destroy (struct rex_sock *rs);
 
-/* listen on the sockaddr with a backlog hint for kernel */
-int rex_sock_listen (struct rex_sock *rs, const char *sockaddr, int backlog);
+/* listen on the sockaddr */
+int rex_sock_listen (struct rex_sock *rs, const char *sockaddr);
 
 /* accept one new connection for the initialized new sock */
 int rex_sock_accept (struct rex_sock *rs, struct rex_sock *new);
@@ -61,16 +65,18 @@ int rex_sock_send (struct rex_sock *rs, struct rex_iov *iov, int niov);
 
 int rex_sock_recv (struct rex_sock *rs, struct rex_iov *iov, int niov);
 
-/* Following gs[etsockopt] options are supported by rex library
-   REX_LINGER         
-   REX_SNDBUF         
-   REX_RCVBUF         
-   REX_NOBLOCK        
-   REX_NODELAY        
-   REX_RCVTIMEO       
-   REX_SNDTIMEO       
-   REX_REUSEADDR
-*/
+/* Following gs[etsockopt] options are supported by rex library */
+enum {
+	REX_SO_BACKLOG    =   0,
+	REX_SO_LINGER,
+	REX_SO_SNDBUF,
+	REX_SO_RCVBUF,
+	REX_SO_NOBLOCK,
+	REX_SO_NODELAY,
+	REX_SO_RCVTIMEO,
+	REX_SO_SNDTIMEO,
+	REX_SO_REUSEADDR,
+};
 int rex_sock_setopt (struct rex_sock *rs, int opt, void *optval, int optlen);
 int rex_sock_getopt (struct rex_sock *rs, int opt, void *optval, int *optlen);
 
