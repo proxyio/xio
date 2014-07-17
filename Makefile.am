@@ -29,6 +29,9 @@ XIO_EV = \
 	src/ev/eventpoll.c \
 	src/ev/ev.c
 
+XIO_REX = \
+	src/rex/rex.c
+
 XIO_SOCKET = \
 	src/socket/xsetsockopt.c \
 	src/socket/xlisten.c \
@@ -112,6 +115,7 @@ libxio_la_SOURCES = \
 	$(XIO_SOCKET) \
 	$(XIO_POLL) \
 	$(XIO_SP) \
+	$(XIO_REX) \
 	$(XIO_EV)
 
 LDADD = libxio.la
@@ -128,6 +132,7 @@ bin_PROGRAMS =
 #  automated tests
 UTILS_TESTS = \
 	tests/stl_ts \
+	tests/rex_ts \
 	tests/ev_ts \
 	tests/bufio_ts \
 	tests/rb_ts \

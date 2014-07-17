@@ -27,7 +27,9 @@ AC_CHECK_LIB([pthread], [pthread_create])
 AC_CHECK_LIB([uuid], [uuid_copy])
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h malloc.h netdb.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h inttypes.h malloc.h stdint.h stdlib.h string.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h netdb.h netinet/in.h sys/socket.h sys/time.h netinet/tcp.h net/if.h])
+AC_CHECK_HEADERS([sys/un.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -49,6 +51,7 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getcwd gettimeofday memmove memset socket strchr strdup strndup strrchr strstr])
 AC_CHECK_FUNCS([epoll_create select poll kqueue sysconf])
+AC_CHECK_FUNCS([gethostbyname_r gethostbyname gethostbyaddr gethostbyaddr_r])
 
 #  If --enable-lua is specified, building xio modules for lua.
 AC_ARG_ENABLE([lua],
