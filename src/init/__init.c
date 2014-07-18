@@ -20,40 +20,44 @@
   IN THE SOFTWARE.
 */
 
-#include "base.h"
+#include <utils/base.h>
 
 int gettid()
 {
 	return syscall (__NR_gettid);
 }
 
-extern void socket_module_init();
-extern void transport_module_init();
-extern void sp_module_init();
+extern void __ev_init ();
+extern void __rex_init ();
+extern void __poll_init ();
+extern void __tp_init ();
+extern void __socket_init ();
+extern void __sp_init ();
 
 void __attribute__ ( (constructor) ) __modules_init (void)
 {
-	DEBUG_ON ();
-	transport_module_init();
-	DEBUG_ON ();
-	socket_module_init();
-	DEBUG_ON ();
-	sp_module_init();
-	DEBUG_ON ();
+	__ev_init ();
+	__rex_init ();
+	__poll_init ();
+	__tp_init ();
+	__socket_init ();
+	__sp_init ();
 }
 
 
-extern void socket_module_exit();
-extern void transport_module_exit();
-extern void sp_module_exit();
+extern void __sp_exit ();
+extern void __socket_exit ();
+extern void __tp_exit ();
+extern void __poll_exit ();
+extern void __rex_exit ();
+extern void __ev_exit ();
 
 void __attribute__ ( (destructor) ) __modules_exit (void)
 {
-	DEBUG_ON ();
-	sp_module_exit();
-	DEBUG_ON ();
-	socket_module_exit();
-	DEBUG_ON ();
-	transport_module_exit();
-	DEBUG_ON ();
+	__sp_exit ();
+	__socket_exit ();
+	__tp_exit ();
+	__poll_exit ();
+	__rex_exit ();
+	__ev_exit ();
 }

@@ -26,23 +26,19 @@
 
 struct pglobal pg = {};
 
-void __attribute__ ((constructor)) __poll_init (void)
+void __poll_init (void)
 {
 	int pollid;
 
-	DEBUG_ON ();
 	spin_init (&pg.lock);
 	for (pollid = 0; pollid < PROXYIO_MAX_POLLS; pollid++)
 		pg.unused[pollid] = pollid;
-	DEBUG_ON ();
 }
 
-void __attribute__ ((destructor)) __poll_exit (void)
+void __poll_exit (void)
 {
-	DEBUG_ON ();
 	spin_destroy (&pg.lock);
 	BUG_ON (pg.npolls > 0);
-	DEBUG_ON ();
 }
 
 

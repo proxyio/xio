@@ -32,14 +32,14 @@ static struct list_head transport_head = {};
 extern struct transport *tcp_vfptr;
 extern struct transport *ipc_vfptr;
 
-void transport_module_init()
+void __tp_init()
 {
 	INIT_LIST_HEAD (&transport_head);
 	list_add (&tcp_vfptr->item, &transport_head);
 	list_add (&ipc_vfptr->item, &transport_head);
 }
 
-void transport_module_exit()
+void __tp_exit()
 {
 }
 

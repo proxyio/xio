@@ -579,7 +579,7 @@ struct rex_vfptr rex_local = {
 
 struct list_head rex_vfptrs;
 
-void __attribute__ ((constructor)) __rex_posix_init (void)
+void __rex_init (void)
 {
 	INIT_LIST_HEAD (&rex_vfptrs);
 	list_add (&rex_tcp4.item, &rex_vfptrs);
@@ -587,7 +587,7 @@ void __attribute__ ((constructor)) __rex_posix_init (void)
 	list_add (&rex_local.item, &rex_vfptrs);
 }
 
-void __attribute__ ((destructor)) __rex_posix_exit (void)
+void __rex_exit (void)
 {
 }
 
