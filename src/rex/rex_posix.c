@@ -264,7 +264,8 @@ static int rex_gen_send (struct rex_sock *rs, struct rex_iov *iov, int n)
 	struct iovec diov[100];    /* local storage for performance */
 	struct msghdr msg = {};
 	int i;
-
+	int rc;
+	
 #if defined MSG_MORE
 #endif
 	if (n > 100)
@@ -275,7 +276,21 @@ static int rex_gen_send (struct rex_sock *rs, struct rex_iov *iov, int n)
 	}
 	msg.msg_iov = diov;
 	msg.msg_iovlen = n;
-	return sendmsg (rs->ss_fd, &msg, 0);
+	rc = sendmsg (rs->ss_fd, &msg, 0);
+
+	/* Several errors are OK. When speculative write is being done we
+	   may not be able to write a single byte to the socket. Also, SIGSTOP
+	   issued by a debugging tool can result in EINTR error. */
+	if (rc == -1) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+			errno = EAGAIN;
+			return -1;
+		}
+		/* Signalise peer failure. */
+		errno = EPIPE;
+		return -1;
+	}
+	return rc;
 }
 
 static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
@@ -283,6 +298,7 @@ static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
 	struct iovec diov[100];
 	struct msghdr msg = {};
 	int i;
+	int rc;
 
 	if (n > 100)
 		n = 100;
@@ -292,7 +308,22 @@ static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
 	}
 	msg.msg_iov = diov;
 	msg.msg_iovlen = n;
-	return recvmsg (rs->ss_fd, &msg, 0);
+	rc = recvmsg (rs->ss_fd, &msg, 0);
+
+	/* Signalise peer failure. */
+	if (rc == 0) {
+		errno = EPIPE;
+		return -1;
+	}
+	/* Several errors are OK. When speculative read is being done we
+	   may not be able to read a single byte to the socket. Also, SIGSTOP
+	   issued by a debugging tool can result in EINTR error. */
+	if (rc == -1 &&
+	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+		errno = EAGAIN;
+		return -1;
+	}
+	return rc;
 }
 
 /* Following gs[etsockopt] options are supported by rex library
