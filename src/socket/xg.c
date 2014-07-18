@@ -46,7 +46,7 @@ struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
 
 extern struct sockbase_vfptr mix_listener_vfptr;
 
-void socket_module_init()
+void __socket_init ()
 {
 	waitgroup_t wg;
 	int fd;
@@ -68,7 +68,7 @@ void socket_module_init()
 	list_add_tail (&mix_listener_vfptr.item, protocol_head);
 }
 
-void socket_module_exit()
+void __socket_exit()
 {
 	BUG_ON (xgb.nsockbases);
 }

@@ -241,7 +241,7 @@ static int ev_hndl (void *hndl)
 }
 	
 
-void __attribute__ ((constructor)) __ev_init (void)
+void __ev_init (void)
 {
 	int i;
 	struct ev_loop *ev_loop;
@@ -263,7 +263,7 @@ void __attribute__ ((constructor)) __ev_init (void)
 	}
 }
 
-void __attribute__ ((destructor)) __ev_exit (void)
+void __ev_exit (void)
 {
 	int i;
 

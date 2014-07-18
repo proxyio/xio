@@ -26,7 +26,7 @@
 
 struct pglobal pg = {};
 
-void __attribute__ ((constructor)) __poll_init (void)
+void __poll_init (void)
 {
 	int pollid;
 
@@ -35,7 +35,7 @@ void __attribute__ ((constructor)) __poll_init (void)
 		pg.unused[pollid] = pollid;
 }
 
-void __attribute__ ((destructor)) __poll_exit (void)
+void __poll_exit (void)
 {
 	spin_destroy (&pg.lock);
 	BUG_ON (pg.npolls > 0);

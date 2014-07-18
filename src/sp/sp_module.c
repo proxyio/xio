@@ -202,7 +202,7 @@ extern struct epbase_vfptr *subep_vfptr;
 extern struct epbase_vfptr *busep_vfptr;
 
 
-void sp_module_init()
+void __sp_init ()
 {
 	int eid;
 	waitgroup_t wg;
@@ -235,7 +235,7 @@ void sp_module_init()
 }
 
 
-void sp_module_exit()
+void __sp_exit ()
 {
 	sg.exiting = true;
 	thread_stop (&sg.runner);

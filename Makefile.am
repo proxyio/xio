@@ -21,6 +21,9 @@ xinclude_HEADERS = \
 
 lib_LTLIBRARIES = libxio.la
 
+XIO_INIT = \
+	src/init/__init.c
+
 XIO_MSGBUF = \
 	src/msgbuf/msgbuf.c \
 	src/msgbuf/msgbuf_head.c
@@ -98,7 +101,6 @@ XIO_UTILS = \
 	src/utils/waitgroup.c \
 	src/utils/thread.c \
 	src/utils/atomic.c \
-	src/utils/module.c \
 	src/utils/tcp/tcp.c \
 	src/utils/tcp/tcp_getopt.c \
 	src/utils/tcp/tcp_setopt.c \
@@ -110,6 +112,7 @@ XIO_UTILS = \
 	src/utils/sockaddr.c
 
 libxio_la_SOURCES = \
+	$(XIO_INIT) \
 	$(XIO_MSGBUF) \
 	$(XIO_UTILS) \
 	$(XIO_SOCKET) \
