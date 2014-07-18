@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-#include "xg.h"
+#include "sockbase.h"
 
 
 typedef int (*sock_getopt) (struct sockbase *self, void *optval, int *optlen);

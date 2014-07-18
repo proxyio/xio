@@ -26,7 +26,7 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-#include "xg.h"
+#include "sockbase.h"
 
 struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
 	int rc;

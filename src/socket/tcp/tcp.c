@@ -25,8 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include "../log.h"
-#include "../xg.h"
+#include "tcp.h"
 
 static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
 {

@@ -185,4 +185,40 @@ void __emit_pollevents (struct sockbase *sb);
 void emit_pollevents (struct sockbase *sb);
 
 
+/* Max number of concurrent socks. */
+#define PROXYIO_MAX_SOCKS 10240
+
+struct xglobal {
+	mutex_t lock;
+
+	/* The global table of existing xsock. The descriptor representing
+	 * the xsock is the index to this table. This pointer is also used to
+	 * find out whether context is initialised. If it is null, context is
+	 * uninitialised.
+	 */
+	struct sockbase *sockbases[PROXYIO_MAX_SOCKS];
+
+	/* Stack of unused xsock descriptors.  */
+	int unused[PROXYIO_MAX_SOCKS];
+
+	/* Number of actual socks. */
+	size_t nsockbases;
+
+	/* INPROC global listening address mapping */
+	struct str_rb inproc_listeners;
+
+	/* Sockbase_vfptr head */
+	struct list_head sockbase_vfptr_head;
+};
+
+#define walk_sockbase_vfptr_s(pos, nx, head)				\
+    walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, item)
+
+struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type);
+
+extern struct xglobal xgb;
+
+
+
+
 #endif

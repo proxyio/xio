@@ -27,7 +27,7 @@
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
 #include "log.h"
-#include "xg.h"
+#include "sockbase.h"
 
 extern const char *event_str[];
 

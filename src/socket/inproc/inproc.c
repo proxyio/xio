@@ -25,8 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include "../xg.h"
-#include "../log.h"
+#include "inproc.h"
 
 extern struct sockbase *getlistener (const char *addr);
 

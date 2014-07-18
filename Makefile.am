@@ -44,7 +44,6 @@ XIO_SOCKET = \
 	src/socket/xrecv.c \
 	src/socket/eventnotify.c \
 	src/socket/xbind.c \
-	src/socket/xg.c \
 	src/socket/xclose.c \
 	src/socket/xconnect.c \
 	src/socket/tcp/tcp_listener.c \

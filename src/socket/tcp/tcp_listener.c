@@ -25,8 +25,7 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include "../log.h"
-#include "../xg.h"
+#include "tcp.h"
 
 extern struct io default_xops;
 

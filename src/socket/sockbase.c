@@ -27,7 +27,9 @@
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
 #include "log.h"
-#include "xg.h"
+#include "inproc/inproc.h"
+#include "tcp/tcp.h"
+#include "mix/mix.h"
 
 const char *pf_str[] = {
 	"",
@@ -39,6 +41,47 @@ const char *pf_str[] = {
 	"PF_IPC|PF_INPROC",
 	"PF_TCP|PF_IPC|PF_INPROC",
 };
+
+struct xglobal xgb = {};
+
+struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
+	struct sockbase_vfptr *vfptr, *ss;
+
+	walk_sockbase_vfptr_s (vfptr, ss, &xgb.sockbase_vfptr_head) {
+		if (pf == vfptr->pf && vfptr->type == type)
+			return vfptr;
+	}
+	return 0;
+}
+
+extern struct sockbase_vfptr mix_listener_vfptr;
+
+void __socket_init ()
+{
+	waitgroup_t wg;
+	int fd;
+	int i;
+	struct list_head *protocol_head = &xgb.sockbase_vfptr_head;
+
+	mutex_init (&xgb.lock);
+	for (fd = 0; fd < PROXYIO_MAX_SOCKS; fd++)
+		xgb.unused[fd] = fd;
+
+	/* The priority of sockbase_vfptr: inproc > ipc > tcp */
+	INIT_LIST_HEAD (protocol_head);
+	list_add_tail (&inproc_listener_vfptr.item, protocol_head);
+	list_add_tail (&inproc_connector_vfptr.item, protocol_head);
+	list_add_tail (&ipc_listener_vfptr.item, protocol_head);
+	list_add_tail (&ipc_connector_vfptr.item, protocol_head);
+	list_add_tail (&tcp_listener_vfptr.item, protocol_head);
+	list_add_tail (&tcp_connector_vfptr.item, protocol_head);
+	list_add_tail (&mix_listener_vfptr.item, protocol_head);
+}
+
+void __socket_exit()
+{
+	BUG_ON (xgb.nsockbases);
+}
 
 int xalloc (int family, int socktype)
 {

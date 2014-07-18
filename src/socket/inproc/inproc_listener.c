@@ -25,15 +25,14 @@
 #include <string.h>
 #include <errno.h>
 #include <utils/taskpool.h>
-#include "../xg.h"
-#include "../log.h"
+#include "inproc.h"
 
 struct sockbase *getlistener (const char *addr) {
 	int refed = false;
 	struct str_rbe *entry;
 	struct sockbase *sb = 0;
 
-	xglobal_lock();
+	mutex_lock (&xgb.lock);
 	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, strlen (addr)))) {
 		sb = & (cont_of (entry, struct inproc_sock, lhentry) )->base;
 		mutex_lock (&sb->lock);
@@ -45,7 +44,7 @@ struct sockbase *getlistener (const char *addr) {
 		if (!refed)
 			sb = 0;
 	}
-	xglobal_unlock();
+	mutex_unlock (&xgb.lock);
 	return sb;
 }
 
@@ -53,21 +52,21 @@ static int addlistener (struct str_rbe *entry)
 {
 	int rc = -1;
 
-	xglobal_lock();
+	mutex_lock (&xgb.lock);
 	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen) ) {
 		rc = 0;
 		str_rb_insert (&xgb.inproc_listeners, entry);
 	}
-	xglobal_unlock();
+	mutex_unlock (&xgb.lock);
 	return rc;
 }
 
 
 static void rmlistener (struct str_rbe *entry)
 {
-	xglobal_lock();
+	mutex_lock (&xgb.lock);
 	str_rb_delete (&xgb.inproc_listeners, entry);
-	xglobal_unlock();
+	mutex_unlock (&xgb.lock);
 }
 
 static struct sockbase *inproc_alloc() {
