@@ -26,30 +26,30 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include <rex/rex.h>
-#include "tcp.h"
+#include "sio.h"
 
-static i64 tcp_connector_read (struct io *ops, char *buff, i64 sz)
+static i64 sio_connector_read (struct io *ops, char *buff, i64 sz)
 {
-	struct tcp_sock *tcps = cont_of (ops, struct tcp_sock, ops);
+	struct sio_sock *tcps = cont_of (ops, struct sio_sock, ops);
 	int rc = rex_sock_recv (&tcps->s, buff, sz);
 	return rc;
 }
 
-static i64 tcp_connector_write (struct io *ops, char *buff, i64 sz)
+static i64 sio_connector_write (struct io *ops, char *buff, i64 sz)
 {
-	struct tcp_sock *tcps = cont_of (ops, struct tcp_sock, ops);
+	struct sio_sock *tcps = cont_of (ops, struct sio_sock, ops);
 	int rc = rex_sock_send (&tcps->s, buff, sz);
 	return rc;
 }
 
 struct io stream_ops = {
-	.read = tcp_connector_read,
-	.write = tcp_connector_write,
+	.read = sio_connector_read,
+	.write = sio_connector_write,
 };
 
 static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	struct ev_loop *evl = sb->evl;
 
 	mutex_lock (&sb->lock);
@@ -65,7 +65,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 
 static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	struct ev_loop *evl = sb->evl;
 
 	mutex_lock (&sb->lock);
@@ -88,7 +88,7 @@ static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)
 
 static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	struct ev_loop *evl = sb->evl;
 
 	mutex_lock (&sb->lock);
@@ -104,7 +104,7 @@ static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 
 static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	struct ev_loop *evl = sb->evl;
 
 	mutex_lock (&sb->lock);
@@ -117,13 +117,13 @@ static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 	mutex_unlock (&sb->lock);
 }
 
-void tcp_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
+void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
 
 
-static struct tcp_sock *__tcp_alloc ()
+static struct sio_sock *__sio_alloc ()
 {
-	struct tcp_sock *tcps = TNEW (struct tcp_sock);
+	struct sio_sock *tcps = TNEW (struct sio_sock);
 	struct sockbase *sb = &tcps->base;
 
 	sockbase_init (sb);
@@ -136,19 +136,19 @@ static struct tcp_sock *__tcp_alloc ()
 
 struct sockbase *tcp_alloc ()
 {
-	struct tcp_sock *tcps = __tcp_alloc ();
+	struct sio_sock *tcps = __sio_alloc ();
 	rex_sock_init (&tcps->s, REX_AF_TCP);
 	return &tcps->base;
 }
 
 struct sockbase *ipc_alloc ()
 {
-	struct tcp_sock *tcps = __tcp_alloc ();
+	struct sio_sock *tcps = __sio_alloc ();
 	rex_sock_init (&tcps->s, REX_AF_LOCAL);
 	return &tcps->base;
 }
 
-static void tcp_signal (struct sockbase *sb, int signo)
+static void sio_connector_signal (struct sockbase *sb, int signo)
 {
 	switch (signo) {
 	case EV_SNDBUF_EMPTY:
@@ -169,7 +169,7 @@ static void tcp_signal (struct sockbase *sb, int signo)
 	}
 }
 
-static int tcp_send (struct sockbase *sb, char *ubuf)
+static int sio_connector_send (struct sockbase *sb, char *ubuf)
 {
 	int rc;
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
@@ -179,7 +179,7 @@ static int tcp_send (struct sockbase *sb, char *ubuf)
 	return rc;
 }
 
-void tcp_socket_init (struct tcp_sock *tcps)
+void sio_socket_init (struct sio_sock *tcps)
 {
 	struct sockbase *sb = &tcps->base;
 	struct ev_loop *evl = sb->evl;
@@ -189,38 +189,38 @@ void tcp_socket_init (struct tcp_sock *tcps)
 	tcps->ops = stream_ops;
 	tcps->et.events = EV_READ;
 	tcps->et.fd = tcps->s.ss_fd;
-	tcps->et.hndl = tcp_connector_hndl;
+	tcps->et.hndl = sio_connector_hndl;
 }
 
-static int tcp_connector_bind (struct sockbase *sb, const char *sock)
+static int sio_connector_bind (struct sockbase *sb, const char *sock)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	int rc;
 
 	if ((rc = rex_sock_connect (&tcps->s, sock)) < 0)
 		return -1;
 	strcpy (sb->peer, sock);
-	tcp_socket_init (tcps);
+	sio_socket_init (tcps);
 	rc = ev_fdset_ctl (&sb->evl->fdset, EV_ADD, &tcps->et);
 	return rc;
 }
 
-static int tcp_connector_snd (struct sockbase *sb);
+static int sio_connector_snd (struct sockbase *sb);
 
-static void tcp_connector_close (struct sockbase *sb)
+static void sio_connector_close (struct sockbase *sb)
 {
-	struct tcp_sock *tcps;
+	struct sio_sock *tcps;
 	struct ev_loop *evl;
 
 	evl = sb->evl;
-	tcps = cont_of (sb, struct tcp_sock, base);
+	tcps = cont_of (sb, struct sio_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
 	if (tcps->s.ss_fd > 0)
 		BUG_ON (ev_fdset_ctl (&evl->fdset, EV_DEL, &tcps->et) != 0);
 
 	/* Try flush buf massage into network before close */
-	tcp_connector_snd (sb);
+	sio_connector_snd (sb);
 	rex_sock_destroy (&tcps->s);
 
 	/* Destroy the sock base and free sockid. */
@@ -251,9 +251,9 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 	bio_read (b, msgbuf_base (*msg), msgbuf_len (*msg));
 }
 
-static int tcp_connector_rcv (struct sockbase *sb)
+static int sio_connector_rcv (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	int rc = 0;
 	u16 cmsg_num;
 	struct msgbuf *aim = 0, *cmsg = 0;
@@ -294,7 +294,7 @@ static void bufio_add (struct bio *b, struct msgbuf *msg)
 
 static int sg_send (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	int rc;
 	struct msgbuf *msg;
 	struct rex_iov *iov;
@@ -346,9 +346,9 @@ static int sg_send (struct sockbase *sb)
 	return 0;
 }
 
-static int tcp_connector_sg (struct sockbase *sb)
+static int sio_connector_sg (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	int rc;
 	struct msgbuf *msg, *nmsg;
 	struct rex_iov *iov;
@@ -382,31 +382,31 @@ static int tcp_connector_sg (struct sockbase *sb)
 	return rc;
 }
 
-static int tcp_connector_snd (struct sockbase *sb)
+static int sio_connector_snd (struct sockbase *sb)
 {
-	struct tcp_sock *tcps = cont_of (sb, struct tcp_sock, base);
+	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	int rc;
 	struct msgbuf *msg;
 
-	tcp_connector_sg (sb);
+	sio_connector_sg (sb);
 	while ((msg = snd_msgbuf_head_rm (sb)) )
 		bufio_add (&tcps->out, msg);
 	rc = bio_flush (&tcps->out, &tcps->ops);
 	return rc;
 }
 
-void tcp_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
+void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	int rc = 0;
-	struct sockbase *sb = &cont_of (evfd, struct tcp_sock, et)->base;
+	struct sockbase *sb = &cont_of (evfd, struct sio_sock, et)->base;
 
 	if (events & EV_READ) {
 		SKLOG_DEBUG (sb, "io sock %d EV_READ", sb->fd);
-		rc = tcp_connector_rcv (sb);
+		rc = sio_connector_rcv (sb);
 	}
 	if (events & EV_WRITE) {
 		SKLOG_DEBUG (sb, "io sock %d EV_WRITE", sb->fd);
-		rc = tcp_connector_snd (sb);
+		rc = sio_connector_snd (sb);
 	}
 	if (rc < 0 && errno != EAGAIN) {
 		SKLOG_DEBUG (sb, "io sock %d EPIPE with events %d", sb->fd, events);
@@ -425,10 +425,10 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_TCP,
 	.alloc = tcp_alloc,
-	.signal = tcp_signal,
-	.send = tcp_send,
-	.bind = tcp_connector_bind,
-	.close = tcp_connector_close,
+	.signal = sio_connector_signal,
+	.send = sio_connector_send,
+	.bind = sio_connector_bind,
+	.close = sio_connector_close,
 	.setopt = 0,
 	.getopt = 0,
 };
@@ -437,10 +437,10 @@ struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = TP_IPC,
 	.alloc = ipc_alloc,
-	.signal = tcp_signal,
-	.send = tcp_send,
-	.bind = tcp_connector_bind,
-	.close = tcp_connector_close,
+	.signal = sio_connector_signal,
+	.send = sio_connector_send,
+	.bind = sio_connector_bind,
+	.close = sio_connector_close,
 	.setopt = 0,
 	.getopt = 0,
 };

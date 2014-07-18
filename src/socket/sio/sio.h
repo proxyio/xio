@@ -26,7 +26,7 @@
 #include <rex/rex.h>
 #include "../sockbase.h"
 
-struct tcp_sock {
+struct sio_sock {
 	struct sockbase base;
 	struct ev_fd et;
 	struct rex_sock s;

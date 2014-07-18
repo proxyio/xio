@@ -46,8 +46,8 @@ XIO_SOCKET = \
 	src/socket/bind.c \
 	src/socket/close.c \
 	src/socket/connect.c \
-	src/socket/tcp/tcp_listener.c \
-	src/socket/tcp/tcp.c \
+	src/socket/sio/sio_listener.c \
+	src/socket/sio/sio.c \
 	src/socket/sockbase.c \
 	src/socket/getsockopt.c \
 	src/socket/inproc/inproc.c \

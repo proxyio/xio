@@ -26,21 +26,21 @@
 #include <errno.h>
 #include <utils/taskpool.h>
 #include <rex/rex.h>
-#include "tcp.h"
+#include "sio.h"
 
 extern struct io default_xops;
 
-static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
+static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
-static int tcp_listener_bind (struct sockbase *sb, const char *sock)
+static int sio_listener_bind (struct sockbase *sb, const char *sock)
 {
 	struct ev_loop *evl;
-	struct tcp_sock *tcps;
+	struct sio_sock *tcps;
 	int rc;
 	int on = 1;
 
 	evl = sb->evl;
-	tcps = cont_of (sb, struct tcp_sock, base);
+	tcps = cont_of (sb, struct sio_sock, base);
 
 
 	if ((rc = rex_sock_listen (&tcps->s, sock)) < 0)
@@ -49,19 +49,19 @@ static int tcp_listener_bind (struct sockbase *sb, const char *sock)
 	rex_sock_setopt (&tcps->s, REX_SO_NOBLOCK, &on, sizeof (on));
 	tcps->et.events = EV_READ;
 	tcps->et.fd = tcps->s.ss_fd;
-	tcps->et.hndl = tcp_listener_hndl;
+	tcps->et.hndl = sio_listener_hndl;
 	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_ADD, &tcps->et) != 0);
 	return 0;
 }
 
-static void tcp_listener_close (struct sockbase *sb)
+static void sio_listener_close (struct sockbase *sb)
 {
 	struct ev_loop *evl;
-	struct tcp_sock *tcps;
+	struct sio_sock *tcps;
 	struct sockbase *tmp;
 
 	evl = sb->evl;
-	tcps = cont_of (sb, struct tcp_sock, base);
+	tcps = cont_of (sb, struct sio_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
 	BUG_ON (ev_fdset_ctl (&evl->fdset, EV_DEL, &tcps->et) != 0);
@@ -76,22 +76,22 @@ static void tcp_listener_close (struct sockbase *sb)
 	mem_free (tcps, sizeof (*tcps));
 }
 
-extern void tcp_socket_init (struct tcp_sock *sk);
+extern void sio_socket_init (struct sio_sock *sk);
 
-static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
+static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	int rc;
 	int nfd;
-	struct tcp_sock *tcps;
+	struct sio_sock *tcps;
 	struct sockbase *sb;
-	struct tcp_sock *ntcps;
+	struct sio_sock *ntcps;
 	struct sockbase *nsb;
 
-	tcps = cont_of (evfd, struct tcp_sock, et);
+	tcps = cont_of (evfd, struct sio_sock, et);
 	sb = &tcps->base;
 	nfd = xalloc (sb->vfptr->pf, XCONNECTOR);
 	nsb = xgb.sockbases[nfd];
-	ntcps = cont_of (nsb, struct tcp_sock, base);
+	ntcps = cont_of (nsb, struct sio_sock, base);
 
 	if ((rc = rex_sock_accept (&tcps->s, &ntcps->s)) < 0) {
 		if (errno != EAGAIN) {
@@ -105,7 +105,7 @@ static void tcp_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 		return;
 	}
 	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, nfd);
-	tcp_socket_init (ntcps);
+	sio_socket_init (ntcps);
 	__ev_fdset_ctl (&nsb->evl->fdset, EV_ADD, &ntcps->et);
 	acceptq_add (sb, nsb);
 }
@@ -118,8 +118,8 @@ struct sockbase_vfptr tcp_listener_vfptr = {
 	.pf = TP_TCP,
 	.alloc = tcp_alloc,
 	.send = 0,
-	.bind = tcp_listener_bind,
-	.close = tcp_listener_close,
+	.bind = sio_listener_bind,
+	.close = sio_listener_close,
 	.getopt = 0,
 	.setopt = 0,
 };
@@ -129,8 +129,8 @@ struct sockbase_vfptr ipc_listener_vfptr = {
 	.pf = TP_IPC,
 	.alloc = ipc_alloc,
 	.send = 0,
-	.bind = tcp_listener_bind,
-	.close = tcp_listener_close,
+	.bind = sio_listener_bind,
+	.close = sio_listener_close,
 	.getopt = 0,
 	.setopt = 0,
 };
