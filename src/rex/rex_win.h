@@ -25,9 +25,10 @@
 #ifndef _H_PROXYIO_REX_WIN_
 #define _H_PROXYIO_REX_WIN_
 
-struct rex_sock {
-	SOCKET_T ss_fd;            /* Socket file descriptor */
-	int ss_family;             /* Address family, e.g., AF_TCP */
-};
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+typedef SOCKET SOCKET_T;
+
 
 #endif

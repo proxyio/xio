@@ -27,19 +27,27 @@
 
 #include <inttypes.h>
 
-struct rex_sock;
-
-struct rex_iov {
-	char *iov_base;
-	int iov_len;
-};
-
 #if defined MS_WINDOWS
 # include "rex_win.h"
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) \
 	|| defined(__NetBSD__) || defined(linux)
 # include "rex_posix.h"
 #endif
+
+
+struct rex_vfptr;
+struct rex_sock {
+	SOCKET_T ss_fd;                /* Socket file descriptor */
+	int ss_family;            /* Address family, e.g., AF_TCP */
+	char *ss_addr;
+	char *ss_peer;
+	struct rex_vfptr *ss_vfptr;
+};
+
+struct rex_iov {
+	char *iov_base;
+	int iov_len;
+};
 
 /* the following af_family are supported */
 

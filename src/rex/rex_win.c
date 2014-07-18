@@ -21,6 +21,7 @@
 */
 
 #include "rex.h"
+#include "rex_if.h"
 
 /* the following af_family are support by rex:
    AF_LOCAL: the localhost communication

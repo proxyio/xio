@@ -20,7 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include "rex.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,8 @@
 #include <sys/un.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include "rex.h"
+#include "rex_if.h"
 
 enum {
 	REX_SODF_BACKLOG = 100,
