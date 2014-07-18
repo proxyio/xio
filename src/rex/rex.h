@@ -61,9 +61,27 @@ int rex_sock_accept (struct rex_sock *rs, struct rex_sock *new);
 /* connect to remote host */
 int rex_sock_connect (struct rex_sock *rs, const char *sockaddr);
 
-int rex_sock_send (struct rex_sock *rs, struct rex_iov *iov, int niov);
+int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int n);
 
-int rex_sock_recv (struct rex_sock *rs, struct rex_iov *iov, int niov);
+static inline int rex_sock_send (struct rex_sock *rs, char *buff, int size)
+{
+	struct rex_iov iov = {
+		.iov_base = buff,
+		.iov_len = size,
+	};
+	return rex_sock_sendv (rs, &iov, 1);
+}
+
+int rex_sock_recvv (struct rex_sock *rs, struct rex_iov *iov, int n);
+
+static inline int rex_sock_recv (struct rex_sock *rs, char *buff, int size)
+{
+	struct rex_iov iov = {
+		.iov_base = buff,
+		.iov_len = size,
+	};
+	return rex_sock_recvv (rs, &iov, 1);
+}
 
 /* Following gs[etsockopt] options are supported by rex library */
 enum {

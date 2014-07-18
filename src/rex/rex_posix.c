@@ -664,12 +664,12 @@ int rex_sock_connect (struct rex_sock *rs, const char *peer)
 	return rc;
 }
 
-int rex_sock_send (struct rex_sock *rs, struct rex_iov *iov, int n)
+int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int n)
 {
 	return rs->ss_vfptr->send (rs, iov, n);
 }
 
-int rex_sock_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
+int rex_sock_recvv (struct rex_sock *rs, struct rex_iov *iov, int n)
 {
 	return rs->ss_vfptr->recv (rs, iov, n);
 }
