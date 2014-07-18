@@ -93,9 +93,8 @@ int xalloc (int family, int socktype)
 		return -1;
 	}
 	BUG_ON (!vfptr->alloc);
-	if (! (sb = vfptr->alloc() ) ) {
+	if (!(sb = vfptr->alloc ()))
 		return -1;
-	}
 	sb->vfptr = vfptr;
 	mutex_lock (&xgb.lock);
 	BUG_ON (xgb.nsockbases >= PROXYIO_MAX_SOCKS);

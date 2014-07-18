@@ -23,22 +23,22 @@
 #ifndef _H_PROXYIO_TCP_INTERN_
 #define _H_PROXYIO_TCP_INTERN_
 
+#include <rex/rex.h>
 #include "../sockbase.h"
 
 struct tcp_sock {
 	struct sockbase base;
 	struct ev_fd et;
+	struct rex_sock s;
 	struct bio in;
 	struct bio out;
 	struct io ops;
-	int sys_fd;
-	struct iovec iov[100];
-	struct iovec *biov;
+	struct rex_iov iov[100];
+	struct rex_iov *biov;
 	int iov_start;
 	int iov_end;
 	int iov_length;
 	struct list_head sg_head;
-	struct transport *vtp;
 };
 
 extern struct sockbase_vfptr tcp_listener_vfptr;
