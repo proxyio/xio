@@ -132,7 +132,7 @@ static int rex_tcp_accept (struct rex_sock *rs, struct rex_sock *new)
 	int fd = accept (rs->ss_fd, (struct sockaddr *) &addr, &addrlen);
 
 	if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
-		       || errno == ECONNABORTED) ) {
+		       || errno == ECONNABORTED)) {
 		errno = EAGAIN;
 		return -1;
 	}
@@ -228,7 +228,7 @@ static int rex_unix_accept (struct rex_sock *rs, struct rex_sock *new)
 
 	if (fd < 0 &&
 	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR ||
-	     errno == ECONNABORTED || errno == EMFILE) ) {
+	     errno == ECONNABORTED || errno == EMFILE)) {
 		errno = EAGAIN;
 		return -1;
 	}
@@ -347,7 +347,7 @@ static int get_noblock (int fd, void *optval, int *optlen)
 {
 	int flags;
 
-	if ( (flags = fcntl (fd, F_GETFL, 0) ) < 0)
+	if ((flags = fcntl (fd, F_GETFL, 0)) < 0)
 		flags = 0;
 	* (int *) optval = (flags & O_NONBLOCK) ? 1 : 0;
 	return 0;
@@ -442,7 +442,7 @@ static int set_sndbuf (int fd, void *optval, int optlen)
 		errno = EINVAL;
 		return -1;
 	}
-	rc = setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof (buf) );
+	rc = setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof (buf));
 	return rc;
 }
 
@@ -455,7 +455,7 @@ static int set_rcvbuf (int fd, void *optval, int optlen)
 		errno = EINVAL;
 		return -1;
 	}
-	rc = setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof (buf) );
+	rc = setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof (buf));
 	return rc;
 }
 
@@ -463,9 +463,9 @@ static int set_noblock (int fd, void *optval, int optlen)
 {
 	int rc;
 	int flags;
-	int on = * ( (int *) optval);
+	int on = * ((int *) optval);
 
-	if ( (flags = fcntl (fd, F_GETFL, 0) ) < 0)
+	if ((flags = fcntl (fd, F_GETFL, 0)) < 0)
 		flags = 0;
 	flags = on ? (flags | O_NONBLOCK) : (flags & ~O_NONBLOCK);
 	rc = fcntl (fd, F_SETFL, flags);
@@ -476,7 +476,7 @@ static int set_nodelay (int fd, void *optval, int optlen)
 {
 	int rc;
 	int flags = * (int *) optval ? 1 : 0;
-	rc = setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof (flags) );
+	rc = setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof (flags));
 	return rc;
 }
 
@@ -488,7 +488,7 @@ static int set_sndtimeo (int fd, void *optval, int optlen)
 		.tv_sec = to / 1000,
 		.tv_usec = (to % 1000) * 1000,
 	};
-	rc = setsockopt (fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof (tv) );
+	rc = setsockopt (fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof (tv));
 	return rc;
 }
 
@@ -500,7 +500,7 @@ static int set_rcvtimeo (int fd, void *optval, int optlen)
 		.tv_sec = to / 1000,
 		.tv_usec = (to % 1000) * 1000,
 	};
-	rc = setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof (tv) );
+	rc = setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof (tv));
 	return rc;
 }
 
@@ -509,7 +509,7 @@ static int set_reuseaddr (int fd, void *optval, int optlen)
 	int rc;
 	int flags = * (int *) optval ? 1 : 0;
 
-	rc = setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof (flags) );
+	rc = setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof (flags));
 	return rc;
 }
 
