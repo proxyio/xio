@@ -33,9 +33,13 @@ extern void sp_module_init();
 
 void __attribute__ ( (constructor) ) __modules_init (void)
 {
+	DEBUG_ON ();
 	transport_module_init();
+	DEBUG_ON ();
 	socket_module_init();
+	DEBUG_ON ();
 	sp_module_init();
+	DEBUG_ON ();
 }
 
 
@@ -45,7 +49,11 @@ extern void sp_module_exit();
 
 void __attribute__ ( (destructor) ) __modules_exit (void)
 {
+	DEBUG_ON ();
 	sp_module_exit();
+	DEBUG_ON ();
 	socket_module_exit();
+	DEBUG_ON ();
 	transport_module_exit();
+	DEBUG_ON ();
 }

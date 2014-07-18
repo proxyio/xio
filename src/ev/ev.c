@@ -246,6 +246,7 @@ void __attribute__ ((constructor)) __ev_init (void)
 	int i;
 	struct ev_loop *ev_loop;
 
+	DEBUG_ON ();
 #if defined _SC_NPROCESSORS_ONLN
 	if ((ev_processors = sysconf (_SC_NPROCESSORS_ONLN)) < 1)
 		ev_processors = 1;
@@ -261,16 +262,19 @@ void __attribute__ ((constructor)) __ev_init (void)
 		taskpool_run (&ev_pool, ev_hndl, ev_loop);
 		waitgroup_wait (&ev_loop->wg);
 	}
+	DEBUG_ON ();
 }
 
 void __attribute__ ((destructor)) __ev_exit (void)
 {
 	int i;
 
+	DEBUG_ON ();
 	for (i = 0; i < ev_processors; i++)
 		ev_loops[i].stopped = true;
 	taskpool_stop (&ev_pool);
 	taskpool_destroy (&ev_pool);
+	DEBUG_ON ();
 }
 
 

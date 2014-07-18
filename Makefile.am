@@ -131,6 +131,7 @@ bin_PROGRAMS =
 
 #  automated tests
 UTILS_TESTS = \
+	tests/stl_ts \
 	tests/rex_ts \
 	tests/ev_ts \
 	tests/bufio_ts \
