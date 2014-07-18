@@ -143,7 +143,8 @@ UTILS_TESTS = \
 	tests/transport_ts \
 	tests/msgbuf_ts \
 	tests/socket_ts \
-	tests/poll_ts \
+	tests/poll_ts
+___ = \
 	tests/sp_bus_ts \
 	tests/sp_reqrep_ts \
 	tests/sp_pubsub_ts \
