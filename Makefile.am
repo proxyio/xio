@@ -131,7 +131,6 @@ bin_PROGRAMS =
 
 #  automated tests
 UTILS_TESTS = \
-	tests/stl_ts \
 	tests/rex_ts \
 	tests/ev_ts \
 	tests/bufio_ts \
@@ -143,8 +142,7 @@ UTILS_TESTS = \
 	tests/transport_ts \
 	tests/msgbuf_ts \
 	tests/socket_ts \
-	tests/poll_ts
-___ = \
+	tests/poll_ts \
 	tests/sp_bus_ts \
 	tests/sp_reqrep_ts \
 	tests/sp_pubsub_ts \
