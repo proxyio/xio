@@ -38,36 +38,8 @@
 #include "rex_if.h"
 
 enum {
-	REX_SODF_BACKLOG = 100,
+	REX_MAX_BACKLOG = 100,
 };
-
-static int tcp_listen (const char *host, const char *serv)
-{
-	int bfd;
-	int n;
-	int on = 1;
-	struct addrinfo hints, *res, *ressave;
-
-	memset (&hints, 0, sizeof (hints));
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	if ((n = getaddrinfo (host, serv, &hints, &res)) != 0)
-		return -1;
-	ressave = res;
-	do {
-		if ((bfd = socket (res->ai_family, res->ai_socktype,
-				   res->ai_protocol)) < 0)
-			continue;
-		setsockopt (bfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
-		if (bind (bfd, res->ai_addr, res->ai_addrlen) == 0)
-			break;
-		close (bfd);
-	} while ((res = res->ai_next) != NULL);
-	freeaddrinfo (ressave);
-	return bfd;
-}
 
 static int rex_gen_init (struct rex_sock *rs)
 {
@@ -103,8 +75,11 @@ static int rex_unix_destroy (struct rex_sock *rs)
 static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 {
 	int fd;
+	int n;
+	int on = 1;
 	char *host = NULL, *serv = NULL;
-
+	struct addrinfo hints, *res, *ressave;
+	
 	if (!(serv = strrchr (sock, ':'))
 	    || strlen (serv + 1) == 0 || ! (host = strdup (sock))) {
 		errno = EINVAL;
@@ -115,10 +90,29 @@ static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 		free (host);
 		return -1;
 	}
-	fd = tcp_listen (host, serv);
+
+	memset (&hints, 0, sizeof (hints));
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if ((n = getaddrinfo (host, serv, &hints, &res)) != 0)
+		return -1;
+	ressave = res;
+	do {
+		if ((fd = socket (res->ai_family, res->ai_socktype,
+				   res->ai_protocol)) < 0)
+			continue;
+		setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
+		if (bind (fd, res->ai_addr, res->ai_addrlen) == 0)
+			break;
+		close (fd);
+	} while ((res = res->ai_next) != NULL);
+	freeaddrinfo (ressave);
+
 	free (host);
 	free (serv);
-	if (fd < 0 || listen (fd, REX_SODF_BACKLOG) < 0) {
+	if (fd < 0 || listen (fd, REX_MAX_BACKLOG) < 0) {
 		close (fd);
 		return -1;
 	}
@@ -144,11 +138,23 @@ static int rex_tcp_accept (struct rex_sock *rs, struct rex_sock *new)
 	return 0;
 }
 
-static int tcp_connect (const char *host, const char *serv)
+static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
 {
-	int fd;
+	int fd = 0;
 	int n;
+	char *host = 0, *serv = 0;
 	struct addrinfo hints, *res, *ressave;
+
+	if (!(serv = strrchr (peer, ':')) || strlen (serv + 1) == 0
+	    || !(host = strdup (peer))) {
+		errno = EINVAL;
+		return -1;
+	}
+	host[serv - peer] = '\0';
+	if (!(serv = strdup (serv + 1))) {
+		free (host);
+		return -1;
+	}
 
 	memset (&hints, 0, sizeof (hints));
 	hints.ai_family = AF_UNSPEC;
@@ -167,26 +173,7 @@ static int tcp_connect (const char *host, const char *serv)
 		fd = -1;
 	} while ((res = res->ai_next) != NULL);
 	freeaddrinfo (res);
-	return fd;
-}
 
-/* connect to remote host */
-static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
-{
-	int fd = 0;
-	char *host = 0, *serv = 0;
-
-	if (!(serv = strrchr (peer, ':')) || strlen (serv + 1) == 0
-	    || !(host = strdup (peer))) {
-		errno = EINVAL;
-		return -1;
-	}
-	host[serv - peer] = '\0';
-	if (!(serv = strdup (serv + 1))) {
-		free (host);
-		return -1;
-	}
-	fd = tcp_connect (host, serv);
 	free (host);
 	free (serv);
 	if (fd < 0)
@@ -213,7 +200,7 @@ static int rex_unix_listen (struct rex_sock *rs, const char *sock)
 	snprintf (addr.sun_path, sizeof (addr.sun_path), "%s", sock);
 	unlink (addr.sun_path);
 	if (bind (fd, (struct sockaddr *) &addr, addr_len) < 0
-	    || listen (fd, REX_SODF_BACKLOG) < 0) {
+	    || listen (fd, REX_MAX_BACKLOG) < 0) {
 		close (fd);
 		return -1;
 	}
