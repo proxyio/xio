@@ -67,13 +67,13 @@ int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf)
 	msg = list_first (&bh->head, struct msgbuf, item);
 	list_del_init (&msg->item);
 	*ubuf = get_ubuf (msg);
-	bh->size -= msgbuf_len (msg);
+	bh->size -= ubuf_len (*ubuf);
 
 	if (bh->ev_hndl && bh->ev_hndl->rm)
 		bh->ev_hndl->rm (bh);
 
 	/* the first time when msgbuf_head is non-full */
-	if (bh->ev_hndl && bh->ev_hndl->nonfull && (bh->wnd - bh->size <= msgbuf_len (msg)))
+	if (bh->ev_hndl && bh->ev_hndl->nonfull && (bh->wnd - bh->size <= ubuf_len (*ubuf)))
 		bh->ev_hndl->nonfull (bh);
 	if (bh->ev_hndl && bh->ev_hndl->empty && msgbuf_head_empty (bh))
 		bh->ev_hndl->empty (bh);
@@ -89,13 +89,13 @@ int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
 		bh->ev_hndl->nonempty (bh);
 
 	list_add_tail (&msg->item, &bh->head);
-	bh->size += msgbuf_len (msg);
+	bh->size += ubuf_len (ubuf);
 
 	if (bh->ev_hndl && bh->ev_hndl->add)
 		bh->ev_hndl->add (bh);
 
 	/* the first time when msgbuf_head is full */
-	if (bh->ev_hndl && bh->ev_hndl->full && bh->wnd - bh->size <= msgbuf_len (msg))
+	if (bh->ev_hndl && bh->ev_hndl->full && bh->wnd - bh->size <= ubuf_len (ubuf))
 		bh->ev_hndl->full (bh);
 	return 0;
 }
