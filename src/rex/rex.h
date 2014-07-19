@@ -102,7 +102,10 @@ enum {
 	REX_SO_RCVTIMEO,
 	REX_SO_SNDTIMEO,
 	REX_SO_REUSEADDR,
+	REX_SO_SOCKNAME,
+	REX_SO_PEERNAME,
 };
+
 int rex_sock_setopt (struct rex_sock *rs, int opt, void *optval, int optlen);
 int rex_sock_getopt (struct rex_sock *rs, int opt, void *optval, int *optlen);
 
