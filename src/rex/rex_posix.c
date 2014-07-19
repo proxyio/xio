@@ -77,19 +77,18 @@ static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 	int fd;
 	int n;
 	int on = 1;
-	char *host = NULL, *serv = NULL;
+	char sa[REX_MAX_HOSTLEN] = {};
+	char *host;
+	char *serv;
 	struct addrinfo hints, *res, *ressave;
-	
-	if (!(serv = strrchr (sock, ':'))
-	    || strlen (serv + 1) == 0 || ! (host = strdup (sock))) {
+
+	strncpy (sa, sock, REX_MAX_HOSTLEN - 1);
+	host = sa;
+	if (!(serv = strrchr (sa, ':')) || strlen (serv + 1) == 0) {
 		errno = EINVAL;
 		return -1;
 	}
-	host[serv - sock] = '\0';
-	if (!(serv = strdup (serv + 1))) {
-		free (host);
-		return -1;
-	}
+	host[serv++ - sa] = '\0';
 
 	memset (&hints, 0, sizeof (hints));
 	hints.ai_flags = AI_PASSIVE;
@@ -101,7 +100,7 @@ static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 	ressave = res;
 	do {
 		if ((fd = socket (res->ai_family, res->ai_socktype,
-				   res->ai_protocol)) < 0)
+				  res->ai_protocol)) < 0)
 			continue;
 		setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
 		if (bind (fd, res->ai_addr, res->ai_addrlen) == 0)
@@ -110,8 +109,6 @@ static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 	} while ((res = res->ai_next) != NULL);
 	freeaddrinfo (ressave);
 
-	free (host);
-	free (serv);
 	if (fd < 0 || listen (fd, REX_MAX_BACKLOG) < 0) {
 		close (fd);
 		return -1;
@@ -142,19 +139,18 @@ static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
 {
 	int fd = 0;
 	int n;
-	char *host = 0, *serv = 0;
+	char sa[REX_MAX_HOSTLEN] = {};
+	char *host;
+	char *serv;
 	struct addrinfo hints, *res, *ressave;
 
-	if (!(serv = strrchr (peer, ':')) || strlen (serv + 1) == 0
-	    || !(host = strdup (peer))) {
+	strncpy (sa, peer, REX_MAX_HOSTLEN - 1);
+	host = sa;
+	if (!(serv = strrchr (sa, ':')) || strlen (serv + 1) == 0) {
 		errno = EINVAL;
 		return -1;
 	}
-	host[serv - peer] = '\0';
-	if (!(serv = strdup (serv + 1))) {
-		free (host);
-		return -1;
-	}
+	host[serv++ - sa] = '\0';
 
 	memset (&hints, 0, sizeof (hints));
 	hints.ai_family = AF_UNSPEC;
@@ -174,8 +170,6 @@ static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
 	} while ((res = res->ai_next) != NULL);
 	freeaddrinfo (res);
 
-	free (host);
-	free (serv);
 	if (fd < 0)
 		return -1;
 	rs->ss_fd = fd;
