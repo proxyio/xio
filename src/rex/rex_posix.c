@@ -38,7 +38,8 @@
 #include "rex_if.h"
 
 enum {
-	REX_MAX_BACKLOG = 100,
+	REX_MAX_BACKLOG  = 100,
+	REX_AI_PASSIVE   = 0x01,
 };
 
 static int rex_gen_init (struct rex_sock *rs)
@@ -55,6 +56,7 @@ static int rex_tcp_destroy (struct rex_sock *rs)
 	}
 	rs->ss_family = 0;
 	rs->ss_vfptr = 0;
+	rs->ss_flags = 0;
 	return 0;
 }
 
@@ -63,11 +65,12 @@ static int rex_unix_destroy (struct rex_sock *rs)
 	if (rs->ss_fd > 0) {
 		close (rs->ss_fd);
 		rs->ss_fd = -1;
-		if (rs->ss_addr)
-			unlink (rs->ss_addr);
 	}
+	if (rs->ss_flags & REX_AI_PASSIVE)
+		unlink (rs->ss_addr);
 	rs->ss_family = 0;
 	rs->ss_vfptr = 0;
+	rs->ss_flags = 0;
 	return 0;
 }
 
@@ -113,7 +116,10 @@ static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 		close (fd);
 		return -1;
 	}
+
 	rs->ss_fd = fd;
+	rs->ss_flags |= REX_AI_PASSIVE;
+	snprintf (rs->ss_addr, REX_MAX_HOSTLEN - 1, "%s:%s", host, serv);
 	return 0;
 }
 
@@ -122,6 +128,8 @@ static int rex_tcp_accept (struct rex_sock *rs, struct rex_sock *new)
 {
 	struct sockaddr_storage addr = {};
 	socklen_t addrlen = sizeof (addr);
+	int rc;
+	char sa[REX_MAX_HOSTLEN] = {};
 	int fd = accept (rs->ss_fd, (struct sockaddr *) &addr, &addrlen);
 
 	if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
@@ -132,6 +140,15 @@ static int rex_tcp_accept (struct rex_sock *rs, struct rex_sock *new)
 	new->ss_family = rs->ss_family;
 	new->ss_fd = fd;
 	new->ss_vfptr = rs->ss_vfptr;
+	strncpy (new->ss_addr, rs->ss_addr, REX_MAX_HOSTLEN - 1);
+	if ((rc = getnameinfo ((struct sockaddr *) &addr, addrlen, new->ss_peer,
+			       REX_MAX_HOSTLEN - 1, sa, REX_MAX_HOSTLEN - 1,
+			       0)) == 0) {
+		strncat (new->ss_peer, ":",
+			 MIN (1, REX_MAX_HOSTLEN - strlen (rs->ss_peer) - 1));
+		strncat (new->ss_peer, sa,
+			 MIN (strlen (sa), REX_MAX_HOSTLEN - strlen (sa) - 1));
+	}
 	return 0;
 }
 
@@ -168,11 +185,21 @@ static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
 		close (fd);
 		fd = -1;
 	} while ((res = res->ai_next) != NULL);
-	freeaddrinfo (res);
 
-	if (fd < 0)
+	if (fd < 0) {
+		freeaddrinfo (res);
 		return -1;
+	}
 	rs->ss_fd = fd;
+	snprintf (rs->ss_peer, REX_MAX_HOSTLEN - 1, "%s:%s", host, serv);
+	if (getnameinfo (res->ai_addr, res->ai_addrlen, rs->ss_addr,
+			 REX_MAX_HOSTLEN - 1, sa, REX_MAX_HOSTLEN - 1, 0) == 0) {
+		strncat (rs->ss_addr, ":",
+			 MIN (1, REX_MAX_HOSTLEN - strlen (rs->ss_addr) - 1));
+		strncat (rs->ss_addr, sa,
+			 MIN (strlen (sa), REX_MAX_HOSTLEN - strlen (sa) - 1));
+	}
+	freeaddrinfo (res);
 	return 0;
 }
 
@@ -199,6 +226,8 @@ static int rex_unix_listen (struct rex_sock *rs, const char *sock)
 		return -1;
 	}
 	rs->ss_fd = fd;
+	rs->ss_flags |= REX_AI_PASSIVE;
+	strncpy (rs->ss_addr, sock, REX_MAX_HOSTLEN - 1);
 	return 0;
 }
 
@@ -218,6 +247,8 @@ static int rex_unix_accept (struct rex_sock *rs, struct rex_sock *new)
 	new->ss_family = rs->ss_family;
 	new->ss_fd = fd;
 	new->ss_vfptr = rs->ss_vfptr;
+	strncpy (new->ss_addr, rs->ss_addr, REX_MAX_HOSTLEN - 1);
+	strncpy (new->ss_peer, rs->ss_addr, REX_MAX_HOSTLEN - 1);
 	return 0;
 }
 
@@ -237,6 +268,8 @@ static int rex_unix_connect (struct rex_sock *rs, const char *peer)
 		return -1;
 	}
 	rs->ss_fd = fd;
+	strncpy (rs->ss_addr, peer, REX_MAX_HOSTLEN - 1);
+	strncpy (rs->ss_peer, peer, REX_MAX_HOSTLEN - 1);
 	return 0;
 }
 
@@ -413,23 +446,15 @@ static int get_reuseaddr (struct rex_sock *rs, void *optval, int *optlen)
 
 static int get_sockname (struct rex_sock *rs, void *optval, int *optlen)
 {
-	int leng = *optlen;
-
-	if (leng > strlen (rs->ss_addr))
-		leng = strlen (rs->ss_addr);
-	memcpy (optval, rs->ss_addr, leng);
-	*optlen = leng;
+	* optlen = strlen (rs->ss_addr);
+	* (char **) optval = rs->ss_addr;
 	return 0;
 }
 
 static int get_peername (struct rex_sock *rs, void *optval, int *optlen)
 {
-	int leng = *optlen;
-
-	if (leng > strlen (rs->ss_peer))
-		leng = strlen (rs->ss_peer);
-	memcpy (optval, rs->ss_peer, leng);
-	*optlen = leng;
+	* optlen = strlen (rs->ss_peer);
+	* (char **) optval = rs->ss_peer;
 	return 0;
 }
 
@@ -652,7 +677,10 @@ struct rex_vfptr *get_rex_vfptr (int un_family)
 int rex_sock_init (struct rex_sock *rs, int family /* AF_LOCAL|AF_TCP|AF_TCP6 */)
 {
 	rs->ss_family = family;
-	rs->ss_addr = rs->ss_peer = 0;
+	rs->ss_flags = 0;
+	memset (rs->ss_addr, 0, REX_MAX_HOSTLEN);
+	memset (rs->ss_peer, 0, REX_MAX_HOSTLEN);
+
 	if (!(rs->ss_vfptr = get_rex_vfptr (family))) {
 		errno = EPROTO;
 		return -1;
@@ -664,14 +692,11 @@ int rex_sock_destroy (struct rex_sock *rs)
 {
 	int rc;
 	if ((rc = rs->ss_vfptr->destroy (rs)) == 0) {
-		if (rs->ss_addr) {
-			free (rs->ss_addr);
-			rs->ss_addr = 0;
-		}
-		if (rs->ss_peer) {
-			free (rs->ss_peer);
-			rs->ss_peer = 0;
-		}
+		rs->ss_family = 0;
+		rs->ss_flags = 0;
+		memset (rs->ss_addr, 0, REX_MAX_HOSTLEN);
+		memset (rs->ss_peer, 0, REX_MAX_HOSTLEN);
+		rs->ss_vfptr = 0;
 	}
 	return rc;
 }
@@ -679,10 +704,7 @@ int rex_sock_destroy (struct rex_sock *rs)
 /* listen on the sockaddr */
 int rex_sock_listen (struct rex_sock *rs, const char *sock)
 {
-	int rc;
-	if ((rc = rs->ss_vfptr->listen (rs, sock)) == 0)
-		rs->ss_addr = strdup (sock);
-	return rc;
+	return rs->ss_vfptr->listen (rs, sock);
 }
 
 /* accept one new connection for the initialized new sock */
@@ -698,10 +720,7 @@ int rex_sock_accept (struct rex_sock *rs, struct rex_sock *new)
 /* connect to remote host */
 int rex_sock_connect (struct rex_sock *rs, const char *peer)
 {
-	int rc;
-	if ((rc = rs->ss_vfptr->connect (rs, peer)) == 0)
-		rs->ss_peer = strdup (peer);
-	return rc;
+	return rs->ss_vfptr->connect (rs, peer);
 }
 
 int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int n)

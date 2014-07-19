@@ -34,13 +34,17 @@
 # include "rex_posix.h"
 #endif
 
+enum {
+	REX_MAX_HOSTLEN = 1024,
+};
 
 struct rex_vfptr;
 struct rex_sock {
 	SOCKET_T ss_fd;            /* Socket file descriptor */
 	int ss_family;             /* Address family, e.g., AF_TCP */
-	char *ss_addr;
-	char *ss_peer;
+	char ss_addr[REX_MAX_HOSTLEN];
+	char ss_peer[REX_MAX_HOSTLEN];
+	uint64_t ss_flags;
 	struct rex_vfptr *ss_vfptr;
 };
 
@@ -50,11 +54,6 @@ struct rex_iov {
 };
 
 /* the following af_family are supported */
-
-enum {
-	REX_MAX_HOSTLEN = 1024,
-};
-
 
 enum {
 	REX_AF_LOCAL   =   1,     /* localhost communication */
