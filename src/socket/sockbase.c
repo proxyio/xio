@@ -28,8 +28,8 @@
 #include <utils/taskpool.h>
 #include "log.h"
 #include "inproc/inproc.h"
-#include "tcp/tcp.h"
 #include "mix/mix.h"
+#include "sio/sio.h"
 
 const char *pf_str[] = {
 	"",
@@ -53,8 +53,6 @@ struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type) {
 	}
 	return 0;
 }
-
-extern struct sockbase_vfptr mix_listener_vfptr;
 
 void __socket_init ()
 {
@@ -93,9 +91,8 @@ int xalloc (int family, int socktype)
 		return -1;
 	}
 	BUG_ON (!vfptr->alloc);
-	if (! (sb = vfptr->alloc() ) ) {
+	if (!(sb = vfptr->alloc ()))
 		return -1;
-	}
 	sb->vfptr = vfptr;
 	mutex_lock (&xgb.lock);
 	BUG_ON (xgb.nsockbases >= PROXYIO_MAX_SOCKS);

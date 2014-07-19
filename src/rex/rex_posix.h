@@ -25,14 +25,7 @@
 #ifndef _H_PROXYIO_REX_UNIX_
 #define _H_PROXYIO_REX_UNIX_
 
-#include "rex_if.h"
+typedef int SOCKET_T;
 
-struct rex_sock {
-	int ss_fd;                /* Socket file descriptor */
-	int ss_family;            /* Address family, e.g., AF_TCP */
-	char *ss_addr;
-	char *ss_peer;
-	struct rex_vfptr *ss_vfptr;
-};
 
 #endif

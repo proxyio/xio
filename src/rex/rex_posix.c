@@ -20,7 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include "rex.h"
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,38 +34,13 @@
 #include <sys/un.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include "rex.h"
+#include "rex_if.h"
 
 enum {
-	REX_SODF_BACKLOG = 100,
+	REX_MAX_BACKLOG  = 100,
+	REX_AI_PASSIVE   = 0x01,
 };
-
-static int tcp_listen (const char *host, const char *serv)
-{
-	int bfd;
-	int n;
-	int on = 1;
-	struct addrinfo hints, *res, *ressave;
-
-	memset (&hints, 0, sizeof (hints));
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-
-	if ((n = getaddrinfo (host, serv, &hints, &res)) != 0)
-		return -1;
-	ressave = res;
-	do {
-		if ((bfd = socket (res->ai_family, res->ai_socktype,
-				   res->ai_protocol)) < 0)
-			continue;
-		setsockopt (bfd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
-		if (bind (bfd, res->ai_addr, res->ai_addrlen) == 0)
-			break;
-		close (bfd);
-	} while ((res = res->ai_next) != NULL);
-	freeaddrinfo (ressave);
-	return bfd;
-}
 
 static int rex_gen_init (struct rex_sock *rs)
 {
@@ -81,6 +56,7 @@ static int rex_tcp_destroy (struct rex_sock *rs)
 	}
 	rs->ss_family = 0;
 	rs->ss_vfptr = 0;
+	rs->ss_flags = 0;
 	return 0;
 }
 
@@ -89,11 +65,12 @@ static int rex_unix_destroy (struct rex_sock *rs)
 	if (rs->ss_fd > 0) {
 		close (rs->ss_fd);
 		rs->ss_fd = -1;
-		if (rs->ss_addr)
-			unlink (rs->ss_addr);
 	}
+	if (rs->ss_flags & REX_AI_PASSIVE)
+		unlink (rs->ss_addr);
 	rs->ss_family = 0;
 	rs->ss_vfptr = 0;
+	rs->ss_flags = 0;
 	return 0;
 }
 
@@ -101,26 +78,48 @@ static int rex_unix_destroy (struct rex_sock *rs)
 static int rex_tcp_listen (struct rex_sock *rs, const char *sock)
 {
 	int fd;
-	char *host = NULL, *serv = NULL;
+	int n;
+	int on = 1;
+	char sa[REX_MAX_HOSTLEN] = {};
+	char *host;
+	char *serv;
+	struct addrinfo hints, *res, *ressave;
 
-	if (!(serv = strrchr (sock, ':'))
-	    || strlen (serv + 1) == 0 || ! (host = strdup (sock))) {
+	strncpy (sa, sock, REX_MAX_HOSTLEN - 1);
+	host = sa;
+	if (!(serv = strrchr (sa, ':')) || strlen (serv + 1) == 0) {
 		errno = EINVAL;
 		return -1;
 	}
-	host[serv - sock] = '\0';
-	if (!(serv = strdup (serv + 1))) {
-		free (host);
+	host[serv++ - sa] = '\0';
+
+	memset (&hints, 0, sizeof (hints));
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if ((n = getaddrinfo (host, serv, &hints, &res)) != 0)
 		return -1;
-	}
-	fd = tcp_listen (host, serv);
-	free (host);
-	free (serv);
-	if (fd < 0 || listen (fd, REX_SODF_BACKLOG) < 0) {
+	ressave = res;
+	do {
+		if ((fd = socket (res->ai_family, res->ai_socktype,
+				  res->ai_protocol)) < 0)
+			continue;
+		setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof (on));
+		if (bind (fd, res->ai_addr, res->ai_addrlen) == 0)
+			break;
+		close (fd);
+	} while ((res = res->ai_next) != NULL);
+	freeaddrinfo (ressave);
+
+	if (fd < 0 || listen (fd, REX_MAX_BACKLOG) < 0) {
 		close (fd);
 		return -1;
 	}
+
 	rs->ss_fd = fd;
+	rs->ss_flags |= REX_AI_PASSIVE;
+	snprintf (rs->ss_addr, REX_MAX_HOSTLEN - 1, "%s:%s", host, serv);
 	return 0;
 }
 
@@ -129,24 +128,46 @@ static int rex_tcp_accept (struct rex_sock *rs, struct rex_sock *new)
 {
 	struct sockaddr_storage addr = {};
 	socklen_t addrlen = sizeof (addr);
+	int rc;
+	char sa[REX_MAX_HOSTLEN] = {};
 	int fd = accept (rs->ss_fd, (struct sockaddr *) &addr, &addrlen);
 
 	if (fd < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR
-		       || errno == ECONNABORTED) ) {
+		       || errno == ECONNABORTED)) {
 		errno = EAGAIN;
 		return -1;
 	}
 	new->ss_family = rs->ss_family;
 	new->ss_fd = fd;
 	new->ss_vfptr = rs->ss_vfptr;
+	strncpy (new->ss_addr, rs->ss_addr, REX_MAX_HOSTLEN - 1);
+	if ((rc = getnameinfo ((struct sockaddr *) &addr, addrlen, new->ss_peer,
+			       REX_MAX_HOSTLEN - 1, sa, REX_MAX_HOSTLEN - 1,
+			       0)) == 0) {
+		strncat (new->ss_peer, ":",
+			 MIN (1, REX_MAX_HOSTLEN - strlen (rs->ss_peer) - 1));
+		strncat (new->ss_peer, sa,
+			 MIN (strlen (sa), REX_MAX_HOSTLEN - strlen (sa) - 1));
+	}
 	return 0;
 }
 
-static int tcp_connect (const char *host, const char *serv)
+static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
 {
-	int fd;
+	int fd = 0;
 	int n;
+	char sa[REX_MAX_HOSTLEN] = {};
+	char *host;
+	char *serv;
 	struct addrinfo hints, *res, *ressave;
+
+	strncpy (sa, peer, REX_MAX_HOSTLEN - 1);
+	host = sa;
+	if (!(serv = strrchr (sa, ':')) || strlen (serv + 1) == 0) {
+		errno = EINVAL;
+		return -1;
+	}
+	host[serv++ - sa] = '\0';
 
 	memset (&hints, 0, sizeof (hints));
 	hints.ai_family = AF_UNSPEC;
@@ -164,32 +185,21 @@ static int tcp_connect (const char *host, const char *serv)
 		close (fd);
 		fd = -1;
 	} while ((res = res->ai_next) != NULL);
-	freeaddrinfo (res);
-	return fd;
-}
 
-/* connect to remote host */
-static int rex_tcp_connect (struct rex_sock *rs, const char *peer)
-{
-	int fd = 0;
-	char *host = 0, *serv = 0;
-
-	if (!(serv = strrchr (peer, ':')) || strlen (serv + 1) == 0
-	    || !(host = strdup (peer))) {
-		errno = EINVAL;
+	if (fd < 0) {
+		freeaddrinfo (res);
 		return -1;
 	}
-	host[serv - peer] = '\0';
-	if (!(serv = strdup (serv + 1))) {
-		free (host);
-		return -1;
-	}
-	fd = tcp_connect (host, serv);
-	free (host);
-	free (serv);
-	if (fd < 0)
-		return -1;
 	rs->ss_fd = fd;
+	snprintf (rs->ss_peer, REX_MAX_HOSTLEN - 1, "%s:%s", host, serv);
+	if (getnameinfo (res->ai_addr, res->ai_addrlen, rs->ss_addr,
+			 REX_MAX_HOSTLEN - 1, sa, REX_MAX_HOSTLEN - 1, 0) == 0) {
+		strncat (rs->ss_addr, ":",
+			 MIN (1, REX_MAX_HOSTLEN - strlen (rs->ss_addr) - 1));
+		strncat (rs->ss_addr, sa,
+			 MIN (strlen (sa), REX_MAX_HOSTLEN - strlen (sa) - 1));
+	}
+	freeaddrinfo (res);
 	return 0;
 }
 
@@ -211,11 +221,13 @@ static int rex_unix_listen (struct rex_sock *rs, const char *sock)
 	snprintf (addr.sun_path, sizeof (addr.sun_path), "%s", sock);
 	unlink (addr.sun_path);
 	if (bind (fd, (struct sockaddr *) &addr, addr_len) < 0
-	    || listen (fd, REX_SODF_BACKLOG) < 0) {
+	    || listen (fd, REX_MAX_BACKLOG) < 0) {
 		close (fd);
 		return -1;
 	}
 	rs->ss_fd = fd;
+	rs->ss_flags |= REX_AI_PASSIVE;
+	strncpy (rs->ss_addr, sock, REX_MAX_HOSTLEN - 1);
 	return 0;
 }
 
@@ -228,13 +240,15 @@ static int rex_unix_accept (struct rex_sock *rs, struct rex_sock *new)
 
 	if (fd < 0 &&
 	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR ||
-	     errno == ECONNABORTED || errno == EMFILE) ) {
+	     errno == ECONNABORTED || errno == EMFILE)) {
 		errno = EAGAIN;
 		return -1;
 	}
 	new->ss_family = rs->ss_family;
 	new->ss_fd = fd;
 	new->ss_vfptr = rs->ss_vfptr;
+	strncpy (new->ss_addr, rs->ss_addr, REX_MAX_HOSTLEN - 1);
+	strncpy (new->ss_peer, rs->ss_addr, REX_MAX_HOSTLEN - 1);
 	return 0;
 }
 
@@ -254,6 +268,8 @@ static int rex_unix_connect (struct rex_sock *rs, const char *peer)
 		return -1;
 	}
 	rs->ss_fd = fd;
+	strncpy (rs->ss_addr, peer, REX_MAX_HOSTLEN - 1);
+	strncpy (rs->ss_peer, peer, REX_MAX_HOSTLEN - 1);
 	return 0;
 }
 
@@ -262,7 +278,8 @@ static int rex_gen_send (struct rex_sock *rs, struct rex_iov *iov, int n)
 	struct iovec diov[100];    /* local storage for performance */
 	struct msghdr msg = {};
 	int i;
-
+	int rc;
+	
 #if defined MSG_MORE
 #endif
 	if (n > 100)
@@ -273,7 +290,21 @@ static int rex_gen_send (struct rex_sock *rs, struct rex_iov *iov, int n)
 	}
 	msg.msg_iov = diov;
 	msg.msg_iovlen = n;
-	return sendmsg (rs->ss_fd, &msg, 0);
+	rc = sendmsg (rs->ss_fd, &msg, 0);
+
+	/* Several errors are OK. When speculative write is being done we
+	   may not be able to write a single byte to the socket. Also, SIGSTOP
+	   issued by a debugging tool can result in EINTR error. */
+	if (rc == -1) {
+		if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+			errno = EAGAIN;
+			return -1;
+		}
+		/* Signalise peer failure. */
+		errno = EPIPE;
+		return -1;
+	}
+	return rc;
 }
 
 static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
@@ -281,6 +312,7 @@ static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
 	struct iovec diov[100];
 	struct msghdr msg = {};
 	int i;
+	int rc;
 
 	if (n > 100)
 		n = 100;
@@ -290,7 +322,22 @@ static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
 	}
 	msg.msg_iov = diov;
 	msg.msg_iovlen = n;
-	return recvmsg (rs->ss_fd, &msg, 0);
+	rc = recvmsg (rs->ss_fd, &msg, 0);
+
+	/* Signalise peer failure. */
+	if (rc == 0) {
+		errno = EPIPE;
+		return -1;
+	}
+	/* Several errors are OK. When speculative read is being done we
+	   may not be able to read a single byte to the socket. Also, SIGSTOP
+	   issued by a debugging tool can result in EINTR error. */
+	if (rc == -1 &&
+	    (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+		errno = EAGAIN;
+		return -1;
+	}
+	return rc;
 }
 
 /* Following gs[etsockopt] options are supported by rex library
@@ -304,62 +351,62 @@ static int rex_gen_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
    REX_REUSEADDR
 */
 
-typedef int (*rex_gen_seter) (int fd, void *optval, int optlen);
-typedef int (*rex_gen_geter) (int fd, void *optval, int *optlen);
+typedef int (*rex_gen_seter) (struct rex_sock *rs, void *optval, int optlen);
+typedef int (*rex_gen_geter) (struct rex_sock *rs, void *optval, int *optlen);
 
-static int get_backlog (int fd, void *optval, int *optlen)
+static int get_backlog (struct rex_sock *rs, void *optval, int *optlen)
 {
 	errno = EOPNOTSUPP;
 	return -1;
 }
 
-static int get_linger (int fd, void *optval, int *optlen)
+static int get_linger (struct rex_sock *rs, void *optval, int *optlen)
 {
 	errno = EOPNOTSUPP;
 	return -1;
 }
 
-static int get_sndbuf (int fd, void *optval, int *optlen)
+static int get_sndbuf (struct rex_sock *rs, void *optval, int *optlen)
 {
 	int rc;
 	int buf = 0;
 	socklen_t koptlen = sizeof (buf);
 
-	rc = getsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buf, &koptlen);
+	rc = getsockopt (rs->ss_fd, SOL_SOCKET, SO_SNDBUF, &buf, &koptlen);
 	if (rc == 0)
 		* (int *) optval = buf;
 	return rc;
 }
 
-static int get_rcvbuf (int fd, void *optval, int *optlen)
+static int get_rcvbuf (struct rex_sock *rs, void *optval, int *optlen)
 {
 	int rc;
 	int buf = 0;
 	socklen_t koptlen = sizeof (buf);
 
-	rc = getsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buf, &koptlen);
+	rc = getsockopt (rs->ss_fd, SOL_SOCKET, SO_RCVBUF, &buf, &koptlen);
 	if (rc == 0)
 		* (int *) optval = buf;
 	return rc;
 }
 
-static int get_noblock (int fd, void *optval, int *optlen)
+static int get_noblock (struct rex_sock *rs, void *optval, int *optlen)
 {
 	int flags;
 
-	if ( (flags = fcntl (fd, F_GETFL, 0) ) < 0)
+	if ((flags = fcntl (rs->ss_fd, F_GETFL, 0)) < 0)
 		flags = 0;
 	* (int *) optval = (flags & O_NONBLOCK) ? 1 : 0;
 	return 0;
 }
 
-static int get_nodelay (int fd, void *optval, int *optlen)
+static int get_nodelay (struct rex_sock *rs, void *optval, int *optlen)
 {
 	errno = EOPNOTSUPP;
 	return -1;
 }
 
-static int get_sndtimeo (int fd, void *optval, int *optlen)
+static int get_sndtimeo (struct rex_sock *rs, void *optval, int *optlen)
 {
 	int rc;
 	int to = * (int *) optval;
@@ -369,13 +416,13 @@ static int get_sndtimeo (int fd, void *optval, int *optlen)
 	};
 	socklen_t koptlen = sizeof (tv);
 
-	rc = getsockopt (fd, SOL_SOCKET, SO_SNDTIMEO, &tv, &koptlen);
+	rc = getsockopt (rs->ss_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, &koptlen);
 	if (rc == 0)
 		* (int *) optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 	return rc;
 }
 
-static int get_rcvtimeo (int fd, void *optval, int *optlen)
+static int get_rcvtimeo (struct rex_sock *rs, void *optval, int *optlen)
 {
 	int rc;
 	int to = * (int *) optval;
@@ -385,16 +432,30 @@ static int get_rcvtimeo (int fd, void *optval, int *optlen)
 	};
 	socklen_t koptlen = sizeof (tv);
 
-	rc = getsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &koptlen);
+	rc = getsockopt (rs->ss_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, &koptlen);
 	if (rc == 0)
 		* (int *) optval = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 	return rc;
 }
 
-static int get_reuseaddr (int fd, void *optval, int *optlen)
+static int get_reuseaddr (struct rex_sock *rs, void *optval, int *optlen)
 {
 	errno = EOPNOTSUPP;
 	return -1;
+}
+
+static int get_sockname (struct rex_sock *rs, void *optval, int *optlen)
+{
+	* optlen = strlen (rs->ss_addr);
+	* (char **) optval = rs->ss_addr;
+	return 0;
+}
+
+static int get_peername (struct rex_sock *rs, void *optval, int *optlen)
+{
+	* optlen = strlen (rs->ss_peer);
+	* (char **) optval = rs->ss_peer;
+	return 0;
 }
 
 static const rex_gen_geter get_vfptr[] = {
@@ -407,6 +468,8 @@ static const rex_gen_geter get_vfptr[] = {
 	get_rcvtimeo,
 	get_sndtimeo,
 	get_reuseaddr,
+	get_sockname,
+	get_peername,
 };
 
 static int rex_gen_getopt (struct rex_sock *rs, int opt, void *optval, int *optlen)
@@ -417,23 +480,23 @@ static int rex_gen_getopt (struct rex_sock *rs, int opt, void *optval, int *optl
 		errno = EINVAL;
 		return -1;
 	}
-	rc = get_vfptr[opt] (rs->ss_fd, optval, optlen);
+	rc = get_vfptr[opt] (rs, optval, optlen);
 	return rc;
 }
 
-static int set_backlog (int fd, void *optval, int optlen)
+static int set_backlog (struct rex_sock *rs, void *optval, int optlen)
 {
 	errno = EOPNOTSUPP;
 	return -1;
 }
 
-static int set_linger (int fd, void *optval, int optlen)
+static int set_linger (struct rex_sock *rs, void *optval, int optlen)
 {
 	errno = EOPNOTSUPP;
 	return -1;
 }
 
-static int set_sndbuf (int fd, void *optval, int optlen)
+static int set_sndbuf (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int buf = * (int *) optval;
@@ -442,11 +505,11 @@ static int set_sndbuf (int fd, void *optval, int optlen)
 		errno = EINVAL;
 		return -1;
 	}
-	rc = setsockopt (fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof (buf) );
+	rc = setsockopt (rs->ss_fd, SOL_SOCKET, SO_SNDBUF, &buf, sizeof (buf));
 	return rc;
 }
 
-static int set_rcvbuf (int fd, void *optval, int optlen)
+static int set_rcvbuf (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int buf = * (int *) optval;
@@ -455,32 +518,32 @@ static int set_rcvbuf (int fd, void *optval, int optlen)
 		errno = EINVAL;
 		return -1;
 	}
-	rc = setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof (buf) );
+	rc = setsockopt (rs->ss_fd, SOL_SOCKET, SO_RCVBUF, &buf, sizeof (buf));
 	return rc;
 }
 
-static int set_noblock (int fd, void *optval, int optlen)
+static int set_noblock (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int flags;
-	int on = * ( (int *) optval);
+	int on = * ((int *) optval);
 
-	if ( (flags = fcntl (fd, F_GETFL, 0) ) < 0)
+	if ((flags = fcntl (rs->ss_fd, F_GETFL, 0)) < 0)
 		flags = 0;
 	flags = on ? (flags | O_NONBLOCK) : (flags & ~O_NONBLOCK);
-	rc = fcntl (fd, F_SETFL, flags);
+	rc = fcntl (rs->ss_fd, F_SETFL, flags);
 	return rc;
 }
 
-static int set_nodelay (int fd, void *optval, int optlen)
+static int set_nodelay (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int flags = * (int *) optval ? 1 : 0;
-	rc = setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof (flags) );
+	rc = setsockopt (rs->ss_fd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof (flags));
 	return rc;
 }
 
-static int set_sndtimeo (int fd, void *optval, int optlen)
+static int set_sndtimeo (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int to = * (int *) optval;
@@ -488,11 +551,11 @@ static int set_sndtimeo (int fd, void *optval, int optlen)
 		.tv_sec = to / 1000,
 		.tv_usec = (to % 1000) * 1000,
 	};
-	rc = setsockopt (fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof (tv) );
+	rc = setsockopt (rs->ss_fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof (tv));
 	return rc;
 }
 
-static int set_rcvtimeo (int fd, void *optval, int optlen)
+static int set_rcvtimeo (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int to = * (int *) optval;
@@ -500,16 +563,16 @@ static int set_rcvtimeo (int fd, void *optval, int optlen)
 		.tv_sec = to / 1000,
 		.tv_usec = (to % 1000) * 1000,
 	};
-	rc = setsockopt (fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof (tv) );
+	rc = setsockopt (rs->ss_fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof (tv));
 	return rc;
 }
 
-static int set_reuseaddr (int fd, void *optval, int optlen)
+static int set_reuseaddr (struct rex_sock *rs, void *optval, int optlen)
 {
 	int rc;
 	int flags = * (int *) optval ? 1 : 0;
 
-	rc = setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof (flags) );
+	rc = setsockopt (rs->ss_fd, SOL_SOCKET, SO_REUSEADDR, &flags, sizeof (flags));
 	return rc;
 }
 
@@ -523,6 +586,8 @@ static const rex_gen_seter set_vfptr[] = {
 	set_rcvtimeo,
 	set_sndtimeo,
 	set_reuseaddr,
+	0,
+	0,
 };
 
 static int rex_gen_setopt (struct rex_sock *rs, int opt, void *optval, int optlen)
@@ -533,7 +598,7 @@ static int rex_gen_setopt (struct rex_sock *rs, int opt, void *optval, int optle
 		errno = EINVAL;
 		return -1;
 	}
-	rc = set_vfptr[opt] (rs->ss_fd, optval, optlen);
+	rc = set_vfptr[opt] (rs, optval, optlen);
 	return rc;
 }
 
@@ -612,7 +677,10 @@ struct rex_vfptr *get_rex_vfptr (int un_family)
 int rex_sock_init (struct rex_sock *rs, int family /* AF_LOCAL|AF_TCP|AF_TCP6 */)
 {
 	rs->ss_family = family;
-	rs->ss_addr = rs->ss_peer = 0;
+	rs->ss_flags = 0;
+	memset (rs->ss_addr, 0, REX_MAX_HOSTLEN);
+	memset (rs->ss_peer, 0, REX_MAX_HOSTLEN);
+
 	if (!(rs->ss_vfptr = get_rex_vfptr (family))) {
 		errno = EPROTO;
 		return -1;
@@ -624,14 +692,11 @@ int rex_sock_destroy (struct rex_sock *rs)
 {
 	int rc;
 	if ((rc = rs->ss_vfptr->destroy (rs)) == 0) {
-		if (rs->ss_addr) {
-			free (rs->ss_addr);
-			rs->ss_addr = 0;
-		}
-		if (rs->ss_peer) {
-			free (rs->ss_peer);
-			rs->ss_peer = 0;
-		}
+		rs->ss_family = 0;
+		rs->ss_flags = 0;
+		memset (rs->ss_addr, 0, REX_MAX_HOSTLEN);
+		memset (rs->ss_peer, 0, REX_MAX_HOSTLEN);
+		rs->ss_vfptr = 0;
 	}
 	return rc;
 }
@@ -639,10 +704,7 @@ int rex_sock_destroy (struct rex_sock *rs)
 /* listen on the sockaddr */
 int rex_sock_listen (struct rex_sock *rs, const char *sock)
 {
-	int rc;
-	if ((rc = rs->ss_vfptr->listen (rs, sock)) == 0)
-		rs->ss_addr = strdup (sock);
-	return rc;
+	return rs->ss_vfptr->listen (rs, sock);
 }
 
 /* accept one new connection for the initialized new sock */
@@ -658,18 +720,15 @@ int rex_sock_accept (struct rex_sock *rs, struct rex_sock *new)
 /* connect to remote host */
 int rex_sock_connect (struct rex_sock *rs, const char *peer)
 {
-	int rc;
-	if ((rc = rs->ss_vfptr->connect (rs, peer)) == 0)
-		rs->ss_peer = strdup (peer);
-	return rc;
+	return rs->ss_vfptr->connect (rs, peer);
 }
 
-int rex_sock_send (struct rex_sock *rs, struct rex_iov *iov, int n)
+int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int n)
 {
 	return rs->ss_vfptr->send (rs, iov, n);
 }
 
-int rex_sock_recv (struct rex_sock *rs, struct rex_iov *iov, int n)
+int rex_sock_recvv (struct rex_sock *rs, struct rex_iov *iov, int n)
 {
 	return rs->ss_vfptr->recv (rs, iov, n);
 }

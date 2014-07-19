@@ -27,19 +27,31 @@
 
 #include <inttypes.h>
 
-struct rex_sock;
-
-struct rex_iov {
-	char *iov_base;
-	int iov_len;
-};
-
 #if defined MS_WINDOWS
 # include "rex_win.h"
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) \
 	|| defined(__NetBSD__) || defined(linux)
 # include "rex_posix.h"
 #endif
+
+enum {
+	REX_MAX_HOSTLEN = 1024,
+};
+
+struct rex_vfptr;
+struct rex_sock {
+	SOCKET_T ss_fd;            /* Socket file descriptor */
+	int ss_family;             /* Address family, e.g., AF_TCP */
+	char ss_addr[REX_MAX_HOSTLEN];
+	char ss_peer[REX_MAX_HOSTLEN];
+	uint64_t ss_flags;
+	struct rex_vfptr *ss_vfptr;
+};
+
+struct rex_iov {
+	char *iov_base;
+	int iov_len;
+};
 
 /* the following af_family are supported */
 
@@ -61,9 +73,27 @@ int rex_sock_accept (struct rex_sock *rs, struct rex_sock *new);
 /* connect to remote host */
 int rex_sock_connect (struct rex_sock *rs, const char *sockaddr);
 
-int rex_sock_send (struct rex_sock *rs, struct rex_iov *iov, int niov);
+int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int n);
 
-int rex_sock_recv (struct rex_sock *rs, struct rex_iov *iov, int niov);
+static inline int rex_sock_send (struct rex_sock *rs, char *buff, int size)
+{
+	struct rex_iov iov = {
+		.iov_base = buff,
+		.iov_len = size,
+	};
+	return rex_sock_sendv (rs, &iov, 1);
+}
+
+int rex_sock_recvv (struct rex_sock *rs, struct rex_iov *iov, int n);
+
+static inline int rex_sock_recv (struct rex_sock *rs, char *buff, int size)
+{
+	struct rex_iov iov = {
+		.iov_base = buff,
+		.iov_len = size,
+	};
+	return rex_sock_recvv (rs, &iov, 1);
+}
 
 /* Following gs[etsockopt] options are supported by rex library */
 enum {
@@ -76,7 +106,10 @@ enum {
 	REX_SO_RCVTIMEO,
 	REX_SO_SNDTIMEO,
 	REX_SO_REUSEADDR,
+	REX_SO_SOCKNAME,
+	REX_SO_PEERNAME,
 };
+
 int rex_sock_setopt (struct rex_sock *rs, int opt, void *optval, int optlen);
 int rex_sock_getopt (struct rex_sock *rs, int opt, void *optval, int *optlen);
 

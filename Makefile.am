@@ -36,20 +36,20 @@ XIO_REX = \
 	src/rex/rex.c
 
 XIO_SOCKET = \
-	src/socket/xsetsockopt.c \
-	src/socket/xlisten.c \
+	src/socket/setsockopt.c \
+	src/socket/listen.c \
 	src/socket/mix/mix_listener.c \
 	src/socket/stats.c \
-	src/socket/xsend.c \
-	src/socket/xrecv.c \
+	src/socket/send.c \
+	src/socket/recv.c \
 	src/socket/eventnotify.c \
-	src/socket/xbind.c \
-	src/socket/xclose.c \
-	src/socket/xconnect.c \
-	src/socket/tcp/tcp_listener.c \
-	src/socket/tcp/tcp.c \
+	src/socket/bind.c \
+	src/socket/close.c \
+	src/socket/connect.c \
+	src/socket/sio/sio_listener.c \
+	src/socket/sio/sio.c \
 	src/socket/sockbase.c \
-	src/socket/xgetsockopt.c \
+	src/socket/getsockopt.c \
 	src/socket/inproc/inproc.c \
 	src/socket/inproc/inproc_listener.c
 

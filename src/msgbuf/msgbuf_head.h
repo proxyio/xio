@@ -46,8 +46,16 @@ struct msgbuf_head {
 	struct list_head head;      /* msgbuf head                        */
 };
 
+enum {
+	WALK_STOP      = 0x01,
+};
+
+typedef int (*walk_fn) (struct msgbuf_head *bh, struct msgbuf *msg, void *data);
+
 void msgbuf_head_init (struct msgbuf_head *bh, int wnd);
 void msgbuf_head_ev_hndl (struct msgbuf_head *bh, struct msgbuf_vfptr *ev_hndl);
+
+void msgbuf_head_walk (struct msgbuf_head *bh, walk_fn f, void *data);
 
 /* we must guarantee that we can push one massage at least. */
 static inline int msgbuf_can_in (struct msgbuf_head *bh)

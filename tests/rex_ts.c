@@ -16,17 +16,16 @@ int test_client (void *args)
 	int rc;
 	int i;
 	char buf[128] = {};
-	struct rex_iov iov;
 
 	BUG_ON (rex_sock_init (&rs, af));
 	BUG_ON (rex_sock_connect (&rs, addr));
+	BUG_ON (strcmp (addr, rs.ss_peer) != 0);
+
 	for (i = 0; i < 10; i++) {
-		iov.iov_base = buf;
-		iov.iov_len = sizeof (buf);
-		rc = rex_sock_recv (&rs, &iov, 1);
-		BUG_ON (rc != iov.iov_len);
-		rc = rex_sock_send (&rs, &iov, 1);
-		BUG_ON (rc != iov.iov_len);
+		rc = rex_sock_recv (&rs, buf, sizeof (buf));
+		BUG_ON (rc != sizeof (buf));
+		rc = rex_sock_send (&rs, buf, sizeof (buf));
+		BUG_ON (rc != sizeof (buf));
 	}
 	rex_sock_destroy (&rs);
 }
@@ -39,22 +38,21 @@ void test_socket ()
 	int i;
 	int rc;
 	char buf[128] = {};
-	struct rex_iov iov;
 
 	BUG_ON (rex_sock_init (&rs, af));
 	BUG_ON (rex_sock_init (&client, af));
 	BUG_ON (rex_sock_listen (&rs, addr));
-
+	BUG_ON (strcmp (rs.ss_addr, addr) != 0);
 	thread_start (&t, test_client, 0);
 
 	BUG_ON (rex_sock_accept (&rs, &client));
+	BUG_ON (strcmp (client.ss_addr, addr) != 0);
+	BUG_ON (strlen (client.ss_peer) == 0);
 	for (i = 0; i < 10; i++) {
-		iov.iov_base = buf;
-		iov.iov_len = sizeof (buf);
-		rc = rex_sock_send (&client, &iov, 1);
-		BUG_ON (rc != iov.iov_len);
-		rc = rex_sock_recv (&client, &iov, 1);
-		BUG_ON (rc != iov.iov_len);
+		rc = rex_sock_send (&client, buf, sizeof (buf));
+		BUG_ON (rc != sizeof (buf));
+		rc = rex_sock_recv (&client, buf, sizeof (buf));
+		BUG_ON (rc != sizeof (buf));
 	}
 	BUG_ON (rex_sock_destroy (&rs));
 	BUG_ON (rex_sock_destroy (&client));

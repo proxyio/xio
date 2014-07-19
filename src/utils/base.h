@@ -87,7 +87,9 @@ typedef uint64_t u64;
 
 #define NELEM(x, type) (sizeof(x) / sizeof(type))
 
-#define max(a, b) (a > b ? a : b)
+#define MAX(a, b) (a > b ? a : b)
+
+#define MIN(a, b) (a > b ? b : a)
 
 #define ERRNO_RETURN(eno) do {			\
 		errno = eno;			\

@@ -21,6 +21,7 @@
 */
 
 #include "rex.h"
+#include "rex_if.h"
 
 /* the following af_family are support by rex:
    AF_LOCAL: the localhost communication
@@ -49,11 +50,11 @@ int rex_sock_connect (struct rex_sock *rs, const char *sockaddr)
 {
 }
 
-int rex_sock_send (struct rex_sock *rs, struct rex_iov *iov, int niov)
+int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int niov)
 {
 }
 
-int rex_sock_recv (struct rex_sock *rs, struct rex_iov *iov, int niov)
+int rex_sock_recvv (struct rex_sock *rs, struct rex_iov *iov, int niov)
 {
 }
 
