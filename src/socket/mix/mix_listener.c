@@ -77,7 +77,7 @@ static void mix_listener_close (struct sockbase *sb)
 	mem_free (sb, sizeof (*sb) );
 }
 
-static struct sockbase *mix_alloc() {
+static struct sockbase *mix_alloc () {
 	struct mix_sock *self = TNEW (struct mix_sock);
 
 	BUG_ON (!self);

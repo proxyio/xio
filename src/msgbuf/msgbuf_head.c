@@ -36,6 +36,19 @@ void msgbuf_head_ev_hndl (struct msgbuf_head *bh, struct msgbuf_vfptr *ev_hndl)
 	bh->ev_hndl = ev_hndl;
 }
 
+void msgbuf_head_walk (struct msgbuf_head *bh, walk_fn f, void *data)
+{
+	int rc;
+	struct msgbuf *msg;
+	struct msgbuf *tmp;
+	
+	walk_each_entry_s (msg, tmp, &bh->head, struct msgbuf, item) {
+		if ((rc = f (bh, msg, data)) != 0)
+			break;
+	}
+}
+
+
 int msgbuf_head_empty (struct msgbuf_head *bh)
 {
 	int rc;
