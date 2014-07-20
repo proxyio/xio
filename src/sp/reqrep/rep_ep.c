@@ -23,7 +23,7 @@
 #include "rep_ep.h"
 
 static struct epbase *repep_alloc() {
-	struct repep *repep = TNEW (struct repep);
+	struct repep *repep = mem_zalloc (sizeof (struct repep));
 
 	if (repep) {
 		epbase_init (&repep->base);
@@ -89,7 +89,7 @@ static int repep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 }
 
 static struct tgtd *repep_join (struct epbase *ep, int fd) {
-	struct rep_tgtd *rep_tg = TNEW (struct rep_tgtd);
+	struct rep_tgtd *rep_tg = mem_zalloc (sizeof (struct rep_tgtd));
 
 	if (!rep_tg)
 		return 0;

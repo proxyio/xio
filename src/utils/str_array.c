@@ -29,14 +29,14 @@ void str_array_add (struct str_array *arr, const char *str)
 	char **at = 0;
 
 	if (arr->size == arr->cap) {
-		if ((at = NTNEW (char *, arr->cap * 2)))
+		if ((at = mem_zalloc (sizeof (char *) * arr->cap * 2)))
 			BUG_ON (1);
 		memcpy (at, arr->at, sizeof (char *) * arr->size);
 		mem_free (arr->at, sizeof (char *) * arr->cap);
 		arr->at = at;
 		arr->cap = arr->cap * 2;
 	}
-	arr->at[arr->size] = mem_alloc (strlen (str) + 1);
+	arr->at[arr->size] = mem_zalloc (strlen (str) + 1);
 	strcpy (arr->at[arr->size], str);
 	arr->size++;
 }

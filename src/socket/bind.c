@@ -43,7 +43,7 @@ int xbind (int fd, const char *addr)
 		errno = EBADF;
 		return -1;
 	}
-	if (strlen (addr) >= TP_SOCKADDRLEN) {
+	if (strlen (addr) >= PATH_MAX) {
 		xput (fd);
 		errno = EINVAL;
 		return -1;

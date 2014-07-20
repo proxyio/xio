@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <utils/sockaddr.h>
+#include "sockaddr.h"
 #include "sockbase.h"
 
 int acceptq_add (struct sockbase *sb, struct sockbase *new)
@@ -105,7 +105,7 @@ int xlisten (const char *addr)
 {
 	int fd;
 	int pf = sockaddr_pf (addr);
-	char sockaddr[TP_SOCKADDRLEN] = {};
+	char sockaddr[PATH_MAX] = {};
 
 	if (pf < 0 || sockaddr_addr (addr, sockaddr, sizeof (sockaddr) ) != 0) {
 		errno = EPROTO;

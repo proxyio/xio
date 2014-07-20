@@ -26,14 +26,14 @@
 #include <errno.h>
 #include <utils/waitgroup.h>
 #include <utils/taskpool.h>
-#include <utils/sockaddr.h>
+#include "sockaddr.h"
 #include "sockbase.h"
 
 int xconnect (const char *peer)
 {
 	int fd;
 	int pf = sockaddr_pf (peer);
-	char sockaddr[TP_SOCKADDRLEN] = {};
+	char sockaddr[PATH_MAX] = {};
 
 	if (pf < 0 || sockaddr_addr (peer, sockaddr, sizeof (sockaddr) ) != 0) {
 		errno = EINVAL;

@@ -38,7 +38,7 @@ static inline void str_array_init (struct str_array *arr)
 {
 	arr->size = 0;
 	arr->cap = STR_ARRAY_DEFAULT_CAP;
-	if (!(arr->at = NTNEW (char *, arr->cap)))
+	if (!(arr->at = mem_zalloc (sizeof (char *) * arr->cap)))
 		BUG_ON (1);
 }
 
