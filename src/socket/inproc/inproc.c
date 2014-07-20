@@ -29,7 +29,7 @@
 
 extern struct sockbase *getlistener (const char *addr);
 
-static struct sockbase *inproc_alloc ()
+static struct sockbase *inproc_open ()
 {
 	struct sockbase *sb;
 	struct inproc_sock *self = mem_zalloc (sizeof (struct inproc_sock));
@@ -131,7 +131,7 @@ extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen
 struct sockbase_vfptr inproc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_INPROC,
-	.alloc = inproc_alloc,
+	.open = inproc_open,
 	.signal = 0,
 	.getopt = inproc_getopt,
 	.setopt = inproc_setopt,

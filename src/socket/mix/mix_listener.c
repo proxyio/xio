@@ -77,7 +77,7 @@ static void mix_listener_close (struct sockbase *sb)
 	mem_free (sb, sizeof (*sb));
 }
 
-static struct sockbase *mix_alloc () {
+static struct sockbase *mix_open () {
 	struct mix_sock *self = mem_zalloc (sizeof (struct mix_sock));
 
 	BUG_ON (!self);
@@ -91,7 +91,7 @@ extern int mix_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
 struct sockbase_vfptr mix_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_MIX,
-	.alloc = mix_alloc,
+	.open = mix_open,
 	.signal = 0,
 	.setopt = mix_setopt,
 	.getopt = mix_getopt,

@@ -125,14 +125,14 @@ static struct sio_sock *__sio_alloc ()
 	return tcps;
 }
 
-struct sockbase *tcp_alloc ()
+struct sockbase *tcp_open ()
 {
 	struct sio_sock *tcps = __sio_alloc ();
 	rex_sock_init (&tcps->s, REX_AF_TCP);
 	return &tcps->base;
 }
 
-struct sockbase *ipc_alloc ()
+struct sockbase *ipc_open ()
 {
 	struct sio_sock *tcps = __sio_alloc ();
 	rex_sock_init (&tcps->s, REX_AF_LOCAL);
@@ -348,7 +348,7 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
-	.alloc = tcp_alloc,
+	.open = tcp_open,
 	.signal = sio_connector_signal,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
@@ -360,7 +360,7 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
-	.alloc = ipc_alloc,
+	.open = ipc_open,
 	.signal = sio_connector_signal,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,

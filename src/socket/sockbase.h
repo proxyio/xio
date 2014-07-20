@@ -103,7 +103,7 @@ struct sockbase;
 struct sockbase_vfptr {
 	int type;
 	int pf;
-	struct sockbase * (*alloc) ();
+	struct sockbase * (*open) ();
 	void  (*signal) (struct sockbase *sb, int signo);
 	void  (*close)  (struct sockbase *sb);
 	int   (*send)   (struct sockbase *sb, char *ubuf);

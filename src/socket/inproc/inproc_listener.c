@@ -69,7 +69,7 @@ static void rmlistener (struct str_rbe *entry)
 	mutex_unlock (&xgb.lock);
 }
 
-static struct sockbase *inproc_alloc() {
+static struct sockbase *inproc_open() {
 	struct inproc_sock *self = mem_zalloc (sizeof (struct inproc_sock));
 
 	if (self) {
@@ -125,7 +125,7 @@ extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen
 struct sockbase_vfptr inproc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_INPROC,
-	.alloc = inproc_alloc,
+	.open = inproc_open,
 	.signal = 0,
 	.getopt = inproc_getopt,
 	.setopt = inproc_setopt,

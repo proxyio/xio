@@ -90,8 +90,7 @@ int xalloc (int family, int socktype)
 		errno = EPROTO;
 		return -1;
 	}
-	BUG_ON (!vfptr->alloc);
-	if (!(sb = vfptr->alloc ()))
+	if (!(sb = vfptr->open ()))
 		return -1;
 	sb->vfptr = vfptr;
 	mutex_lock (&xgb.lock);
