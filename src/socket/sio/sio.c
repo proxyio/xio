@@ -28,23 +28,17 @@
 #include <rex/rex.h>
 #include "sio.h"
 
-static i64 sio_connector_read (struct io *ops, char *buff, i64 sz)
+static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
 {
 	struct sio_sock *tcps = cont_of (ops, struct sio_sock, ops);
-	int rc = rex_sock_recv (&tcps->s, buff, sz);
+	i64 rc = rex_sock_recv (&tcps->s, buf, size);
+	SKLOG_NOTICE (&tcps->base, "%d sock recv %ld bytes from network", tcps->base.fd, rc);
 	return rc;
 }
 
-static i64 sio_connector_write (struct io *ops, char *buff, i64 sz)
-{
-	struct sio_sock *tcps = cont_of (ops, struct sio_sock, ops);
-	int rc = rex_sock_send (&tcps->s, buff, sz);
-	return rc;
-}
-
-struct io stream_ops = {
+struct io sio_ops = {
 	.read = sio_connector_read,
-	.write = sio_connector_write,
+	.write = 0,
 };
 
 static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
@@ -54,7 +48,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 
 	mutex_lock (&sb->lock);
 	/* Disable POLLOUT event when snd_head is empty */
-	if (msgbuf_head_empty(&sb->snd) && bio_size (&tcps->out) == 0 &&
+	if (msgbuf_head_empty(&sb->snd) && list_empty (&tcps->un_head) &&
 	    (tcps->et.events & EV_WRITE)) {
 		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
 		tcps->et.events &= ~EV_WRITE;
@@ -119,18 +113,15 @@ static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
-
-
 static struct sio_sock *__sio_alloc ()
 {
-	struct sio_sock *tcps = TNEW (struct sio_sock);
-	struct sockbase *sb = &tcps->base;
+	struct sio_sock *tcps = mem_alloc (sizeof (struct sio_sock));
 
-	sockbase_init (sb);
-	bio_init (&tcps->in);
-	bio_init (&tcps->out);
-	INIT_LIST_HEAD (&tcps->sg_head);
+	sockbase_init (&tcps->base);
 	ev_fd_init (&tcps->et);
+	bio_init (&tcps->in);
+	INIT_LIST_HEAD (&tcps->un_head);
+	tcps->un_snd = NELEM (tcps->un_iov, struct rex_iov);
 	return tcps;
 }
 
@@ -186,7 +177,7 @@ void sio_socket_init (struct sio_sock *tcps)
 	int on = 1;
 
 	rex_sock_setopt (&tcps->s, REX_SO_NOBLOCK, &on, sizeof (on));
-	tcps->ops = stream_ops;
+	tcps->ops = sio_ops;
 	tcps->et.events = EV_READ;
 	tcps->et.fd = tcps->s.ss_fd;
 	tcps->et.hndl = sio_connector_hndl;
@@ -254,145 +245,78 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 static int sio_connector_rcv (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	int rc = 0;
+	int nbytes;
 	u16 cmsg_num;
-	struct msgbuf *aim = 0, *cmsg = 0;
+	struct msgbuf *msg = 0, *cmsg = 0;
 
-	rc = bio_prefetch (&tcps->in, &tcps->ops);
-	if (rc < 0 && errno != EAGAIN)
-		return rc;
+	if ((nbytes = bio_prefetch (&tcps->in, &tcps->ops)) < 0 && errno != EAGAIN)
+		return -1;
 	while (bufio_check_msg (&tcps->in)) {
-		aim = 0;
-		bufio_rm (&tcps->in, &aim);
-		BUG_ON (!aim);
-		cmsg_num = aim->chunk.cmsg_num;
+		SKLOG_NOTICE (sb, "%d sock recv msg from network", sb->fd);
+		msg = 0;
+		bufio_rm (&tcps->in, &msg);
+		BUG_ON (!msg);
+		cmsg_num = msg->chunk.cmsg_num;
 		while (cmsg_num--) {
 			cmsg = 0;
 			bufio_rm (&tcps->in, &cmsg);
 			BUG_ON (!cmsg);
-			list_add_tail (&cmsg->item, &aim->cmsg_head);
+			list_add_tail (&cmsg->item, &msg->cmsg_head);
 		}
-		rcv_msgbuf_head_add (sb, aim);
-		SKLOG_DEBUG (sb, "%d sock recv one message", sb->fd);
+		rcv_msgbuf_head_add (sb, msg);
 	}
-	return rc;
-}
-
-static void bufio_add (struct bio *b, struct msgbuf *msg)
-{
-	struct list_head head = {};
-	struct msgbuf *nmsg;
-
-	INIT_LIST_HEAD (&head);
-	msgbuf_serialize (msg, &head);
-
-	walk_msg_s (msg, nmsg, &head) {
-		bio_write (b, msgbuf_base (msg), msgbuf_len (msg));
-		msgbuf_free (msg);
-	}
-}
-
-static int sg_send (struct sockbase *sb)
-{
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	int rc;
-	struct msgbuf *msg;
-	struct rex_iov *iov;
-	
-
-	/* First. sending the bufio caching */
-	if (bio_size (&tcps->out) > 0) {
-		if ((rc = bio_flush (&tcps->out, &tcps->ops)) < 0)
-			return rc;
-		if (bio_size (&tcps->out) > 0) {
-			errno = EAGAIN;
-			return -1;
-		}
-	}
-	/* Second. sending the scatter-gather iovec */
-	BUG_ON (bio_size (&tcps->out));
-	if (!tcps->iov_length)
-		return 0;
-	if ((rc = rex_sock_sendv (&tcps->s, tcps->biov + tcps->iov_start,
-				  tcps->iov_end - tcps->iov_start)) < 0)
-		return rc;
-	iov = &tcps->biov[tcps->iov_start];
-	while (rc >= iov->iov_len && iov < &tcps->biov[tcps->iov_end]) {
-		rc -= iov->iov_len;
-		msg = cont_of (iov->iov_base, struct msgbuf, chunk);
-		list_del_init (&msg->item);
-		msgbuf_free (msg);
-		iov++;
-	}
-	/* Cache the reset iovec into bufio  */
-	if (rc > 0) {
-		bio_write (&tcps->out, iov->iov_base + rc, iov->iov_len - rc);
-		msg = cont_of (iov->iov_base, struct msgbuf, chunk);
-		list_del_init (&msg->item);
-		msgbuf_free (msg);
-		rc = 0;
-		iov++;
-	}
-	tcps->iov_start = iov - tcps->biov;
-	BUG_ON (iov > &tcps->biov[tcps->iov_end]);
-	if (bio_size (&tcps->out) || tcps->iov_start < tcps->iov_end) {
-		errno = EAGAIN;
-		return -1;
-	}
-	if (tcps->iov_length > NELEM (tcps->iov, struct rex_iov))
-		mem_free (tcps->biov, tcps->iov_length * sizeof (struct rex_iov));
-	tcps->biov = 0;
-	tcps->iov_start = tcps->iov_end = tcps->iov_length = 0;
 	return 0;
 }
 
-static int sio_connector_sg (struct sockbase *sb)
+static void fill_msgbuf_iovs (struct sio_sock *tcps)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	int rc;
-	struct msgbuf *msg, *nmsg;
-	struct rex_iov *iov;
+	int n = NELEM (tcps->un_iov, struct rex_iov);
+	int i = 0;
+	struct msgbuf *msg, *tmp;
 
-	while ((rc = sg_send (sb)) == 0) {
-		BUG_ON (!list_empty (&tcps->sg_head));
-
-		/* Third. serialize the queue message for send */
-		while ((msg = snd_msgbuf_head_rm (sb)) )
-			tcps->iov_length += msgbuf_serialize (msg, &tcps->sg_head);
-		if (tcps->iov_length <= 0) {
-			errno = EAGAIN;
-			return -1;
-		}
-		tcps->iov_end = tcps->iov_length;
-		if (tcps->iov_length <= NELEM (tcps->iov, struct rex_iov)) {
-			tcps->biov = &tcps->iov[0];
-		} else {
-			/* BUG here ? */
-			tcps->biov = NTNEW (struct rex_iov, tcps->iov_length);
-			BUG_ON (!tcps->biov);
-		}
-		iov = tcps->biov;
-		walk_msg_s (msg, nmsg, &tcps->sg_head) {
-			list_del_init (&msg->item);
-			iov->iov_base = msgbuf_base (msg);
-			iov->iov_len = msgbuf_len (msg);
-			iov++;
-		}
+	walk_each_entry_s (msg, tmp, &tcps->un_head, struct msgbuf, item) {
+		if (i < n - tcps->un_snd)
+			continue;
+		tcps->un_snd--;
+		tcps->un_iov[i].iov_len = msgbuf_len (msg);
+		tcps->un_iov[i].iov_base = msgbuf_base (msg);
+		i++;
 	}
-	return rc;
 }
 
 static int sio_connector_snd (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	int rc;
+	i64 nbytes;
+	int i;
+	int n;
 	struct msgbuf *msg;
 
-	sio_connector_sg (sb);
-	while ((msg = snd_msgbuf_head_rm (sb)) )
-		bufio_add (&tcps->out, msg);
-	rc = bio_flush (&tcps->out, &tcps->ops);
-	return rc;
+	n = NELEM (tcps->un_iov, struct rex_iov);
+	if (tcps->un_snd > 0 && (msg = snd_msgbuf_head_rm (sb)))
+		msgbuf_serialize (msg, &tcps->un_head);
+	fill_msgbuf_iovs (tcps);
+	if (tcps->un_snd == n) {
+		errno = EAGAIN;
+		return -1;   /* no available msgbuf needed send */
+	}
+	if ((nbytes = rex_sock_sendv (&tcps->s, tcps->un_iov, n - tcps->un_snd)) < 0)
+		return -1;
+	SKLOG_NOTICE (sb, "%d sock send %ld bytes into network", sb->fd, nbytes);
+	for (i = 0; i < n - tcps->un_snd; i++) {
+		if (nbytes < tcps->un_iov[i].iov_len) {
+			tcps->un_iov[i].iov_base += nbytes;
+			tcps->un_iov[i].iov_len -= nbytes;
+			break;
+		}
+		msg = list_first (&tcps->un_head, struct msgbuf, item);
+		list_del_init (&msg->item);
+		msgbuf_free (msg);
+		SKLOG_NOTICE (sb, "%d sock send msg into network", sb->fd);
+	}
+	tcps->un_snd += i;
+	memmove (tcps->un_iov, tcps->un_iov + i, n - tcps->un_snd);
+	return 0;
 }
 
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
@@ -401,15 +325,15 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 	struct sockbase *sb = &cont_of (evfd, struct sio_sock, et)->base;
 
 	if (events & EV_READ) {
-		SKLOG_DEBUG (sb, "io sock %d EV_READ", sb->fd);
+		SKLOG_DEBUG (sb, "%d sock EV_READ", sb->fd);
 		rc = sio_connector_rcv (sb);
 	}
 	if (events & EV_WRITE) {
-		SKLOG_DEBUG (sb, "io sock %d EV_WRITE", sb->fd);
+		SKLOG_DEBUG (sb, "%d sock EV_WRITE", sb->fd);
 		rc = sio_connector_snd (sb);
 	}
 	if (rc < 0 && errno != EAGAIN) {
-		SKLOG_DEBUG (sb, "io sock %d EPIPE with events %d", sb->fd, events);
+		SKLOG_DEBUG (sb, "%d sock EPIPE with events %d", sb->fd, events);
 		mutex_lock (&sb->lock);
 		sb->flagset.epipe = true;
 		if (sb->rcv.waiters || sb->snd.waiters)

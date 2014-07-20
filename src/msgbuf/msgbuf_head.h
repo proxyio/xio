@@ -90,7 +90,6 @@ static inline int msgbuf_head_in_msg (struct msgbuf_head *bh, struct msgbuf *msg
 	return msgbuf_head_in (bh, get_ubuf (msg));
 }
 
-
 static inline void msgbuf_dequeue_all (struct msgbuf_head *bh, struct list_head *head)
 {
 	list_splice (&bh->head, head);

@@ -9,6 +9,7 @@
 #include "testutil.h"
 
 #define cnt 3
+int debuglv = 3;
 
 static void xclient (const char *pf)
 {
@@ -17,7 +18,6 @@ static void xclient (const char *pf)
 	char buf[1024] = {};
 	char *xbuf, *oob;
 	char host[1024];
-	int debuglv = 3;
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
@@ -25,7 +25,7 @@ static void xclient (const char *pf)
 	//xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
-		for (j = 0; j < 10; j++) {
+		for (j = 0; j < 2; j++) {
 			xbuf = ubuf_alloc (nbytes);
 			memcpy (xbuf, buf, nbytes);
 
@@ -36,7 +36,7 @@ static void xclient (const char *pf)
 			BUG_ON (xsend (sfd, xbuf));
 			DEBUG_OFF ("%d send request %d", sfd, j);
 		}
-		for (j = 0; j < 10; j++) {
+		for (j = 0; j < 2; j++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
 			DEBUG_OFF ("%d recv response %d", sfd, j);
 			BUG_ON (memcmp (xbuf, buf, nbytes) != 0);
@@ -69,7 +69,9 @@ static void xserver()
 	for (j = 0; j < 2; j++) {
 		BUG_ON ( (sfd = xaccept (afd) ) < 0);
 		DEBUG_OFF ("xserver accept %d", sfd);
-		for (i = 0; i < cnt * 10; i++) {
+		//xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
+
+		for (i = 0; i < cnt * 2; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf) );
 			DEBUG_OFF ("%d recv", sfd);
 			ubuf = ubuf_alloc (ubuf_len (xbuf));
