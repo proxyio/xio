@@ -117,20 +117,22 @@ struct sockbase_vfptr tcp_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_TCP,
 	.alloc = tcp_alloc,
+	.signal = 0,
+	.getopt = sio_getopt,
+	.setopt = sio_setopt,
 	.send = 0,
 	.bind = sio_listener_bind,
 	.close = sio_listener_close,
-	.getopt = 0,
-	.setopt = 0,
 };
 
 struct sockbase_vfptr ipc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_IPC,
 	.alloc = ipc_alloc,
+	.signal = 0,
+	.getopt = sio_getopt,
+	.setopt = sio_setopt,
 	.send = 0,
 	.bind = sio_listener_bind,
 	.close = sio_listener_close,
-	.getopt = 0,
-	.setopt = 0,
 };

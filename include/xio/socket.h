@@ -28,10 +28,12 @@
 #include <xio/cmsghdr.h>
 
 /* Following socktype are provided */
-#define XLISTENER       1
-#define XCONNECTOR      2
+enum {
+	XLISTENER       =    1,
+	XCONNECTOR,
+	XSOCKADDRLEN    =   128,
+};
 
-#define XSOCKADDRLEN 128
 int xlisten (const char *sockaddr);
 int xaccept (int fd);
 int xconnect (const char *sockaddr);
@@ -40,25 +42,22 @@ int xrecv (int fd, char **ubuf);
 int xsend (int fd, char *ubuf);
 int xclose (int fd);
 
-/* Following sockopt-level are provided */
-#define XL_SOCKET          1
-
 /* Following sockopt-field are provided */
-#define XNOBLOCK           0
-#define XSNDWIN            1
-#define XRCVWIN            2
-#define XSNDBUF            3
-#define XRCVBUF            4
-#define XLINGER            5
-#define XSNDTIMEO          6
-#define XRCVTIMEO          7
-#define XRECONNECT         8
-#define XSOCKTYPE          9
-#define XSOCKPROTO         10
-#define XDEBUGON           11
+enum {
+	XSO_LINGER       =     0,
+	XSO_SNDBUF,
+	XSO_RCVBUF,
+	XSO_NOBLOCK,
+	XSO_NODELAY,
+	XSO_SNDTIMEO,
+	XSO_RCVTIMEO,
+	XSO_SOCKTYPE,
+	XSO_SOCKPROTO,
+	XSO_VERBOSE,
+};
 
-int xsetopt (int fd, int level, int opt, void *optval, int optlen);
-int xgetopt (int fd, int level, int opt, void *optval, int *optlen);
+int xsetopt (int fd, int opt, void *optval, int optlen);
+int xgetopt (int fd, int opt, void *optval, int *optlen);
 
 #include <xio/cplusplus_endif.h>
 #endif

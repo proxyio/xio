@@ -85,13 +85,17 @@ static struct sockbase *mix_alloc () {
 	return &self->base;
 }
 
+extern int mix_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
+extern int mix_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
+
 struct sockbase_vfptr mix_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_MIX,
 	.alloc = mix_alloc,
+	.signal = 0,
+	.setopt = mix_setopt,
+	.getopt = mix_getopt,
 	.send = 0,
 	.bind = mix_listener_bind,
 	.close = mix_listener_close,
-	.setopt = 0,
-	.getopt = 0,
 };

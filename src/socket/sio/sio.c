@@ -350,11 +350,11 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 	.pf = XAF_TCP,
 	.alloc = tcp_alloc,
 	.signal = sio_connector_signal,
+	.getopt = sio_getopt,
+	.setopt = sio_setopt,
 	.send = sio_connector_send,
 	.bind = sio_connector_bind,
 	.close = sio_connector_close,
-	.setopt = 0,
-	.getopt = 0,
 };
 
 struct sockbase_vfptr ipc_connector_vfptr = {
@@ -362,9 +362,9 @@ struct sockbase_vfptr ipc_connector_vfptr = {
 	.pf = XAF_IPC,
 	.alloc = ipc_alloc,
 	.signal = sio_connector_signal,
+	.getopt = sio_getopt,
+	.setopt = sio_setopt,
 	.send = sio_connector_send,
 	.bind = sio_connector_bind,
 	.close = sio_connector_close,
-	.setopt = 0,
-	.getopt = 0,
 };

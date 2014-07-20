@@ -80,7 +80,7 @@ int sp_add (int eid, int fd)
 			return -1;
 		}
 	}
-	xsetopt (fd, XL_SOCKET, XNOBLOCK, &on, sizeof (on) );
+	xsetopt (fd, XSO_NOBLOCK, &on, sizeof (on) );
 	eid_put (eid);
 	return 0;
 }

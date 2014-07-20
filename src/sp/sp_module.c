@@ -88,7 +88,7 @@ static void listener_event_hndl (struct tgtd *tg)
 	happened = tg->pollfd.happened;
 	if (happened & XPOLLIN) {
 		while ((fd = xaccept (tg->fd)) >= 0) {
-			rc = xsetopt (fd, XL_SOCKET, XNOBLOCK, &on, optlen);
+			rc = xsetopt (fd, XSO_NOBLOCK, &on, optlen);
 			BUG_ON (rc);
 			DEBUG_OFF ("%d join fd %d begin", ep->eid, fd);
 			if ( (ntg = ep->vfptr.join (ep, fd) ) < 0) {
@@ -129,15 +129,12 @@ static void epbase_close_bad_tgtds (struct epbase *ep)
 
 static void event_hndl (struct poll_fd *pollfd)
 {
-	int socktype = 0;
-	int optlen;
 	struct tgtd *tg = (struct tgtd *) pollfd->hndl;
 
 	BUG_ON (tg->fd != tg->pollfd.fd);
 	tg->pollfd.happened = pollfd->happened;
-	xgetopt (tg->fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen);
 
-	switch (socktype) {
+	switch (get_socktype (tg->fd)) {
 	case XCONNECTOR:
 		connector_event_hndl (tg);
 		break;
@@ -150,8 +147,6 @@ static void event_hndl (struct poll_fd *pollfd)
 
 	/* We do the bad_status tgtd closing work here */
 	epbase_close_bad_tgtds (tg->owner);
-
-	DEBUG_OFF (sleep (1) );
 }
 
 static void shutdown_epbase()

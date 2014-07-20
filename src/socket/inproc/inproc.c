@@ -43,10 +43,6 @@ static struct sockbase *inproc_alloc ()
 	return sb;
 }
 
-static void inproc_signal (struct sockbase *sb, int signo)
-{
-}
-
 static int inproc_send (struct sockbase *sb, char *ubuf)
 {
 	int rc;
@@ -129,14 +125,17 @@ static void inproc_connector_close (struct sockbase *sb)
 	}
 }
 
+extern int inproc_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
+extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
+
 struct sockbase_vfptr inproc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_INPROC,
 	.alloc = inproc_alloc,
-	.signal = inproc_signal,
+	.signal = 0,
+	.getopt = inproc_getopt,
+	.setopt = inproc_setopt,
 	.send = inproc_send,
 	.bind = inproc_connector_bind,
 	.close = inproc_connector_close,
-	.getopt = 0,
-	.setopt = 0,
 };

@@ -58,7 +58,7 @@ static inline int get_socktype (int fd)
 	int socktype = 0, rc;
 	int optlen = sizeof (socktype);
 
-	BUG_ON ( (rc = xgetopt (fd, XL_SOCKET, XSOCKTYPE, &socktype, &optlen) ) );
+	BUG_ON ( (rc = xgetopt (fd, XSO_SOCKTYPE, &socktype, &optlen) ) );
 	return socktype;
 }
 
