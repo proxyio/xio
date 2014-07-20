@@ -49,7 +49,7 @@ static inline int __waitgroup_incr (waitgroup_t *wg, int refs)
 static inline int __waitgroup_decr (waitgroup_t *wg, int refs)
 {
 	mutex_lock (&wg->mutex);
-	if ( (wg->ref -= refs) == 0)
+	if ((wg->ref -= refs) == 0)
 		condition_broadcast (&wg->cond);
 	mutex_unlock (&wg->mutex);
 	return 0;

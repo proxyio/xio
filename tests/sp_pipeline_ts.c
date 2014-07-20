@@ -18,16 +18,16 @@ static int req_thread (void *args)
 	char *sbuf, *rbuf;
 
 	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:15100");
-	randstr (buf, sizeof (buf) );
-	BUG_ON ( (eid = sp_endpoint (SP_REQREP, SP_REQ) ) < 0);
+	randstr (buf, sizeof (buf));
+	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
 	for (i = 0; i < 3; i++) {
-		BUG_ON ( (s = xconnect (host) ) < 0);
+		BUG_ON ((s = xconnect (host)) < 0);
 		BUG_ON (sp_add (eid, s) < 0);
 	}
 	for (i = 0; i < 9; i++) {
 		sbuf = rbuf = 0;
-		sbuf = ubuf_alloc (sizeof (buf) );
-		memcpy (sbuf, buf, sizeof (buf) );
+		sbuf = ubuf_alloc (sizeof (buf));
+		memcpy (sbuf, buf, sizeof (buf));
 		DEBUG_OFF ("producer send %d request: %10.10s", i, sbuf);
 		BUG_ON (sp_send (eid, sbuf) != 0);
 		while (sp_recv (eid, &rbuf) != 0) {
@@ -35,8 +35,8 @@ static int req_thread (void *args)
 		}
 		DEBUG_OFF ("producer recv %d resp: %10.10s", i, rbuf);
 		DEBUG_OFF ("----------------------------------------");
-		BUG_ON (ubuf_len (rbuf) != sizeof (buf) );
-		BUG_ON (memcmp (rbuf, buf, sizeof (buf) ) != 0);
+		BUG_ON (ubuf_len (rbuf) != sizeof (buf));
+		BUG_ON (memcmp (rbuf, buf, sizeof (buf)) != 0);
 		ubuf_free (rbuf);
 	}
 	sp_close (eid);
@@ -52,16 +52,16 @@ static int proxy_thread (void *args)
 	int s;
 	int front_eid, back_eid;
 
-	BUG_ON ( (front_eid = sp_endpoint (SP_REQREP, SP_REP) ) < 0);
-	BUG_ON ( (back_eid = sp_endpoint (SP_REQREP, SP_REQ) ) < 0);
+	BUG_ON ((front_eid = sp_endpoint (SP_REQREP, SP_REP)) < 0);
+	BUG_ON ((back_eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
 
-	BUG_ON ( (s = xlisten (fronthost) ) < 0);
+	BUG_ON ((s = xlisten (fronthost)) < 0);
 	BUG_ON (sp_add (front_eid, s) < 0);
 
-	BUG_ON ( (s = xlisten (backhost) ) < 0);
+	BUG_ON ((s = xlisten (backhost)) < 0);
 	BUG_ON (sp_add (back_eid, s) < 0);
 
-	BUG_ON (sp_setopt (back_eid, SP_PROXY, &front_eid, sizeof (front_eid) ) );
+	BUG_ON (sp_setopt (back_eid, SP_PROXY, &front_eid, sizeof (front_eid)) );
 	proxy_stopped = 0;
 	while (!proxy_stopped)
 		usleep (20000);
@@ -88,10 +88,10 @@ int main (int argc, char **argv)
 	thread_start (&pyt, proxy_thread, 0);
 	while (proxy_stopped)
 		usleep (20000);
-	BUG_ON ( (eid = sp_endpoint (SP_REQREP, SP_REP) ) < 0);
+	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REP)) < 0);
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		sprintf (host, "%s%s", pf[i], addr);
-		BUG_ON ( (s = xconnect (host) ) < 0);
+		BUG_ON ((s = xconnect (host)) < 0);
 		BUG_ON (sp_add (eid, s) < 0);
 	}
 	for (i = 0; i < NELEM (t, thread_t); i++) {
@@ -104,7 +104,7 @@ int main (int argc, char **argv)
 		}
 		DEBUG_OFF ("comsumer recv %d requst: %10.10s", i, ubuf);
 		BUG_ON (ubufctl_num (ubuf) != 1);
-		BUG_ON (sp_send (eid, ubuf) );
+		BUG_ON (sp_send (eid, ubuf));
 	}
 
 	for (i = 0; i < NELEM (t, thread_t); i++) {

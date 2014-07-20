@@ -37,7 +37,7 @@ char *fp_join (const char *p1, const char *p2)
 	int len = strlen (p1) + strlen (p2) + 2;
 	char *p3 = NULL;
 
-	if (! (p3 = mem_zalloc (len) ) )
+	if (! (p3 = mem_zalloc (len)) )
 		goto EXIT;
 	snprintf (p3, len, "%s/%s", p1, p2);
 EXIT:
@@ -63,7 +63,7 @@ char *fp_base (const char *path)
 
 	if (!p)
 		return NULL;
-	base = strdup (basename (p) );
+	base = strdup (basename (p));
 	free (p);
 	return base;
 }
@@ -74,7 +74,7 @@ char *fp_dir (const char *path)
 
 	if (!p)
 		return NULL;
-	dir = strdup (dirname (p) );
+	dir = strdup (dirname (p));
 	free (p);
 	return dir;
 }
@@ -88,13 +88,13 @@ int fp_isabs (const char *path)
 
 int fp_hasprefix (const char *path, const char *prefix)
 {
-	return strlen (path) >= strlen (prefix) && memcmp (path, prefix, strlen (prefix) ) == 0;
+	return strlen (path) >= strlen (prefix) && memcmp (path, prefix, strlen (prefix)) == 0;
 }
 
 int fp_hassuffix (const char *path, const char *suffix)
 {
 	return strlen (path) >= strlen (suffix) &&
-	       memcmp (path + strlen (path) - strlen (suffix), suffix, strlen (suffix) ) == 0;
+	       memcmp (path + strlen (path) - strlen (suffix), suffix, strlen (suffix)) == 0;
 }
 
 
@@ -105,23 +105,23 @@ static int __walk (filepath_t *fp, const char *root, walkFn f, void *args)
 	struct stat finfo = {};
 	struct dirent *dir = NULL;
 
-	if ( (dp = opendir (root) ) == NULL)
+	if ((dp = opendir (root)) == NULL)
 		return -1;
-	while ( (dir = readdir (dp) ) != NULL) {
-		if (STREQ (dir->d_name, ".") || STREQ (dir->d_name, "..") )
+	while ((dir = readdir (dp)) != NULL) {
+		if (STREQ (dir->d_name, ".") || STREQ (dir->d_name, ".."))
 			continue;
 		subpath = fp_join (root, dir->d_name);
 		if (stat (subpath, &finfo) < 0) {
 			free (subpath);
 			continue;
 		}
-		if ( ( (fp->mask & W_FILE) && S_ISREG (finfo.st_mode) )
-		     || ( (fp->mask & W_DIR) && S_ISDIR (finfo.st_mode) )
-		     || (fp->mask & (W_FILE|W_DIR) ) == (W_FILE|W_DIR) )
+		if (( (fp->mask & W_FILE) && S_ISREG (finfo.st_mode))
+		     || ((fp->mask & W_DIR) && S_ISDIR (finfo.st_mode))
+		     || (fp->mask & (W_FILE|W_DIR)) == (W_FILE|W_DIR))
 			f (subpath, args);
-		if (S_ISDIR (finfo.st_mode) ) {
+		if (S_ISDIR (finfo.st_mode)) {
 			fp->cur_deep++;
-			if (fp->max_deep == 0 || (fp->max_deep > 0 && fp->cur_deep < fp->max_deep) )
+			if (fp->max_deep == 0 || (fp->max_deep > 0 && fp->cur_deep < fp->max_deep))
 				__walk (fp, subpath, f, args);
 			fp->cur_deep--;
 		}

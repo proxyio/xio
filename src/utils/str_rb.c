@@ -62,11 +62,11 @@ struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size)
 		parent = *np;
 		cur = rb_entry (parent, struct str_rbe, rb);
 		keylen = cur->keylen > size ? size : cur->keylen;
-		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && size == cur->keylen)
+		if ((rc = memcmp (cur->key, key, keylen)) == 0 && size == cur->keylen)
 			return cur;
-		if ( (!rc && size < cur->keylen) || rc > 0)
+		if ((!rc && size < cur->keylen) || rc > 0)
 			np = &parent->rb_left;
-		else if ( (!rc && size > cur->keylen) || rc < 0)
+		else if ((!rc && size > cur->keylen) || rc < 0)
 			np = &parent->rb_right;
 	}
 	return NULL;
@@ -85,11 +85,11 @@ int str_rb_insert (struct str_rb *map, struct str_rbe *entry)
 		parent = *np;
 		cur = rb_entry (parent, struct str_rbe, rb);
 		keylen = cur->keylen > entry->keylen ? entry->keylen : cur->keylen;
-		if ( (rc = memcmp (cur->key, key, keylen) ) == 0 && entry->keylen == cur->keylen)
+		if ((rc = memcmp (cur->key, key, keylen)) == 0 && entry->keylen == cur->keylen)
 			return -1;
-		if ( (!rc && entry->keylen < cur->keylen) || rc > 0)
+		if ((!rc && entry->keylen < cur->keylen) || rc > 0)
 			np = &parent->rb_left;
-		else if ( (!rc && entry->keylen > cur->keylen) || rc < 0)
+		else if ((!rc && entry->keylen > cur->keylen) || rc < 0)
 			np = &parent->rb_right;
 	}
 	rb_link_node (&entry->rb, parent, np);

@@ -19,13 +19,13 @@ static void xclient (const char *pf)
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:18897");
 	randstr (buf, 1024);
-	BUG_ON ( (sfd = xconnect (host) ) < 0);
+	BUG_ON ((sfd = xconnect (host)) < 0);
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
 		ubuf = ubuf_alloc (nbytes);
 		memcpy (ubuf, buf, nbytes);
-		BUG_ON (0 != xsend (sfd, ubuf) );
-		BUG_ON (0 != xrecv (sfd, &ubuf) );
+		BUG_ON (0 != xsend (sfd, ubuf));
+		BUG_ON (0 != xrecv (sfd, &ubuf));
 		DEBUG_OFF ("%d recv response", sfd);
 		assert (memcmp (ubuf, buf, nbytes) == 0);
 		ubuf_free (ubuf);
@@ -48,18 +48,18 @@ int main (int argc, char **argv)
 	int afd, sfd, tmp;
 	thread_t cli_thread = {};
 
-	BUG_ON ( (afd = xlisten ("mix://inproc://127.0.0.1:18897+tcp://127.0.0.1:18897+ipc://127.0.0.1:18897") ) < 0);
+	BUG_ON ((afd = xlisten ("mix://inproc://127.0.0.1:18897+tcp://127.0.0.1:18897+ipc://127.0.0.1:18897")) < 0);
 	thread_start (&cli_thread, xclient_thread, 0);
 	usleep (100000);
 	BUG_ON (xselect (XPOLLIN, 1, &afd, 1, &tmp) <= 0);
 	for (j = 0; j < 3; j++) {
-		BUG_ON ( (sfd = xaccept (afd) ) < 0);
+		BUG_ON ((sfd = xaccept (afd)) < 0);
 		for (i = 0; i < cnt; i++) {
 			while (xselect (XPOLLIN, 1, &sfd, 1, &tmp) <= 0)
 				usleep (10000);
 			BUG_ON (tmp != sfd);
-			BUG_ON (0 != xrecv (sfd, &ubuf) );
-			BUG_ON (0 != xsend (sfd, ubuf) );
+			BUG_ON (0 != xrecv (sfd, &ubuf));
+			BUG_ON (0 != xsend (sfd, ubuf));
 		}
 		xclose (sfd);
 	}

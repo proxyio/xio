@@ -35,7 +35,7 @@ static void bus_ep_destroy (struct epbase *ep)
 {
 	struct bus_ep *bus_ep = cont_of (ep, struct bus_ep, base);
 	epbase_exit (ep);
-	mem_free (bus_ep, sizeof (*bus_ep) );
+	mem_free (bus_ep, sizeof (*bus_ep));
 }
 
 /* Send message to all targets in the connectors list_head. here just save
@@ -110,7 +110,7 @@ static struct tgtd *bus_ep_join (struct epbase *ep, int fd)
 
 static void bus_ep_term (struct epbase *ep, struct tgtd *tg)
 {
-	bus_tgtd_free (get_bus_tgtd (tg) );
+	bus_tgtd_free (get_bus_tgtd (tg));
 }
 
 

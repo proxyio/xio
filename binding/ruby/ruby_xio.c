@@ -33,7 +33,7 @@ static VALUE rb_sp_endpoint (VALUE self, VALUE sp_family, VALUE sp_type)
 	int _sp_family = FIX2INT (sp_family);
 	int _sp_type = FIX2INT (sp_type);
 
-	return INT2FIX (sp_endpoint (_sp_family, _sp_type) );
+	return INT2FIX (sp_endpoint (_sp_family, _sp_type));
 }
 
 
@@ -41,7 +41,7 @@ static VALUE rb_sp_close (VALUE self, VALUE eid)
 {
 	int _eid = FIX2INT (eid);
 
-	return INT2FIX (sp_close (_eid) );
+	return INT2FIX (sp_close (_eid));
 }
 
 
@@ -86,7 +86,7 @@ static VALUE rb_sp_add (VALUE self, VALUE eid, VALUE fd)
 	int _eid = FIX2INT (eid);
 	int _fd = FIX2INT (fd);
 
-	return INT2FIX (sp_add (_eid, _fd) );
+	return INT2FIX (sp_add (_eid, _fd));
 }
 
 static VALUE rb_sp_rm (VALUE self, VALUE eid, VALUE fd)
@@ -94,7 +94,7 @@ static VALUE rb_sp_rm (VALUE self, VALUE eid, VALUE fd)
 	int _eid = FIX2INT (eid);
 	int _fd = FIX2INT (fd);
 
-	return INT2FIX (sp_rm (_eid, _fd) );
+	return INT2FIX (sp_rm (_eid, _fd));
 }
 
 
@@ -113,7 +113,7 @@ static VALUE rb_sp_listen (VALUE self, VALUE eid, VALUE sockaddr)
 	int _eid = FIX2INT (eid);
 	const char *_sockaddr = RSTRING (sockaddr)->ptr;
 
-	return INT2FIX (sp_listen (_eid, _sockaddr) );
+	return INT2FIX (sp_listen (_eid, _sockaddr));
 }
 
 static VALUE rb_sp_connect (VALUE self, VALUE eid, VALUE sockaddr)
@@ -121,7 +121,7 @@ static VALUE rb_sp_connect (VALUE self, VALUE eid, VALUE sockaddr)
 	int _eid = FIX2INT (eid);
 	const char *_sockaddr = RSTRING (sockaddr)->ptr;
 
-	return INT2FIX (sp_connect (_eid, _sockaddr) );
+	return INT2FIX (sp_connect (_eid, _sockaddr));
 }
 
 
@@ -150,7 +150,7 @@ void Init_xio()
 
 	for (i = 0; i < NELEM (const_symbols, struct sym_kv); i++) {
 		sym = &const_symbols[i];
-		rb_define_global_const (sym->name, INT2FIX (sym->value) );
+		rb_define_global_const (sym->name, INT2FIX (sym->value));
 	}
 
 	rb_define_global_function ("sp_endpoint",     rb_sp_endpoint,    2);

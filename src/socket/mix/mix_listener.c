@@ -74,7 +74,7 @@ static void mix_listener_close (struct sockbase *sb)
 	}
 
 	sockbase_exit (sb);
-	mem_free (sb, sizeof (*sb) );
+	mem_free (sb, sizeof (*sb));
 }
 
 static struct sockbase *mix_alloc () {

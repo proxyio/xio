@@ -38,7 +38,7 @@ static void repep_destroy (struct epbase *ep)
 	struct repep *repep = cont_of (ep, struct repep, base);
 	BUG_ON (!repep);
 	epbase_exit (ep);
-	mem_free (repep, sizeof (*repep) );
+	mem_free (repep, sizeof (*repep));
 }
 
 static int repep_send (struct epbase *ep, char *ubuf)
@@ -49,7 +49,7 @@ static int repep_send (struct epbase *ep, char *ubuf)
 	struct tgtd *tg = 0;
 
 	mutex_lock (&ep->lock);
-	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rep_tgtd (tg)->uuid, rt->uuid) );
+	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rep_tgtd (tg)->uuid, rt->uuid));
 	if (tg)
 		list_move (&tg->item, &ep->connectors);
 	mutex_unlock (&ep->lock);
@@ -68,7 +68,7 @@ static int repep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	struct rtentry *rt = rt_cur (ubuf);
 
-	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid) )
+	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid))
 		uuid_copy (get_rep_tgtd (tg)->uuid, rt->uuid);
 	DEBUG_OFF ("ep %d recv req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
 	mutex_lock (&ep->lock);

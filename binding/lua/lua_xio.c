@@ -43,14 +43,14 @@ static int lua_sp_endpoint (lua_State *L)
 {
 	int sp_family = luaL_checkint (L, 1);
 	int sp_type = luaL_checkint (L, 2);
-	lua_pushnumber (L, sp_endpoint (sp_family, sp_type) );
+	lua_pushnumber (L, sp_endpoint (sp_family, sp_type));
 	return 1;
 }
 
 static int lua_sp_close (lua_State *L)
 {
 	int eid = luaL_checkint (L, 1);
-	lua_pushnumber (L, sp_close (eid) );
+	lua_pushnumber (L, sp_close (eid));
 	return 1;
 }
 
@@ -112,7 +112,7 @@ static int lua_sp_add (lua_State *L)
 {
 	int eid = luaL_checkint (L, 1);
 	int sockfd = luaL_checkint (L, 2);
-	lua_pushnumber (L, sp_add (eid, sockfd) );
+	lua_pushnumber (L, sp_add (eid, sockfd));
 	return 1;
 }
 
@@ -120,7 +120,7 @@ static int lua_sp_rm (lua_State *L)
 {
 	int eid = luaL_checkint (L, 1);
 	int sockfd = luaL_checkint (L, 2);
-	lua_pushnumber (L, sp_rm (eid, sockfd) );
+	lua_pushnumber (L, sp_rm (eid, sockfd));
 	return 1;
 }
 
@@ -139,7 +139,7 @@ static int lua_sp_connect (lua_State *L)
 {
 	int eid = luaL_checkint (L, 1);
 	const char *sockaddr = luaL_checkstring (L, 2);
-	lua_pushnumber (L, sp_connect (eid, sockaddr) );
+	lua_pushnumber (L, sp_connect (eid, sockaddr));
 	return 1;
 }
 
@@ -148,7 +148,7 @@ static int lua_sp_listen (lua_State *L)
 {
 	int eid = luaL_checkint (L, 1);
 	const char *sockaddr = luaL_checkstring (L, 2);
-	lua_pushnumber (L, sp_listen (eid, sockaddr) );
+	lua_pushnumber (L, sp_listen (eid, sockaddr));
 	return 1;
 }
 

@@ -37,7 +37,7 @@ int bio_empty (struct bio *b)
 static inline bio_page_t *bio_first (struct bio *b)
 {
 	bio_page_t *bp = NULL;
-	if (!list_empty (&b->page_head) )
+	if (!list_empty (&b->page_head))
 		bp = list_first (&b->page_head, bio_page_t, page_link);
 	return bp;
 }
@@ -45,7 +45,7 @@ static inline bio_page_t *bio_first (struct bio *b)
 static inline bio_page_t *bio_last (struct bio *b)
 {
 	bio_page_t *bp = NULL;
-	if (!list_empty (&b->page_head) )
+	if (!list_empty (&b->page_head))
 		bp = list_last (&b->page_head, bio_page_t, page_link);
 	return bp;
 }
@@ -94,8 +94,8 @@ bio_page_read (bio_page_t *bp, char *buff, int64_t sz)
 static inline int64_t
 bio_page_write (bio_page_t *bp, const char *buff, int64_t sz)
 {
-	sz = (PAGE_SIZE - (bp->end - bp->start) ) > sz ?
-	     sz : (PAGE_SIZE - (bp->end - bp->start) );
+	sz = (PAGE_SIZE - (bp->end - bp->start)) > sz ?
+	     sz : (PAGE_SIZE - (bp->end - bp->start));
 	memcpy (bp->page + bp->end, buff, sz);
 	bp->end += sz;
 	return sz;
@@ -111,7 +111,7 @@ void bio_reset (struct bio *b)
 	bio_page_t *bp, *tmp;
 	walk_each_page_s (bp, tmp, &b->page_head) {
 		list_del (&bp->page_link);
-		mem_free (bp, sizeof (*bp) );
+		mem_free (bp, sizeof (*bp));
 	}
 }
 
@@ -134,12 +134,12 @@ static inline int bio_shrink_one_page (struct bio *b)
 {
 	bio_page_t *bp;
 
-	if (list_empty (&b->page_head) )
+	if (list_empty (&b->page_head))
 		return -1;
 	bp = bio_last (b);
 	list_del (&bp->page_link);
 	b->pno--;
-	mem_free (bp, sizeof (*bp) );
+	mem_free (bp, sizeof (*bp));
 	return 0;
 }
 
@@ -164,9 +164,9 @@ int64_t bio_read (struct bio *b, char *buff, int64_t sz)
 	while (!list_empty (&b->page_head) && nbytes < sz) {
 		bp = bio_first (b);
 		nbytes += bio_page_read (bp, buff + nbytes, sz - nbytes);
-		if (bio_page_empty (bp) ) {
+		if (bio_page_empty (bp)) {
 			list_del (&bp->page_link);
-			mem_free (bp, sizeof (*bp) );
+			mem_free (bp, sizeof (*bp));
 		}
 	}
 	b->bsize -= nbytes;
@@ -176,7 +176,7 @@ int64_t bio_read (struct bio *b, char *buff, int64_t sz)
 static inline int is_time_to_expand (struct bio *b)
 {
 	bio_page_t *bp = bio_last (b);
-	if (list_empty (&b->page_head) || bio_page_full (bp) )
+	if (list_empty (&b->page_head) || bio_page_full (bp))
 		return true;
 	return false;
 }
@@ -203,12 +203,12 @@ int64_t bio_flush (struct bio *b, struct io *io_ops)
 	int64_t nbytes = 0, sum = 0;
 	char page[PAGE_SIZE];
 
-	while (!list_empty (&b->page_head) ) {
-		if ( (nbytes = io_ops->write (io_ops, page, bio_copy (b, page,
-		                              PAGE_SIZE) ) ) < 0)
+	while (!list_empty (&b->page_head)) {
+		if ((nbytes = io_ops->write (io_ops, page, bio_copy (b, page,
+		                              PAGE_SIZE)) ) < 0)
 			break;
 		sum += nbytes;
-		BUG_ON (nbytes != bio_read (b, page, nbytes) );
+		BUG_ON (nbytes != bio_read (b, page, nbytes));
 	}
 	if (nbytes < 0 && errno != EAGAIN && sum == 0)
 		return -1;
@@ -220,7 +220,7 @@ int64_t bio_prefetch (struct bio *b, struct io *io_ops)
 	int64_t nbytes, sum = 0;
 	char page[PAGE_SIZE];
 
-	while ( (nbytes = io_ops->read (io_ops, page, PAGE_SIZE) ) >= 0)
+	while ((nbytes = io_ops->read (io_ops, page, PAGE_SIZE)) >= 0)
 		sum += bio_write (b, page, nbytes);
 	if (nbytes < 0 && errno != EAGAIN && sum == 0)
 		return -1;

@@ -13,7 +13,7 @@ static int cmpint64 (const void *p1, const void *p2)
 	/* The actual arguments to this function are "pointers to
 	   pointers to char", but strcmp(3) arguments are "pointers
 	   to char", hence the following cast plus dereference */
-	return * ( (int64_t *) p1) - * ( (int64_t *) p2);
+	return * ((int64_t *) p1) - * ((int64_t *) p2);
 }
 
 
@@ -28,7 +28,7 @@ static int i64_rb_test_single()
 	i64_rb_init (&tree);
 
 	for (i = 0; i < cnt; i++) {
-		BUG_ON ( (node = (struct i64_rbe *) mem_zalloc (sizeof (struct i64_rbe) ) ) == NULL);
+		BUG_ON ((node = (struct i64_rbe *) mem_zalloc (sizeof (struct i64_rbe)) ) == NULL);
 		node->key = rand() + 1;
 		if (min_val == 0 || node->key < min_val)
 			min_val = node->key;

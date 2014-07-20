@@ -48,7 +48,7 @@ int acceptq_add (struct sockbase *sb, struct sockbase *new)
 
 int __acceptq_rm_nohup (struct sockbase *sb, struct sockbase **new)
 {
-	if (!list_empty (&sb->acceptq.head) ) {
+	if (!list_empty (&sb->acceptq.head)) {
 		*new = list_first (&sb->acceptq.head, struct sockbase, acceptq.link);
 		list_del_init (& (*new)->acceptq.link);
 		return 0;
@@ -107,7 +107,7 @@ int xlisten (const char *addr)
 	int pf = sockaddr_pf (addr);
 	char sockaddr[PATH_MAX] = {};
 
-	if (pf < 0 || sockaddr_addr (addr, sockaddr, sizeof (sockaddr) ) != 0) {
+	if (pf < 0 || sockaddr_addr (addr, sockaddr, sizeof (sockaddr)) != 0) {
 		errno = EPROTO;
 		return -1;
 	}
