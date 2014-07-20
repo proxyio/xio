@@ -36,10 +36,18 @@ int check_pollevents (struct sockbase *sb, int events)
 	int happened = 0;
 
 	if (events & XPOLLIN) {
-		if (sb->vfptr->type == XCONNECTOR)
-			happened |= !msgbuf_head_empty (&sb->rcv) ? XPOLLIN : 0;
-		else if (sb->vfptr->type == XLISTENER)
-			happened |= !list_empty (&sb->acceptq.head) ? XPOLLIN : 0;
+		switch (sb->vfptr->type) {
+		case XCONNECTOR:
+			if (!msgbuf_head_empty (&sb->rcv))
+				happened |= XPOLLIN;
+			break;
+		case XLISTENER:
+			if (!list_empty (&sb->acceptq.head))
+				happened |= XPOLLIN;
+			break;
+		default:
+			BUG_ON (1);
+		}
 	}
 	if (events & XPOLLOUT)
 		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
