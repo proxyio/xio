@@ -139,9 +139,9 @@ struct sockbase *ipc_open ()
 	return &tcps->base;
 }
 
-static void sio_connector_signal (struct sockbase *sb, int signo)
+static void sio_connector_notify (struct sockbase *sb, int ev)
 {
-	switch (signo) {
+	switch (ev) {
 	case EV_SNDBUF_EMPTY:
 		snd_msgbuf_head_empty_ev_hndl (sb);
 		break;
@@ -349,7 +349,7 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
 	.open = tcp_open,
-	.signal = sio_connector_signal,
+	.notify = sio_connector_notify,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
 	.send = sio_connector_send,
@@ -361,7 +361,7 @@ struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
 	.open = ipc_open,
-	.signal = sio_connector_signal,
+	.notify = sio_connector_notify,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
 	.send = sio_connector_send,
