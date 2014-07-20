@@ -54,6 +54,10 @@ enum {
 extern int default_sndbuf;
 extern int default_rcvbuf;
 
+struct sockbase;
+typedef int (*sock_seter) (struct sockbase *sb, void *optval, int optlen);
+typedef int (*sock_geter) (struct sockbase *sb, void *optval, int *optlen);
+
 extern const char *pf_str[];
 
 struct pollbase;
@@ -104,10 +108,8 @@ struct sockbase_vfptr {
 	void  (*close)  (struct sockbase *sb);
 	int   (*send)   (struct sockbase *sb, char *ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
-	int   (*setopt) (struct sockbase *sb, int level, int opt, void *optval,
-	                 int optlen);
-	int   (*getopt) (struct sockbase *sb, int level, int opt, void *optval,
-	                 int *optlen);
+	int   (*setopt) (struct sockbase *sb, int opt, void *optval, int optlen);
+	int   (*getopt) (struct sockbase *sb, int opt, void *optval, int *optlen);
 	struct list_head item;
 };
 
@@ -122,7 +124,7 @@ struct sockbase {
 	struct {
 		u64 non_block:1;
 		u64 epipe:1;
-		u64 debuglv:4;
+		u64 verbose:4;
 	} flagset;
 	struct ev_sig sig;
 	struct ev_loop *evl;

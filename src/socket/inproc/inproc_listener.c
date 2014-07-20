@@ -119,13 +119,17 @@ static void inproc_listener_close (struct sockbase *sb)
 	mem_free (self, sizeof (*self) );
 }
 
+extern int inproc_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
+extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
+
 struct sockbase_vfptr inproc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_INPROC,
 	.alloc = inproc_alloc,
+	.signal = 0,
+	.getopt = inproc_getopt,
+	.setopt = inproc_setopt,
 	.send = 0,
 	.bind = inproc_listener_bind,
 	.close = inproc_listener_close,
-	.getopt = 0,
-	.setopt = 0,
 };

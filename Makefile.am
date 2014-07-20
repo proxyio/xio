@@ -39,6 +39,7 @@ XIO_SOCKET = \
 	src/socket/setsockopt.c \
 	src/socket/listen.c \
 	src/socket/mix/mix_listener.c \
+	src/socket/mix/mix_getsetor.c \
 	src/socket/stats.c \
 	src/socket/send.c \
 	src/socket/recv.c \
@@ -48,10 +49,12 @@ XIO_SOCKET = \
 	src/socket/close.c \
 	src/socket/connect.c \
 	src/socket/sio/sio_listener.c \
+	src/socket/sio/sio_getsetor.c \
 	src/socket/sio/sio.c \
 	src/socket/sockbase.c \
 	src/socket/getsockopt.c \
 	src/socket/inproc/inproc.c \
+	src/socket/inproc/inproc_getsetor.c \
 	src/socket/inproc/inproc_listener.c
 
 

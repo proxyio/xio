@@ -37,6 +37,9 @@ struct sio_sock {
 	struct rex_iov un_iov[100];
 };
 
+int sio_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
+int sio_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
+
 extern struct sockbase_vfptr tcp_listener_vfptr;
 extern struct sockbase_vfptr tcp_connector_vfptr;
 extern struct sockbase_vfptr ipc_listener_vfptr;

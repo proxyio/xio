@@ -26,17 +26,17 @@
 #include <utils/log.h>
 
 
-#define SKLOG_DEBUG(s, fmt, ...)   LOG_DEBUG((s)->flagset.debuglv, fmt, ##__VA_ARGS__)
+#define SKLOG_DEBUG(s, fmt, ...)   LOG_DEBUG((s)->flagset.verbose, fmt, ##__VA_ARGS__)
 
-#define SKLOG_INFO(s, fmt, ...)    LOG_INFO((s)->flagset.debuglv, fmt, ##__VA_ARGS__)
+#define SKLOG_INFO(s, fmt, ...)    LOG_INFO((s)->flagset.verbose, fmt, ##__VA_ARGS__)
 
-#define SKLOG_NOTICE(s, fmt, ...)  LOG_NOTICE((s)->flagset.debuglv, fmt, ##__VA_ARGS__)
+#define SKLOG_NOTICE(s, fmt, ...)  LOG_NOTICE((s)->flagset.verbose, fmt, ##__VA_ARGS__)
 
-#define SKLOG_WARN(s, fmt, ...)    LOG_WARN((s)->flagset.debuglv, fmt, ##__VA_ARGS__)
+#define SKLOG_WARN(s, fmt, ...)    LOG_WARN((s)->flagset.verbose, fmt, ##__VA_ARGS__)
 
-#define SKLOG_ERROR(s, fmt, ...)   LOG_ERROR((s)->flagset.debuglv, fmt, ##__VA_ARGS__)
+#define SKLOG_ERROR(s, fmt, ...)   LOG_ERROR((s)->flagset.verbose, fmt, ##__VA_ARGS__)
 
-#define SKLOG_FATAL(s, fmt, ...)   LOG_FATAL((s)->flagset.debuglv, fmt, ##__VA_ARGS__)
+#define SKLOG_FATAL(s, fmt, ...)   LOG_FATAL((s)->flagset.verbose, fmt, ##__VA_ARGS__)
 
 
 #endif
