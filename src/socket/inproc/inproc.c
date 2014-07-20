@@ -32,7 +32,7 @@ extern struct sockbase *getlistener (const char *addr);
 static struct sockbase *inproc_alloc ()
 {
 	struct sockbase *sb;
-	struct inproc_sock *self = TNEW (struct inproc_sock);
+	struct inproc_sock *self = mem_zalloc (sizeof (struct inproc_sock));
 
 	if (!self)
 		return 0;
@@ -131,7 +131,7 @@ static void inproc_connector_close (struct sockbase *sb)
 
 struct sockbase_vfptr inproc_connector_vfptr = {
 	.type = XCONNECTOR,
-	.pf = TP_INPROC,
+	.pf = XAF_INPROC,
 	.alloc = inproc_alloc,
 	.signal = inproc_signal,
 	.send = inproc_send,

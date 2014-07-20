@@ -23,7 +23,7 @@
 #include "req_ep.h"
 
 static struct epbase *reqep_alloc() {
-	struct reqep *reqep = TNEW (struct reqep);
+	struct reqep *reqep = mem_zalloc (sizeof (struct reqep));
 
 	if (reqep) {
 		epbase_init (&reqep->base);
@@ -97,7 +97,7 @@ static void reqep_term (struct epbase *ep, struct tgtd *tg)
 }
 
 static struct tgtd *reqep_join (struct epbase *ep, int fd) {
-	struct req_tgtd *req_tg = TNEW (struct req_tgtd);
+	struct req_tgtd *req_tg = mem_zalloc (sizeof (struct req_tgtd));
 
 	if (!req_tg)
 		return 0;

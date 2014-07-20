@@ -32,7 +32,7 @@ struct __task {
 };
 
 static inline struct __task *__task_new() {
-	struct __task *te = TNEW (struct __task);
+	struct __task *te = mem_zalloc (sizeof (struct __task));
 	return te;
 }
 
@@ -40,7 +40,7 @@ static int __taskpool_push (taskpool_t *tp, thread_func func, void *data)
 {
 	struct __task *te = NULL;
 
-	if ( (te = __task_new() ) != NULL) {
+	if ( (te = __task_new()) != NULL) {
 		te->f = func;
 		te->data = data;
 		list_add_tail (&te->node, &tp->task_head);
@@ -54,7 +54,7 @@ static int taskpool_push (taskpool_t *tp, thread_func func, void *data)
 {
 	int rc = 0;
 	mutex_lock (&tp->mutex);
-	if ( (rc = __taskpool_push (tp, func, data) ) == 0)
+	if ( (rc = __taskpool_push (tp, func, data)) == 0)
 		condition_broadcast (&tp->cond);
 	mutex_unlock (&tp->mutex);
 	return rc;
@@ -63,7 +63,7 @@ static int taskpool_push (taskpool_t *tp, thread_func func, void *data)
 static struct __task *_taskpool_pop (taskpool_t *tp) {
 	struct __task *te = NULL;
 
-	if (!list_empty (&tp->task_head) ) {
+	if (!list_empty (&tp->task_head)) {
 		te = list_first (&tp->task_head, struct __task, node);
 		list_del (&te->node);
 		tp->tasks--;
@@ -74,7 +74,7 @@ static struct __task *_taskpool_pop (taskpool_t *tp) {
 static struct __task *taskpool_pop (taskpool_t *tp) {
 	struct __task *te = NULL;
 	mutex_lock (&tp->mutex);
-	if (!tp->stopping && ! (te = _taskpool_pop (tp) ) )
+	if (!tp->stopping && ! (te = _taskpool_pop (tp)) )
 		condition_wait (&tp->cond, &tp->mutex);
 	mutex_unlock (&tp->mutex);
 	return te;
@@ -93,10 +93,10 @@ static inline int __taskpool_runner (void *data)
 	struct __task *te = NULL;
 
 	while (!tp->stopping) {
-		if (! (te = taskpool_pop (tp) ) )
+		if (! (te = taskpool_pop (tp)) )
 			continue;
 		te->f (te->data);
-		mem_free (te, sizeof (*te) );
+		mem_free (te, sizeof (*te));
 	}
 	return 0;
 }
@@ -108,7 +108,7 @@ int taskpool_start (taskpool_t *tp)
 	if (!tp->stopping)
 		return -1;
 	tp->stopping = false;
-	while (tpos < (tp->threads + tp->workers) )
+	while (tpos < (tp->threads + tp->workers))
 		thread_start (*tpos++, __taskpool_runner, tp);
 	return 0;
 }
@@ -123,7 +123,7 @@ int taskpool_stop (taskpool_t *tp)
 	tp->stopping = true;
 	condition_broadcast (&tp->cond);
 	mutex_unlock (&tp->mutex);
-	while (tpos < (tp->threads + tp->workers) )
+	while (tpos < (tp->threads + tp->workers))
 		thread_stop (*tpos++);
 	return 0;
 }

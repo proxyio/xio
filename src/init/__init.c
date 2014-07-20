@@ -30,7 +30,6 @@ int gettid()
 extern void __ev_init ();
 extern void __rex_init ();
 extern void __poll_init ();
-extern void __tp_init ();
 extern void __socket_init ();
 extern void __sp_init ();
 
@@ -39,7 +38,6 @@ void __attribute__ ( (constructor) ) __modules_init (void)
 	__ev_init ();
 	__rex_init ();
 	__poll_init ();
-	__tp_init ();
 	__socket_init ();
 	__sp_init ();
 }
@@ -47,7 +45,6 @@ void __attribute__ ( (constructor) ) __modules_init (void)
 
 extern void __sp_exit ();
 extern void __socket_exit ();
-extern void __tp_exit ();
 extern void __poll_exit ();
 extern void __rex_exit ();
 extern void __ev_exit ();
@@ -56,7 +53,6 @@ void __attribute__ ( (destructor) ) __modules_exit (void)
 {
 	__sp_exit ();
 	__socket_exit ();
-	__tp_exit ();
 	__poll_exit ();
 	__rex_exit ();
 	__ev_exit ();

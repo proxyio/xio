@@ -20,26 +20,22 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_IPC_
-#define _H_PROXYIO_IPC_
+#ifndef _H_PROXYIO_SOCKADDR_
+#define _H_PROXYIO_SOCKADDR_
 
-#include <inttypes.h>
-#include "../transport.h"
+#include <utils/base.h>
 
+/* SOCKADDR example :
+ * ipc    token@ipc://tmp/ipc.sock
+ * net    token@net://182.33.49.10:8080
+ * inproc token@inproc://inproc.sock
+ */
+int sockaddr_token (const char *url, char *buff, u32 size);
 
-int ipc_bind (const char *sock);
-int ipc_connect (const char *peer);
-int ipc_accept (int fd);
-void ipc_close (int fd);
+int sockaddr_pf (const char *url);
 
-int ipc_setopt (int fd, int opt, void *optval, int optlen);
-int ipc_getopt (int fd, int opt, void *optval, int *optlen);
+int sockaddr_addr (const char *url, char *buff, u32 size);
 
-int64_t ipc_recv (int fd, char *buff, int64_t size);
-int64_t ipc_send (int fd, const char *buff, int64_t size);
-
-int ipc_sockname (int fd, char *sockname, int size);
-int ipc_peername (int fd, char *peername, int size);
 
 
 

@@ -31,14 +31,10 @@ struct sio_sock {
 	struct ev_fd et;
 	struct rex_sock s;
 	struct bio in;
-	struct bio out;
 	struct io ops;
-	struct rex_iov iov[100];
-	struct rex_iov *biov;
-	int iov_start;
-	int iov_end;
-	int iov_length;
-	struct list_head sg_head;
+	struct list_head un_head;
+	int un_snd;                  /* the number of un_iov */
+	struct rex_iov un_iov[100];
 };
 
 extern struct sockbase_vfptr tcp_listener_vfptr;

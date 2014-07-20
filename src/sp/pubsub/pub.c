@@ -23,7 +23,7 @@
 #include "pub.h"
 
 static struct epbase *pub_ep_alloc() {
-	struct pub_ep *pub_ep = TNEW (struct pub_ep);
+	struct pub_ep *pub_ep = mem_zalloc (sizeof (struct pub_ep));
 
 	if (pub_ep) {
 		epbase_init (&pub_ep->base);
@@ -79,7 +79,7 @@ static int pub_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static struct tgtd *pub_ep_join (struct epbase *ep, int fd)
 {
-	struct pubsub_tgtd *ps_tg = TNEW(struct pubsub_tgtd);
+	struct pubsub_tgtd *ps_tg = mem_zalloc (sizeof (struct pubsub_tgtd));
 
 	if (!ps_tg)
 		return 0;

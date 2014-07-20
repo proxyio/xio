@@ -78,7 +78,7 @@ static void mix_listener_close (struct sockbase *sb)
 }
 
 static struct sockbase *mix_alloc () {
-	struct mix_sock *self = TNEW (struct mix_sock);
+	struct mix_sock *self = mem_zalloc (sizeof (struct mix_sock));
 
 	BUG_ON (!self);
 	sockbase_init (&self->base);
@@ -87,7 +87,7 @@ static struct sockbase *mix_alloc () {
 
 struct sockbase_vfptr mix_listener_vfptr = {
 	.type = XLISTENER,
-	.pf = TP_MIX,
+	.pf = XAF_MIX,
 	.alloc = mix_alloc,
 	.send = 0,
 	.bind = mix_listener_bind,

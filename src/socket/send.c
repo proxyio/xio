@@ -56,7 +56,7 @@ int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 		condition_wait (&sb->cond, &sb->lock);
 		sb->snd.waiters--;
 	}
-	if (msgbuf_can_in (&sb->snd) ) {
+	if (msgbuf_can_in (&sb->snd)) {
 		rc = msgbuf_head_in_msg (&sb->snd, msg);
 		SKLOG_NOTICE (sb, "%d socket sndbuf add %d", sb->fd, msgbuf_len (msg));
 	}

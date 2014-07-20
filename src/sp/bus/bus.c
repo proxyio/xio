@@ -23,7 +23,7 @@
 #include "bus.h"
 
 static struct epbase *bus_ep_alloc() {
-	struct bus_ep *bus_ep = TNEW (struct bus_ep);
+	struct bus_ep *bus_ep = mem_zalloc (sizeof (struct bus_ep));
 
 	if (bus_ep) {
 		epbase_init (&bus_ep->base);
@@ -99,7 +99,7 @@ static int bus_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static struct tgtd *bus_ep_join (struct epbase *ep, int fd)
 {
-	struct bus_tgtd *ps_tg = TNEW(struct bus_tgtd);
+	struct bus_tgtd *ps_tg = mem_zalloc (sizeof (struct bus_tgtd));
 
 	if (!ps_tg)
 		return 0;

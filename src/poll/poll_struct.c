@@ -43,7 +43,7 @@ void __poll_exit (void)
 
 
 struct poll_entry *poll_entry_alloc() {
-	struct poll_entry *pfd = TNEW (struct poll_entry);
+	struct poll_entry *pfd = mem_zalloc (sizeof (struct poll_entry));
 	if (pfd) {
 		INIT_LIST_HEAD (&pfd->lru_link);
 		spin_init (&pfd->lock);
@@ -89,7 +89,7 @@ int poll_entry_put (struct poll_entry *pfd)
 }
 
 struct xpoll_t *poll_alloc() {
-	struct xpoll_t *self = TNEW (struct xpoll_t);
+	struct xpoll_t *self = mem_zalloc (sizeof (struct xpoll_t));
 
 	if (!self)
 		return 0;

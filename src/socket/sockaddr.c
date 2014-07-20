@@ -21,15 +21,15 @@
 */
 
 #include <config.h>
-#include "base.h"
-#include "transport.h"
+#include <utils/base.h>
+#include "sockbase.h"
 #include "sockaddr.h"
 
 /* SOCKADDR example :
    ipc    token@ipc://tmp/ipc.sock
-   net    token@net://182.33.49.10:8080
+   tcp    token@tcp://182.33.49.10:8080
    inproc token@inproc://inproc.sock
-   mix    token@mix://token@ipc://tmp/ipc.sock+token@net://127.0.0.1:1880 */
+   mix    token@mix://token@ipc://tmp/ipc.sock+token@tcp://127.0.0.1:1880 */
 int sockaddr_token (const char *url, char *buff, u32 size)
 {
 	char *at = strchr (url, '@');;
@@ -61,10 +61,10 @@ int sockaddr_pf (const char *url)
 #else
 	pfp = strdup (at);
 #endif
-	pf |= strstr (pfp, "tcp") ? TP_TCP : 0;
-	pf |= strstr (pfp, "ipc") ? TP_IPC : 0;
-	pf |= strstr (pfp, "inproc") ? TP_INPROC : 0;
-	pf |= strstr (pfp, "mix") ? TP_MIX : 0;
+	pf |= strstr (pfp, "tcp") ? XAF_TCP : 0;
+	pf |= strstr (pfp, "ipc") ? XAF_IPC : 0;
+	pf |= strstr (pfp, "inproc") ? XAF_INPROC : 0;
+	pf |= strstr (pfp, "mix") ? XAF_MIX : 0;
 	free (pfp);
 	if (!pf) {
 		errno = EINVAL;

@@ -43,6 +43,7 @@ XIO_SOCKET = \
 	src/socket/send.c \
 	src/socket/recv.c \
 	src/socket/eventnotify.c \
+	src/socket/sockaddr.c \
 	src/socket/bind.c \
 	src/socket/close.c \
 	src/socket/connect.c \
@@ -80,17 +81,12 @@ XIO_SP = \
 	src/sp/sp_setopt.c
 
 XIO_UTILS = \
-	src/utils/transport.c \
-	src/utils/ipc/ipc_getopt.c \
-	src/utils/ipc/ipc_setopt.c \
-	src/utils/ipc/ipc.c \
 	src/utils/timer.c \
 	src/utils/i64_rb.c \
 	src/utils/str_rb.c \
 	src/utils/condition.c \
 	src/utils/taskpool.c \
 	src/utils/mutex.c \
-	src/utils/eventloop.c \
 	src/utils/filepath.c \
 	src/utils/krb.c \
 	src/utils/alloc.c \
@@ -100,15 +96,11 @@ XIO_UTILS = \
 	src/utils/waitgroup.c \
 	src/utils/thread.c \
 	src/utils/atomic.c \
-	src/utils/tcp/tcp.c \
-	src/utils/tcp/tcp_getopt.c \
-	src/utils/tcp/tcp_setopt.c \
 	src/utils/bufio.c \
 	src/utils/mstats_base.c \
 	src/utils/mem_cache.c \
 	src/utils/str_array.c \
-	src/utils/crc16.c \
-	src/utils/sockaddr.c
+	src/utils/crc16.c
 
 libxio_la_SOURCES = \
 	$(XIO_INIT) \
@@ -142,7 +134,6 @@ UTILS_TESTS = \
 	tests/path_ts \
 	tests/taskpool_ts \
 	tests/sync_ts \
-	tests/transport_ts \
 	tests/msgbuf_ts \
 	tests/socket_ts \
 	tests/poll_ts \

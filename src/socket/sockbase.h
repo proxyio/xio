@@ -25,7 +25,6 @@
 
 #include <utils/base.h>
 #include <utils/str_rb.h>
-#include <utils/eventloop.h>
 #include <utils/bufio.h>
 #include <utils/alloc.h>
 #include <utils/atomic.h>
@@ -33,7 +32,6 @@
 #include <utils/spinlock.h>
 #include <utils/condition.h>
 #include <utils/taskpool.h>
-#include <utils/transport.h>
 #include <utils/efd.h>
 #include <xio/socket.h>
 #include <xio/poll.h>
@@ -44,6 +42,13 @@
 #include "stats.h"
 
 #define null NULL
+
+enum {
+	XAF_INPROC   =   1,
+	XAF_TCP      =   2,
+	XAF_IPC      =   3,
+	XAF_MIX      =   4,
+};
 
 /* Default snd/rcv buffer size */
 extern int default_sndbuf;
@@ -112,8 +117,8 @@ struct sockbase {
 	condition_t cond;
 	int fd;
 	atomic_t ref;
-	char addr[TP_SOCKADDRLEN];
-	char peer[TP_SOCKADDRLEN];
+	char addr[PATH_MAX];
+	char peer[PATH_MAX];
 	struct {
 		u64 non_block:1;
 		u64 epipe:1;

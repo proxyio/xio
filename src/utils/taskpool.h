@@ -41,7 +41,7 @@ typedef struct taskpool {
 
 static inline taskpool_t *taskpool_new()
 {
-	taskpool_t *tp = TNEW (taskpool_t);
+	taskpool_t *tp = mem_zalloc (sizeof (taskpool_t));
 	return tp;
 }
 
@@ -58,7 +58,7 @@ static inline int taskpool_init (taskpool_t *tp, int w)
 	tp->stopping = true;
 	tp->tasks = 0;
 	tp->workers = w;
-	if (! (tp->threads = NTNEW (thread_t *, w) ) )
+	if (! (tp->threads = mem_zalloc (sizeof (thread_t) * w)))
 		return -1;
 	mutex_init (&tp->mutex);
 	condition_init (&tp->cond);
@@ -67,10 +67,10 @@ static inline int taskpool_init (taskpool_t *tp, int w)
 		tp->workers = 1;
 	tpos = tp->threads;
 	for (i = 0; i < tp->workers; i++) {
-		if ( (tt = thread_new() ) != NULL)
+		if ((tt = thread_new()) != NULL)
 			*tpos++ = tt;
 	}
-	if ( (tp->workers = tpos - tp->threads) <= 0) {
+	if ((tp->workers = tpos - tp->threads) <= 0) {
 		mem_free (tp->threads, sizeof (*tp->threads) * tp->workers);
 		return -1;
 	}
@@ -81,9 +81,9 @@ static inline int taskpool_destroy (taskpool_t *tp)
 {
 	thread_t **tpos = tp->threads;
 
-	while (tpos < (tp->threads + tp->workers) )
+	while (tpos < (tp->threads + tp->workers))
 		free (*tpos++);
-	mem_free (tp->threads, tp->workers * sizeof (*tp->threads) );
+	mem_free (tp->threads, tp->workers * sizeof (*tp->threads));
 	mutex_destroy (&tp->mutex);
 	condition_destroy (&tp->cond);
 	ZERO (*tp);

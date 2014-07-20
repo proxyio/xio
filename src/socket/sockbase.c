@@ -242,6 +242,7 @@ void sockbase_init (struct sockbase *sb)
 	ZERO (sb->peer);
 	sb->flagset.epipe = false;
 	sb->flagset.non_block = false;
+	sb->flagset.debuglv = 0;
 	sb->owner = 0;
 	INIT_LIST_HEAD (&sb->sub_socks);
 	INIT_LIST_HEAD (&sb->sib_link);
@@ -274,6 +275,7 @@ void sockbase_exit (struct sockbase *sb)
 	ZERO (sb->peer);
 	sb->flagset.epipe = 0;
 	sb->flagset.non_block = 0;
+	sb->flagset.debuglv = 0;
 	sb->owner = 0;
 	BUG_ON (!list_empty (&sb->sub_socks) );
 	BUG_ON (attached (&sb->sib_link) );

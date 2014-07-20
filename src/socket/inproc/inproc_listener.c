@@ -70,7 +70,7 @@ static void rmlistener (struct str_rbe *entry)
 }
 
 static struct sockbase *inproc_alloc() {
-	struct inproc_sock *self = TNEW (struct inproc_sock);
+	struct inproc_sock *self = mem_zalloc (sizeof (struct inproc_sock));
 
 	if (self) {
 		sockbase_init (&self->base);
@@ -121,7 +121,7 @@ static void inproc_listener_close (struct sockbase *sb)
 
 struct sockbase_vfptr inproc_listener_vfptr = {
 	.type = XLISTENER,
-	.pf = TP_INPROC,
+	.pf = XAF_INPROC,
 	.alloc = inproc_alloc,
 	.send = 0,
 	.bind = inproc_listener_bind,
