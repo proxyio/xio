@@ -61,7 +61,7 @@ static void xserver()
 	int afd, sfd;
 	thread_t cli_thread = {};
 	char *xbuf, *ubuf;
-	char *host = "mix://tcp://127.0.0.1:15100+inproc://127.0.0.1:15100";
+	char *host = "mix://mix://tcp://127.0.0.1:15100+//inproc://127.0.0.1:15100";
 
 	BUG_ON ((afd = xlisten (host)) < 0);
 	thread_start (&cli_thread, xclient_thread, 0);
