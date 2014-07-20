@@ -39,7 +39,7 @@ static void reqep_destroy (struct epbase *ep)
 	struct reqep *reqep = cont_of (ep, struct reqep, base);
 	BUG_ON (!reqep);
 	epbase_exit (ep);
-	mem_free (reqep, sizeof (*reqep) );
+	mem_free (reqep, sizeof (*reqep));
 }
 
 static int reqep_send (struct epbase *ep, char *ubuf)

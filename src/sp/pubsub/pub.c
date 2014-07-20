@@ -35,7 +35,7 @@ static void pub_ep_destroy (struct epbase *ep)
 {
 	struct pub_ep *pub_ep = cont_of (ep, struct pub_ep, base);
 	epbase_exit (ep);
-	mem_free (pub_ep, sizeof (*pub_ep) );
+	mem_free (pub_ep, sizeof (*pub_ep));
 }
 
 static int pub_ep_send (struct epbase *ep, char *ubuf)
@@ -90,7 +90,7 @@ static struct tgtd *pub_ep_join (struct epbase *ep, int fd)
 
 static void pub_ep_term (struct epbase *ep, struct tgtd *tg)
 {
-	pubsub_tgtd_free (get_pubsub_tgtd (tg) );
+	pubsub_tgtd_free (get_pubsub_tgtd (tg));
 }
 
 

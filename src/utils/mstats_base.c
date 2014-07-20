@@ -77,7 +77,7 @@ int mstats_base_parse (const char *str, const char *key, int *tr, int *v)
 {
 	char *pos = NULL, *newstr = NULL;
 
-	if (! (pos = (char *) strstr (str, key) ) || pos + strlen (key) + 4 > str + strlen (str) )
+	if (! (pos = (char *) strstr (str, key)) || pos + strlen (key) + 4 > str + strlen (str))
 		return -1;
 	pos += strlen (key) + 1;
 	switch (pos[0]) {
@@ -99,14 +99,14 @@ int mstats_base_parse (const char *str, const char *key, int *tr, int *v)
 	pos += 2;
 	newstr = strdup (pos);
 	pos = newstr;
-	while (pos < newstr + strlen (newstr) ) {
+	while (pos < newstr + strlen (newstr)) {
 		if (pos[0] == ';') {
 			pos[0] = '\0';
 			break;
 		}
 		pos++;
 	}
-	if ( (*v = atoi (newstr) ) <= 0)
+	if ((*v = atoi (newstr)) <= 0)
 		*v = 1;
 	free (newstr);
 	return 0;

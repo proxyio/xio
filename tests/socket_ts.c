@@ -21,7 +21,7 @@ static void xclient (const char *pf)
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15100");
 	randstr (buf, 1024);
-	BUG_ON ( (sfd = xconnect (host) ) < 0);
+	BUG_ON ((sfd = xconnect (host)) < 0);
 	//xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
 	for (i = 0; i < cnt; i++) {
 		nbytes = rand() % 1024;
@@ -37,7 +37,7 @@ static void xclient (const char *pf)
 			DEBUG_OFF ("%d send request %d", sfd, j);
 		}
 		for (j = 0; j < 2; j++) {
-			BUG_ON (0 != xrecv (sfd, &xbuf) );
+			BUG_ON (0 != xrecv (sfd, &xbuf));
 			DEBUG_OFF ("%d recv response %d", sfd, j);
 			BUG_ON (memcmp (xbuf, buf, nbytes) != 0);
 			oob = ubufctl_first (xbuf);
@@ -63,21 +63,21 @@ static void xserver()
 	char *xbuf, *ubuf;
 	char *host = "mix://tcp://127.0.0.1:15100+inproc://127.0.0.1:15100";
 
-	BUG_ON ( (afd = xlisten (host) ) < 0);
+	BUG_ON ((afd = xlisten (host)) < 0);
 	thread_start (&cli_thread, xclient_thread, 0);
 
 	for (j = 0; j < 2; j++) {
-		BUG_ON ( (sfd = xaccept (afd) ) < 0);
+		BUG_ON ((sfd = xaccept (afd)) < 0);
 		DEBUG_OFF ("xserver accept %d", sfd);
 		//xsetopt (sfd, XL_SOCKET, XDEBUGON, &debuglv, sizeof (debuglv));
 
 		for (i = 0; i < cnt * 2; i++) {
-			BUG_ON (0 != xrecv (sfd, &xbuf) );
+			BUG_ON (0 != xrecv (sfd, &xbuf));
 			DEBUG_OFF ("%d recv", sfd);
 			ubuf = ubuf_alloc (ubuf_len (xbuf));
 			memcpy (ubuf, xbuf, ubuf_len (xbuf));
 			ubufctl (xbuf, SSWITCH, ubuf);
-			BUG_ON (0 != xsend (sfd, ubuf) );
+			BUG_ON (0 != xsend (sfd, ubuf));
 			ubuf_free (xbuf);
 		}
 		xclose (sfd);
@@ -98,7 +98,7 @@ static void xclient2 (const char *pf)
 
 	sprintf (host, "%s%s", pf, "://127.0.0.1:15200");
 	for (i = 0; i < cnt; i++) {
-		BUG_ON ( (sfd[i] = xconnect (host) ) < 0);
+		BUG_ON ((sfd[i] = xconnect (host)) < 0);
 		ent[i].fd = sfd[i];
 		ent[i].hndl = 0;
 		ent[i].events = XPOLLIN|XPOLLOUT|XPOLLERR;
@@ -125,7 +125,7 @@ static void xserver2()
 
 	pollid = xpoll_create();
 	DEBUG_OFF ("%d", pollid);
-	BUG_ON ( (afd = xlisten ("mix://tcp://127.0.0.1:15200+ipc://127.0.0.1:15200+inproc://127.0.0.1:15200") ) < 0);
+	BUG_ON ((afd = xlisten ("mix://tcp://127.0.0.1:15200+ipc://127.0.0.1:15200+inproc://127.0.0.1:15200")) < 0);
 	thread_start (&cli_thread, xclient_thread2, 0);
 	ent[0].fd = afd;
 	ent[0].hndl = 0;
@@ -134,7 +134,7 @@ static void xserver2()
 
 	for (j = 0; j < 3; j++) {
 		for (i = 0; i < cnt; i++) {
-			BUG_ON ( (sfd[i] = xaccept (afd) ) < 0);
+			BUG_ON ((sfd[i] = xaccept (afd)) < 0);
 			DEBUG_OFF ("%d", sfd[i]);
 			ent[i].fd = sfd[i];
 			ent[i].hndl = 0;
@@ -178,7 +178,7 @@ static void inproc_client2()
 	int sfd, i;
 
 	for (i = 0; i < cnt2/2; i++) {
-		if ( (sfd = xconnect ("inproc://b_inproc") ) < 0) {
+		if ((sfd = xconnect ("inproc://b_inproc")) < 0) {
 			BUG_ON (errno != ECONNREFUSED);
 			continue;
 		}
@@ -197,7 +197,7 @@ static void inproc_client3()
 	int sfd, i;
 
 	for (i = 0; i < cnt2/2; i++) {
-		if ( (sfd = xconnect ("inproc://b_inproc") ) < 0) {
+		if ((sfd = xconnect ("inproc://b_inproc")) < 0) {
 			BUG_ON (errno != ECONNREFUSED);
 			continue;
 		}
@@ -216,12 +216,12 @@ static void inproc_server_thread2()
 	int i, afd, sfd;
 	thread_t cli_thread[2] = {};
 
-	BUG_ON ( (afd = xlisten ("inproc://b_inproc") ) < 0);
+	BUG_ON ((afd = xlisten ("inproc://b_inproc")) < 0);
 	thread_start (&cli_thread[0], inproc_client_thread2, NULL);
 	thread_start (&cli_thread[1], inproc_client_thread3, NULL);
 
 	for (i = 0; i < cnt2 - 10; i++) {
-		BUG_ON ( (sfd = xaccept (afd) ) < 0);
+		BUG_ON ((sfd = xaccept (afd)) < 0);
 		xclose (sfd);
 	}
 	xclose (afd);

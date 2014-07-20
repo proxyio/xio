@@ -59,7 +59,7 @@ static void poll_entry_destroy (struct poll_entry *pfd)
 
 	BUG_ON (pfd->ref != 0);
 	spin_destroy (&pfd->lock);
-	mem_free (pfd, sizeof (*pfd) );
+	mem_free (pfd, sizeof (*pfd));
 	poll_put (self->id);
 }
 
@@ -82,7 +82,7 @@ int poll_entry_put (struct poll_entry *pfd)
 	BUG_ON (pfd->ref < 0);
 	spin_unlock (&pfd->lock);
 	if (ref == 1) {
-		BUG_ON (attached (&pfd->lru_link) );
+		BUG_ON (attached (&pfd->lru_link));
 		poll_entry_destroy (pfd);
 	}
 	return ref;
@@ -112,14 +112,14 @@ struct xpoll_t *poll_alloc() {
 static void poll_destroy (struct xpoll_t *self)
 {
 	mutex_destroy (&self->lock);
-	mem_free (self, sizeof (struct xpoll_t) );
+	mem_free (self, sizeof (struct xpoll_t));
 }
 
 struct xpoll_t *poll_get (int pollid) {
 	struct xpoll_t *self;
 
 	spin_lock (&pg.lock);
-	if (! (self = pg.polls[pollid]) ) {
+	if (! (self = pg.polls[pollid])) {
 		spin_unlock (&pg.lock);
 		return 0;
 	}
@@ -155,7 +155,7 @@ struct poll_entry *find_poll_entry (struct xpoll_t *self, int fd) {
 struct poll_entry *get_poll_entry (struct xpoll_t *self, int fd) {
 	struct poll_entry *pfd = 0;
 	mutex_lock (&self->lock);
-	if ( (pfd = find_poll_entry (self, fd) ) )
+	if ((pfd = find_poll_entry (self, fd)) )
 		poll_entry_get (pfd);
 	mutex_unlock (&self->lock);
 	return pfd;
@@ -168,12 +168,12 @@ struct poll_entry *add_poll_entry (struct xpoll_t *self, int fd) {
 	struct poll_entry *pfd;
 
 	mutex_lock (&self->lock);
-	if ( (pfd = find_poll_entry (self, fd) ) ) {
+	if ((pfd = find_poll_entry (self, fd)) ) {
 		mutex_unlock (&self->lock);
 		errno = EEXIST;
 		return 0;
 	}
-	if (! (pfd = poll_entry_alloc() ) ) {
+	if (! (pfd = poll_entry_alloc()) ) {
 		mutex_unlock (&self->lock);
 		errno = ENOMEM;
 		return 0;
@@ -187,7 +187,7 @@ struct poll_entry *add_poll_entry (struct xpoll_t *self, int fd) {
 	atomic_incr (&self->ref);
 
 	pfd->base.pollfd.fd = fd;
-	BUG_ON (attached (&pfd->lru_link) );
+	BUG_ON (attached (&pfd->lru_link));
 	self->size++;
 	list_add_tail (&pfd->lru_link, &self->lru_head);
 	mutex_unlock (&self->lock);
@@ -201,12 +201,12 @@ int rm_poll_entry (struct xpoll_t *self, int fd)
 	struct poll_entry *pfd;
 
 	mutex_lock (&self->lock);
-	if (! (pfd = find_poll_entry (self, fd) ) ) {
+	if (! (pfd = find_poll_entry (self, fd)) ) {
 		mutex_unlock (&self->lock);
 		errno = ENOENT;
 		return -1;
 	}
-	BUG_ON (!attached (&pfd->lru_link) );
+	BUG_ON (!attached (&pfd->lru_link));
 	self->size--;
 	list_del_init (&pfd->lru_link);
 	mutex_unlock (&self->lock);

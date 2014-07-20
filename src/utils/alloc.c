@@ -50,7 +50,7 @@ void *mem_align (uint32_t alignment, uint32_t size)
 {
 	void  *p;
 
-	if ( (p = memalign (alignment, size) ) ) {
+	if ((p = memalign (alignment, size)) ) {
 		mem_stats.alloc++;
 		mem_stats.alloc_size += size;
 	}

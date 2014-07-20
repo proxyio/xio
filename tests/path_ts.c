@@ -30,14 +30,14 @@ static int path_func_test()
 	test_ffp (fp_dir ("/tmp/gtest/gtest.h"), "/tmp/gtest");
 	test_ffp (fp_base ("/tmp/gtest/gtest.h"), "gtest.h");
 	test_ffp (fp_abs ("/tmp/gtest/gtest.h"), "/tmp/gtest/gtest.h");
-	BUG_ON (!fp_hasprefix ("/tmp/gtest", "/tmp") );
-	BUG_ON (!fp_hasprefix ("/tmp/gtest", "") );
-	BUG_ON (!fp_hasprefix ("/tmp/gtest", "/tmp/gtest") );
-	BUG_ON (fp_hasprefix ("/tmp/gtest", "/tmp/gtest/") );
-	BUG_ON (!fp_hassuffix ("/tmp/gtest", "gtest") );
-	BUG_ON (!fp_hassuffix ("/tmp/gtest", "") );
-	BUG_ON (!fp_hassuffix ("/tmp/gtest", "/tmp/gtest") );
-	BUG_ON (fp_hassuffix ("/tmp/gtest", "/tmp/gtest/") );
+	BUG_ON (!fp_hasprefix ("/tmp/gtest", "/tmp"));
+	BUG_ON (!fp_hasprefix ("/tmp/gtest", ""));
+	BUG_ON (!fp_hasprefix ("/tmp/gtest", "/tmp/gtest"));
+	BUG_ON (fp_hasprefix ("/tmp/gtest", "/tmp/gtest/"));
+	BUG_ON (!fp_hassuffix ("/tmp/gtest", "gtest"));
+	BUG_ON (!fp_hassuffix ("/tmp/gtest", ""));
+	BUG_ON (!fp_hassuffix ("/tmp/gtest", "/tmp/gtest"));
+	BUG_ON (fp_hassuffix ("/tmp/gtest", "/tmp/gtest/"));
 	return 0;
 }
 

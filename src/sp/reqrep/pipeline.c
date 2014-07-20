@@ -40,7 +40,7 @@ static struct tgtd *route_backward (struct repep *repep, char *ubuf) {
 	struct rtentry *rt = rt_prev (ubuf);
 	struct tgtd *tg = 0;
 
-	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rep_tgtd (tg)->uuid, rt->uuid) );
+	get_tgtd_if (tg, &ep->connectors, !uuid_compare (get_rep_tgtd (tg)->uuid, rt->uuid));
 	return tg;
 }
 
@@ -52,7 +52,7 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 	if (!go)
 		return -1;
-	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid) )
+	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid))
 		uuid_copy (get_rep_tgtd (tg)->uuid, rt->uuid);
 	msgbuf_head_in (&get_req_tgtd (go)->ls_head, ubuf);
 	tgtd_try_enable_out (go);
@@ -63,7 +63,7 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 static int dispatcher_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
 	struct rtentry rt = {};
-	if (msgbuf_head_empty (&get_req_tgtd (tg)->ls_head) ) {
+	if (msgbuf_head_empty (&get_req_tgtd (tg)->ls_head)) {
 		tgtd_try_disable_out (tg);
 		return -1;
 	}
@@ -92,7 +92,7 @@ static int dispatcher_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 
 static int receiver_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 {
-	if (msgbuf_head_empty (&get_rep_tgtd (tg)->ls_head) ) {
+	if (msgbuf_head_empty (&get_rep_tgtd (tg)->ls_head)) {
 		tgtd_try_disable_out (tg);
 		return -1;
 	}
@@ -107,11 +107,11 @@ int epbase_proxyto (struct epbase *repep, struct epbase *reqep)
 	struct reqep *backend = cont_of (reqep, struct reqep, base);
 	
 	dlock (repep, reqep);
-	if (!list_empty (&repep->connectors) || !list_empty (&repep->bad_socks) ) {
+	if (!list_empty (&repep->connectors) || !list_empty (&repep->bad_socks)) {
 		dunlock (repep, reqep);
 		ERRNO_RETURN (EINVAL);
 	}
-	if (!list_empty (&reqep->connectors) || !list_empty (&reqep->bad_socks) ) {
+	if (!list_empty (&reqep->connectors) || !list_empty (&reqep->bad_socks)) {
 		dunlock (repep, reqep);
 		ERRNO_RETURN (EINVAL);
 	}

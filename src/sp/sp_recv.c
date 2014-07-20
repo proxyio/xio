@@ -37,7 +37,7 @@ int sp_recv (int eid, char **ubuf)
 	 * status is bad or has messages come, the wait return.
 	 * TODO: can condition_wait support timeout.
 	 */
-	while (!ep->status.shutdown && list_empty (&ep->rcv.head) ) {
+	while (!ep->status.shutdown && list_empty (&ep->rcv.head)) {
 		ep->rcv.waiters++;
 		condition_wait (&ep->cond, &ep->lock);
 		ep->rcv.waiters--;

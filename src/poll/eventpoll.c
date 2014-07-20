@@ -42,7 +42,7 @@ void xpollbase_emit (struct pollbase *pb, u32 events)
 
 	mutex_lock (&self->lock);
 	BUG_ON (!pb->pollfd.events);
-	if (!attached (&ent->lru_link) ) {
+	if (!attached (&ent->lru_link)) {
 		list_del_init (&ent->base.link);
 		mutex_unlock (&self->lock);
 		poll_entry_put (ent);
@@ -102,7 +102,7 @@ static int xpoll_add (struct xpoll_t *self, struct poll_fd *pollfd)
 		errno = EBADF;
 		return -1;
 	}
-	if (! (ent = add_poll_entry (self, pollfd->fd) ) ) {
+	if (! (ent = add_poll_entry (self, pollfd->fd)) ) {
 		xput (sb->fd);
 		return -1;
 	}
@@ -113,7 +113,7 @@ static int xpoll_add (struct xpoll_t *self, struct poll_fd *pollfd)
 	spin_unlock (&ent->lock);
 
 	/* BUG: condition race with xpoll_rm() */
-	if ( (rc = add_pollbase (sb->fd, &ent->base) ) == 0) {
+	if ((rc = add_pollbase (sb->fd, &ent->base)) == 0) {
 		emit_pollevents (sb);
 	} else
 		rm_poll_entry (self, pollfd->fd);
@@ -137,7 +137,7 @@ static int xpoll_mod (struct xpoll_t *self, struct poll_fd *pollfd)
 		errno = EBADF;
 		return -1;
 	}
-	if (! (ent = get_poll_entry (self, pollfd->fd) ) ) {
+	if (! (ent = get_poll_entry (self, pollfd->fd)) ) {
 		xput (sb->fd);
 		errno = ENOENT;
 		return -1;
@@ -235,7 +235,7 @@ int xpoll_close (int pollid)
 	self->shutdown_state = true;
 	mutex_unlock (&self->lock);
 
-	while ( (rc = rm_poll_entry (self, XPOLL_HEADFD) ) == 0) {
+	while ((rc = rm_poll_entry (self, XPOLL_HEADFD)) == 0) {
 	}
 
 	/* Release the ref hold by user-caller */

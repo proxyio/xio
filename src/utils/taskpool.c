@@ -40,7 +40,7 @@ static int __taskpool_push (taskpool_t *tp, thread_func func, void *data)
 {
 	struct __task *te = NULL;
 
-	if ( (te = __task_new()) != NULL) {
+	if ((te = __task_new()) != NULL) {
 		te->f = func;
 		te->data = data;
 		list_add_tail (&te->node, &tp->task_head);
@@ -54,7 +54,7 @@ static int taskpool_push (taskpool_t *tp, thread_func func, void *data)
 {
 	int rc = 0;
 	mutex_lock (&tp->mutex);
-	if ( (rc = __taskpool_push (tp, func, data)) == 0)
+	if ((rc = __taskpool_push (tp, func, data)) == 0)
 		condition_broadcast (&tp->cond);
 	mutex_unlock (&tp->mutex);
 	return rc;
@@ -74,7 +74,7 @@ static struct __task *_taskpool_pop (taskpool_t *tp) {
 static struct __task *taskpool_pop (taskpool_t *tp) {
 	struct __task *te = NULL;
 	mutex_lock (&tp->mutex);
-	if (!tp->stopping && ! (te = _taskpool_pop (tp)) )
+	if (!tp->stopping && ! (te = _taskpool_pop (tp)))
 		condition_wait (&tp->cond, &tp->mutex);
 	mutex_unlock (&tp->mutex);
 	return te;
@@ -93,7 +93,7 @@ static inline int __taskpool_runner (void *data)
 	struct __task *te = NULL;
 
 	while (!tp->stopping) {
-		if (! (te = taskpool_pop (tp)) )
+		if (! (te = taskpool_pop (tp)))
 			continue;
 		te->f (te->data);
 		mem_free (te, sizeof (*te));

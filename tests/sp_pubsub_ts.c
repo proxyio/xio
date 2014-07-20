@@ -19,8 +19,8 @@ static int sub_thread (void *args)
 	char *ubuf;
 
 	sprintf (host, "%s%s", (char *) args, "://127.0.0.1:15100");
-	randstr (buf, sizeof (buf) );
-	BUG_ON ( (eid = sp_endpoint (SP_PUBSUB, SP_SUB) ) < 0);
+	randstr (buf, sizeof (buf));
+	BUG_ON ((eid = sp_endpoint (SP_PUBSUB, SP_SUB)) < 0);
 	BUG_ON ((rc = sp_connect (eid, host)) < 0);
 
 	for (i = 0; i < 5; i++) {
@@ -51,10 +51,10 @@ int server1()
 	int eid;
 	char *ubuf;
 
-	BUG_ON ( (eid = sp_endpoint (SP_PUBSUB, SP_PUB) ) < 0);
+	BUG_ON ((eid = sp_endpoint (SP_PUBSUB, SP_PUB)) < 0);
 	for (i = 0; i < NELEM (pf, const char *); i++) {
 		sprintf (host, "%s%s", pf[i], addr);
-		BUG_ON ( (s = sp_listen (eid, host) ) < 0);
+		BUG_ON ((s = sp_listen (eid, host)) < 0);
 	}
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		thread_start (&t[i], sub_thread, (void *) pf[rand() % 3]);
@@ -64,7 +64,7 @@ int server1()
 		ubuf = ubuf_alloc (strlen(hello));
 		memcpy (ubuf, hello, strlen(hello));
 		DEBUG_OFF ("%d pub %d %10.10s", eid, i, ubuf);
-		BUG_ON (sp_send (eid, ubuf) );
+		BUG_ON (sp_send (eid, ubuf));
 	}
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		thread_stop (&t[i]);

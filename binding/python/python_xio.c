@@ -36,18 +36,18 @@ static PyObject *cpy_sp_endpoint (PyObject *self, PyObject *args)
 	int sp_family = 0;
 	int sp_type = 0;
 
-	if (!PyArg_ParseTuple (args, "ii", &sp_family, &sp_type) )
+	if (!PyArg_ParseTuple (args, "ii", &sp_family, &sp_type))
 		return 0;
-	return Py_BuildValue ("i", sp_endpoint (sp_family, sp_type) );
+	return Py_BuildValue ("i", sp_endpoint (sp_family, sp_type));
 }
 
 static PyObject *cpy_sp_close (PyObject *self, PyObject *args)
 {
 	int eid = 0;
 
-	if (!PyArg_ParseTuple (args, "i", &eid) )
+	if (!PyArg_ParseTuple (args, "i", &eid))
 		return 0;
-	return Py_BuildValue ("i", sp_close (eid) );
+	return Py_BuildValue ("i", sp_close (eid));
 }
 
 static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
@@ -60,7 +60,7 @@ static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
 	i64 leng = 0;
 	char *buff = 0;
 
-	if (!PyArg_ParseTuple (args, "iO", &eid, &msg) )
+	if (!PyArg_ParseTuple (args, "iO", &eid, &msg))
 		return 0;
 	if ((rc = PyString_AsStringAndSize (msg->data, &buff, &leng)))
 		return 0;
@@ -83,7 +83,7 @@ static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 	int rc = 0;
 	char *ubuf = 0;
 
-	if (!PyArg_ParseTuple (args, "i", &eid) )
+	if (!PyArg_ParseTuple (args, "i", &eid))
 		return 0;
 	if ((rc = sp_recv (eid, &ubuf)) != 0)
 		return Py_BuildValue ("is", rc, "error");
@@ -100,9 +100,9 @@ static PyObject *cpy_sp_add (PyObject *self, PyObject *args)
 	int eid = 0;
 	int sockfd = 0;
 
-	if (!PyArg_ParseTuple (args, "ii", &eid, &sockfd) )
+	if (!PyArg_ParseTuple (args, "ii", &eid, &sockfd))
 		return 0;
-	return Py_BuildValue ("i", sp_add (eid, sockfd) );
+	return Py_BuildValue ("i", sp_add (eid, sockfd));
 }
 
 static PyObject *cpy_sp_rm (PyObject *self, PyObject *args)
@@ -110,9 +110,9 @@ static PyObject *cpy_sp_rm (PyObject *self, PyObject *args)
 	int eid = 0;
 	int sockfd = 0;
 
-	if (!PyArg_ParseTuple (args, "ii", &eid, &sockfd) )
+	if (!PyArg_ParseTuple (args, "ii", &eid, &sockfd))
 		return 0;
-	return Py_BuildValue ("i", sp_rm (eid, sockfd) );
+	return Py_BuildValue ("i", sp_rm (eid, sockfd));
 }
 
 static PyObject *cpy_sp_setopt (PyObject *self, PyObject *args)
@@ -131,9 +131,9 @@ static PyObject *cpy_sp_listen (PyObject *self, PyObject *args)
 	int eid = 0;
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple (args, "is", &eid, &sockaddr) )
+	if (!PyArg_ParseTuple (args, "is", &eid, &sockaddr))
 		return 0;
-	return Py_BuildValue ("i", sp_listen (eid, sockaddr) );
+	return Py_BuildValue ("i", sp_listen (eid, sockaddr));
 }
 
 
@@ -142,9 +142,9 @@ static PyObject *cpy_sp_connect (PyObject *self, PyObject *args)
 	int eid = 0;
 	const char *sockaddr = 0;
 
-	if (!PyArg_ParseTuple (args, "is", &eid, &sockaddr) )
+	if (!PyArg_ParseTuple (args, "is", &eid, &sockaddr))
 		return 0;
-	return Py_BuildValue ("i", sp_connect (eid, sockaddr) );
+	return Py_BuildValue ("i", sp_connect (eid, sockaddr));
 }
 
 static PyMethodDef module_methods[] = {

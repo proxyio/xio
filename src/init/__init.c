@@ -33,7 +33,7 @@ extern void __poll_init ();
 extern void __socket_init ();
 extern void __sp_init ();
 
-void __attribute__ ( (constructor) ) __modules_init (void)
+void __attribute__ ((constructor)) __modules_init (void)
 {
 	__ev_init ();
 	__rex_init ();
@@ -49,7 +49,7 @@ extern void __poll_exit ();
 extern void __rex_exit ();
 extern void __ev_exit ();
 
-void __attribute__ ( (destructor) ) __modules_exit (void)
+void __attribute__ ((destructor)) __modules_exit (void)
 {
 	__sp_exit ();
 	__socket_exit ();

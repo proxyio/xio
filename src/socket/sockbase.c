@@ -108,11 +108,11 @@ int xalloc (int family, int socktype)
 struct sockbase *xget (int fd) {
 	struct sockbase *sb;
 	mutex_lock (&xgb.lock);
-	if (! (sb = xgb.sockbases[fd]) ) {
+	if (! (sb = xgb.sockbases[fd])) {
 		mutex_unlock (&xgb.lock);
 		return 0;
 	}
-	BUG_ON (!atomic_fetch (&sb->ref) );
+	BUG_ON (!atomic_fetch (&sb->ref));
 	atomic_incr (&sb->ref);
 	mutex_unlock (&xgb.lock);
 	return sb;
@@ -277,8 +277,8 @@ void sockbase_exit (struct sockbase *sb)
 	sb->flagset.non_block = 0;
 	sb->flagset.verbose = 0;
 	sb->owner = 0;
-	BUG_ON (!list_empty (&sb->sub_socks) );
-	BUG_ON (attached (&sb->sib_link) );
+	BUG_ON (!list_empty (&sb->sub_socks));
+	BUG_ON (attached (&sb->sib_link));
 	sb->fd = -1;
 	INIT_LIST_HEAD (&head);
 
@@ -293,7 +293,7 @@ void sockbase_exit (struct sockbase *sb)
 	 * at the same time. and attach_to_sock() happen after xclose().
 	 * this is a user's bug.
 	 */
-	BUG_ON (!list_empty (&sb->poll_entries) );
+	BUG_ON (!list_empty (&sb->poll_entries));
 	sb->acceptq.waiters = -1;
 	condition_destroy (&sb->acceptq.cond);
 	atomic_destroy (&sb->ref);

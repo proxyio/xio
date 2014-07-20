@@ -10,14 +10,14 @@ static void bufio_test()
 	int64_t rlen = rand() % PAGE_SIZE + 3 * PAGE_SIZE;
 
 	bio_init (&b);
-	randstr (buf1, sizeof (buf1) );
+	randstr (buf1, sizeof (buf1));
 	for (i = 0; i < rlen; i++)
-		BUG_ON (1 != bio_write (&b, buf1 + i, 1) );
+		BUG_ON (1 != bio_write (&b, buf1 + i, 1));
 	BUG_ON (b.bsize != rlen);
-	BUG_ON (rlen != bio_copy (&b, buf2, 4 * PAGE_SIZE) );
-	BUG_ON (rlen != bio_read (&b, buf2, 4 * PAGE_SIZE) );
+	BUG_ON (rlen != bio_copy (&b, buf2, 4 * PAGE_SIZE));
+	BUG_ON (rlen != bio_read (&b, buf2, 4 * PAGE_SIZE));
 	BUG_ON (b.bsize != 0);
-	BUG_ON (!list_empty (&b.page_head) );
+	BUG_ON (!list_empty (&b.page_head));
 	BUG_ON (!memcmp (buf1, buf2, rlen) == 0);
 	bio_destroy (&b);
 }
@@ -79,9 +79,9 @@ static void bufio_fetch_flush_test()
 	bio_init (&b);
 	tio.io_ops.read = test_io_read;
 	tio.io_ops.write = test_io_write;
-	randstr (buf1, sizeof (buf1) );
+	randstr (buf1, sizeof (buf1));
 	for (i = 0; i < 4; i++) {
-		if ( (rc =  bio_prefetch (&b, &tio.io_ops) ) > 0)
+		if ((rc =  bio_prefetch (&b, &tio.io_ops)) > 0)
 			nbytes += rc;
 	}
 	BUG_ON (tio.ridx > 4 * PAGE_SIZE);
@@ -93,12 +93,12 @@ static void bufio_fetch_flush_test()
 	BUG_ON (memcmp (buf1, buf2, nbytes) != 0);
 	BUG_ON (b.bsize != nbytes);
 	while (nbytes > 0) {
-		if ( (rc =  bio_flush (&b, &tio.io_ops) ) > 0)
+		if ((rc =  bio_flush (&b, &tio.io_ops)) > 0)
 			nbytes -= rc;
 	}
 	BUG_ON (tio.widx > 4 * PAGE_SIZE);
 	BUG_ON (b.bsize != 0);
-	BUG_ON (!list_empty (&b.page_head) );
+	BUG_ON (!list_empty (&b.page_head));
 	BUG_ON (memcmp (buf1, buf2, nbytes) != 0);
 	bio_destroy (&b);
 }

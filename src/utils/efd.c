@@ -77,7 +77,7 @@ int efd_unsignal_s (struct efd *self)
 	u8 buf[128];
 
 	while (1) {
-		nbytes = read (self->r, buf, sizeof (buf) );
+		nbytes = read (self->r, buf, sizeof (buf));
 		if (nbytes < 0 && errno == EAGAIN)
 			nbytes = 0;
 		BUG_ON (nbytes < 0);

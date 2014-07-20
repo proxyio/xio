@@ -61,7 +61,7 @@ static int randstr (char *buf, int len)
 static int get_option (int argc, char* argv[])
 {
 	int rc;
-	while ( (rc = getopt (argc, argv, "r:s:w:c:h:z") ) != -1 ) {
+	while ((rc = getopt (argc, argv, "r:s:w:c:h:z")) != -1 ) {
 		switch (rc) {
 		case 'r':
 			role = optarg[0];
@@ -70,11 +70,11 @@ static int get_option (int argc, char* argv[])
 			buf_len = atoi (optarg);
 			break;
 		case 'w':
-			if ( (thread_num = atoi (optarg) ) <= 0)
+			if ((thread_num = atoi (optarg)) <= 0)
 				thread_num = 1;
 			break;
 		case 'c':
-			if ( (connection_num = atoi (optarg) ) <= 0)
+			if ((connection_num = atoi (optarg)) <= 0)
 				connection_num = 1;
 			break;
 		case 'h':
@@ -121,15 +121,15 @@ static void req_worker1 (int eid)
 	modstat_set_warnf (st, MSL_D, d_warn);
 
 	for (i = 0; i < connection_num; i++) {
-		BUG_ON ( (fd = xconnect (host) ) < 0);
-		BUG_ON (sp_add (eid, fd) );
+		BUG_ON ((fd = xconnect (host)) < 0);
+		BUG_ON (sp_add (eid, fd));
 	}
-	while ( (now = gettimeofms() ) < timeout) {
+	while ((now = gettimeofms()) < timeout) {
 		ubuf = xallocubuf (rand() % buf_len);
-		memcpy (ubuf, buff, xubuflen (ubuf) );
-		BUG_ON (sp_send (eid, ubuf) );
+		memcpy (ubuf, buff, xubuflen (ubuf));
+		BUG_ON (sp_send (eid, ubuf));
 		modstat_incrkey (st, SEND);
-		BUG_ON (sp_recv (eid, &ubuf) );
+		BUG_ON (sp_recv (eid, &ubuf));
 		modstat_incrkey (st, RECV);
 		xfreeubuf (ubuf);
 		modstat_update_timestamp (st, now);
@@ -150,14 +150,14 @@ static void req_worker2 (int eid)
 	modstat_set_warnf (st, MSL_H, h_warn);
 	modstat_set_warnf (st, MSL_D, d_warn);
 
-	BUG_ON ( (fd = xconnect (host) ) < 0);
+	BUG_ON ((fd = xconnect (host)) < 0);
 	DEBUG_ON ("rep start send");
-	while ( (now = gettimeofms() ) < timeout) {
+	while ((now = gettimeofms()) < timeout) {
 		ubuf = xallocubuf (rand() % buf_len);
-		memcpy (ubuf, buff, xubuflen (ubuf) );
-		BUG_ON (xsend (fd, ubuf) );
+		memcpy (ubuf, buff, xubuflen (ubuf));
+		BUG_ON (xsend (fd, ubuf));
 		modstat_incrkey (st, SEND);
-		BUG_ON (xrecv (fd, &ubuf) );
+		BUG_ON (xrecv (fd, &ubuf));
 		modstat_incrkey (st, RECV);
 		xfreeubuf (ubuf);
 		modstat_update_timestamp (st, now);
@@ -179,11 +179,11 @@ static void rep_worker1 (int eid)
 	modstat_set_warnf (st, MSL_H, h_warn);
 	modstat_set_warnf (st, MSL_D, d_warn);
 
-	BUG_ON ( (fd = xlisten (host) ) < 0);
-	BUG_ON (sp_add (eid, fd) );
-	while ( (now = gettimeofms() ) < timeout) {
-		BUG_ON (sp_recv (eid, &ubuf) );
-		BUG_ON (sp_send (eid, ubuf) );
+	BUG_ON ((fd = xlisten (host)) < 0);
+	BUG_ON (sp_add (eid, fd));
+	while ((now = gettimeofms()) < timeout) {
+		BUG_ON (sp_recv (eid, &ubuf));
+		BUG_ON (sp_send (eid, ubuf));
 		modstat_incrkey (st, RECV);
 		modstat_update_timestamp (st, now);
 	}
@@ -203,12 +203,12 @@ static void rep_worker2 (int eid)
 	modstat_set_warnf (st, MSL_H, h_warn);
 	modstat_set_warnf (st, MSL_D, d_warn);
 
-	BUG_ON ( (fd = xlisten (host) ) < 0);
-	BUG_ON ( (sfd = xaccept (fd) ) < 0);
+	BUG_ON ((fd = xlisten (host)) < 0);
+	BUG_ON ((sfd = xaccept (fd)) < 0);
 	DEBUG_ON ("rep start recv");
-	while ( (now = gettimeofms() ) < timeout) {
-		BUG_ON (xrecv (sfd, &ubuf) );
-		BUG_ON (xsend (sfd, ubuf) );
+	while ((now = gettimeofms()) < timeout) {
+		BUG_ON (xrecv (sfd, &ubuf));
+		BUG_ON (xsend (sfd, ubuf));
 		modstat_incrkey (st, RECV);
 		modstat_update_timestamp (st, now);
 	}
@@ -221,7 +221,7 @@ int main (int argc, char  **argv)
 {
 	int eid;
 
-	randstr (buff, sizeof (buff) );
+	randstr (buff, sizeof (buff));
 	get_option (argc, argv);
 	DEBUG_ON ("start xio benchmark with {role:%c thread:%d connection:%d host:%s}",
 	          role, thread_num, connection_num, host);

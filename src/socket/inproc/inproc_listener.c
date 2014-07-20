@@ -34,7 +34,7 @@ struct sockbase *getlistener (const char *addr) {
 
 	mutex_lock (&xgb.lock);
 	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, strlen (addr)))) {
-		sb = & (cont_of (entry, struct inproc_sock, lhentry) )->base;
+		sb = & (cont_of (entry, struct inproc_sock, lhentry))->base;
 		mutex_lock (&sb->lock);
 		if (!sb->flagset.epipe) {
 			refed = true;
@@ -53,7 +53,7 @@ static int addlistener (struct str_rbe *entry)
 	int rc = -1;
 
 	mutex_lock (&xgb.lock);
-	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen) ) {
+	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen)) {
 		rc = 0;
 		str_rb_insert (&xgb.inproc_listeners, entry);
 	}
@@ -116,7 +116,7 @@ static void inproc_listener_close (struct sockbase *sb)
 
 	/* Close the sock and free sock id. */
 	sockbase_exit (sb);
-	mem_free (self, sizeof (*self) );
+	mem_free (self, sizeof (*self));
 }
 
 extern int inproc_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);

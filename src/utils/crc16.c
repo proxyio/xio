@@ -46,6 +46,6 @@ uint16_t crc16 (const char *buf, uint32_t n)
 	register uint32_t counter;
 	register uint16_t crc = 0;
 	for ( counter = 0; counter < n; counter++)
-		crc = (crc<<8) ^ crc16table_[ ( (crc>>8) ^ * (char *) buf++) &0x00FF];
+		crc = (crc<<8) ^ crc16table_[ ((crc>>8) ^ * (char *) buf++) &0x00FF];
 	return crc;
 }

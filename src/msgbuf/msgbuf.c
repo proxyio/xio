@@ -68,8 +68,8 @@ struct msgbuf *msgbuf_alloc (int size) {
 	INIT_LIST_HEAD (&msg->item);
 	INIT_LIST_HEAD (&msg->cmsg_head);
 	msg->chunk.ubuf_len = size;
-	msg->chunk.checksum = crc16 ( (char *) &msg->chunk.ubuf_len, sizeof (msg->chunk) -
-	                              sizeof (u16) );
+	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ubuf_len, sizeof (msg->chunk) -
+	                              sizeof (u16));
 	atomic_init (&msg->ref);
 	atomic_incr (&msg->ref);
 	return msg;
@@ -120,7 +120,7 @@ static int sub_msgbuf_first (char *ubuf, void *optval)
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 	struct msgbuf *cur;
 
-	if (!list_empty (&msg->cmsg_head) ) {
+	if (!list_empty (&msg->cmsg_head)) {
 		cur = list_first (&msg->cmsg_head, struct msgbuf, item);
 		* (char **) optval = cur->chunk.ubuf_base;
 		return 0;
@@ -146,7 +146,7 @@ static int sub_msgbuf_tail (char *ubuf, void *optval)
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 	struct msgbuf *cur;
 
-	if (!list_empty (&msg->cmsg_head) ) {
+	if (!list_empty (&msg->cmsg_head)) {
 		cur = list_last (&msg->cmsg_head, struct msgbuf, item);
 		* (char **) optval = cur->chunk.ubuf_base;
 		return 0;
@@ -197,10 +197,10 @@ static int sub_msgbuf_switch (char *ubuf, void *optval)
 
 /* Simply copy the content of msgbuf to dest */
 static char *ubufdup (char *ubuf) {
-	char *dest = ubuf_alloc (ubuf_len (ubuf) );
+	char *dest = ubuf_alloc (ubuf_len (ubuf));
 
 	if (dest)
-		memcpy(dest, ubuf, ubuf_len (ubuf) );
+		memcpy(dest, ubuf, ubuf_len (ubuf));
 	return dest;
 }
 
@@ -213,7 +213,7 @@ static int sub_msgbuf_copy (char *ubuf, void *optval) {
 	char *dest = (char *) optval;
 
 	walk_msg_s (cur, tmp, &src->cmsg_head) {
-		sub_msgbuf_add (dest, ubufdup (cur->chunk.ubuf_base) );
+		sub_msgbuf_add (dest, ubufdup (cur->chunk.ubuf_base));
 	}
 	return 0;
 }
@@ -235,7 +235,7 @@ int ubufctl (char *ubuf, int opt, void *optval)
 {
 	int rc;
 
-	if (opt < 0 || opt >= NELEM (msgbuf_vfptr, msgbuf_ctl) ) {
+	if (opt < 0 || opt >= NELEM (msgbuf_vfptr, msgbuf_ctl)) {
 		errno = EINVAL;
 		return -1;
 	}

@@ -34,7 +34,7 @@ int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
 		mutex_unlock(&ep->lock);
 		return -1;
 	}
-	switch (get_socktype (tg->fd) ) {
+	switch (get_socktype (tg->fd)) {
 	case XLISTENER:
 		list_add_tail (&tg->item, &ep->listeners);
 		ep->nlisteners++;
@@ -73,14 +73,14 @@ int sp_add (int eid, int fd)
 	if (!ep) {
 		ERRNO_RETURN (EBADF);
 	}
-	if ( (tg = ep->vfptr.join (ep, fd) ) ) {
+	if ((tg = ep->vfptr.join (ep, fd)) ) {
 		if ((rc = epbase_add_tgtd (ep, tg))) {
 			ep->vfptr.term (ep, tg);
 			eid_put (eid);
 			return -1;
 		}
 	}
-	xsetopt (fd, XSO_NOBLOCK, &on, sizeof (on) );
+	xsetopt (fd, XSO_NOBLOCK, &on, sizeof (on));
 	eid_put (eid);
 	return 0;
 }

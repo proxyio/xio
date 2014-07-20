@@ -44,7 +44,7 @@ static int mstats_test()
 	for (i = 0; i < 1000; i++) {
 		mstats_base_incr (ms, SEND);
 		mstats_base_incr (ms, RECV);
-		mstats_base_emit (ms, gettimeof (ms) );
+		mstats_base_emit (ms, gettimeof (ms));
 	}
 	return 0;
 }
@@ -59,19 +59,19 @@ static int mstats_item_parse_test()
 {
 	int tr = 0;
 	int v = 0;
-	BUG_ON (gtip (";;RECONNECT:m:1;SEND_BYTES:m:1;", "RECONNECT", &tr, &v) );
+	BUG_ON (gtip (";;RECONNECT:m:1;SEND_BYTES:m:1;", "RECONNECT", &tr, &v));
 	BUG_ON (tr != MSL_M);
 	BUG_ON (v != 1);
 
-	BUG_ON (gtip (";;RECONNECT:m:1000;SEND_BYTES:m:1;", "RECONNECT", &tr, &v) );
+	BUG_ON (gtip (";;RECONNECT:m:1000;SEND_BYTES:m:1;", "RECONNECT", &tr, &v));
 	BUG_ON (tr != MSL_M);
 	BUG_ON (v != 1000);
 
-	BUG_ON (gtip ("RECONNECT:d:120;SEND_BYTES:m:1;", "RECONNECT", &tr, &v) );
+	BUG_ON (gtip ("RECONNECT:d:120;SEND_BYTES:m:1;", "RECONNECT", &tr, &v));
 	BUG_ON (tr != MSL_D);
 	BUG_ON (v != 120);
 
-	BUG_ON (gtip ("RECONNECT:s:120", "RECONNECT", &tr, &v) );
+	BUG_ON (gtip ("RECONNECT:s:120", "RECONNECT", &tr, &v));
 	BUG_ON (tr != MSL_S);
 	BUG_ON (v != 120);
 

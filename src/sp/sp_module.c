@@ -49,9 +49,9 @@ static void connector_event_hndl (struct tgtd *tg)
 
 	if (happened & XPOLLIN) {
 		DEBUG_OFF ("ep %d socket %d recv begin", ep->eid, tg->fd);
-		if ( (rc = xrecv (tg->fd, &ubuf) ) == 0) {
+		if ((rc = xrecv (tg->fd, &ubuf)) == 0) {
 			DEBUG_OFF ("ep %d socket %d recv ok", ep->eid, tg->fd);
-			if ( (rc = ep->vfptr.add (ep, tg, ubuf) ) < 0) {
+			if ((rc = ep->vfptr.add (ep, tg, ubuf)) < 0) {
 				ubuf_free (ubuf);
 				DEBUG_OFF ("ep %d drop msg from socket %d of can't back",
 				           ep->eid, tg->fd);
@@ -60,9 +60,9 @@ static void connector_event_hndl (struct tgtd *tg)
 			happened |= XPOLLERR;
 	}
 	if (happened & XPOLLOUT) {
-		if ( (rc = ep->vfptr.rm (ep, tg, &ubuf) ) == 0) {
+		if ((rc = ep->vfptr.rm (ep, tg, &ubuf)) == 0) {
 			DEBUG_OFF ("ep %d socket %d send begin", ep->eid, tg->fd);
-			if ( (rc = xsend (tg->fd, ubuf) ) < 0) {
+			if ((rc = xsend (tg->fd, ubuf)) < 0) {
 				ubuf_free (ubuf);
 				if (errno != EAGAIN)
 					happened |= XPOLLERR;
@@ -91,7 +91,7 @@ static void listener_event_hndl (struct tgtd *tg)
 			rc = xsetopt (fd, XSO_NOBLOCK, &on, optlen);
 			BUG_ON (rc);
 			DEBUG_OFF ("%d join fd %d begin", ep->eid, fd);
-			if ( (ntg = ep->vfptr.join (ep, fd) ) < 0) {
+			if ((ntg = ep->vfptr.join (ep, fd)) < 0) {
 				xclose (fd);
 				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
 			} else if ((rc = epbase_add_tgtd (ep, ntg))) {
@@ -248,7 +248,7 @@ int eid_alloc (int sp_family, int sp_type)
 	if (!vfptr) {
 		ERRNO_RETURN (EPROTO);
 	}
-	if (! (ep = vfptr->alloc() ) )
+	if (! (ep = vfptr->alloc()) )
 		return -1;
 	ep->vfptr = *vfptr;
 	mutex_lock (&sg.lock);
@@ -268,11 +268,11 @@ int eid_alloc (int sp_family, int sp_type)
 struct epbase *eid_get (int eid) {
 	struct epbase *ep = 0;
 	mutex_lock (&sg.lock);
-	if (! (ep = sg.endpoints[eid]) ) {
+	if (! (ep = sg.endpoints[eid])) {
 		mutex_unlock (&sg.lock);
 		return 0;
 	}
-	BUG_ON (!atomic_fetch (&ep->ref) );
+	BUG_ON (!atomic_fetch (&ep->ref));
 	atomic_incr (&ep->ref);
 	mutex_unlock (&sg.lock);
 	return ep;
@@ -312,14 +312,14 @@ void epbase_init (struct epbase *ep)
 void epbase_exit (struct epbase *ep)
 {
 	struct msgbuf *msg, *tmp;
-	BUG_ON (atomic_fetch (&ep->ref) );
+	BUG_ON (atomic_fetch (&ep->ref));
 
 	list_splice (&ep->snd.head, &ep->rcv.head);
 	walk_msg_s (msg, tmp, &ep->rcv.head) {
 		list_del_init (&msg->item);
 		msgbuf_free (msg);
 	}
-	BUG_ON (!list_empty (&ep->rcv.head) );
+	BUG_ON (!list_empty (&ep->rcv.head));
 
 	list_splice (&ep->listeners, &ep->bad_socks);
 	list_splice (&ep->connectors, &ep->bad_socks);

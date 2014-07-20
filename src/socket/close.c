@@ -49,7 +49,7 @@ void __xclose (struct sockbase *sb)
 		BUG_ON (!pb->vfptr);
 		pb->vfptr->close (pb);
 	}
-	BUG_ON (!list_empty (&poll_entries) );
+	BUG_ON (!list_empty (&poll_entries));
 	xput (sb->fd);
 }
 
