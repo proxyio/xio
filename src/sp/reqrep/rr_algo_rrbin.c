@@ -41,10 +41,10 @@ static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
 	return tg;
 }
 
-struct algo_ops weight_rrbin_ops = {
+struct lbs_vfptr weight_rrbin_ops = {
 	.type = SP_REQ_RRBIN,
 	.select = weight_rrbin_select,
 };
 
-struct algo_ops *rrbin_vfptr = &weight_rrbin_ops;
+struct lbs_vfptr *rrbin_vfptr = &weight_rrbin_ops;
 

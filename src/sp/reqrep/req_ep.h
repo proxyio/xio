@@ -31,7 +31,7 @@ struct repep;
 struct reqep {
 	struct epbase base;
 	struct repep *peer;
-	struct algo_ops *target_algo;
+	struct lbs_vfptr *target_algo;
 };
 
 #define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
@@ -39,7 +39,7 @@ struct reqep {
 extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
 
 
-struct algo_ops {
+struct lbs_vfptr {
 	int type;
 	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
 };
@@ -60,6 +60,6 @@ static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
 	return cont_of (tg, struct req_tgtd, tg);
 }
 
-extern struct algo_ops *rrbin_vfptr;
+extern struct lbs_vfptr *rrbin_vfptr;
 
 #endif
