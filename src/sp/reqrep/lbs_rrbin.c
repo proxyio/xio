@@ -33,9 +33,9 @@ static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
 	tg = list_first (&ep->connectors, struct tgtd, item);
 	req_tg = cont_of (tg, struct req_tgtd, tg);
 
-	/* Move to the tail if cur_weight less than zero */
-	if (--req_tg->algod.rrbin.cur_weight <= 0) {
-		req_tg->algod.rrbin.cur_weight = req_tg->algod.rrbin.origin_weight;
+	/* Move to the tail if current_weight less than zero */
+	if (--req_tg->algod.rrbin.current_weight <= 0) {
+		req_tg->algod.rrbin.current_weight = req_tg->algod.rrbin.origin_weight;
 		list_move_tail (&tg->item, &ep->connectors);
 	}
 	return tg;

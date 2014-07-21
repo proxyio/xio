@@ -44,15 +44,17 @@ struct lbs_vfptr {
 	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
 };
 
+struct rrbin_entry {
+	int origin_weight;
+	int current_weight;
+};
+
 struct req_tgtd {
 	struct tgtd tg;
-	uuid_t uuid;                 /* global unique id for distributed system */
+	uuid_t uuid;                  /* global unique id for distributed system */
 	struct msgbuf_head ls_head;   /* local storage */
 	union {
-		struct {
-			int origin_weight;
-			int cur_weight;
-		} rrbin;
+		struct rrbin_entry rrbin;
 	} algod;
 };
 
