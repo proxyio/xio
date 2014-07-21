@@ -22,24 +22,29 @@
 
 #include "req_ep.h"
 
-static struct tgtd *rrbin_select (struct reqep *reqep, char *ubuf)
+static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
 {
 	struct epbase *ep = &reqep->base;
-	struct tgtd *tg = 0;
+	struct tgtd *tg;
+	struct req_tgtd *req_tg;
 
 	if (list_empty (&ep->connectors))
 		return 0;
 	tg = list_first (&ep->connectors, struct tgtd, item);
+	req_tg = cont_of (tg, struct req_tgtd, tg);
 
-	/* Move to the tail */
-	list_move_tail (&tg->item, &ep->connectors);
+	/* Move to the tail if cur_weight less than zero */
+	if (--req_tg->algod.rrbin.cur_weight <= 0) {
+		req_tg->algod.rrbin.cur_weight = req_tg->algod.rrbin.origin_weight;
+		list_move_tail (&tg->item, &ep->connectors);
+	}
 	return tg;
 }
 
-struct algo_ops rrbin_ops = {
+struct algo_ops weight_rrbin_ops = {
 	.type = SP_REQ_RRBIN,
-	.select = rrbin_select,
+	.select = weight_rrbin_select,
 };
 
-struct algo_ops *rrbin_vfptr = &rrbin_ops;
+struct algo_ops *rrbin_vfptr = &weight_rrbin_ops;
 

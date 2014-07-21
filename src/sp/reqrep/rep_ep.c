@@ -119,12 +119,10 @@ static int set_proxyto (struct epbase *ep, void *optval, int optlen)
 }
 
 static const ep_setopt setopt_vfptr[] = {
-	0,
 	set_proxyto,
 };
 
 static const ep_getopt getopt_vfptr[] = {
-	0,
 	0,
 };
 

@@ -61,6 +61,5 @@ static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
 }
 
 extern struct algo_ops *rrbin_vfptr;
-extern struct algo_ops *weight_rrbin_vfptr;
 
 #endif
