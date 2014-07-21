@@ -22,6 +22,10 @@
 
 #include "req_ep.h"
 
+struct lb_strategy_rrbin {
+	struct lbs_vfptr lb_strategy;
+};
+
 static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
 {
 	struct epbase *ep = &reqep->base;
@@ -41,8 +45,24 @@ static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
 	return tg;
 }
 
+static struct lbs_vfptr *weight_rrbin_new ()
+{
+	struct lb_strategy_rrbin *rr = mem_zalloc (sizeof (struct lb_strategy_rrbin));
+	rr->lb_strategy = *rrbin_vfptr;
+	return &rr->lb_strategy;
+}
+
+static void weight_rrbin_free (struct lbs_vfptr *lb_strategy)
+{
+	struct lb_strategy_rrbin *rr = cont_of (lb_strategy, struct lb_strategy_rrbin, lb_strategy);
+	mem_free (rr, sizeof (*rr));
+}
+
+
 struct lbs_vfptr weight_rrbin_ops = {
 	.type = SP_REQ_RRBIN,
+	.new = weight_rrbin_new,
+	.free = weight_rrbin_free,
 	.select = weight_rrbin_select,
 };
 

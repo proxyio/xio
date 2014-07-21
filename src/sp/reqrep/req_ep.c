@@ -27,7 +27,7 @@ static struct epbase *reqep_alloc() {
 
 	if (reqep) {
 		epbase_init (&reqep->base);
-		reqep->lb_strategy = rrbin_vfptr;
+		reqep->lb_strategy = rrbin_vfptr->new ();
 		reqep->peer = 0;
 		return &reqep->base;
 	}
@@ -38,6 +38,7 @@ static void reqep_destroy (struct epbase *ep)
 {
 	struct reqep *reqep = cont_of (ep, struct reqep, base);
 	BUG_ON (!reqep);
+	reqep->lb_strategy->free (reqep->lb_strategy);
 	epbase_exit (ep);
 	mem_free (reqep, sizeof (*reqep));
 }

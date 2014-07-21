@@ -41,6 +41,8 @@ extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
 
 struct lbs_vfptr {
 	int type;
+	struct lbs_vfptr *(*new) ();
+	void (*free) (struct lbs_vfptr *lb_strategy);
 	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
 };
 
