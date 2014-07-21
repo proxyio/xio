@@ -74,7 +74,7 @@ XIO_SP = \
 	src/sp/reqrep/pipeline.c \
 	src/sp/reqrep/rep_ep.c \
 	src/sp/reqrep/req_ep.c \
-	src/sp/reqrep/rr_algo_rrbin.c \
+	src/sp/reqrep/lbs_rrbin.c \
 	src/sp/pubsub/pub.c \
 	src/sp/pubsub/sub.c \
 	src/sp/bus/bus.c \
