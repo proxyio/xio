@@ -27,7 +27,7 @@ static struct epbase *reqep_alloc() {
 
 	if (reqep) {
 		epbase_init (&reqep->base);
-		reqep->target_algo = rrbin_vfptr;
+		reqep->lb_strategy = rrbin_vfptr;
 		reqep->peer = 0;
 		return &reqep->base;
 	}
@@ -51,7 +51,7 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 	struct tgtd *tg = 0;
 
 	mutex_lock (&ep->lock);
-	tg = reqep->target_algo->select (reqep, ubuf);
+	tg = reqep->lb_strategy->select (reqep, ubuf);
 	if (tg)
 		tgtd_mstats_incr (&tg->stats, TG_SEND);
 	mutex_unlock (&ep->lock);
@@ -137,7 +137,7 @@ static int set_rrbin_weight (struct epbase *ep, void *optval, int optlen)
 	struct req_tgtd *req_tg;
 
 	mutex_lock (&ep->lock);
-	if (req_ep->target_algo->type != SP_REQ_RRBIN) {
+	if (req_ep->lb_strategy->type != SP_REQ_RRBIN) {
 		mutex_unlock (&ep->lock);
 		ERRNO_RETURN (EINVAL);
 	}

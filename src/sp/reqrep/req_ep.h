@@ -31,7 +31,7 @@ struct repep;
 struct reqep {
 	struct epbase base;
 	struct repep *peer;
-	struct lbs_vfptr *target_algo;
+	struct lbs_vfptr *lb_strategy;
 };
 
 #define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
