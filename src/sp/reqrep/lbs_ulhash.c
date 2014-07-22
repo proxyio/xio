@@ -23,52 +23,52 @@
 #include <stdarg.h>
 #include "req_ep.h"
 
-struct lb_strategy_ulhash {
+struct ulhash_lbs {
+	struct loadbalance_vfptr vf;
 	struct reqep *owner;
-	struct lbs_vfptr lb_strategy;
 	ulhash hash;
 };
 
-#define cont_of_ulhash(vfptr)						\
-	cont_of (lb_strategy, struct lb_strategy_ulhash, lb_strategy);
+#define cont_of_ulhash(lbs)				\
+	cont_of (lbs, struct ulhash_lbs, vf);
 
-static struct req_tgtd *ulhash_select (struct lbs_vfptr *lb_strategy, char *ubuf)
+static struct req_tgtd *ulhash_select (struct loadbalance_vfptr *lbs, char *ubuf)
 {
-	struct lb_strategy_ulhash *ul = cont_of_ulhash (lb_strategy);
+	struct ulhash_lbs *ul = cont_of_ulhash (lbs);
 	struct req_tgtd *req_tg;
 
 	return 0;
 }
 
-static struct lbs_vfptr *ulhash_new (struct reqep *reqep, ...)
+static struct loadbalance_vfptr *ulhash_new (struct reqep *reqep, ...)
 {
-	struct lb_strategy_ulhash *ul = mem_zalloc (sizeof (struct lb_strategy_ulhash));
+	struct ulhash_lbs *ul = mem_zalloc (sizeof (struct ulhash_lbs));
 	va_list ap;
 
 	ul->owner = reqep;
-	ul->lb_strategy = *ulhash_vfptr;
+	ul->vf = *ulhash_vfptr;
 	va_start (ap, reqep);
 	ul->hash = va_arg (ap, ulhash);
 	va_end (ap);
-	return &ul->lb_strategy;
+	return &ul->vf;
 }
 
-static void ulhash_free (struct lbs_vfptr *lb_strategy)
+static void ulhash_free (struct loadbalance_vfptr *lbs)
 {
-	struct lb_strategy_ulhash *ul = cont_of_ulhash (lb_strategy);
+	struct ulhash_lbs *ul = cont_of_ulhash (lbs);
 	mem_free (ul, sizeof (*ul));
 }
 
-static void ulhash_add (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg)
+static void ulhash_add (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
 }
 
-static void ulhash_rm (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg)
+static void ulhash_rm (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
 }
 
 
-struct lbs_vfptr ulhash_ops = {
+struct loadbalance_vfptr ulhash_ops = {
 	.type = SP_REQ_ULHASH,
 	.new = ulhash_new,
 	.free = ulhash_free,
@@ -77,5 +77,5 @@ struct lbs_vfptr ulhash_ops = {
 	.select = ulhash_select,
 };
 
-struct lbs_vfptr *ulhash_vfptr = &ulhash_ops;
+struct loadbalance_vfptr *ulhash_vfptr = &ulhash_ops;
 

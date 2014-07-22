@@ -27,7 +27,7 @@ static struct epbase *reqep_alloc() {
 
 	if (reqep) {
 		epbase_init (&reqep->base);
-		reqep->lb_strategy = rrbin_vfptr->new (reqep);
+		reqep->lbs = rrbin_vfptr->new (reqep);
 		reqep->peer = 0;
 		return &reqep->base;
 	}
@@ -38,7 +38,7 @@ static void reqep_destroy (struct epbase *ep)
 {
 	struct reqep *reqep = cont_of (ep, struct reqep, base);
 	BUG_ON (!reqep);
-	reqep->lb_strategy->free (reqep->lb_strategy);
+	reqep->lbs->free (reqep->lbs);
 	epbase_exit (ep);
 	mem_free (reqep, sizeof (*reqep));
 }
@@ -52,8 +52,7 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 	struct req_tgtd *go = 0;
 
 	mutex_lock (&ep->lock);
-	go = reqep->lb_strategy->select (reqep->lb_strategy, ubuf);
-	if (go)
+	if ((go = reqep->lbs->select (reqep->lbs, ubuf)))
 		tgtd_mstats_incr (&go->tg.stats, TG_SEND);
 	mutex_unlock (&ep->lock);
 	if (!go)
@@ -99,7 +98,7 @@ static void reqep_term (struct epbase *ep, struct tgtd *tg)
 	/* Only connector need to participate load balance */
 	if (get_socktype (tg->fd) == XCONNECTOR) {
 		mutex_lock (&ep->lock);
-		req_ep->lb_strategy->rm (req_ep->lb_strategy, get_req_tgtd (tg));
+		req_ep->lbs->rm (req_ep->lbs, get_req_tgtd (tg));
 		mutex_unlock (&ep->lock);
 	}
 	mem_free (cont_of (tg, struct req_tgtd, tg), sizeof (struct req_tgtd));
@@ -119,7 +118,7 @@ static struct tgtd *reqep_join (struct epbase *ep, int fd) {
 
 	/* Only connector need to participate load balance */
 	if (get_socktype (fd) == XCONNECTOR)
-		req_ep->lb_strategy->add (req_ep->lb_strategy, req_tg);
+		req_ep->lbs->add (req_ep->lbs, req_tg);
 	mutex_unlock (&ep->lock);
 	return &req_tg->tg;
 }
@@ -139,7 +138,7 @@ static int set_proxyto (struct epbase *ep, void *optval, int optlen)
 	return rc;
 }
 
-static int set_lb_strategy (struct epbase *ep, void *optval, int optlen)
+static int set_lbs (struct epbase *ep, void *optval, int optlen)
 {
 	return 0;
 }
@@ -152,7 +151,7 @@ static int set_rrbin_weight (struct epbase *ep, void *optval, int optlen)
 	struct req_tgtd *req_tg;
 
 	mutex_lock (&ep->lock);
-	if (req_ep->lb_strategy->type != SP_REQ_RRBIN) {
+	if (req_ep->lbs->type != SP_REQ_RRBIN) {
 		mutex_unlock (&ep->lock);
 		ERRNO_RETURN (EINVAL);
 	}
@@ -168,7 +167,7 @@ static int set_rrbin_weight (struct epbase *ep, void *optval, int optlen)
 
 static const ep_setopt setopt_vfptr[] = {
 	set_proxyto,
-	set_lb_strategy,
+	set_lbs,
 	set_rrbin_weight,
 };
 

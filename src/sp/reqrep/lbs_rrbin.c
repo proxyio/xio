@@ -23,15 +23,15 @@
 
 #include "req_ep.h"
 
-struct lb_strategy_rrbin {
+struct rrbin_lbs {
+	struct loadbalance_vfptr vf;
 	struct reqep *owner;
-	struct lbs_vfptr lb_strategy;
 	struct list_head head;
 };
 
-static struct req_tgtd *weight_rrbin_select (struct lbs_vfptr *lb_strategy, char *ubuf)
+static struct req_tgtd *weight_rrbin_select (struct loadbalance_vfptr *lbs, char *ubuf)
 {
-	struct lb_strategy_rrbin *rr = cont_of (lb_strategy, struct lb_strategy_rrbin, lb_strategy);
+	struct rrbin_lbs *rr = cont_of (lbs, struct rrbin_lbs, vf);
 	struct req_tgtd *tg;
 
 	if (list_empty (&rr->head))
@@ -47,36 +47,36 @@ static struct req_tgtd *weight_rrbin_select (struct lbs_vfptr *lb_strategy, char
 	return tg;
 }
 
-static struct lbs_vfptr *weight_rrbin_new (struct reqep *reqep, ...)
+static struct loadbalance_vfptr *weight_rrbin_new (struct reqep *reqep, ...)
 {
-	struct lb_strategy_rrbin *rr = mem_zalloc (sizeof (struct lb_strategy_rrbin));
+	struct rrbin_lbs *rr = mem_zalloc (sizeof (struct rrbin_lbs));
 	rr->owner = reqep;	
-	rr->lb_strategy = *rrbin_vfptr;
+	rr->vf = *rrbin_vfptr;
 	INIT_LIST_HEAD (&rr->head);
-	return &rr->lb_strategy;
+	return &rr->vf;
 }
 
-static void weight_rrbin_free (struct lbs_vfptr *lb_strategy)
+static void weight_rrbin_free (struct loadbalance_vfptr *lbs)
 {
-	struct lb_strategy_rrbin *rr = cont_of (lb_strategy, struct lb_strategy_rrbin, lb_strategy);
+	struct rrbin_lbs *rr = cont_of (lbs, struct rrbin_lbs, vf);
 	mem_free (rr, sizeof (*rr));
 }
 
-static void weight_rrbin_add (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg)
+static void weight_rrbin_add (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
-	struct lb_strategy_rrbin *rr = cont_of (lb_strategy, struct lb_strategy_rrbin, lb_strategy);
+	struct rrbin_lbs *rr = cont_of (lbs, struct rrbin_lbs, vf);
 	tg->algod.rrbin.origin_weight = 1;
 	tg->algod.rrbin.current_weight = 1;
 	INIT_LIST_HEAD (&tg->algod.rrbin.item);
 	list_add_tail (&tg->algod.rrbin.item, &rr->head);
 }
 
-static void weight_rrbin_rm (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg)
+static void weight_rrbin_rm (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
 	list_del_init (&tg->algod.rrbin.item);
 }
 
-struct lbs_vfptr weight_rrbin_ops = {
+struct loadbalance_vfptr weight_rrbin_ops = {
 	.type = SP_REQ_RRBIN,
 	.new = weight_rrbin_new,
 	.free = weight_rrbin_free,
@@ -85,5 +85,5 @@ struct lbs_vfptr weight_rrbin_ops = {
 	.select = weight_rrbin_select,
 };
 
-struct lbs_vfptr *rrbin_vfptr = &weight_rrbin_ops;
+struct loadbalance_vfptr *rrbin_vfptr = &weight_rrbin_ops;
 

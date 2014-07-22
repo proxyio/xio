@@ -48,7 +48,7 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	struct reqep *peer = peer_reqep (ep);
 	struct rtentry *rt = rt_cur (ubuf);
-	struct req_tgtd *go = peer->lb_strategy->select (peer->lb_strategy, ubuf);
+	struct req_tgtd *go = peer->lbs->select (peer->lbs, ubuf);
 
 	if (!go)
 		return -1;

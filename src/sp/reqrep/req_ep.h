@@ -28,12 +28,12 @@
 
 struct repep;
 struct req_tgtd;
-
+struct loadbalance_vfptr;
 
 struct reqep {
 	struct epbase base;
 	struct repep *peer;
-	struct lbs_vfptr *lb_strategy;
+	struct loadbalance_vfptr *lbs;
 };
 
 #define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
@@ -41,13 +41,13 @@ struct reqep {
 extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
 
 
-struct lbs_vfptr {
+struct loadbalance_vfptr {
 	int type;
-	struct lbs_vfptr *(*new) (struct reqep *reqep, ...);
-	void (*free) (struct lbs_vfptr *lb_strategy);
-	void (*add) (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg);
-	void (*rm) (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg);
-	struct req_tgtd * (*select) (struct lbs_vfptr *lb_strategy, char *ubuf);
+	struct loadbalance_vfptr *(*new) (struct reqep *reqep, ...);
+	void (*free) (struct loadbalance_vfptr *lbs);
+	void (*add) (struct loadbalance_vfptr *lbs, struct req_tgtd *tg);
+	void (*rm) (struct loadbalance_vfptr *lbs, struct req_tgtd *tg);
+	struct req_tgtd * (*select) (struct loadbalance_vfptr *lbs, char *ubuf);
 };
 
 struct rrbin_entry {
@@ -69,7 +69,7 @@ static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
 	return cont_of (tg, struct req_tgtd, tg);
 }
 
-extern struct lbs_vfptr *rrbin_vfptr;
-extern struct lbs_vfptr *ulhash_vfptr;
+extern struct loadbalance_vfptr *rrbin_vfptr;
+extern struct loadbalance_vfptr *ulhash_vfptr;
 
 #endif
