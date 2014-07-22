@@ -158,6 +158,12 @@ static void shutdown_epbase()
 		DEBUG_OFF ("eid %d shutdown", ep->eid);
 		list_del_init (&ep->item);
 		sg.unused[--sg.nendpoints] = ep->eid;
+
+		/* close all connectors and listeners before endpoint destroyed*/
+		list_splice (&ep->listeners, &ep->bad_socks);
+		list_splice (&ep->connectors, &ep->bad_socks);
+		epbase_close_bad_tgtds (ep);
+
 		ep->vfptr.destroy (ep);
 	}
 	mutex_unlock (&sg.lock);
@@ -320,10 +326,6 @@ void epbase_exit (struct epbase *ep)
 		msgbuf_free (msg);
 	}
 	BUG_ON (!list_empty (&ep->rcv.head));
-
-	list_splice (&ep->listeners, &ep->bad_socks);
-	list_splice (&ep->connectors, &ep->bad_socks);
-	epbase_close_bad_tgtds (ep);
 
 	atomic_destroy (&ep->ref);
 	mutex_destroy (&ep->lock);
