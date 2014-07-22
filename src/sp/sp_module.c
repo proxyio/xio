@@ -254,7 +254,7 @@ int eid_alloc (int sp_family, int sp_type)
 	if (!vfptr) {
 		ERRNO_RETURN (EPROTO);
 	}
-	if (! (ep = vfptr->alloc()) )
+	if (! (ep = vfptr->alloc()))
 		return -1;
 	ep->vfptr = *vfptr;
 	mutex_lock (&sg.lock);

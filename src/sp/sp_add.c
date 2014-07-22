@@ -73,7 +73,7 @@ int sp_add (int eid, int fd)
 	if (!ep) {
 		ERRNO_RETURN (EBADF);
 	}
-	if ((tg = ep->vfptr.join (ep, fd)) ) {
+	if ((tg = ep->vfptr.join (ep, fd))) {
 		if ((rc = epbase_add_tgtd (ep, tg))) {
 			ep->vfptr.term (ep, tg);
 			eid_put (eid);

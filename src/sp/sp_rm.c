@@ -52,11 +52,11 @@ int sp_generic_term_by_fd (struct epbase *ep, int fd)
 	/* It seems unlikely that have two tgtd with the same fd in the list.
 	 * but, who know that!!
 	 */
-	while ((tg = get_tgtd_if (tg, &ep->connectors, tg->fd == fd)) ) {
+	while ((tg = get_tgtd_if (tg, &ep->connectors, tg->fd == fd))) {
 		tg->bad_status = true;
 		list_move_tail (&tg->item, &ep->bad_socks);
 	}
-	while ((tg = get_tgtd_if (tg, &ep->listeners, tg->fd == fd)) ) {
+	while ((tg = get_tgtd_if (tg, &ep->listeners, tg->fd == fd))) {
 		tg->bad_status = true;
 		list_move_tail (&tg->item, &ep->bad_socks);
 	}

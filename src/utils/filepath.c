@@ -37,7 +37,7 @@ char *fp_join (const char *p1, const char *p2)
 	int len = strlen (p1) + strlen (p2) + 2;
 	char *p3 = NULL;
 
-	if (! (p3 = mem_zalloc (len)) )
+	if (! (p3 = mem_zalloc (len)))
 		goto EXIT;
 	snprintf (p3, len, "%s/%s", p1, p2);
 EXIT:
@@ -115,7 +115,7 @@ static int __walk (filepath_t *fp, const char *root, walkFn f, void *args)
 			free (subpath);
 			continue;
 		}
-		if (( (fp->mask & W_FILE) && S_ISREG (finfo.st_mode))
+		if (((fp->mask & W_FILE) && S_ISREG (finfo.st_mode))
 		     || ((fp->mask & W_DIR) && S_ISDIR (finfo.st_mode))
 		     || (fp->mask & (W_FILE|W_DIR)) == (W_FILE|W_DIR))
 			f (subpath, args);

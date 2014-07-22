@@ -28,7 +28,7 @@ static int i64_rb_test_single()
 	i64_rb_init (&tree);
 
 	for (i = 0; i < cnt; i++) {
-		BUG_ON ((node = (struct i64_rbe *) mem_zalloc (sizeof (struct i64_rbe)) ) == NULL);
+		BUG_ON ((node = (struct i64_rbe *) mem_zalloc (sizeof (struct i64_rbe))) == NULL);
 		node->key = rand() + 1;
 		if (min_val == 0 || node->key < min_val)
 			min_val = node->key;

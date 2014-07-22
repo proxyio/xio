@@ -72,11 +72,11 @@ int xrecv (int fd, char **ubuf)
 		errno = EINVAL;
 		return -1;
 	}
-	if (! (sb = xget (fd)) ) {
+	if (! (sb = xget (fd))) {
 		errno = EBADF;
 		return -1;
 	}
-	if (! (msg = rcv_msgbuf_head_rm (sb)) ) {
+	if (! (msg = rcv_msgbuf_head_rm (sb))) {
 		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 		rc = -1;
 	} else {

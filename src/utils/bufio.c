@@ -205,7 +205,7 @@ int64_t bio_flush (struct bio *b, struct io *io_ops)
 
 	while (!list_empty (&b->page_head)) {
 		if ((nbytes = io_ops->write (io_ops, page, bio_copy (b, page,
-		                              PAGE_SIZE)) ) < 0)
+		                              PAGE_SIZE))) < 0)
 			break;
 		sum += nbytes;
 		BUG_ON (nbytes != bio_read (b, page, nbytes));

@@ -39,7 +39,7 @@ static int test_waitgroup_multi_threads()
 
 	nthreads = rand() % 20;
 	for (i = 0; i < nthreads; i++) {
-		BUG_ON (! (tt = thread_new()) );
+		BUG_ON (! (tt = thread_new()));
 		workers[i] = tt;
 	}
 	waitgroup_adds (&wg, nthreads * 100);
