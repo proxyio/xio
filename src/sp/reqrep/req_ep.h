@@ -56,13 +56,19 @@ struct rrbin_entry {
 	struct list_head item;
 };
 
+struct ulhash_entry {
+	int idx;
+};
+
+
 struct req_tgtd {
 	struct tgtd tg;
 	uuid_t uuid;                  /* global unique id for distributed system */
 	struct msgbuf_head ls_head;   /* local storage */
 	union {
 		struct rrbin_entry rrbin;
-	} algod;
+		struct ulhash_entry ulhash;
+	} lbs_ent;
 };
 
 static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {

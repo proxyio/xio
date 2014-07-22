@@ -22,18 +22,18 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include "unorder_int_array.h"
+#include "unorder_p_array.h"
 
-int unorder_int_array_push_back (struct unorder_int_array *arr, int value)
+int unorder_p_array_push_back (struct unorder_p_array *arr, void *value)
 {
-	int *at = 0;
+	void **at = 0;
 	int rc;
 
 	if (arr->size == arr->cap) {
-		if ((at = mem_zalloc (sizeof (int) * arr->cap * 2)))
+		if ((at = mem_zalloc (sizeof (void *) * arr->cap * 2)))
 			BUG_ON (1);
-		memcpy (at, arr->at, sizeof (int) * arr->size);
-		mem_free (arr->at, sizeof (int) * arr->cap);
+		memcpy (at, arr->at, sizeof (void *) * arr->size);
+		mem_free (arr->at, sizeof (void *) * arr->cap);
 		arr->at = at;
 		arr->cap = arr->cap * 2;
 	}

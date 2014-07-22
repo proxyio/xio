@@ -103,6 +103,7 @@ XIO_UTILS = \
 	src/utils/mstats_base.c \
 	src/utils/mem_cache.c \
 	src/utils/str_array.c \
+	src/utils/unorder_p_array.c \
 	src/utils/crc16.c
 
 libxio_la_SOURCES = \

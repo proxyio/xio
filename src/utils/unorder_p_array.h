@@ -20,43 +20,48 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_INT_ARRAY_
-#define _H_PROXYIO_INT_ARRAY_
+#ifndef _H_PROXYIO_UNORDER_P_ARRAY_
+#define _H_PROXYIO_UNORDER_P_ARRAY_
 
 #include <utils/base.h>
 #include <utils/alloc.h>
 
-#define UNORDER_INT_ARRAY_DEFAULT_CAP 10
+#define UNORDER_P_ARRAY_DEFAULT_CAP 10
 
-struct unorder_int_array {
+struct unorder_p_array {
 	int size;
 	int cap;
-	int *at;
+	void **at;
 };
 
-static inline void unorder_int_array_init (struct unorder_int_array *arr)
+static inline int unorder_p_array_size (struct unorder_p_array *arr)
+{
+	return arr->size;
+}
+
+static inline void unorder_p_array_init (struct unorder_p_array *arr)
 {
 	arr->size = 0;
-	arr->cap = UNORDER_INT_ARRAY_DEFAULT_CAP;
-	if (!(arr->at = mem_zalloc (sizeof (int) * arr->cap)))
+	arr->cap = UNORDER_P_ARRAY_DEFAULT_CAP;
+	if (!(arr->at = mem_zalloc (sizeof (void *) * arr->cap)))
 		BUG_ON (1);
 }
 
-static inline void unorder_int_array_destroy (struct unorder_int_array *arr)
+static inline void unorder_p_array_destroy (struct unorder_p_array *arr)
 {
 	int i;
-	mem_free (arr->at, sizeof (int) * arr->cap);
+	mem_free (arr->at, sizeof (void *) * arr->cap);
 	ZERO (arr);
 }
 
-int unorder_int_array_push_back (struct unorder_int_array *arr, int value);
+int unorder_p_array_push_back (struct unorder_p_array *arr, void *value);
 
-static inline int unorder_int_array_at (struct unorder_int_array *arr, int idx)
+static inline void *unorder_p_array_at (struct unorder_p_array *arr, int idx)
 {
 	return arr->at[idx];
 }
 
-static inline void unorder_int_array_erase (struct unorder_int_array *arr, int idx)
+static inline void unorder_p_array_erase (struct unorder_p_array *arr, int idx)
 {
 	arr->at[idx] = arr->at[--arr->size];
 }

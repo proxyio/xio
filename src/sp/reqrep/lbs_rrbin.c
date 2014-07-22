@@ -37,12 +37,12 @@ static struct req_tgtd *weight_rrbin_select (struct loadbalance_vfptr *lbs, char
 	if (list_empty (&rr->head))
 		return 0;
 
-	tg = list_first (&rr->head, struct req_tgtd, algod.rrbin.item);
+	tg = list_first (&rr->head, struct req_tgtd, lbs_ent.rrbin.item);
 	
 	/* Move to the tail if current_weight less than zero */
-	if (--tg->algod.rrbin.current_weight <= 0) {
-		tg->algod.rrbin.current_weight = tg->algod.rrbin.origin_weight;
-		list_move_tail (&tg->algod.rrbin.item, &rr->head);
+	if (--tg->lbs_ent.rrbin.current_weight <= 0) {
+		tg->lbs_ent.rrbin.current_weight = tg->lbs_ent.rrbin.origin_weight;
+		list_move_tail (&tg->lbs_ent.rrbin.item, &rr->head);
 	}
 	return tg;
 }
@@ -65,15 +65,15 @@ static void weight_rrbin_free (struct loadbalance_vfptr *lbs)
 static void weight_rrbin_add (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
 	struct rrbin_lbs *rr = cont_of (lbs, struct rrbin_lbs, vf);
-	tg->algod.rrbin.origin_weight = 1;
-	tg->algod.rrbin.current_weight = 1;
-	INIT_LIST_HEAD (&tg->algod.rrbin.item);
-	list_add_tail (&tg->algod.rrbin.item, &rr->head);
+	tg->lbs_ent.rrbin.origin_weight = 1;
+	tg->lbs_ent.rrbin.current_weight = 1;
+	INIT_LIST_HEAD (&tg->lbs_ent.rrbin.item);
+	list_add_tail (&tg->lbs_ent.rrbin.item, &rr->head);
 }
 
 static void weight_rrbin_rm (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
-	list_del_init (&tg->algod.rrbin.item);
+	list_del_init (&tg->lbs_ent.rrbin.item);
 }
 
 struct loadbalance_vfptr weight_rrbin_ops = {

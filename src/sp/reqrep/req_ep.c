@@ -110,7 +110,7 @@ static struct tgtd *reqep_join (struct epbase *ep, int fd) {
 
 	if (!req_tg)
 		return 0;
-	ZERO (req_tg->algod);
+	ZERO (req_tg->lbs_ent);
 	msgbuf_head_init (&req_tg->ls_head, SP_SNDWND);
 	uuid_generate (req_tg->uuid);
 	generic_tgtd_init (ep, &req_tg->tg, fd);
@@ -158,7 +158,7 @@ static int set_rrbin_weight (struct epbase *ep, void *optval, int optlen)
 	tg = get_tgtd_if (tg, &ep->connectors, (tg->fd == ra->fd));
 	if (tg) {
 		req_tg = cont_of (tg, struct req_tgtd, tg);
-		req_tg->algod.rrbin.origin_weight = ra->weight;
+		req_tg->lbs_ent.rrbin.origin_weight = ra->weight;
 	}
 	mutex_unlock (&ep->lock);
 	return 0;
