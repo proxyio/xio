@@ -96,9 +96,12 @@ static void reqep_term (struct epbase *ep, struct tgtd *tg)
 {
 	struct reqep *req_ep = cont_of (ep, struct reqep, base);
 
-	mutex_lock (&ep->lock);
-	req_ep->lb_strategy->rm (req_ep->lb_strategy, get_req_tgtd (tg));
-	mutex_unlock (&ep->lock);
+	/* Only connector need to participate load balance */
+	if (get_socktype (tg->fd) == XCONNECTOR) {
+		mutex_lock (&ep->lock);
+		req_ep->lb_strategy->rm (req_ep->lb_strategy, get_req_tgtd (tg));
+		mutex_unlock (&ep->lock);
+	}
 	mem_free (cont_of (tg, struct req_tgtd, tg), sizeof (struct req_tgtd));
 }
 
@@ -113,7 +116,10 @@ static struct tgtd *reqep_join (struct epbase *ep, int fd) {
 	uuid_generate (req_tg->uuid);
 	generic_tgtd_init (ep, &req_tg->tg, fd);
 	mutex_lock (&ep->lock);
-	req_ep->lb_strategy->add (req_ep->lb_strategy, req_tg);
+
+	/* Only connector need to participate load balance */
+	if (get_socktype (fd) == XCONNECTOR)
+		req_ep->lb_strategy->add (req_ep->lb_strategy, req_tg);
 	mutex_unlock (&ep->lock);
 	return &req_tg->tg;
 }

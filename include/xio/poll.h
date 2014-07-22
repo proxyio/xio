@@ -25,9 +25,11 @@
 
 #include <xio/cplusplus_define.h>
 
-#define XPOLLIN   1
-#define XPOLLOUT  2
-#define XPOLLERR  4
+enum {
+	XPOLLIN   =  1,
+	XPOLLOUT  =  2,
+	XPOLLERR  =  4,
+};
 
 int xselect (int events, int nin, int *in_set, int nout, int *out_set);
 
@@ -41,9 +43,12 @@ struct poll_fd {
 int xpoll_create();
 int xpoll_close (int pollid);
 
-#define XPOLL_ADD 1
-#define XPOLL_DEL 2
-#define XPOLL_MOD 3
+enum {
+	XPOLL_ADD = 1,
+	XPOLL_DEL = 2,
+	XPOLL_MOD = 3,
+};
+
 int xpoll_ctl (int pollid, int op, struct poll_fd *pollfd);
 int xpoll_wait (int pollid, struct poll_fd *fds, int n, int timeout);
 

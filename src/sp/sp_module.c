@@ -95,8 +95,8 @@ static void listener_event_hndl (struct tgtd *tg)
 				xclose (fd);
 				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
 			} else if ((rc = epbase_add_tgtd (ep, ntg))) {
-				xclose (fd);
 				ep->vfptr.term (ep, tg);
+				xclose (fd);
 				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
 			}
 		}
@@ -121,9 +121,9 @@ static void epbase_close_bad_tgtds (struct epbase *ep)
 	mutex_unlock (&ep->lock);
 
 	walk_tgtd_s (tg, tmp, &bad_tgtds) {
-		xclose (tg->fd);
 		DEBUG_OFF ("ep %d socket %d bad status", ep->eid, tg->fd);
 		ep->vfptr.term (ep, tg);
+		xclose (tg->fd);
 	}
 }
 
