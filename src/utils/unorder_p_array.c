@@ -30,7 +30,7 @@ int unorder_p_array_push_back (struct unorder_p_array *arr, void *value)
 	int rc;
 
 	if (arr->size == arr->cap) {
-		if ((at = mem_zalloc (sizeof (void *) * arr->cap * 2)))
+		if (!(at = mem_zalloc (sizeof (void *) * arr->cap * 2)))
 			BUG_ON (1);
 		memcpy (at, arr->at, sizeof (void *) * arr->size);
 		mem_free (arr->at, sizeof (void *) * arr->cap);
