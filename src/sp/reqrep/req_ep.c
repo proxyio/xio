@@ -140,6 +140,24 @@ static int set_proxyto (struct epbase *ep, void *optval, int optlen)
 
 static int set_lbs (struct epbase *ep, void *optval, int optlen)
 {
+	struct reqep *req_ep = cont_of (ep, struct reqep, base);
+	struct loadbalance_vfptr *lbs_new = 0;
+
+	switch (* (int *) optval) {
+	case SP_REQ_RRBIN:
+		lbs_new = rrbin_vfptr;
+		break;
+	case SP_REQ_ULHASH:
+		lbs_new = ulhash_vfptr;
+		break;
+	default:
+		BUG_ON (1);
+	}
+	mutex_lock (&ep->lock);
+	if (req_ep->lbs)
+		req_ep->lbs->free (req_ep->lbs);
+	req_ep->lbs = lbs_new->new (req_ep);
+	mutex_unlock (&ep->lock);
 	return 0;
 }
 
