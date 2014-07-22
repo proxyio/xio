@@ -27,7 +27,7 @@ static struct epbase *reqep_alloc() {
 
 	if (reqep) {
 		epbase_init (&reqep->base);
-		reqep->lb_strategy = rrbin_vfptr->new ();
+		reqep->lb_strategy = rrbin_vfptr->new (reqep);
 		reqep->peer = 0;
 		return &reqep->base;
 	}
@@ -49,20 +49,20 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 	struct reqep *reqep = cont_of (ep, struct reqep, base);
 	struct rrhdr *pg = 0;
 	struct rtentry rt = {};
-	struct tgtd *tg = 0;
+	struct req_tgtd *go = 0;
 
 	mutex_lock (&ep->lock);
-	tg = reqep->lb_strategy->select (reqep, ubuf);
-	if (tg)
-		tgtd_mstats_incr (&tg->stats, TG_SEND);
+	go = reqep->lb_strategy->select (reqep->lb_strategy, ubuf);
+	if (go)
+		tgtd_mstats_incr (&go->tg.stats, TG_SEND);
 	mutex_unlock (&ep->lock);
-	if (!tg)
+	if (!go)
 		return -1;
-	uuid_copy (rt.uuid, get_req_tgtd (tg)->uuid);
+	uuid_copy (rt.uuid, go->uuid);
 	pg = new_rrhdr (&rt);
 	ubufctl_add (ubuf, (char *) pg);
-	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, tg->fd);
-	rc = xsend (tg->fd, ubuf);
+	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, go->tg.fd);
+	rc = xsend (go->tg.fd, ubuf);
 	return rc;
 }
 
@@ -94,19 +94,27 @@ static int reqep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
 
 static void reqep_term (struct epbase *ep, struct tgtd *tg)
 {
+	struct reqep *req_ep = cont_of (ep, struct reqep, base);
+
+	mutex_lock (&ep->lock);
+	req_ep->lb_strategy->rm (req_ep->lb_strategy, get_req_tgtd (tg));
+	mutex_unlock (&ep->lock);
 	mem_free (cont_of (tg, struct req_tgtd, tg), sizeof (struct req_tgtd));
 }
 
 static struct tgtd *reqep_join (struct epbase *ep, int fd) {
+	struct reqep *req_ep = cont_of (ep, struct reqep, base);
 	struct req_tgtd *req_tg = mem_zalloc (sizeof (struct req_tgtd));
 
 	if (!req_tg)
 		return 0;
 	ZERO (req_tg->algod);
-
 	msgbuf_head_init (&req_tg->ls_head, SP_SNDWND);
 	uuid_generate (req_tg->uuid);
 	generic_tgtd_init (ep, &req_tg->tg, fd);
+	mutex_lock (&ep->lock);
+	req_ep->lb_strategy->add (req_ep->lb_strategy, req_tg);
+	mutex_unlock (&ep->lock);
 	return &req_tg->tg;
 }
 

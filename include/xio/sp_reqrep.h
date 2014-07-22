@@ -39,18 +39,31 @@ enum {
 	SP_REQ_RRBIN_WEIGHT,
 };
 
-struct rrbin_attr {
-	int fd;
-	int weight;
-};
-
 /* Following options are provided by SP_REP */
 
 
 /* Following loadbalance strategies are provided by SP_REQ */
 enum {
 	SP_REQ_RRBIN  =  0,
+	SP_REQ_ULHASH,
 };
+
+struct rrbin_attr {
+	int fd;
+	int weight;
+};
+
+typedef uint32_t (*ulhash) (char *ubuf);
+
+
+
+
+
+
+
+
+
+
 
 #include <xio/cplusplus_endif.h>
 #endif

@@ -27,6 +27,8 @@
 #include "rr.h"
 
 struct repep;
+struct req_tgtd;
+
 
 struct reqep {
 	struct epbase base;
@@ -41,14 +43,17 @@ extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
 
 struct lbs_vfptr {
 	int type;
-	struct lbs_vfptr *(*new) ();
+	struct lbs_vfptr *(*new) (struct reqep *reqep, ...);
 	void (*free) (struct lbs_vfptr *lb_strategy);
-	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
+	void (*add) (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg);
+	void (*rm) (struct lbs_vfptr *lb_strategy, struct req_tgtd *tg);
+	struct req_tgtd * (*select) (struct lbs_vfptr *lb_strategy, char *ubuf);
 };
 
 struct rrbin_entry {
 	int origin_weight;
 	int current_weight;
+	struct list_head item;
 };
 
 struct req_tgtd {
@@ -65,5 +70,6 @@ static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
 }
 
 extern struct lbs_vfptr *rrbin_vfptr;
+extern struct lbs_vfptr *ulhash_vfptr;
 
 #endif
