@@ -103,9 +103,9 @@ struct sockbase;
 struct sockbase_vfptr {
 	int type;
 	int pf;
-	struct sockbase * (*alloc) ();
-	void  (*signal) (struct sockbase *sb, int signo);
+	struct sockbase * (*open) ();
 	void  (*close)  (struct sockbase *sb);
+	void  (*notify) (struct sockbase *sb, int ev);
 	int   (*send)   (struct sockbase *sb, char *ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
 	int   (*setopt) (struct sockbase *sb, int opt, void *optval, int optlen);

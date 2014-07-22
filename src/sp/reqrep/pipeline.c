@@ -48,15 +48,15 @@ static int receiver_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
 {
 	struct reqep *peer = peer_reqep (ep);
 	struct rtentry *rt = rt_cur (ubuf);
-	struct tgtd *go = peer->target_algo->select (peer, ubuf);
+	struct req_tgtd *go = peer->lbs->select (peer->lbs, ubuf);
 
 	if (!go)
 		return -1;
 	if (uuid_compare (rt->uuid, get_rep_tgtd (tg)->uuid))
 		uuid_copy (get_rep_tgtd (tg)->uuid, rt->uuid);
-	msgbuf_head_in (&get_req_tgtd (go)->ls_head, ubuf);
-	tgtd_try_enable_out (go);
-	DEBUG_OFF ("ep %d req %10.10s from socket %d", ep->eid, ubuf, tg->fd);
+	msgbuf_head_in (&go->ls_head, ubuf);
+	tgtd_try_enable_out (&go->tg);
+	DEBUG_OFF ("ep %d req %10.10s from socket %d", ep->eid, ubuf, go->tg.fd);
 	return 0;
 }
 

@@ -28,8 +28,6 @@
 #include <rex/rex.h>
 #include "sio.h"
 
-extern struct io default_xops;
-
 static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
 static int sio_listener_bind (struct sockbase *sb, const char *sock)
@@ -110,14 +108,14 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 	acceptq_add (sb, nsb);
 }
 
-extern struct sockbase *tcp_alloc();
-extern struct sockbase *ipc_alloc();
+extern struct sockbase *tcp_open();
+extern struct sockbase *ipc_open();
 
 struct sockbase_vfptr tcp_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_TCP,
-	.alloc = tcp_alloc,
-	.signal = 0,
+	.open = tcp_open,
+	.notify = 0,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
 	.send = 0,
@@ -128,8 +126,8 @@ struct sockbase_vfptr tcp_listener_vfptr = {
 struct sockbase_vfptr ipc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_IPC,
-	.alloc = ipc_alloc,
-	.signal = 0,
+	.open = ipc_open,
+	.notify = 0,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
 	.send = 0,

@@ -32,7 +32,7 @@ int xselect (int events, int nin, int *in_set, int nout, int *out_set)
 	struct sockbase *sb;
 
 	for (n = 0, i = 0; i < nin && n < nout; i++) {
-		if (! (sb = xget (in_set[i])) )
+		if (! (sb = xget (in_set[i])))
 			continue;
 		if (check_pollevents (sb, events) > 0)
 			out_set[n++] = in_set[i];

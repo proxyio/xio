@@ -20,31 +20,24 @@
   IN THE SOFTWARE.
 */
 
-#include "req_ep.h"
+#include <stdlib.h>
+#include <string.h>
+#include "unorder_p_array.h"
 
-static struct tgtd *weight_rrbin_select (struct reqep *reqep, char *ubuf)
+int unorder_p_array_push_back (struct unorder_p_array *arr, void *value)
 {
-	struct epbase *ep = &reqep->base;
-	struct tgtd *tg;
-	struct req_tgtd *req_tg;
+	void **at = 0;
+	int rc;
 
-	if (list_empty (&ep->connectors))
-		return 0;
-	tg = list_first (&ep->connectors, struct tgtd, item);
-	req_tg = cont_of (tg, struct req_tgtd, tg);
-
-	/* Move to the tail if cur_weight less than zero */
-	if (--req_tg->algod.rrbin.cur_weight <= 0) {
-		req_tg->algod.rrbin.cur_weight = req_tg->algod.rrbin.origin_weight;
-		list_move_tail (&tg->item, &ep->connectors);
+	if (arr->size == arr->cap) {
+		if (!(at = mem_zalloc (sizeof (void *) * arr->cap * 2)))
+			BUG_ON (1);
+		memcpy (at, arr->at, sizeof (void *) * arr->size);
+		mem_free (arr->at, sizeof (void *) * arr->cap);
+		arr->at = at;
+		arr->cap = arr->cap * 2;
 	}
-	return tg;
+	arr->at[arr->size] = value;
+	rc = arr->size++;
+	return rc;
 }
-
-struct algo_ops weight_rrbin_ops = {
-	.type = SP_REQ_WEIGHT_RRBIN,
-	.select = weight_rrbin_select,
-};
-
-struct algo_ops *weight_rrbin_vfptr = &weight_rrbin_ops;
-

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <utils/base.h>
 #include <utils/str_array.h>
+#include <utils/unorder_p_array.h>
 
 struct flagset {
 	union {
@@ -26,6 +27,22 @@ static void test_str_array ()
 	str_array_destroy (&arr);
 }
 
+static void test_unorder_p_array ()
+{
+	int i;
+	int idxs[10000];
+	struct unorder_p_array arr = {};
+
+	unorder_p_array_init (&arr);
+
+	for (i = 0; i < NELEM (idxs, int); i++) {
+		idxs[i] = unorder_p_array_push_back (&arr, 0);
+	}
+	for (i = 0; i < NELEM (idxs, int); i++) {
+		unorder_p_array_erase (&arr, idxs[i]);
+	}
+	unorder_p_array_destroy (&arr);
+}
 
 
 int main (int argc, char **argv)
@@ -43,4 +60,5 @@ int main (int argc, char **argv)
 	BUG_ON(!fs.bad);
 
 	test_str_array ();
+	test_unorder_p_array ();
 }

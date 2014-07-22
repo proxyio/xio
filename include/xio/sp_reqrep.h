@@ -32,23 +32,38 @@
 #define SP_REQ         1
 #define SP_REP         2
 
-/* Following options are provided by REQREP protocol */
-#define SP_PROXY            1  /* recv message from rep_ep and dispatch to req_ep */
-#define SP_REQ_TGALGO       2  /* specified the loadbalance algo for SP_REQ */
-#define SP_REQ_WRE          3  /* struct sp_req_rrbin_weight_entry */
+/* Following options are provided by SP_REQ */
+enum {
+	SP_PROXY  =   0,      /* building proxy between SP_REP and SP_REQ */
+	SP_REQ_LBS,           /* specified the loadbalance strategy for SP_REQ */
+	SP_REQ_RRBIN_WEIGHT,
+};
 
-/* Following loadbalance algos are provided by REQREP protocol */
-#define SP_REQ_RRBIN          1
-#define SP_REQ_WEIGHT_RRBIN   2
-#define SP_REQ_RTSLOAD        3   /* real-time loadbalance by second statistics */
-#define SP_REQ_RTHLOAD        4   /* real-time loadbalance by minute statistics */
-#define SP_REQ_RTMLOAD        5   /* real-time loadbalance by hour statistics */
-#define SP_REQ_RTDLOAD        6   /* real-time loadbalance by day statistics */
+/* Following options are provided by SP_REP */
 
-struct sp_req_rrbin_weight_entry {
+
+/* Following loadbalance strategies are provided by SP_REQ */
+enum {
+	SP_REQ_RRBIN  =  0,
+	SP_REQ_ULHASH,
+};
+
+struct rrbin_attr {
 	int fd;
 	int weight;
 };
+
+typedef uint32_t (*ulhash) (char *ubuf);
+
+
+
+
+
+
+
+
+
+
 
 #include <xio/cplusplus_endif.h>
 #endif

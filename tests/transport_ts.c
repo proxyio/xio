@@ -48,7 +48,7 @@ static void tcp_client()
 
 	BUG_ON ((sfd = tcp_connect ("127.0.0.1:15100")) <= 0);
 	randstr (buf, 1024);
-	BUG_ON (sizeof (buf) != (nbytes = tcp_send_full (sfd, buf, sizeof (buf)) ));
+	BUG_ON (sizeof (buf) != (nbytes = tcp_send_full (sfd, buf, sizeof (buf))));
 	BUG_ON (nbytes != tcp_recv_full (sfd, buf, nbytes));
 	close (sfd);
 }
@@ -66,8 +66,8 @@ int tcp_client_event_handler (eloop_t *el, ev_t *et)
 
 	randstr (buf, sizeof (buf));
 	if (et->happened & EPOLLIN) {
-		BUG_ON (sizeof (buf) != tcp_recv_full (et->fd, buf, sizeof (buf)) );
-		BUG_ON (sizeof (buf) != tcp_send_full (et->fd, buf, sizeof (buf)) );
+		BUG_ON (sizeof (buf) != tcp_recv_full (et->fd, buf, sizeof (buf)));
+		BUG_ON (sizeof (buf) != tcp_send_full (et->fd, buf, sizeof (buf)));
 	}
 	if (et->happened & EPOLLRDHUP) {
 		eloop_del (el, et);
@@ -121,7 +121,7 @@ static void ipc_client()
 	if ((sfd = ipc_connect (sockaddr)) < 0)
 		BUG_ON (1);
 	randstr (buf, 1024);
-	BUG_ON (sizeof (buf) != (nbytes = ipc_send (sfd, buf, sizeof (buf)) ));
+	BUG_ON (sizeof (buf) != (nbytes = ipc_send (sfd, buf, sizeof (buf))));
 	BUG_ON (nbytes != ipc_recv (sfd, buf, nbytes));
 	close (sfd);
 }
@@ -139,8 +139,8 @@ int ipc_client_event_handler (eloop_t *el, ev_t *et)
 
 	randstr (buf, sizeof (buf));
 	if (et->happened & EPOLLIN) {
-		BUG_ON (sizeof (buf) != ipc_recv (et->fd, buf, sizeof (buf)) );
-		BUG_ON (sizeof (buf) != ipc_send (et->fd, buf, sizeof (buf)) );
+		BUG_ON (sizeof (buf) != ipc_recv (et->fd, buf, sizeof (buf)));
+		BUG_ON (sizeof (buf) != ipc_send (et->fd, buf, sizeof (buf)));
 	}
 	if (et->happened & EPOLLRDHUP) {
 		eloop_del (el, et);
@@ -190,22 +190,22 @@ static void tcp_test_sock_opt (int sfd)
 	int optlen = 0;
 
 	on = 1;
-	BUG_ON (tcp_setopt (sfd, TP_NOBLOCK, &on, sizeof (on)) );
+	BUG_ON (tcp_setopt (sfd, TP_NOBLOCK, &on, sizeof (on)));
 	BUG_ON (tcp_getopt (sfd, TP_NOBLOCK, &on, &optlen));
 	BUG_ON (on != 1);
 
 	on = 0;
-	BUG_ON (tcp_setopt (sfd, TP_NOBLOCK, &on, sizeof (on)) );
+	BUG_ON (tcp_setopt (sfd, TP_NOBLOCK, &on, sizeof (on)));
 	BUG_ON (tcp_getopt (sfd, TP_NOBLOCK, &on, &optlen));
 	BUG_ON (on != 0);
 
 	on = 99;
-	BUG_ON (tcp_setopt (sfd, TP_SNDTIMEO, &on, sizeof (on)) );
+	BUG_ON (tcp_setopt (sfd, TP_SNDTIMEO, &on, sizeof (on)));
 	BUG_ON (tcp_getopt (sfd, TP_SNDTIMEO, &on, &optlen));
 	BUG_ON (on != 99);
 
 	on = 98;
-	BUG_ON (tcp_setopt (sfd, TP_RCVTIMEO, &on, sizeof (on)) );
+	BUG_ON (tcp_setopt (sfd, TP_RCVTIMEO, &on, sizeof (on)));
 	BUG_ON (tcp_getopt (sfd, TP_RCVTIMEO, &on, &optlen));
 	BUG_ON (on != 98);
 }
@@ -221,12 +221,12 @@ static int server_thread (void *args)
 	int optlen = 0;
 
 	on = 1;
-	BUG_ON (tcp_setopt (afd, TP_NOBLOCK, &on, sizeof (on)) );
+	BUG_ON (tcp_setopt (afd, TP_NOBLOCK, &on, sizeof (on)));
 	BUG_ON (tcp_getopt (afd, TP_NOBLOCK, &on, &optlen));
 	BUG_ON (on != 1);
 
 	on = 0;
-	BUG_ON (tcp_setopt (afd, TP_NOBLOCK, &on, sizeof (on)) );
+	BUG_ON (tcp_setopt (afd, TP_NOBLOCK, &on, sizeof (on)));
 	BUG_ON (tcp_getopt (afd, TP_NOBLOCK, &on, &optlen));
 	BUG_ON (on != 0);
 

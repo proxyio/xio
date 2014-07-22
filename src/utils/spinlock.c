@@ -22,6 +22,8 @@
 
 #include "spinlock.h"
 
+#if !defined HAVE_DEBUG
+
 int spin_init (spin_t *spin)
 {
 	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
@@ -47,3 +49,7 @@ int spin_destroy (spin_t *spin)
 	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
 	return pthread_spin_destroy (lock);
 }
+
+
+
+#endif

@@ -74,8 +74,8 @@ XIO_SP = \
 	src/sp/reqrep/pipeline.c \
 	src/sp/reqrep/rep_ep.c \
 	src/sp/reqrep/req_ep.c \
-	src/sp/reqrep/rr_algo_rrbin.c \
-	src/sp/reqrep/rr_algo_weight_rrbin.c \
+	src/sp/reqrep/lbs_rrbin.c \
+	src/sp/reqrep/lbs_ulhash.c \
 	src/sp/pubsub/pub.c \
 	src/sp/pubsub/sub.c \
 	src/sp/bus/bus.c \
@@ -103,6 +103,7 @@ XIO_UTILS = \
 	src/utils/mstats_base.c \
 	src/utils/mem_cache.c \
 	src/utils/str_array.c \
+	src/utils/unorder_p_array.c \
 	src/utils/crc16.c
 
 libxio_la_SOURCES = \

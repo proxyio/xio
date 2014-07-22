@@ -20,26 +20,51 @@
   IN THE SOFTWARE.
 */
 
-#include "req_ep.h"
+#ifndef _H_PROXYIO_UNORDER_P_ARRAY_
+#define _H_PROXYIO_UNORDER_P_ARRAY_
 
-static struct tgtd *rrbin_select (struct reqep *reqep, char *ubuf)
-{
-	struct epbase *ep = &reqep->base;
-	struct tgtd *tg = 0;
+#include <utils/base.h>
+#include <utils/alloc.h>
 
-	if (list_empty (&ep->connectors))
-		return 0;
-	tg = list_first (&ep->connectors, struct tgtd, item);
+#define UNORDER_P_ARRAY_DEFAULT_CAP 10
 
-	/* Move to the tail */
-	list_move_tail (&tg->item, &ep->connectors);
-	return tg;
-}
-
-struct algo_ops rrbin_ops = {
-	.type = SP_REQ_RRBIN,
-	.select = rrbin_select,
+struct unorder_p_array {
+	int size;
+	int cap;
+	void **at;
 };
 
-struct algo_ops *rrbin_vfptr = &rrbin_ops;
+static inline int unorder_p_array_size (struct unorder_p_array *arr)
+{
+	return arr->size;
+}
 
+static inline void unorder_p_array_init (struct unorder_p_array *arr)
+{
+	arr->size = 0;
+	arr->cap = UNORDER_P_ARRAY_DEFAULT_CAP;
+	if (!(arr->at = mem_zalloc (sizeof (void *) * arr->cap)))
+		BUG_ON (1);
+}
+
+static inline void unorder_p_array_destroy (struct unorder_p_array *arr)
+{
+	int i;
+	mem_free (arr->at, sizeof (void *) * arr->cap);
+	ZERO (arr);
+}
+
+int unorder_p_array_push_back (struct unorder_p_array *arr, void *value);
+
+static inline void *unorder_p_array_at (struct unorder_p_array *arr, int idx)
+{
+	return arr->at[idx];
+}
+
+static inline void unorder_p_array_erase (struct unorder_p_array *arr, int idx)
+{
+	arr->at[idx] = arr->at[--arr->size];
+}
+
+
+#endif

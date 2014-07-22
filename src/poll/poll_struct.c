@@ -155,7 +155,7 @@ struct poll_entry *find_poll_entry (struct xpoll_t *self, int fd) {
 struct poll_entry *get_poll_entry (struct xpoll_t *self, int fd) {
 	struct poll_entry *pfd = 0;
 	mutex_lock (&self->lock);
-	if ((pfd = find_poll_entry (self, fd)) )
+	if ((pfd = find_poll_entry (self, fd)))
 		poll_entry_get (pfd);
 	mutex_unlock (&self->lock);
 	return pfd;
@@ -168,12 +168,12 @@ struct poll_entry *add_poll_entry (struct xpoll_t *self, int fd) {
 	struct poll_entry *pfd;
 
 	mutex_lock (&self->lock);
-	if ((pfd = find_poll_entry (self, fd)) ) {
+	if ((pfd = find_poll_entry (self, fd))) {
 		mutex_unlock (&self->lock);
 		errno = EEXIST;
 		return 0;
 	}
-	if (! (pfd = poll_entry_alloc()) ) {
+	if (! (pfd = poll_entry_alloc())) {
 		mutex_unlock (&self->lock);
 		errno = ENOMEM;
 		return 0;
@@ -201,7 +201,7 @@ int rm_poll_entry (struct xpoll_t *self, int fd)
 	struct poll_entry *pfd;
 
 	mutex_lock (&self->lock);
-	if (! (pfd = find_poll_entry (self, fd)) ) {
+	if (! (pfd = find_poll_entry (self, fd))) {
 		mutex_unlock (&self->lock);
 		errno = ENOENT;
 		return -1;

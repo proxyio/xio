@@ -95,8 +95,8 @@ static void listener_event_hndl (struct tgtd *tg)
 				xclose (fd);
 				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
 			} else if ((rc = epbase_add_tgtd (ep, ntg))) {
-				xclose (fd);
 				ep->vfptr.term (ep, tg);
+				xclose (fd);
 				DEBUG_OFF ("%d join fd %d with errno %d", ep->eid, fd, errno);
 			}
 		}
@@ -121,9 +121,9 @@ static void epbase_close_bad_tgtds (struct epbase *ep)
 	mutex_unlock (&ep->lock);
 
 	walk_tgtd_s (tg, tmp, &bad_tgtds) {
-		xclose (tg->fd);
 		DEBUG_OFF ("ep %d socket %d bad status", ep->eid, tg->fd);
 		ep->vfptr.term (ep, tg);
+		xclose (tg->fd);
 	}
 }
 
@@ -158,6 +158,12 @@ static void shutdown_epbase()
 		DEBUG_OFF ("eid %d shutdown", ep->eid);
 		list_del_init (&ep->item);
 		sg.unused[--sg.nendpoints] = ep->eid;
+
+		/* close all connectors and listeners before endpoint destroyed*/
+		list_splice (&ep->listeners, &ep->bad_socks);
+		list_splice (&ep->connectors, &ep->bad_socks);
+		epbase_close_bad_tgtds (ep);
+
 		ep->vfptr.destroy (ep);
 	}
 	mutex_unlock (&sg.lock);
@@ -248,7 +254,7 @@ int eid_alloc (int sp_family, int sp_type)
 	if (!vfptr) {
 		ERRNO_RETURN (EPROTO);
 	}
-	if (! (ep = vfptr->alloc()) )
+	if (! (ep = vfptr->alloc()))
 		return -1;
 	ep->vfptr = *vfptr;
 	mutex_lock (&sg.lock);
@@ -320,10 +326,6 @@ void epbase_exit (struct epbase *ep)
 		msgbuf_free (msg);
 	}
 	BUG_ON (!list_empty (&ep->rcv.head));
-
-	list_splice (&ep->listeners, &ep->bad_socks);
-	list_splice (&ep->connectors, &ep->bad_socks);
-	epbase_close_bad_tgtds (ep);
 
 	atomic_destroy (&ep->ref);
 	mutex_destroy (&ep->lock);

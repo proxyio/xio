@@ -102,7 +102,7 @@ static int xpoll_add (struct xpoll_t *self, struct poll_fd *pollfd)
 		errno = EBADF;
 		return -1;
 	}
-	if (! (ent = add_poll_entry (self, pollfd->fd)) ) {
+	if (! (ent = add_poll_entry (self, pollfd->fd))) {
 		xput (sb->fd);
 		return -1;
 	}
@@ -137,7 +137,7 @@ static int xpoll_mod (struct xpoll_t *self, struct poll_fd *pollfd)
 		errno = EBADF;
 		return -1;
 	}
-	if (! (ent = get_poll_entry (self, pollfd->fd)) ) {
+	if (! (ent = get_poll_entry (self, pollfd->fd))) {
 		xput (sb->fd);
 		errno = ENOENT;
 		return -1;

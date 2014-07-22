@@ -32,7 +32,7 @@ int acceptq_add (struct sockbase *sb, struct sockbase *new)
 	int rc = 0;
 
 	/* Compatible for multi_listener */
-	if (sb->owner)
+	while (sb->owner)
 		sb = sb->owner;
 
 	mutex_lock (&sb->lock);

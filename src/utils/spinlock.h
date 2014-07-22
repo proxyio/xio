@@ -23,7 +23,10 @@
 #ifndef _H_PROXYIO_SPINLOCK_
 #define _H_PROXYIO_SPINLOCK_
 
+#include <config.h>
 #include <pthread.h>
+
+#if !defined HAVE_DEBUG
 
 typedef struct spin {
 	pthread_spinlock_t _spin;
@@ -40,5 +43,41 @@ static inline void spin_relock (spin_t *lock)
 }
 
 int spin_destroy (spin_t *lock);
+
+#else
+
+#include "mutex.h"
+
+typedef mutex_t spin_t;
+
+static inline int spin_init (spin_t *lock)
+{
+	return mutex_init (lock);
+}
+
+static inline int spin_lock (spin_t *lock)
+{
+	return mutex_lock (lock);
+}
+
+static inline int spin_unlock (spin_t *lock)
+{
+	return mutex_unlock (lock);
+}
+
+static inline void spin_relock (spin_t *lock)
+{
+	spin_unlock (lock);
+	spin_lock (lock);
+}
+
+static inline int spin_destroy (spin_t *lock)
+{
+	return mutex_destroy (lock);
+}
+
+
+#endif
+
 
 #endif

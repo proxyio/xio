@@ -27,11 +27,13 @@
 #include "rr.h"
 
 struct repep;
+struct req_tgtd;
+struct loadbalance_vfptr;
 
 struct reqep {
 	struct epbase base;
 	struct repep *peer;
-	struct algo_ops *target_algo;
+	struct loadbalance_vfptr *lbs;
 };
 
 #define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
@@ -39,28 +41,41 @@ struct reqep {
 extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
 
 
-struct algo_ops {
+struct loadbalance_vfptr {
 	int type;
-	struct tgtd * (*select) (struct reqep *reqep, char *ubuf);
+	struct loadbalance_vfptr *(*new) (struct reqep *reqep, ...);
+	void (*free) (struct loadbalance_vfptr *lbs);
+	void (*add) (struct loadbalance_vfptr *lbs, struct req_tgtd *tg);
+	void (*rm) (struct loadbalance_vfptr *lbs, struct req_tgtd *tg);
+	struct req_tgtd * (*select) (struct loadbalance_vfptr *lbs, char *ubuf);
 };
+
+struct rrbin_entry {
+	int origin_weight;
+	int current_weight;
+	struct list_head item;
+};
+
+struct ulhash_entry {
+	int idx;
+};
+
 
 struct req_tgtd {
 	struct tgtd tg;
-	uuid_t uuid;                 /* global unique id for distributed system */
+	uuid_t uuid;                  /* global unique id for distributed system */
 	struct msgbuf_head ls_head;   /* local storage */
 	union {
-		struct {
-			int origin_weight;
-			int cur_weight;
-		} rrbin;
-	} algod;
+		struct rrbin_entry rrbin;
+		struct ulhash_entry ulhash;
+	} lbs_ent;
 };
 
 static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
 	return cont_of (tg, struct req_tgtd, tg);
 }
 
-extern struct algo_ops *rrbin_vfptr;
-extern struct algo_ops *weight_rrbin_vfptr;
+extern struct loadbalance_vfptr *rrbin_vfptr;
+extern struct loadbalance_vfptr *ulhash_vfptr;
 
 #endif

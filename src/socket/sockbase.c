@@ -90,8 +90,7 @@ int xalloc (int family, int socktype)
 		errno = EPROTO;
 		return -1;
 	}
-	BUG_ON (!vfptr->alloc);
-	if (!(sb = vfptr->alloc ()))
+	if (!(sb = vfptr->open ()))
 		return -1;
 	sb->vfptr = vfptr;
 	mutex_lock (&xgb.lock);
@@ -226,11 +225,11 @@ static struct msgbuf_vfptr rcv_msgbuf_vfptr = {
 	.nonfull = rcv_msgbuf_head_nonfull_ev_hndl,
 };
 
-static void sockbase_signal_hndl (struct ev_sig *sig, int signo)
+static void sockbase_signal_hndl (struct ev_sig *sig, int ev)
 {
 	struct sockbase *sb = cont_of (sig, struct sockbase, sig);
-	if (sb->vfptr->signal)
-		sb->vfptr->signal (sb, signo);
+	if (sb->vfptr->notify)
+		sb->vfptr->notify (sb, ev);
 }
 
 
