@@ -76,6 +76,7 @@ XIO_SP = \
 	src/sp/reqrep/req_ep.c \
 	src/sp/reqrep/lbs_rrbin.c \
 	src/sp/reqrep/lbs_ulhash.c \
+	src/sp/reqrep/lbs_conhash.c \
 	src/sp/pubsub/pub.c \
 	src/sp/pubsub/sub.c \
 	src/sp/bus/bus.c \
@@ -86,6 +87,8 @@ XIO_SP = \
 XIO_UTILS = \
 	src/utils/timer.c \
 	src/utils/i64_rb.c \
+	src/utils/conhash.c \
+	src/utils/md5.c \
 	src/utils/str_rb.c \
 	src/utils/condition.c \
 	src/utils/taskpool.c \

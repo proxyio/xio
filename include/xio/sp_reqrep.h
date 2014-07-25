@@ -46,6 +46,7 @@ enum {
 enum {
 	SP_REQ_RRBIN  =  0,
 	SP_REQ_ULHASH,
+	SP_REQ_CONSISTENT_HASH,
 };
 
 struct rrbin_attr {

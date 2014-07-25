@@ -20,43 +20,28 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_STR_RB_
-#define _H_PROXYIO_STR_RB_
+#ifndef _H_PROXYIO_CONHASH_
+#define _H_PROXYIO_CONHASH_
 
-#include "krb.h"
+#include <config.h>
 #include <inttypes.h>
-#include <string.h>
+#include "list.h"
+#include "str_rb.h"
 
-struct str_rbe {
-	struct rb_node  rb;
-	int             keylen;
-	char            *key;
-	void            *data;
+enum {
+	CONHASH_DEFAULT_VNODES = 100,
 };
 
-struct str_rb {
-	int64_t size;
-	struct rb_root root;
+struct consistent_hash {
+	struct str_rb v_rb_tree;
+	struct list_head head;
 };
 
-#define str_rb_init(map)	do {		\
-		INIT_RB_ROOT(&(map)->root);	\
-		(map)->size = 0;		\
-	} while (0)
+void consistent_hash_init (struct consistent_hash *ch);
+void consistent_hash_destroy (struct consistent_hash *ch);
 
-#define str_rb_empty(map) RB_EMPTY_ROOT(&(map)->root)
-
-struct str_rbe *str_rb_min (struct str_rb *map);
-
-struct str_rbe *str_rb_max (struct str_rb *map);
-
-struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size);
-
-struct str_rbe *str_rb_find_leaf (struct str_rb *map, const char *key, int size);
-
-int str_rb_insert (struct str_rb *map, struct str_rbe *entry);
-
-void str_rb_delete (struct str_rb *map, struct str_rbe *entry);
-
+int consistent_hash_add (struct consistent_hash *ch, const char *key, int size, void *owner);
+int consistent_hash_rm (struct consistent_hash *ch, const char *key, int size);
+void *consistent_hash_get (struct consistent_hash *ch, const char *key, int size);
 
 #endif

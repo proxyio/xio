@@ -20,43 +20,41 @@
   IN THE SOFTWARE.
 */
 
-#ifndef _H_PROXYIO_STR_RB_
-#define _H_PROXYIO_STR_RB_
+#ifndef _H_PROXYIO_MD5_
+#define _H_PROXYIO_MD5_
 
-#include "krb.h"
-#include <inttypes.h>
+#include <config.h>
+#include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
+#include <assert.h>
+#include "base.h"
 
-struct str_rbe {
-	struct rb_node  rb;
-	int             keylen;
-	char            *key;
-	void            *data;
+/* Some useful types */
+
+typedef int32_t MD5_INT32; /* 32-bit integer */
+typedef int64_t MD5_INT64; /* 64-bit integer */
+
+/* The MD5 block size and message digest sizes, in bytes */
+
+#define MD5_BLOCKSIZE    64
+#define MD5_DIGESTSIZE   16
+
+/* The structure for storing MD5 info */
+
+struct md5_state {
+	MD5_INT64 length;
+	MD5_INT32 state[4], curlen;
+	unsigned char buf[MD5_BLOCKSIZE];
 };
 
-struct str_rb {
-	int64_t size;
-	struct rb_root root;
-};
 
-#define str_rb_init(map)	do {		\
-		INIT_RB_ROOT(&(map)->root);	\
-		(map)->size = 0;		\
-	} while (0)
+void md5_init(struct md5_state *md5);
 
-#define str_rb_empty(map) RB_EMPTY_ROOT(&(map)->root)
+void md5_process(struct md5_state *md5, const unsigned char *in, ssize_t inlen);
 
-struct str_rbe *str_rb_min (struct str_rb *map);
+void md5_done(struct md5_state *md5, unsigned char *out);
 
-struct str_rbe *str_rb_max (struct str_rb *map);
-
-struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size);
-
-struct str_rbe *str_rb_find_leaf (struct str_rb *map, const char *key, int size);
-
-int str_rb_insert (struct str_rb *map, struct str_rbe *entry);
-
-void str_rb_delete (struct str_rb *map, struct str_rbe *entry);
 
 
 #endif
