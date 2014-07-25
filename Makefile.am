@@ -87,7 +87,7 @@ XIO_SP = \
 XIO_UTILS = \
 	src/utils/timer.c \
 	src/utils/i64_rb.c \
-	src/utils/conhash.c \
+	src/utils/consistent_hash.c \
 	src/utils/md5.c \
 	src/utils/str_rb.c \
 	src/utils/condition.c \
