@@ -24,7 +24,7 @@
 #include "md5.h"
 #include "list.h"
 #include "alloc.h"
-#include "conhash.h"
+#include "consistent_hash.h"
 
 struct conhash_entry {
 	struct str_rbe v_rbe;

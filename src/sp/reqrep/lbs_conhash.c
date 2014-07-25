@@ -20,7 +20,7 @@
   IN THE SOFTWARE.
 */
 
-#include <utils/conhash.h>
+#include <utils/consistent_hash.h>
 #include "req_ep.h"
 
 struct conhash_lbs {
