@@ -50,25 +50,25 @@ static int i64_rb_test_single()
 
 static void conhash_test ()
 {
-	struct conhash_list cl;
+	struct consistent_hash ch;
 	void *owner;
 
-	conhash_list_init (&cl);
-	BUG_ON (conhash_list_get (&cl, "1", 1));
-	conhash_list_add (&cl, "0", 1, (void *) 1);
-	BUG_ON (!(owner = conhash_list_get (&cl, "1", 1)));
-	conhash_list_add (&cl, "2", 1, (void *) 2);
-	BUG_ON (!(owner = conhash_list_get (&cl, "1", 1)));
-	BUG_ON (!conhash_list_add (&cl, "2", 1, (void *) 2));
-	BUG_ON (!(owner = conhash_list_get (&cl, "4", 1)));
-	BUG_ON (conhash_list_rm (&cl, "2", 1));
-	BUG_ON (conhash_list_add (&cl, "2", 1, (void *) 2));
-	conhash_list_rm (&cl, "0", 1);
-	owner = conhash_list_get (&cl, "1", 1);
+	consistent_hash_init (&ch);
+	BUG_ON (consistent_hash_get (&ch, "1", 1));
+	consistent_hash_add (&ch, "0", 1, (void *) 1);
+	BUG_ON (!(owner = consistent_hash_get (&ch, "1", 1)));
+	consistent_hash_add (&ch, "2", 1, (void *) 2);
+	BUG_ON (!(owner = consistent_hash_get (&ch, "1", 1)));
+	BUG_ON (!consistent_hash_add (&ch, "2", 1, (void *) 2));
+	BUG_ON (!(owner = consistent_hash_get (&ch, "4", 1)));
+	BUG_ON (consistent_hash_rm (&ch, "2", 1));
+	BUG_ON (consistent_hash_add (&ch, "2", 1, (void *) 2));
+	consistent_hash_rm (&ch, "0", 1);
+	owner = consistent_hash_get (&ch, "1", 1);
 	BUG_ON (owner != (void *) 2);
-	conhash_list_rm (&cl, "2", 1);
-	BUG_ON (conhash_list_get (&cl, "1", 1));
-	conhash_list_destroy (&cl);
+	consistent_hash_rm (&ch, "2", 1);
+	BUG_ON (consistent_hash_get (&ch, "1", 1));
+	consistent_hash_destroy (&ch);
 }
 
 static int map_test_single()

@@ -76,6 +76,7 @@ XIO_SP = \
 	src/sp/reqrep/req_ep.c \
 	src/sp/reqrep/lbs_rrbin.c \
 	src/sp/reqrep/lbs_ulhash.c \
+	src/sp/reqrep/lbs_conhash.c \
 	src/sp/pubsub/pub.c \
 	src/sp/pubsub/sub.c \
 	src/sp/bus/bus.c \

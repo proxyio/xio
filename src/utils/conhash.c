@@ -68,25 +68,25 @@ void conhash_entry_free (struct conhash_entry *ce)
 	mem_free (ce, ce->size + sizeof (*ce));
 }
 
-void conhash_list_init (struct conhash_list *cl)
+void consistent_hash_init (struct consistent_hash *ch)
 {
-	str_rb_init (&cl->v_rb_tree);
-	INIT_LIST_HEAD (&cl->head);
+	str_rb_init (&ch->v_rb_tree);
+	INIT_LIST_HEAD (&ch->head);
 }
 
-void conhash_list_destroy (struct conhash_list *cl)
+void consistent_hash_destroy (struct consistent_hash *ch)
 {
 	struct str_rbe *v_rbe;
 	struct conhash_entry *ce;
 
-	while ((v_rbe = str_rb_min (&cl->v_rb_tree))) {
-		str_rb_delete (&cl->v_rb_tree, v_rbe);
+	while ((v_rbe = str_rb_min (&ch->v_rb_tree))) {
+		str_rb_delete (&ch->v_rb_tree, v_rbe);
 		ce = cont_of (v_rbe, struct conhash_entry, v_rbe);
 		conhash_entry_free (ce);
 	}
 }
 
-int conhash_list_add (struct conhash_list *cl, const char *key, int size, void *owner)
+int consistent_hash_add (struct consistent_hash *ch, const char *key, int size, void *owner)
 {
 	int i;
 	int rc;
@@ -99,25 +99,25 @@ int conhash_list_add (struct conhash_list *cl, const char *key, int size, void *
 		if (!(vce = conhash_ventry_alloc (key, size, vnodes, i)))
 			break;
 		vce->owner = owner;
-		if ((rc = str_rb_insert (&cl->v_rb_tree, &vce->v_rbe)) < 0) {
+		if ((rc = str_rb_insert (&ch->v_rb_tree, &vce->v_rbe)) < 0) {
 			conhash_entry_free (vce);
 			break;
 		}
 		list_add_tail (&vce->item, &head);
 	}
 	if (i == vnodes) {
-		list_splice (&head, &cl->head);
+		list_splice (&head, &ch->head);
 		return 0;
 	}
 	walk_each_entry_s (vce, tmp, &head, struct conhash_entry, item) {
-		str_rb_delete (&cl->v_rb_tree, &vce->v_rbe);
+		str_rb_delete (&ch->v_rb_tree, &vce->v_rbe);
 		conhash_entry_free (vce);
 	}
 	errno = ENOMEM;
 	return -1;
 }
 
-void *conhash_list_get (struct conhash_list *cl, const char *key, int size)
+void *consistent_hash_get (struct consistent_hash *ch, const char *key, int size)
 {
 	char md5[16];
 	struct md5_state md5s;
@@ -127,21 +127,21 @@ void *conhash_list_get (struct conhash_list *cl, const char *key, int size)
 	md5_init (&md5s);
 	md5_process (&md5s, key, size);
 	md5_done (&md5s, md5);
-	if (!(rb_entry = str_rb_find_leaf (&cl->v_rb_tree, key, size)))
+	if (!(rb_entry = str_rb_find_leaf (&ch->v_rb_tree, key, size)))
 		return 0;
 	ce = cont_of (rb_entry, struct conhash_entry, v_rbe);
 	return ce->owner;
 }
 
-int conhash_list_rm (struct conhash_list *cl, const char *key, int size)
+int consistent_hash_rm (struct consistent_hash *ch, const char *key, int size)
 {
 	struct conhash_entry *vce, *tmp;
 
-	walk_each_entry_s (vce, tmp, &cl->head, struct conhash_entry, item) {
+	walk_each_entry_s (vce, tmp, &ch->head, struct conhash_entry, item) {
 		if (vce->size != size || memcmp (vce->key, key, size) != 0)
 			continue;
 		list_del_init (&vce->item);
-		str_rb_delete (&cl->v_rb_tree, &vce->v_rbe);
+		str_rb_delete (&ch->v_rb_tree, &vce->v_rbe);
 		conhash_entry_free (vce);
 	}
 	return 0;

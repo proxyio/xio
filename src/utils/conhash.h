@@ -32,16 +32,16 @@ enum {
 	CONHASH_DEFAULT_VNODES = 100,
 };
 
-struct conhash_list {
+struct consistent_hash {
 	struct str_rb v_rb_tree;
 	struct list_head head;
 };
 
-void conhash_list_init (struct conhash_list *cl);
-void conhash_list_destroy (struct conhash_list *cl);
+void consistent_hash_init (struct consistent_hash *ch);
+void consistent_hash_destroy (struct consistent_hash *ch);
 
-int conhash_list_add (struct conhash_list *cl, const char *key, int size, void *owner);
-int conhash_list_rm (struct conhash_list *cl, const char *key, int size);
-void *conhash_list_get (struct conhash_list *cl, const char *key, int size);
+int consistent_hash_add (struct consistent_hash *ch, const char *key, int size, void *owner);
+int consistent_hash_rm (struct consistent_hash *ch, const char *key, int size);
+void *consistent_hash_get (struct consistent_hash *ch, const char *key, int size);
 
 #endif

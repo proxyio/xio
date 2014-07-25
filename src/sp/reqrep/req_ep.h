@@ -77,5 +77,6 @@ static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
 
 extern struct loadbalance_vfptr *rrbin_vfptr;
 extern struct loadbalance_vfptr *ulhash_vfptr;
+extern struct loadbalance_vfptr *conhash_vfptr;
 
 #endif
