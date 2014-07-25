@@ -5,6 +5,7 @@
 #include <utils/i64_rb.h>
 #include <utils/str_rb.h>
 #include <utils/alloc.h>
+#include <utils/conhash.h>
 
 #define cnt 1000
 
@@ -47,6 +48,28 @@ static int i64_rb_test_single()
 	return 0;
 }
 
+static void conhash_test ()
+{
+	struct conhash_list cl;
+	void *owner;
+
+	conhash_list_init (&cl);
+	BUG_ON (conhash_list_get (&cl, "1", 1));
+	conhash_list_add (&cl, "0", 1, (void *) 1);
+	BUG_ON (!(owner = conhash_list_get (&cl, "1", 1)));
+	conhash_list_add (&cl, "2", 1, (void *) 2);
+	BUG_ON (!(owner = conhash_list_get (&cl, "1", 1)));
+	BUG_ON (!conhash_list_add (&cl, "2", 1, (void *) 2));
+	BUG_ON (!(owner = conhash_list_get (&cl, "4", 1)));
+	BUG_ON (conhash_list_rm (&cl, "2", 1));
+	BUG_ON (conhash_list_add (&cl, "2", 1, (void *) 2));
+	conhash_list_rm (&cl, "0", 1);
+	owner = conhash_list_get (&cl, "1", 1);
+	BUG_ON (owner != (void *) 2);
+	conhash_list_rm (&cl, "2", 1);
+	BUG_ON (conhash_list_get (&cl, "1", 1));
+	conhash_list_destroy (&cl);
+}
 
 static int map_test_single()
 {
@@ -86,7 +109,8 @@ static int map_test_single()
 
 int main (int argc, char **argv)
 {
-	i64_rb_test_single();
-	map_test_single();
+	i64_rb_test_single ();
+	map_test_single ();
+	conhash_test ();
 	return 0;
 }

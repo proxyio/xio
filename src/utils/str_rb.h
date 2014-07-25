@@ -52,6 +52,8 @@ struct str_rbe *str_rb_max (struct str_rb *map);
 
 struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size);
 
+struct str_rbe *str_rb_find_leaf (struct str_rb *map, const char *key, int size);
+
 int str_rb_insert (struct str_rb *map, struct str_rbe *entry);
 
 void str_rb_delete (struct str_rb *map, struct str_rbe *entry);

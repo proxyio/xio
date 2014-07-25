@@ -25,6 +25,7 @@
 
 #include <config.h>
 #include <inttypes.h>
+#include "list.h"
 #include "str_rb.h"
 
 enum {
@@ -32,7 +33,8 @@ enum {
 };
 
 struct conhash_list {
-	struct str_rb vce_rb;
+	struct str_rb v_rb_tree;
+	struct list_head head;
 };
 
 void conhash_list_init (struct conhash_list *cl);

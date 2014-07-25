@@ -21,26 +21,45 @@
 */
 
 #include <string.h>
+#include "md5.h"
 #include "list.h"
 #include "alloc.h"
 #include "conhash.h"
 
 struct conhash_entry {
-	struct str_rbe rb_entry;
-	struct list_head list_item;
+	struct str_rbe v_rbe;
+	struct list_head item;
+	void *owner;
+	char md5[16];
 	int vsize;
 	int vno;
 	int size;
 	char key[0];
 };
 
-struct conhash_entry *conhash_entry_alloc (const char *key, int size)
+static int md5_hash_len (struct conhash_entry *ce)
+{
+	return 3 * sizeof (int) + ce->size;
+}
+
+struct conhash_entry *conhash_ventry_alloc (const char *key, int size, int vsize, int vno)
 {
 	struct conhash_entry *ce = mem_zalloc (size + sizeof (*ce));
+	struct md5_state md5s;
+	struct str_rbe *v_rbe;
+
 	if (!ce)
 		return 0;
+	md5_init (&md5s);
+	ce->vsize = vsize;
+	ce->vno = vno;
 	ce->size = size;
 	memcpy (ce->key, key, size);
+	v_rbe = &ce->v_rbe;
+	v_rbe->key = ce->md5;
+	v_rbe->keylen = sizeof (ce->md5);
+	md5_process (&md5s, (unsigned char *) &ce->vsize, md5_hash_len (ce));
+	md5_done (&md5s, ce->md5);
 	return ce;
 }
 
@@ -51,58 +70,81 @@ void conhash_entry_free (struct conhash_entry *ce)
 
 void conhash_list_init (struct conhash_list *cl)
 {
-	str_rb_init (&cl->vce_rb);
+	str_rb_init (&cl->v_rb_tree);
+	INIT_LIST_HEAD (&cl->head);
 }
 
 void conhash_list_destroy (struct conhash_list *cl)
 {
-	struct str_rbe *rb_entry;
+	struct str_rbe *v_rbe;
 	struct conhash_entry *ce;
 
-	while ((rb_entry = str_rb_min (&cl->vce_rb))) {
-		str_rb_delete (&cl->vce_rb, rb_entry);
-		ce = cont_of (rb_entry, struct conhash_entry, rb_entry);
+	while ((v_rbe = str_rb_min (&cl->v_rb_tree))) {
+		str_rb_delete (&cl->v_rb_tree, v_rbe);
+		ce = cont_of (v_rbe, struct conhash_entry, v_rbe);
 		conhash_entry_free (ce);
 	}
 }
 
-static int conhash_list_add_entry (struct conhash_list *cl, struct conhash_entry *ce)
-{
-	str_rb_insert (&cl->vce_rb, &ce->rb_entry);
-}
-
-static int conhash_list_rm_entry (struct conhash_list *cl, struct conhash_entry *ce)
-{
-	str_rb_delete (&cl->vce_rb, &ce->rb_entry);
-}
-
 int conhash_list_add (struct conhash_list *cl, const char *key, int size, void *owner)
 {
-	int i, vnodes = CONHASH_DEFAULT_VNODES;
+	int i;
+	int rc;
+	int vnodes = CONHASH_DEFAULT_VNODES;
 	struct conhash_entry *vce;
 	struct conhash_entry *tmp;
 	struct list_head head = LIST_HEAD_INITIALIZE (head);
 
 	for (i = 0; i < vnodes; i++) {
-		if (!(vce = conhash_entry_alloc (key, size)))
+		if (!(vce = conhash_ventry_alloc (key, size, vnodes, i)))
 			break;
-		vce->vsize = vnodes;
-		vce->vno = i;
-		conhash_list_add_entry (cl, vce);
-		list_add_tail (&vce->list_item, &head);
+		vce->owner = owner;
+		if ((rc = str_rb_insert (&cl->v_rb_tree, &vce->v_rbe)) < 0) {
+			conhash_entry_free (vce);
+			break;
+		}
+		list_add_tail (&vce->item, &head);
 	}
-	if (i == vnodes)
+	if (i == vnodes) {
+		list_splice (&head, &cl->head);
 		return 0;
-	walk_each_entry_s (vce, tmp, &head, struct conhash_entry, list_item) {
-		conhash_list_rm_entry (cl, vce);
+	}
+	walk_each_entry_s (vce, tmp, &head, struct conhash_entry, item) {
+		str_rb_delete (&cl->v_rb_tree, &vce->v_rbe);
 		conhash_entry_free (vce);
 	}
 	errno = ENOMEM;
 	return -1;
 }
 
-int conhash_list_rm (struct conhash_list *cl, const char *key, int size)
+void *conhash_list_get (struct conhash_list *cl, const char *key, int size)
 {
+	char md5[16];
+	struct md5_state md5s;
+	struct str_rbe *rb_entry;
+	struct conhash_entry *ce;
+	
+	md5_init (&md5s);
+	md5_process (&md5s, key, size);
+	md5_done (&md5s, md5);
+	if (!(rb_entry = str_rb_find_leaf (&cl->v_rb_tree, key, size)))
+		return 0;
+	ce = cont_of (rb_entry, struct conhash_entry, v_rbe);
+	return ce->owner;
 }
 
-void *conhash_list_get (struct conhash_list *cl, const char *key, int size);
+int conhash_list_rm (struct conhash_list *cl, const char *key, int size)
+{
+	struct conhash_entry *vce, *tmp;
+
+	walk_each_entry_s (vce, tmp, &cl->head, struct conhash_entry, item) {
+		if (vce->size != size || memcmp (vce->key, key, size) != 0)
+			continue;
+		list_del_init (&vce->item);
+		str_rb_delete (&cl->v_rb_tree, &vce->v_rbe);
+		conhash_entry_free (vce);
+	}
+	return 0;
+}
+
+

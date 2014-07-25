@@ -55,22 +55,44 @@ struct str_rbe *str_rb_find (struct str_rb *map, const char *key, int size)
 {
 	struct str_rbe *cur;
 	struct rb_root *root = &map->root;
-	struct rb_node **np = &root->rb_node, *parent = NULL;
+	struct rb_node *np = root->rb_node, *parent = NULL;
 	int keylen = size, rc;
 
-	while (*np) {
-		parent = *np;
+	while (np) {
+		parent = np;
 		cur = rb_entry (parent, struct str_rbe, rb);
 		keylen = cur->keylen > size ? size : cur->keylen;
 		if ((rc = memcmp (cur->key, key, keylen)) == 0 && size == cur->keylen)
 			return cur;
 		if ((!rc && size < cur->keylen) || rc > 0)
-			np = &parent->rb_left;
+			np = parent->rb_left;
 		else if ((!rc && size > cur->keylen) || rc < 0)
-			np = &parent->rb_right;
+			np = parent->rb_right;
 	}
 	return NULL;
 }
+
+struct str_rbe *str_rb_find_leaf (struct str_rb *map, const char *key, int size)
+{
+	struct str_rbe *cur = 0;
+	struct rb_root *root = &map->root;
+	struct rb_node *np = root->rb_node, *parent = NULL;
+	int keylen = size, rc;
+
+	while (np) {
+		parent = np;
+		cur = rb_entry (parent, struct str_rbe, rb);
+		keylen = cur->keylen > size ? size : cur->keylen;
+		if ((rc = memcmp (cur->key, key, keylen)) == 0 && size == cur->keylen)
+			return cur;
+		if ((!rc && size < cur->keylen) || rc > 0)
+			np = parent->rb_left;
+		else if ((!rc && size > cur->keylen) || rc < 0)
+			np = parent->rb_right;
+	}
+	return cur;
+}
+
 
 int str_rb_insert (struct str_rb *map, struct str_rbe *entry)
 {
