@@ -52,6 +52,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getcwd gettimeofday memmove memset socket strchr strdup strndup strrchr strstr])
 AC_CHECK_FUNCS([epoll_create select poll kqueue sysconf])
 AC_CHECK_FUNCS([gethostbyname_r gethostbyname gethostbyaddr gethostbyaddr_r])
+AC_CHECK_FUNCS([pthread_spin_lock])
 
 #  If --enable-lua is specified, building xio modules for lua.
 AC_ARG_ENABLE([lua],

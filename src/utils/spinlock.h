@@ -26,7 +26,7 @@
 #include <config.h>
 #include <pthread.h>
 
-#if !defined HAVE_DEBUG
+#if !defined HAVE_DEBUG && defined HAVE_PTHREAD_SPIN_LOCK
 
 typedef struct spin {
 	pthread_spinlock_t _spin;

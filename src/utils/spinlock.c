@@ -22,7 +22,7 @@
 
 #include "spinlock.h"
 
-#if !defined HAVE_DEBUG
+#if !defined HAVE_DEBUG && defined HAVE_PTHREAD_SPIN_LOCK
 
 int spin_init (spin_t *spin)
 {
