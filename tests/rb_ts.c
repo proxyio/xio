@@ -5,7 +5,7 @@
 #include <utils/i64_rb.h>
 #include <utils/str_rb.h>
 #include <utils/alloc.h>
-#include <utils/conhash.h>
+#include <utils/consistent_hash.h>
 
 #define cnt 1000
 
