@@ -35,7 +35,6 @@
 #ifndef	_LINUX_RBTREE_H
 #define	_LINUX_RBTREE_H
 
-#include <linux/stddef.h>
 #include "base.h"
 
 #define container_of(ptr, type, member) ({				\
