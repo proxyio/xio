@@ -12,10 +12,10 @@ sender = sp_endpoint(SP_REQREP, SP_REQ);
 host = "inproc://py_reqrep";
 
 for i in range(1, 10) :
-    assert (sp_listen(recver, host + str(i)) == 0);
+    assert (sp_listen(recver, host + str(i)) >= 0);
 
 for i in range(1, 10) :
-    assert (sp_connect(sender, host + str(i)) == 0);
+    assert (sp_connect(sender, host + str(i)) >= 0);
 
 for i in range(1, 10) :
     req = Msg ();

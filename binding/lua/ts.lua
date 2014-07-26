@@ -7,13 +7,13 @@ host = "inproc://lua_reqrep";
 for i = 1, 10 do
    sockaddr = string.format ("%s %d", host, i);
    rc = sp_listen (recver, sockaddr);
-   assert (rc == 0);
+   assert (rc >= 0);
 end
 
 for i = 1, 10 do
    sockaddr = string.format ("%s %d", host, i);
    rc = sp_connect (sender, sockaddr);
-   assert (rc == 0);
+   assert (rc >= 0);
 end
 
 for i = 1, 10 do

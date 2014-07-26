@@ -14,13 +14,13 @@ $host = "inproc://py_reqrep";
 for ($i = 0; $i < 10; $i++) {
 	$sockaddr = $host . strval($i);
 	$rc = sp_listen($recver, $sockaddr);
-	assert ($rc == 0);
+	assert ($rc >= 0);
 }
 
 for ($i = 0; $i < 10; $i++) {
 	$sockaddr = $host . strval($i);
 	$rc = sp_connect($sender, $sockaddr);
-	assert ($rc == 0);
+	assert ($rc >= 0);
 }
 
 for ($i = 0; $i < 10; $i++) {

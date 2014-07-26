@@ -12,13 +12,13 @@ func TestREQREP(t *testing.T) {
 
 	for i := 1; i <= 10; i++ {
 		sockaddr := host + strconv.Itoa(i)
-		if rc := sp_listen(recver, sockaddr); rc != 0 {
+		if rc := sp_listen(recver, sockaddr); rc < 0 {
 			t.Fatal()
 		}
 	}
 	for i := 1; i <= 10; i++ {
 		sockaddr := host + strconv.Itoa(i)
-		if rc := sp_connect(sender, sockaddr); rc != 0 {
+		if rc := sp_connect(sender, sockaddr); rc < 0 {
 			t.Fatal()
 		}
 	}

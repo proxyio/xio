@@ -13,12 +13,12 @@ host = "inproc://py_reqrep"
 
 for i in 1..10
   rc = sp_listen(recver, host + i.to_s)
-  assert (rc == 0)
+  assert (rc >= 0)
 end
   
 for i in 1..10
   rc = sp_connect(sender, host + i.to_s)
-  assert (rc == 0)
+  assert (rc >= 0)
 end
 
 for i in 1..10
