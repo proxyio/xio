@@ -48,6 +48,7 @@ int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
 	}
 	sg_add_tg (tg);
 	mutex_unlock (&ep->lock);
+	return 0;
 }
 
 void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)

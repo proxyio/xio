@@ -156,6 +156,7 @@ static int set_verbose (struct sockbase *sb, void *optval, int optlen)
 	mutex_lock (&sb->lock);
 	sb->flagset.verbose =  * (int *) optval & 0xf;
 	mutex_unlock (&sb->lock);
+	return 0;
 }
 	
 static const sock_seter setopt_vfptr[] = {
