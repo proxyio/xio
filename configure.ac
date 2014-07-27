@@ -11,7 +11,7 @@ m4_ifdef([AM_SILENT_RULES], [
     AM_SILENT_RULES([yes])
 ])
 
-CFLAGS="$CFLAGS -I/usr/local/include"
+CFLAGS="$CFLAGS -I/usr/local/include/ -L/usr/local/lib/"
 
 # Checks for programs.
 AC_PROG_LIBTOOL
