@@ -1,5 +1,8 @@
+#include <config.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <ev/ev.h>
 
 static int ev_in_size = 0;
@@ -17,7 +20,7 @@ static void pipeout_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events
 	ev_out_size++;
 }
 
-int main (int argc, char **argv)
+int ev_test ()
 {
 	int pipefd[2];
 	struct ev_fd ev_fd[2];
@@ -55,4 +58,9 @@ int main (int argc, char **argv)
 	
 	ev_fdset_term (&fds);
 	return 0;
+}
+
+int main (int argc, char **argv)
+{
+	ev_test ();
 }
