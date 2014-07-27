@@ -11,7 +11,7 @@ m4_ifdef([AM_SILENT_RULES], [
     AM_SILENT_RULES([yes])
 ])
 
-CFLAGS="$CFLAGS -I/usr/local/include/ -L/usr/local/lib/"
+CFLAGS="${CFLAGS} -I/usr/local/include/ -L/usr/local/lib/"
 
 # Checks for programs.
 AC_PROG_LIBTOOL
@@ -76,7 +76,7 @@ AC_ARG_ENABLE([debug],
 
 if test "$enable_debug" = "yes"; then
     if test "$GCC" = "yes"; then
-        CFLAGS="-g -O0 "
+        CFLAGS="${CFLAGS} -g -O0"
     fi
     AC_DEFINE([HAVE_DEBUG], [], [enable debug compile mode])
 fi
