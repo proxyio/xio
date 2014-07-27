@@ -55,17 +55,6 @@ void *mem_zalloc (uint32_t size)
 	return p;
 }
 
-void *mem_align (uint32_t alignment, uint32_t size)
-{
-	void  *p;
-
-	if ((p = memalign (alignment, size))) {
-		mem_stats.alloc++;
-		mem_stats.alloc_size += size;
-	}
-	return p;
-}
-
 void mem_free (void *ptr, uint32_t size)
 {
 	if (ptr) {

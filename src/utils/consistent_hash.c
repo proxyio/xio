@@ -59,7 +59,7 @@ struct conhash_entry *conhash_ventry_alloc (const char *key, int size, int vsize
 	v_rbe->key = ce->md5;
 	v_rbe->keylen = sizeof (ce->md5);
 	md5_process (&md5s, (unsigned char *) &ce->vsize, md5_hash_len (ce));
-	md5_done (&md5s, ce->md5);
+	md5_done (&md5s, (unsigned char *) ce->md5);
 	return ce;
 }
 
@@ -125,8 +125,8 @@ void *consistent_hash_get (struct consistent_hash *ch, const char *key, int size
 	struct conhash_entry *ce;
 	
 	md5_init (&md5s);
-	md5_process (&md5s, key, size);
-	md5_done (&md5s, md5);
+	md5_process (&md5s, (const unsigned char *) key, size);
+	md5_done (&md5s, (unsigned char *) md5);
 	if (!(rb_entry = str_rb_find_leaf (&ch->v_rb_tree, key, size)))
 		return 0;
 	ce = cont_of (rb_entry, struct conhash_entry, v_rbe);
