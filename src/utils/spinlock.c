@@ -26,8 +26,10 @@
 
 int spin_init (spin_t *spin)
 {
+	int rc;
 	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
-	return pthread_spin_init (lock, PTHREAD_PROCESS_SHARED);
+	rc = pthread_spin_init (lock, 0);
+	return rc;
 }
 
 
