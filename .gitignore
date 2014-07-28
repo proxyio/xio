@@ -13,6 +13,8 @@
 *.dylib
 
 # Executables
+*.core
+*.trs
 *.exe
 *.out
 *.app

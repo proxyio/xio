@@ -39,7 +39,6 @@ void *mem_zalloc (uint32_t size);
 
 void *mem_realloc (void *ptr, uint32_t size);
 void mem_free (void *ptr, uint32_t size);
-void *mem_align (uint32_t alignment, uint32_t size);
 const mem_stat_t *mem_stat();
 
 #endif

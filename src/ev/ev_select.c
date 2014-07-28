@@ -51,6 +51,7 @@ typedef int (*eventpoll_ctl_op) (struct eventpoll *evp, struct fdd *fdd);
 static int eventpoll_add (struct eventpoll *evp, struct fdd *fdd)
 {
 	BUG_ON (!list_empty (&fdd->item));
+	BUG_ON (fdd->fd >= FD_SETSIZE);
 	list_add_tail (&fdd->item, &evp->fds);
 	return 0;
 }
@@ -58,6 +59,7 @@ static int eventpoll_add (struct eventpoll *evp, struct fdd *fdd)
 static int eventpoll_del (struct eventpoll *evp, struct fdd *fdd)
 {
 	BUG_ON (list_empty (&fdd->item));
+	BUG_ON (fdd->fd >= FD_SETSIZE);
 	list_del_init (&fdd->item);
 	return 0;
 }
@@ -65,6 +67,7 @@ static int eventpoll_del (struct eventpoll *evp, struct fdd *fdd)
 static int eventpoll_mod (struct eventpoll *evp, struct fdd *fdd)
 {
 	BUG_ON (list_empty (&fdd->item));
+	BUG_ON (fdd->fd >= FD_SETSIZE);
 	return 0;
 }
 
@@ -101,6 +104,7 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	struct fdd *tmp;
 	int rc;
 	int i;
+	int nfds = 0;
 	int fd_size = 0;
 	struct timeval tv;
 	struct list_head fd_head = LIST_HEAD_INITIALIZE (fd_head);
@@ -115,6 +119,8 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 		/* fd_size is the number of fdds array */
 		if (fd_size >= max)
 			break;
+		if (fdd->fd >= nfds)
+			nfds = fdd->fd + 1;
 		if (fdd->events & EV_READ)
 			FD_SET (fdd->fd, &readfds);
 		if (fdd->events & EV_WRITE)
@@ -124,7 +130,7 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	}
 	list_splice (&fd_head, &evp->fds);
 
-	if ((rc = select (fd_size, &readfds, &writefds, NULL, &tv)) < 0)
+	if ((rc = select (nfds, &readfds, &writefds, NULL, &tv)) < 0)
 		return -1;
 	for (i = 0, rc = 0; i < fd_size; i++) {
 		fdd = fdds[i];

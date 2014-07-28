@@ -28,6 +28,7 @@ int test_client (void *args)
 		BUG_ON (rc != sizeof (buf));
 	}
 	rex_sock_destroy (&rs);
+	return 0;
 }
 
 void test_socket ()

@@ -35,9 +35,7 @@
 #ifndef	_LINUX_RBTREE_H
 #define	_LINUX_RBTREE_H
 
-#include <linux/stddef.h>
-
-#define __offsetof(TYPE, MEMBER) ((long) &(((TYPE *)0)->MEMBER))
+#include "base.h"
 
 #define container_of(ptr, type, member) ({				\
 	    (type *)((char *)ptr - __offsetof(type, member)); })

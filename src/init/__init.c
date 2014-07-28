@@ -22,9 +22,14 @@
 
 #include <utils/base.h>
 
+/* gettid API is not POSIX-specified, do not use this API for critical path */
 int gettid()
 {
+#if defined(__NR_gettid)
 	return syscall (__NR_gettid);
+#else
+	return 0;
+#endif
 }
 
 extern void __ev_init ();

@@ -68,8 +68,7 @@ struct msgbuf *msgbuf_alloc (int size) {
 	INIT_LIST_HEAD (&msg->item);
 	INIT_LIST_HEAD (&msg->cmsg_head);
 	msg->chunk.ubuf_len = size;
-	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ubuf_len,
-				sizeof (msg->chunk) - sizeof (u16));
+	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ubuf_len, sizeof (msg->chunk.ubuf_len));
 	atomic_init (&msg->ref);
 	atomic_incr (&msg->ref);
 	return msg;

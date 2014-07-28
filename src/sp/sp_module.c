@@ -113,6 +113,7 @@ static void listener_event_hndl (struct tgtd *tg)
 static void epbase_close_bad_tgtds (struct epbase *ep)
 {
 	struct list_head bad_tgtds = {};
+	int fd;
 	struct tgtd *tg, *tmp;
 
 	INIT_LIST_HEAD (&bad_tgtds);
@@ -121,9 +122,10 @@ static void epbase_close_bad_tgtds (struct epbase *ep)
 	mutex_unlock (&ep->lock);
 
 	walk_tgtd_s (tg, tmp, &bad_tgtds) {
-		DEBUG_OFF ("ep %d socket %d bad status", ep->eid, tg->fd);
+		fd = tg->fd;
+		DEBUG_OFF ("ep %d socket %d bad status", ep->eid, fd);
 		ep->vfptr.term (ep, tg);
-		xclose (tg->fd);
+		xclose (fd);
 	}
 }
 

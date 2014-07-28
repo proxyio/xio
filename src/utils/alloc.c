@@ -20,7 +20,16 @@
   IN THE SOFTWARE.
 */
 
+#include <config.h>
+
+#if defined(__APPLE__)
+#include <sys/malloc.h>
+#elif defined(__FreeBSD__)
+#include <stdlib.h> 
+#else
 #include <malloc.h>
+#endif
+
 #include <string.h>
 #include "alloc.h"
 
@@ -43,17 +52,6 @@ void *mem_zalloc (uint32_t size)
 
 	if (p)
 		memset (p, 0, size);
-	return p;
-}
-
-void *mem_align (uint32_t alignment, uint32_t size)
-{
-	void  *p;
-
-	if ((p = memalign (alignment, size))) {
-		mem_stats.alloc++;
-		mem_stats.alloc_size += size;
-	}
 	return p;
 }
 

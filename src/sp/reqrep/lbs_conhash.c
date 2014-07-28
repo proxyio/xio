@@ -61,13 +61,13 @@ static void conhash_free (struct loadbalance_vfptr *lbs)
 static void conhash_add (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
 	struct conhash_lbs *cl = cont_of_conhash (lbs);
-	consistent_hash_add (&cl->tgs, tg->uuid, sizeof (tg->uuid), tg);
+	consistent_hash_add (&cl->tgs, (const char *) tg->uuid, sizeof (tg->uuid), tg);
 }
 
 static void conhash_rm (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
 {
 	struct conhash_lbs *cl = cont_of_conhash (lbs);
-	consistent_hash_rm (&cl->tgs, tg->uuid, sizeof (tg->uuid));
+	consistent_hash_rm (&cl->tgs, (const char *) tg->uuid, sizeof (tg->uuid));
 }
 
 

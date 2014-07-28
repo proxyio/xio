@@ -30,7 +30,7 @@ int mutex_init (mutex_t *mutex)
 
 	pthread_mutexattr_init (&mattr);
 	rc = pthread_mutex_init (lock, &mattr);
-
+	pthread_mutexattr_destroy (&mattr);	
 	return rc;
 }
 

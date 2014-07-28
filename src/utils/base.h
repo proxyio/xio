@@ -64,7 +64,9 @@ int gettid();
 #define STREQ(a, b) (strlen(a) == strlen(b) && memcmp(a, b , strlen(a)) == 0)
 
 // Get offset of a member
+#if !defined(__offsetof)
 #define __offsetof(TYPE, MEMBER) ((long) &(((TYPE *)0)->MEMBER))
+#endif
 
 // Casts a member of a structure out to the containning structure
 #define cont_of(ptr, type, member) ({					\
