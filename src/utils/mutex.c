@@ -20,6 +20,7 @@
   IN THE SOFTWARE.
 */
 
+#include "base.h"
 #include "mutex.h"
 
 int mutex_init (mutex_t *mutex)
@@ -31,26 +32,35 @@ int mutex_init (mutex_t *mutex)
 	pthread_mutexattr_init (&mattr);
 	rc = pthread_mutex_init (lock, &mattr);
 	pthread_mutexattr_destroy (&mattr);	
-	return rc;
+	if (rc != 0) {
+		ERRNO_RETURN (rc);
+	}
+	return 0;
 }
-
-
+/*
+  for POSIX-API. If successful, the pthread_mutex_lock() and pthread_mutex_unlock()
+  functions shall return zero; otherwise, an error number shall be returned to indicate
+  the error. */
 int mutex_lock (mutex_t *mutex)
 {
 	int rc = 0;
 	pthread_mutex_t *lock = (pthread_mutex_t *) mutex;
 
-	rc = pthread_mutex_lock (lock);
-
-	return rc;
+	if ((rc = pthread_mutex_lock (lock)) != 0) {
+		ERRNO_RETURN (rc);
+	}
+	return 0;
 }
 
 int mutex_trylock (mutex_t *mutex)
 {
 	int rc = 0;
 	pthread_mutex_t *lock = (pthread_mutex_t *) mutex;
-	rc = pthread_mutex_trylock (lock);
-	return rc;
+
+	if ((rc = pthread_mutex_trylock (lock)) != 0) {
+		ERRNO_RETURN (rc);
+	}
+	return 0;
 }
 
 
@@ -58,8 +68,11 @@ int mutex_unlock (mutex_t *mutex)
 {
 	int rc = 0;
 	pthread_mutex_t *lock = (pthread_mutex_t *) mutex;
-	rc = pthread_mutex_unlock (lock);
-	return rc;
+
+	if ((rc = pthread_mutex_unlock (lock)) != 0) {
+		ERRNO_RETURN (rc);
+	}
+	return 0;
 }
 
 
@@ -67,6 +80,9 @@ int mutex_destroy (mutex_t *mutex)
 {
 	int rc = 0;
 	pthread_mutex_t *lock = (pthread_mutex_t *) mutex;
-	rc = pthread_mutex_destroy (lock);
-	return rc;
+
+	if ((rc = pthread_mutex_destroy (lock)) != 0) {
+		ERRNO_RETURN (rc);
+	}
+	return 0;
 }
