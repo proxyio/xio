@@ -125,11 +125,6 @@ LDADD = libxio.la
 #  tools
 bin_PROGRAMS =
 
-#xiobc_SOURCES = \
-#	tools/xiobc.c
-
-#bin_PROGRAMS += xiobc
-
 #  automated tests
 UTILS_TESTS = \
 	tests/stl_ts \
