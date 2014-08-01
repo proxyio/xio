@@ -24,18 +24,23 @@
 #include "stats.h"
 
 
-void socket_s_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+
+void socket_s_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
 
-void socket_m_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+void socket_m_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
 
-void socket_h_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+void socket_h_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }
 
-void socket_d_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val)
+void socket_d_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
 {
 }

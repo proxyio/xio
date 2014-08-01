@@ -53,6 +53,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
 		tcps->et.events &= ~EV_WRITE;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_WRITE_OFF);
 	}
 	mutex_unlock (&sb->lock);
 }
@@ -68,6 +69,7 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 		SKLOG_DEBUG (sb, "%d enable EV_WRITE", sb->fd);
 		tcps->et.events |= EV_WRITE;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_WRITE_ON);
 	}
 	mutex_unlock (&sb->lock);
 }
@@ -91,6 +93,7 @@ static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 		SKLOG_DEBUG (sb, "%d disable EV_READ", sb->fd);
 		tcps->et.events &= ~EV_READ;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_READ_OFF);
 	}
 	mutex_unlock (&sb->lock);
 }
@@ -107,6 +110,7 @@ static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 		SKLOG_DEBUG (sb, "%d enable EV_READ", sb->fd);
 		tcps->et.events |= EV_READ;
 		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_READ_ON);
 	}
 	mutex_unlock (&sb->lock);
 }
@@ -327,10 +331,12 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 	if (events & EV_READ) {
 		SKLOG_DEBUG (sb, "%d sock EV_READ", sb->fd);
 		rc = sio_connector_rcv (sb);
+		socket_mstats_incr (&sb->stats, ST_EV_READ);
 	}
 	if (events & EV_WRITE) {
 		SKLOG_DEBUG (sb, "%d sock EV_WRITE", sb->fd);
 		rc = sio_connector_snd (sb);
+		socket_mstats_incr (&sb->stats, ST_EV_WRITE);
 	}
 	if (rc < 0 && errno != EAGAIN) {
 		SKLOG_DEBUG (sb, "%d sock EPIPE with events %d", sb->fd, events);
@@ -339,8 +345,10 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 		if (sb->rcv.waiters || sb->snd.waiters)
 			condition_broadcast (&sb->cond);
 		mutex_unlock (&sb->lock);
+		socket_mstats_incr (&sb->stats, ST_EV_ERROR);
 	}
 	emit_pollevents (sb);
+	mstats_base_emit (&sb->stats.base, gettimeofms ());
 }
 
 

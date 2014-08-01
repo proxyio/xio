@@ -251,6 +251,10 @@ void sockbase_init (struct sockbase *sb)
 	sb->evl = ev_get_loop (rand ());
 
 	socket_mstats_init (&sb->stats);
+	mstats_base_set_thres (&sb->stats.base, MSL_S, ST_EV_READ, 1);
+	mstats_base_set_thres (&sb->stats.base, MSL_S, ST_EV_WRITE, 1);
+	mstats_base_set_warnf (&sb->stats.base, MSL_S, socket_s_warn);
+
 	msgbuf_head_init (&sb->rcv, 4096);
 	msgbuf_head_ev_hndl (&sb->rcv, &rcv_msgbuf_vfptr);
 	msgbuf_head_init (&sb->snd, 4096);
