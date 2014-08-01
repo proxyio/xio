@@ -108,7 +108,9 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	int fd_size = 0;
 	struct timeval tv;
 	struct list_head fd_head = LIST_HEAD_INITIALIZE (fd_head);
+	struct ev_fdset *evfds;
 
+	evfds = cont_of (evp, struct ev_fdset, eventpoll);
 	timeval_init (&tv, timeout);
 	FD_ZERO (&readfds);
 	FD_ZERO (&writefds);
@@ -130,17 +132,24 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	}
 	list_splice (&fd_head, &evp->fds);
 
-	if ((rc = select (nfds, &readfds, &writefds, NULL, &tv)) < 0)
+	if ((rc = select (nfds, &readfds, &writefds, NULL, &tv)) < 0) {
+		ev_mstats_incr (&evfds->stats, ST_EV_NOTHG);
 		return -1;
+	}
 	for (i = 0, rc = 0; i < fd_size; i++) {
 		fdd = fdds[i];
 		fdd->ready_events = 0;
-		if (FD_ISSET (fdd->fd, &readfds))
+		if (FD_ISSET (fdd->fd, &readfds)) {
 			fdd->ready_events |= EV_READ;
-		if (FD_ISSET (fdd->fd, &writefds))
+			ev_mstats_incr (&evfds->stats, ST_EV_IN);
+		}
+		if (FD_ISSET (fdd->fd, &writefds)) {
 			fdd->ready_events |= EV_WRITE;
+			ev_mstats_incr (&evfds->stats, ST_EV_OUT);
+		}
 		if (fdd->ready_events)
 			fdds[rc++] = fdd;
 	}
+	mstats_base_emit (&evfds->stats.base, gettimeofms ());
 	return rc;
 }

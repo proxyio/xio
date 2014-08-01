@@ -71,8 +71,6 @@ static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 
 
 
-
-
 void ev_fdset_init (struct ev_fdset *evfds)
 {
 	spin_init (&evfds->lock);
@@ -80,6 +78,7 @@ void ev_fdset_init (struct ev_fdset *evfds)
 	INIT_LIST_HEAD (&evfds->task_head);
 	evfds->fd_size = 0;
 	eventpoll_init (&evfds->eventpoll);
+	ev_mstats_init (&evfds->stats);
 }
 
 void ev_fdset_term (struct ev_fdset *evfds)

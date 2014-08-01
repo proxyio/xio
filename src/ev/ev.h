@@ -28,6 +28,7 @@
 #include <utils/waitgroup.h>
 #include <utils/efd.h>
 #include <ev/eventpoll.h>
+#include "ev_stats.h"
 
 enum {
 	EV_READ     =        0x01, /* ev_io detected read will not block */
@@ -147,6 +148,7 @@ struct ev_fdset {
 	struct list_head head;
 	int fd_size;
 	struct eventpoll eventpoll;
+	struct ev_mstats stats;
 };
 
 /* initialize the ev_fds head for storing a list of ev_fd and initialize the

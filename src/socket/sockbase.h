@@ -39,7 +39,7 @@
 #include <msgbuf/msgbuf_head.h>
 #include <ev/ev.h>
 #include "log.h"
-#include "stats.h"
+#include "sstats.h"
 
 #define null NULL
 

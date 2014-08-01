@@ -29,6 +29,7 @@ XIO_MSGBUF = \
 	src/msgbuf/msgbuf_head.c
 
 XIO_EV = \
+	src/ev/ev_stats.c \
 	src/ev/eventpoll.c \
 	src/ev/ev.c
 
@@ -40,7 +41,7 @@ XIO_SOCKET = \
 	src/socket/listen.c \
 	src/socket/mix/mix_listener.c \
 	src/socket/mix/mix_getsetor.c \
-	src/socket/stats.c \
+	src/socket/sstats.c \
 	src/socket/send.c \
 	src/socket/recv.c \
 	src/socket/eventnotify.c \
