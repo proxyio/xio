@@ -25,19 +25,21 @@ start_time = time.time ();
 thr = 0;    
 
 while (count > 0):
-    req = Msg ();
-    req.data = buf;
-    assert (sp_send(sender, req) == 0);
+    for i in range (0, 3) :
+        req = Msg ();
+        req.data = buf;
+        assert (sp_send(sender, req) == 0);
 
-    rc, resp = sp_recv(sender)
-    assert (rc == 0);
-    thr = thr + 1;
+    for i in range (0, 3) :
+        rc, resp = sp_recv(sender)
+        assert (rc == 0);
+        thr = thr + 1;
+        count -= 1;
+        
     cost = time.time () - start_time;
     if (cost >= 1):
         start_time = time.time ();
         print "qps " + str(thr/cost);
         thr = 0;
-
-    count -= 1;
 
 sp_close(sender);
