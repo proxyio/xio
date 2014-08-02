@@ -181,6 +181,7 @@ void sio_socket_init (struct sio_sock *tcps)
 	int on = 1;
 
 	rex_sock_setopt (&tcps->s, REX_SO_NOBLOCK, &on, sizeof (on));
+	rex_sock_setopt (&tcps->s, REX_SO_NODELAY, &on, sizeof (on));
 	tcps->ops = sio_ops;
 	tcps->et.events = EV_READ;
 	tcps->et.fd = tcps->s.ss_fd;
