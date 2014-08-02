@@ -26,6 +26,7 @@
 struct efd {
 	int r;
 	int w;
+	int64_t unsignal_size;
 };
 
 void efd_init (struct efd *self);

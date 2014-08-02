@@ -65,7 +65,7 @@ static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 	int signo;
 	struct ev_sig *sig = cont_of (evfd, struct ev_sig, evfd);
 
-	if ((signo = ev_unsignal (sig)) > 0)
+	while ((signo = ev_unsignal (sig)) >= 0)
 		sig->hndl (sig, signo);
 }
 

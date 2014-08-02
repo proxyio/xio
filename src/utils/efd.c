@@ -54,6 +54,7 @@ void efd_init (struct efd *self)
 		BUG_ON (1);
 		return;
 	}
+	self->unsignal_size = 0;
 }
 
 void efd_destroy (struct efd *self)
@@ -67,7 +68,8 @@ int efd_signal_s (struct efd *self)
 	int rc;
 	char c = 94;
 
-	rc = write (self->w, &c, 1);
+	if ((rc = write (self->w, &c, 1)) == 1)
+		self->unsignal_size++;
 	return rc;
 }
 
@@ -81,6 +83,7 @@ int efd_unsignal_s (struct efd *self)
 		if (nbytes < 0 && errno == EAGAIN)
 			nbytes = 0;
 		BUG_ON (nbytes < 0);
+		self->unsignal_size -= nbytes;
 		if ((size_t) nbytes < sizeof (buf))
 			break;
 	}
@@ -101,6 +104,7 @@ int efd_signal (struct efd *self, int signo)
 		if ((rc = write (self->w, buf + nbytes, sizeof (signo) - nbytes)) >= 0)
 			nbytes += rc;
 	}
+	self->unsignal_size += nbytes;
 	return rc;
 }
 
@@ -112,9 +116,15 @@ int efd_unsignal (struct efd *self)
 	char *buf = (char *) &signo;
 
 	while (nbytes < sizeof (signo)) {
-		if ((rc = read (self->r, buf + nbytes, sizeof (signo) - nbytes)) >= 0)
-			nbytes += rc;
+		if ((rc = read (self->r, buf + nbytes, sizeof (signo) - nbytes)) < 0) {
+			if (nbytes == 0)
+				break;
+			continue;
+		}
+		nbytes += rc;
+		self->unsignal_size -= rc;
 	}
+	BUG_ON (nbytes != 0 && nbytes != sizeof (signo));
 	return signo;
 }
 
