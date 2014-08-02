@@ -41,7 +41,7 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb)
 		condition_wait (&sb->cond, &sb->lock);
 		sb->rcv.waiters--;
 	}
-	if (!sb->flagset.epipe && (rc = msgbuf_head_out_msg (&sb->rcv, &msg)) == 0)
+	if ((rc = msgbuf_head_out_msg (&sb->rcv, &msg)) == 0)
 		SKLOG_NOTICE (sb, "%d socket rcvbuf rm %d", sb->fd, msgbuf_len (msg));
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);

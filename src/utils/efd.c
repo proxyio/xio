@@ -108,23 +108,31 @@ int efd_signal (struct efd *self, int signo)
 	return rc;
 }
 
-int efd_unsignal (struct efd *self)
+int efd_unsignal2 (struct efd *self, int *sigset, int size)
 {
 	int rc;
-	int signo = -1;
 	ssize_t nbytes = 0;
-	char *buf = (char *) &signo;
+	char *buf = (char *) sigset;
 
-	while (nbytes < sizeof (signo)) {
-		if ((rc = read (self->r, buf + nbytes, sizeof (signo) - nbytes)) < 0) {
-			if (nbytes == 0)
+	size = sizeof (int) * size;
+	while (nbytes < size) {
+		if ((rc = read (self->r, buf + nbytes, size - nbytes)) < 0) {
+			if (nbytes % sizeof (int) == 0)
 				break;
 			continue;
 		}
 		nbytes += rc;
 		self->unsignal_size -= rc;
 	}
-	BUG_ON (nbytes != 0 && nbytes != sizeof (signo));
+	BUG_ON ((nbytes % sizeof (int)) != 0);
+	return nbytes / sizeof (int);
+}
+
+int efd_unsignal (struct efd *self)
+{
+	int rc;
+	int signo = -1;
+	rc = efd_unsignal2 (self, &signo, 1);
 	return signo;
 }
 

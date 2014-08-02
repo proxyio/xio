@@ -50,24 +50,29 @@ void ev_signal (struct ev_sig *sig, int signo)
 	spin_unlock (&sig->lock);
 }
 
-int ev_unsignal (struct ev_sig *sig)
+static int ev_unsignal (struct ev_sig *sig, int *sigset, int size)
 {
-	int signo;
+	int rc;
 	spin_lock (&sig->lock);
-	signo = efd_unsignal (&sig->efd);
+	rc = efd_unsignal2 (&sig->efd, sigset, size);
 	spin_unlock (&sig->lock);
-	return signo;
+	return rc;
 }
 
 static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
     int events)
 {
-	int signo;
+	int rc;
+	int i;
+	int sigset[1024];
 	struct ev_sig *sig = cont_of (evfd, struct ev_sig, evfd);
 
-	while ((signo = ev_unsignal (sig)) >= 0)
-		sig->hndl (sig, signo);
+	while ((rc = ev_unsignal (sig, sigset, 1)) > 0) {
+		for (i = 0; i < rc; i++)
+			sig->hndl (sig, sigset[i]);
+	}
 }
+
 
 
 

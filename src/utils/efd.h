@@ -41,6 +41,8 @@ int efd_unsignal_s (struct efd *self);
 
 int efd_unsignal (struct efd *self);
 
+int efd_unsignal2 (struct efd *self, int *sigset, int size);
+
 
 
 
