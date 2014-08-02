@@ -28,20 +28,21 @@
 #include <utils/taskpool.h>
 #include "sockbase.h"
 
-struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb) {
+struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb)
+{
 	int rc;
 	struct msgbuf *msg = 0;
 	struct sockbase_vfptr *vfptr = sb->vfptr;
 
 	mutex_lock (&sb->lock);
-	while (!sb->flagset.epipe && msgbuf_head_empty (&sb->rcv)
-	       && !sb->flagset.non_block) {
+	while (!sb->flagset.epipe
+	       && msgbuf_head_empty (&sb->rcv) && !sb->flagset.non_block) {
 		sb->rcv.waiters++;
 		condition_wait (&sb->cond, &sb->lock);
 		sb->rcv.waiters--;
 	}
-	BUG_ON ((rc = msgbuf_head_out_msg (&sb->rcv, &msg)));
-	SKLOG_NOTICE (sb, "%d socket rcvbuf rm %d", sb->fd, msgbuf_len (msg));
+	if (!sb->flagset.epipe && (rc = msgbuf_head_out_msg (&sb->rcv, &msg)) == 0)
+		SKLOG_NOTICE (sb, "%d socket rcvbuf rm %d", sb->fd, msgbuf_len (msg));
 	__emit_pollevents (sb);
 	mutex_unlock (&sb->lock);
 	return msg;
@@ -72,11 +73,11 @@ int xrecv (int fd, char **ubuf)
 		errno = EINVAL;
 		return -1;
 	}
-	if (! (sb = xget (fd))) {
+	if (!(sb = xget (fd))) {
 		errno = EBADF;
 		return -1;
 	}
-	if (! (msg = rcv_msgbuf_head_rm (sb))) {
+	if (!(msg = rcv_msgbuf_head_rm (sb))) {
 		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 		rc = -1;
 	} else {
