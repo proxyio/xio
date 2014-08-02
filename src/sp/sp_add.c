@@ -82,6 +82,7 @@ int sp_add (int eid, int fd)
 		}
 	}
 	xsetopt (fd, XSO_NOBLOCK, &on, sizeof (on));
+	xsetopt (fd, XSO_NODELAY, &on, sizeof (on));
 	eid_put (eid);
 	return 0;
 }
