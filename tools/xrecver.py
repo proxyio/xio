@@ -19,7 +19,9 @@ while (1):
     rc, req = sp_recv(recver);
     if rc:
         continue;
-    sp_send(recver, req);
+    while (sp_send(recver, req) != 0):
+        time.sleep (0.001);
+        
     thr += 1;
     cost = time.time () - start_time;
     if (cost >= 1) :

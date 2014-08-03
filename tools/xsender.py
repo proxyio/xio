@@ -28,14 +28,15 @@ while (count > 0):
     for i in range (0, 10) :
         req = Msg ();
         req.data = buf;
-        assert (sp_send(sender, req) == 0);
+        while (sp_send(sender, req) != 0) :
+            time.sleep (0.001);
 
     for i in range (0, 10) :
         rc, resp = sp_recv(sender)
         assert (rc == 0);
         thr = thr + 1;
         count -= 1;
-        
+
     cost = time.time () - start_time;
     if (cost >= 1):
         start_time = time.time ();
