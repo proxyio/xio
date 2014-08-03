@@ -47,8 +47,13 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 	struct ev_loop *evl = sb->evl;
 
 	mutex_lock (&sb->lock);
-	/* Disable POLLOUT event when snd_head is empty */
-	if (msgbuf_head_empty(&sb->snd) && list_empty (&tcps->un_head) &&
+
+	/* Disable POLLOUT event when snd_head is empty
+	 * BUG: we do not disable write-event when tcps->ls_head is not empty,
+	 * but once tcps->ls_head is empty and no any new message come in,
+	 * the write-event wouldn't disable anymore
+	 */
+	if (msgbuf_head_empty(&sb->snd) && list_empty (&tcps->ls_head) &&
 	    (tcps->et.events & EV_WRITE)) {
 		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
 		tcps->et.events &= ~EV_WRITE;
@@ -124,8 +129,8 @@ static struct sio_sock *__sio_alloc ()
 	sockbase_init (&tcps->base);
 	ev_fd_init (&tcps->et);
 	bio_init (&tcps->in);
-	INIT_LIST_HEAD (&tcps->un_head);
-	tcps->un_snd = NELEM (tcps->un_iov, struct rex_iov);
+	INIT_LIST_HEAD (&tcps->ls_head);
+	tcps->ls_free = NELEM (tcps->ls_iov, struct rex_iov);
 	return tcps;
 }
 
@@ -274,16 +279,19 @@ static int sio_connector_rcv (struct sockbase *sb)
 
 static void fill_msgbuf_iovs (struct sio_sock *tcps)
 {
-	int n = NELEM (tcps->un_iov, struct rex_iov);
+	int n = NELEM (tcps->ls_iov, struct rex_iov);
 	int i = 0;
 	struct msgbuf *msg, *tmp;
 
-	walk_each_entry_s (msg, tmp, &tcps->un_head, struct msgbuf, item) {
-		if (i < n - tcps->un_snd)
+	walk_each_entry_s (msg, tmp, &tcps->ls_head, struct msgbuf, item) {
+		if (tcps->ls_free == 0)
+			break;
+		if (i < n - tcps->ls_free)
 			continue;
-		tcps->un_snd--;
-		tcps->un_iov[i].iov_len = msgbuf_len (msg);
-		tcps->un_iov[i].iov_base = msgbuf_base (msg);
+		BUG_ON (i != n - tcps->ls_free);
+		tcps->ls_free--;
+		tcps->ls_iov[i].iov_len = msgbuf_len (msg);
+		tcps->ls_iov[i].iov_base = msgbuf_base (msg);
 		i++;
 	}
 }
@@ -293,33 +301,33 @@ static int sio_connector_snd (struct sockbase *sb)
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
 	i64 nbytes;
 	int i;
-	int n;
+	int n = NELEM (tcps->ls_iov, struct rex_iov);
 	struct msgbuf *msg;
 
-	n = NELEM (tcps->un_iov, struct rex_iov);
-	if (tcps->un_snd > 0 && (msg = snd_msgbuf_head_rm (sb)))
-		msgbuf_serialize (msg, &tcps->un_head);
+	while (tcps->ls_free > 0 && (msg = snd_msgbuf_head_rm (sb)))
+		msgbuf_serialize (msg, &tcps->ls_head);
 	fill_msgbuf_iovs (tcps);
-	if (tcps->un_snd == n) {
+
+	if (tcps->ls_free == n) {
 		errno = EAGAIN;
 		return -1;   /* no available msgbuf needed send */
 	}
-	if ((nbytes = rex_sock_sendv (&tcps->s, tcps->un_iov, n - tcps->un_snd)) < 0)
+	if ((nbytes = rex_sock_sendv (&tcps->s, tcps->ls_iov, n - tcps->ls_free)) < 0)
 		return -1;
 	SKLOG_NOTICE (sb, "%d sock send %lld bytes into network", sb->fd, nbytes);
-	for (i = 0; i < n - tcps->un_snd; i++) {
-		if (nbytes < tcps->un_iov[i].iov_len) {
-			tcps->un_iov[i].iov_base += nbytes;
-			tcps->un_iov[i].iov_len -= nbytes;
+	for (i = 0; i < n - tcps->ls_free; i++) {
+		if (nbytes < tcps->ls_iov[i].iov_len) {
+			tcps->ls_iov[i].iov_base += nbytes;
+			tcps->ls_iov[i].iov_len -= nbytes;
 			break;
 		}
-		msg = list_first (&tcps->un_head, struct msgbuf, item);
+		msg = list_first (&tcps->ls_head, struct msgbuf, item);
 		list_del_init (&msg->item);
 		msgbuf_free (msg);
 		SKLOG_NOTICE (sb, "%d sock send msg into network", sb->fd);
 	}
-	tcps->un_snd += i;
-	memmove (tcps->un_iov, tcps->un_iov + i, n - tcps->un_snd);
+	tcps->ls_free += i;
+	memmove (tcps->ls_iov, tcps->ls_iov + i, n - tcps->ls_free);
 	return 0;
 }
 
