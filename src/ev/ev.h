@@ -88,19 +88,25 @@ int ev_timerset_timeout (struct ev_timerset *timerset);
 
 
 
+struct ev_loop;
+struct ev_task;
+typedef int (*ev_task_hndl) (struct ev_loop *el, struct ev_task *ts);
+
+struct ev_task {
+	struct list_head item;
+	waitgroup_t *wg;
+	int rc;
+	ev_task_hndl hndl;
+};
+
+#define walk_ev_task_s(pos, tmp, head)					\
+	walk_each_entry_s (pos, tmp, head, struct ev_task, item)
 
 
 struct ev_fd;
 struct ev_fdset;
 typedef void (*ev_fd_hndl) (struct ev_fdset *evfds, struct ev_fd *evfd,
     int events /* EV_READ|EV_WRITE */);
-
-struct ev_task {
-	struct list_head item;
-	waitgroup_t *wg;
-	int rc;
-	int (*hndl) (struct ev_fdset *evfds, struct ev_fd *evfd);
-};
 
 struct ev_fd {
 	struct list_head item;
@@ -110,10 +116,6 @@ struct ev_fd {
 	int events;
 	ev_fd_hndl hndl;
 };
-
-#define walk_ev_task_s(pos, tmp, head)					\
-	walk_each_entry_s (pos, tmp, head, struct ev_fd, task.item)
-
 
 /* initialize the ev_fd by file descriptor and a hndl for process watched events
    if happened */

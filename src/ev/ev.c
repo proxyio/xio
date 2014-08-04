@@ -145,6 +145,32 @@ static fds_ctl_op fds_ctl_vfptr [] = {
 	ev_fdset_mod,
 };
 
+
+static int ev_fdset_add_task_hndl (struct ev_loop *el, struct ev_task *ts)
+{
+	struct ev_fd *evfd = cont_of (ts, struct ev_fd, task);
+	return ev_fdset_add (&el->fdset, evfd);
+}
+
+
+static int ev_fdset_rm_task_hndl (struct ev_loop *el, struct ev_task *ts)
+{
+	struct ev_fd *evfd = cont_of (ts, struct ev_fd, task);
+	return ev_fdset_rm (&el->fdset, evfd);
+}
+
+static int ev_fdset_mod_task_hndl (struct ev_loop *el, struct ev_task *ts)
+{
+	struct ev_fd *evfd = cont_of (ts, struct ev_fd, task);
+	return ev_fdset_mod (&el->fdset, evfd);
+}
+
+static ev_task_hndl fds_ctl_task_hndl [] = {
+	ev_fdset_add_task_hndl,
+	ev_fdset_rm_task_hndl,
+	ev_fdset_mod_task_hndl,
+};
+
 int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 {
 	int rc = 0;
@@ -156,7 +182,7 @@ int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 		return -1;
 	}
 	waitgroup_init (&wg);
-	task->hndl = fds_ctl_vfptr[op];
+	task->hndl = fds_ctl_task_hndl[op];
 	task->wg = &wg;
 	waitgroup_add (&wg);
 
@@ -202,19 +228,20 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 	int rc;
 	int i;
 	struct ev_fd *evfd;
-	struct ev_fd *tmp;
 	struct ev_task *task;
+	struct ev_task *tmp;
 	struct fdd *fdds[EV_MAXEVENTS] = {};
+	struct ev_loop *el;
 	struct list_head task_head = LIST_HEAD_INITIALIZE (task_head);
 
+	el = cont_of (evfds, struct ev_loop, fdset);
 	spin_lock (&evfds->lock);
 	list_splice (&evfds->task_head, &task_head);
 	spin_unlock (&evfds->lock);
 
-	walk_ev_task_s (evfd, tmp, &task_head) {
-		task = &evfd->task;
+	walk_ev_task_s (task, tmp, &task_head) {
 		list_del_init (&task->item);
-		if ((task->rc = task->hndl (evfds, evfd)) < 0)
+		if ((task->rc = task->hndl (el, task)) < 0)
 			task->rc = -errno;
 		if (task->wg)
 			waitgroup_done (task->wg);
@@ -239,8 +266,9 @@ static int ev_hndl (void *hndl)
 	ev_fdset_init (&ev_loop->fdset);
 	waitgroup_done (&ev_loop->wg);
 
-	while (!ev_loop->stopped)
+	while (!ev_loop->stopped) {
 		ev_fdset_poll (&ev_loop->fdset, 1);
+	}
 	return 0;
 }
 	
