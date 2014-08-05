@@ -257,17 +257,44 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 
 static int ev_processors = 1;    /* The number of processors currently online */
 static struct taskpool ev_pool;
+static struct ev_loop ev_loops[EV_MAXPROCESSORS];
 
-struct ev_loop ev_loops[EV_MAXPROCESSORS];
+static spin_t ev_glk;
+static struct list_head ev_tasks;
+
+void ev_add_gtask (struct ev_task *ts)
+{
+	spin_lock (&ev_glk);
+	list_add_tail (&ts->item, &ev_tasks);
+	spin_unlock (&ev_glk);
+}
+
+static struct ev_task *ev_pop_gtask ()
+{
+	struct ev_task *ts = 0;
+
+	spin_lock (&ev_glk);
+	if (!list_empty (&ev_tasks)) {
+		ts = list_first (&ev_tasks, struct ev_task, item);
+		list_del_init (&ts->item);
+	}
+	spin_unlock (&ev_glk);
+	return ts;
+}
+
 
 static int ev_hndl (void *hndl)
 {
 	struct ev_loop *ev_loop = (struct ev_loop *) hndl;
+	struct ev_task *ts;
+
 	ev_fdset_init (&ev_loop->fdset);
 	waitgroup_done (&ev_loop->wg);
 
 	while (!ev_loop->stopped) {
 		ev_fdset_poll (&ev_loop->fdset, 1);
+		if ((ts = ev_pop_gtask ()))
+			ts->hndl (ev_loop, ts);
 	}
 	return 0;
 }
@@ -277,6 +304,9 @@ void __ev_init (void)
 {
 	int i;
 	struct ev_loop *ev_loop;
+
+	spin_init (&ev_glk);
+	INIT_LIST_HEAD (&ev_tasks);
 
 #if defined _SC_NPROCESSORS_ONLN
 	if ((ev_processors = sysconf (_SC_NPROCESSORS_ONLN)) < 1)

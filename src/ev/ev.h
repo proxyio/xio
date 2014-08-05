@@ -102,6 +102,9 @@ struct ev_task {
 #define walk_ev_task_s(pos, tmp, head)					\
 	walk_each_entry_s (pos, tmp, head, struct ev_task, item)
 
+void ev_add_gtask (struct ev_task *ts);
+
+
 
 struct ev_fd;
 struct ev_fdset;
