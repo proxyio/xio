@@ -79,7 +79,6 @@ static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 void ev_fdset_init (struct ev_fdset *evfds)
 {
 	spin_init (&evfds->lock);
-	INIT_LIST_HEAD (&evfds->head);
 	INIT_LIST_HEAD (&evfds->task_head);
 	evfds->fd_size = 0;
 	eventpoll_init (&evfds->eventpoll);
@@ -102,11 +101,8 @@ int ev_fdset_add (struct ev_fdset *evfds, struct ev_fd *evfd)
 	fdd->fd = evfd->fd;
 	fdd->events = evfd->events;
 
-	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_ADD, fdd)) == 0) {
-		BUG_ON (!list_empty (&evfd->item));
+	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_ADD, fdd)) == 0)
 		evfds->fd_size++;
-		list_add_tail (&evfd->item, &evfds->head);
-	}
 	return rc;
 }
 
@@ -114,11 +110,8 @@ int ev_fdset_rm (struct ev_fdset *evfds, struct ev_fd *evfd)
 {
 	int rc;
 
-	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_DEL, &evfd->fdd)) == 0) {
-		BUG_ON (list_empty (&evfd->item));
+	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_DEL, &evfd->fdd)) == 0)
 		evfds->fd_size--;
-		list_del_init (&evfd->item);
-	}
 	return rc;
 }
 

@@ -112,7 +112,6 @@ typedef void (*ev_fd_hndl) (struct ev_fdset *evfds, struct ev_fd *evfd,
     int events /* EV_READ|EV_WRITE */);
 
 struct ev_fd {
-	struct list_head item;
 	struct ev_task task;
 	struct fdd fdd;
 	int fd;
@@ -124,12 +123,12 @@ struct ev_fd {
    if happened */
 static inline void ev_fd_init (struct ev_fd *evfd)
 {
-	INIT_LIST_HEAD (&evfd->item);
 	evfd->task.wg = 0;
 	evfd->task.rc = 0;
 	INIT_LIST_HEAD (&evfd->task.item);
 	fdd_init (&evfd->fdd);
 }
+
 
 
 struct ev_sig;
@@ -150,7 +149,6 @@ void ev_signal (struct ev_sig *sig, int signo);
 struct ev_fdset {
 	spin_t lock;                /* protect task_head fields */
 	struct list_head task_head;
-	struct list_head head;
 	int fd_size;
 	struct eventpoll eventpoll;
 	struct ev_mstats stats;
