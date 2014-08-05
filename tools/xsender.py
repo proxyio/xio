@@ -19,7 +19,7 @@ for i in range (1, size) :
     buf += string.join(random.sample('1234567890qwertyuiopasdfghjkl;,./!@#$%^&*())_+~', 1));
 
 sender = sp_endpoint(SP_REQREP, SP_REQ);
-for i in range (0, 20) :
+for i in range (0, 8) :
     assert (sp_connect(sender, host) >= 0);
 
 start_time = time.time ();
