@@ -139,56 +139,55 @@ static fds_ctl_op fds_ctl_vfptr [] = {
 };
 
 
-static int ev_fdset_add_task_hndl (struct ev_loop *el, struct ev_task *ts)
-{
-	struct ev_fd *evfd = cont_of (ts, struct ev_fd, task);
-	return ev_fdset_add (&el->fdset, evfd);
-}
 
-
-static int ev_fdset_rm_task_hndl (struct ev_loop *el, struct ev_task *ts)
-{
-	struct ev_fd *evfd = cont_of (ts, struct ev_fd, task);
-	return ev_fdset_rm (&el->fdset, evfd);
-}
-
-static int ev_fdset_mod_task_hndl (struct ev_loop *el, struct ev_task *ts)
-{
-	struct ev_fd *evfd = cont_of (ts, struct ev_fd, task);
-	return ev_fdset_mod (&el->fdset, evfd);
-}
-
-static ev_task_hndl fds_ctl_task_hndl [] = {
-	ev_fdset_add_task_hndl,
-	ev_fdset_rm_task_hndl,
-	ev_fdset_mod_task_hndl,
+struct fd_async_task {
+	struct ev_fd *owner;
+	fds_ctl_op f;
+	struct ev_task task;
 };
+
+static int fd_async_task_hndl (struct ev_loop *el, struct ev_task *ts)
+{
+	struct fd_async_task *ats = cont_of (ts, struct fd_async_task, task);
+	return ats->f (&el->fdset, ats->owner);
+}
+
+static int ev_fdset_run_task (struct ev_fdset *evfds, struct ev_task *ts)
+{
+	int rc = 0;
+	
+	waitgroup_add (&ts->wg);
+	spin_lock (&evfds->lock);
+	list_add_tail (&ts->item, &evfds->task_head);
+	spin_unlock (&evfds->lock);
+	waitgroup_wait (&ts->wg);
+
+	if (ts->rc < 0) {
+		errno = -ts->rc;
+		rc = -1;
+	}
+	return rc;
+}
+	
 
 int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 {
-	int rc = 0;
-	waitgroup_t wg;
-	struct ev_task *task = &evfd->task;
-	
+	int rc;
+	struct fd_async_task ats;
+	struct ev_task *task = &ats.task;
+
 	if (op >= NELEM (fds_ctl_vfptr, fds_ctl_op) || !fds_ctl_vfptr[op]) {
 		errno = EINVAL;
 		return -1;
 	}
-	waitgroup_init (&wg);
-	task->hndl = fds_ctl_task_hndl[op];
-	task->wg = &wg;
-	waitgroup_add (&wg);
+	ev_task_init (task);
+	task->hndl = fd_async_task_hndl;
 
-	spin_lock (&evfds->lock);
-	list_add_tail (&task->item, &evfds->task_head);
-	spin_unlock (&evfds->lock);
-	waitgroup_wait (&wg);
-
-	waitgroup_destroy (&wg);
-	if (task->rc < 0) {
-		errno = -task->rc;
-		rc = -1;
-	}
+	ats.owner = evfd;
+	ats.f = fds_ctl_vfptr [op];
+	
+	rc = ev_fdset_run_task (evfds, task);
+	ev_task_destroy (task);
 	return rc;
 }
 
@@ -236,8 +235,7 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 		list_del_init (&task->item);
 		if ((task->rc = task->hndl (el, task)) < 0)
 			task->rc = -errno;
-		if (task->wg)
-			waitgroup_done (task->wg);
+		waitgroup_done (&task->wg);
 	}
 	if ((rc = eventpoll_wait (&evfds->eventpoll, fdds, EV_MAXEVENTS, to)) <= 0)
 		return rc;

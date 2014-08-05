@@ -94,13 +94,32 @@ typedef int (*ev_task_hndl) (struct ev_loop *el, struct ev_task *ts);
 
 struct ev_task {
 	struct list_head item;
-	waitgroup_t *wg;
+	waitgroup_t wg;
 	int rc;
 	ev_task_hndl hndl;
 };
 
 #define walk_ev_task_s(pos, tmp, head)					\
 	walk_each_entry_s (pos, tmp, head, struct ev_task, item)
+
+static inline void ev_task_init (struct ev_task *ts)
+{
+	waitgroup_init (&ts->wg);
+	ts->rc = 0;
+	ts->hndl = 0;
+	INIT_LIST_HEAD (&ts->item);
+}
+
+static inline void ev_task_destroy (struct ev_task *ts)
+{
+	waitgroup_destroy (&ts->wg);
+}
+
+static inline int ev_task_wait (struct ev_task *ts)
+{
+	waitgroup_wait (&ts->wg);
+	return ts->rc;
+}
 
 void ev_add_gtask (struct ev_task *ts);
 
@@ -112,7 +131,6 @@ typedef void (*ev_fd_hndl) (struct ev_fdset *evfds, struct ev_fd *evfd,
     int events /* EV_READ|EV_WRITE */);
 
 struct ev_fd {
-	struct ev_task task;
 	struct fdd fdd;
 	int fd;
 	int events;
@@ -123,9 +141,6 @@ struct ev_fd {
    if happened */
 static inline void ev_fd_init (struct ev_fd *evfd)
 {
-	evfd->task.wg = 0;
-	evfd->task.rc = 0;
-	INIT_LIST_HEAD (&evfd->task.item);
 	fdd_init (&evfd->fdd);
 }
 
@@ -176,10 +191,6 @@ int __ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 
 /* process the underlying eventpoll and then process the happened fd events */
 int ev_fdset_poll (struct ev_fdset *evfds, uint64_t timeout);
-
-
-
-
 
 
 
