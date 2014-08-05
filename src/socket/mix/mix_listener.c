@@ -49,12 +49,14 @@ static int mix_listener_bind (struct sockbase *sb, const char *sock)
 			acceptq_add (sb, tmp);
 		xput (child_fd);
 	}
+	str_array_destroy (&sock_arr);
 	return 0;
  BAD:
 	walk_sub_sock (child_sb, tmp, &sb->sub_socks) {
 		list_del_init (&child_sb->sib_link);
 		xclose (child_sb->fd);
 	}
+	str_array_destroy (&sock_arr);
 	return -1;
 }
 

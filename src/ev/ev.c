@@ -50,25 +50,28 @@ void ev_signal (struct ev_sig *sig, int signo)
 	spin_unlock (&sig->lock);
 }
 
-int ev_unsignal (struct ev_sig *sig)
+static int ev_unsignal (struct ev_sig *sig, int *sigset, int size)
 {
-	int signo;
+	int rc;
 	spin_lock (&sig->lock);
-	signo = efd_unsignal (&sig->efd);
+	rc = efd_unsignal2 (&sig->efd, sigset, size);
 	spin_unlock (&sig->lock);
-	return signo;
+	return rc;
 }
 
 static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
     int events)
 {
-	int signo;
+	int rc;
+	int i;
+	int sigset[1024];
 	struct ev_sig *sig = cont_of (evfd, struct ev_sig, evfd);
 
-	if ((signo = ev_unsignal (sig)) > 0)
-		sig->hndl (sig, signo);
+	while ((rc = ev_unsignal (sig, sigset, 1)) > 0) {
+		for (i = 0; i < rc; i++)
+			sig->hndl (sig, sigset[i]);
+	}
 }
-
 
 
 
@@ -76,10 +79,10 @@ static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 void ev_fdset_init (struct ev_fdset *evfds)
 {
 	spin_init (&evfds->lock);
-	INIT_LIST_HEAD (&evfds->head);
 	INIT_LIST_HEAD (&evfds->task_head);
 	evfds->fd_size = 0;
 	eventpoll_init (&evfds->eventpoll);
+	ev_mstats_init (&evfds->stats);
 }
 
 void ev_fdset_term (struct ev_fdset *evfds)
@@ -98,11 +101,8 @@ int ev_fdset_add (struct ev_fdset *evfds, struct ev_fd *evfd)
 	fdd->fd = evfd->fd;
 	fdd->events = evfd->events;
 
-	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_ADD, fdd)) == 0) {
-		BUG_ON (!list_empty (&evfd->item));
+	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_ADD, fdd)) == 0)
 		evfds->fd_size++;
-		list_add_tail (&evfd->item, &evfds->head);
-	}
 	return rc;
 }
 
@@ -110,11 +110,8 @@ int ev_fdset_rm (struct ev_fdset *evfds, struct ev_fd *evfd)
 {
 	int rc;
 
-	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_DEL, &evfd->fdd)) == 0) {
-		BUG_ON (list_empty (&evfd->item));
+	if ((rc = eventpoll_ctl (&evfds->eventpoll, EV_DEL, &evfd->fdd)) == 0)
 		evfds->fd_size--;
-		list_del_init (&evfd->item);
-	}
 	return rc;
 }
 
@@ -141,31 +138,56 @@ static fds_ctl_op fds_ctl_vfptr [] = {
 	ev_fdset_mod,
 };
 
-int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
+
+
+struct fd_async_task {
+	struct ev_fd *owner;
+	fds_ctl_op f;
+	struct ev_task task;
+};
+
+static int fd_async_task_hndl (struct ev_loop *el, struct ev_task *ts)
+{
+	struct fd_async_task *ats = cont_of (ts, struct fd_async_task, task);
+	return ats->f (&el->fdset, ats->owner);
+}
+
+static int ev_fdset_run_task (struct ev_fdset *evfds, struct ev_task *ts)
 {
 	int rc = 0;
-	waitgroup_t wg;
-	struct ev_task *task = &evfd->task;
 	
+	waitgroup_add (&ts->wg);
+	spin_lock (&evfds->lock);
+	list_add_tail (&ts->item, &evfds->task_head);
+	spin_unlock (&evfds->lock);
+	waitgroup_wait (&ts->wg);
+
+	if (ts->rc < 0) {
+		errno = -ts->rc;
+		rc = -1;
+	}
+	return rc;
+}
+	
+
+int ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
+{
+	int rc;
+	struct fd_async_task ats;
+	struct ev_task *task = &ats.task;
+
 	if (op >= NELEM (fds_ctl_vfptr, fds_ctl_op) || !fds_ctl_vfptr[op]) {
 		errno = EINVAL;
 		return -1;
 	}
-	waitgroup_init (&wg);
-	task->hndl = fds_ctl_vfptr[op];
-	task->wg = &wg;
-	waitgroup_add (&wg);
+	ev_task_init (task);
+	task->hndl = fd_async_task_hndl;
 
-	spin_lock (&evfds->lock);
-	list_add_tail (&task->item, &evfds->task_head);
-	spin_unlock (&evfds->lock);
-	waitgroup_wait (&wg);
-
-	waitgroup_destroy (&wg);
-	if (task->rc < 0) {
-		errno = -task->rc;
-		rc = -1;
-	}
+	ats.owner = evfd;
+	ats.f = fds_ctl_vfptr [op];
+	
+	rc = ev_fdset_run_task (evfds, task);
+	ev_task_destroy (task);
 	return rc;
 }
 
@@ -198,22 +220,22 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 	int rc;
 	int i;
 	struct ev_fd *evfd;
-	struct ev_fd *tmp;
 	struct ev_task *task;
+	struct ev_task *tmp;
 	struct fdd *fdds[EV_MAXEVENTS] = {};
+	struct ev_loop *el;
 	struct list_head task_head = LIST_HEAD_INITIALIZE (task_head);
 
+	el = cont_of (evfds, struct ev_loop, fdset);
 	spin_lock (&evfds->lock);
 	list_splice (&evfds->task_head, &task_head);
 	spin_unlock (&evfds->lock);
 
-	walk_ev_task_s (evfd, tmp, &task_head) {
-		task = &evfd->task;
+	walk_ev_task_s (task, tmp, &task_head) {
 		list_del_init (&task->item);
-		if ((task->rc = task->hndl (evfds, evfd)) < 0)
+		if ((task->rc = task->hndl (el, task)) < 0)
 			task->rc = -errno;
-		if (task->wg)
-			waitgroup_done (task->wg);
+		waitgroup_done (&task->wg);
 	}
 	if ((rc = eventpoll_wait (&evfds->eventpoll, fdds, EV_MAXEVENTS, to)) <= 0)
 		return rc;
@@ -226,17 +248,45 @@ int ev_fdset_poll (struct ev_fdset *evfds, uint64_t to)
 
 static int ev_processors = 1;    /* The number of processors currently online */
 static struct taskpool ev_pool;
+static struct ev_loop ev_loops[EV_MAXPROCESSORS];
 
-struct ev_loop ev_loops[EV_MAXPROCESSORS];
+static spin_t ev_glk;
+static struct list_head ev_tasks;
+
+void ev_add_gtask (struct ev_task *ts)
+{
+	spin_lock (&ev_glk);
+	list_add_tail (&ts->item, &ev_tasks);
+	spin_unlock (&ev_glk);
+}
+
+static struct ev_task *ev_pop_gtask ()
+{
+	struct ev_task *ts = 0;
+
+	spin_lock (&ev_glk);
+	if (!list_empty (&ev_tasks)) {
+		ts = list_first (&ev_tasks, struct ev_task, item);
+		list_del_init (&ts->item);
+	}
+	spin_unlock (&ev_glk);
+	return ts;
+}
+
 
 static int ev_hndl (void *hndl)
 {
 	struct ev_loop *ev_loop = (struct ev_loop *) hndl;
+	struct ev_task *ts;
+
 	ev_fdset_init (&ev_loop->fdset);
 	waitgroup_done (&ev_loop->wg);
 
-	while (!ev_loop->stopped)
+	while (!ev_loop->stopped) {
 		ev_fdset_poll (&ev_loop->fdset, 1);
+		if ((ts = ev_pop_gtask ()))
+			ts->hndl (ev_loop, ts);
+	}
 	return 0;
 }
 	
@@ -245,6 +295,9 @@ void __ev_init (void)
 {
 	int i;
 	struct ev_loop *ev_loop;
+
+	spin_init (&ev_glk);
+	INIT_LIST_HEAD (&ev_tasks);
 
 #if defined _SC_NPROCESSORS_ONLN
 	if ((ev_processors = sysconf (_SC_NPROCESSORS_ONLN)) < 1)

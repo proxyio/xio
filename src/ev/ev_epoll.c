@@ -123,11 +123,15 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	int fd_size = 0;
 	struct epoll_event *et;
 	struct epoll_event fds[EV_MAXEVENTS] = {};
+	struct ev_fdset *evfds;
 
+	evfds = cont_of (evp, struct ev_fdset, eventpoll);
 	if (max > EV_MAXEVENTS)
 		max = EV_MAXEVENTS;
-	if ((rc = epoll_wait (evp->epfd, fds, max, timeout)) <= 0)
+	if ((rc = epoll_wait (evp->epfd, fds, max, timeout)) <= 0) {
+		ev_mstats_incr (&evfds->stats, ST_EV_NOTHG);
 		return rc;
+	}
 	fd_size = rc;
 	for (i = 0, rc = 0; i < fd_size; i++) {
 		et = &fds[i];
@@ -135,11 +139,16 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 			continue;
 		fdd = (struct fdd *) et->data.ptr;
 		fdd->ready_events = 0;
-		if (et->events & (EPOLLIN|EPOLLERR|EPOLLHUP|EPOLLRDHUP))
+		if (et->events & (EPOLLIN|EPOLLERR|EPOLLHUP|EPOLLRDHUP)) {
 			fdd->ready_events |= EV_READ;
-		if (et->events & EPOLLOUT)
+			ev_mstats_incr (&evfds->stats, ST_EV_IN);
+		}
+		if (et->events & EPOLLOUT) {
 			fdd->ready_events |= EV_WRITE;
+			ev_mstats_incr (&evfds->stats, ST_EV_OUT);
+		}
 		fdds[rc++] = fdd;
 	}
+	mstats_base_emit (&evfds->stats.base, gettimeofms ());
 	return rc;
 }

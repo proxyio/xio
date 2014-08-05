@@ -20,33 +20,32 @@
   IN THE SOFTWARE.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <utils/waitgroup.h>
-#include <utils/taskpool.h>
-#include "sockaddr.h"
-#include "sockbase.h"
+#ifndef _H_PROXYIO_EV_STATS_
+#define _H_PROXYIO_EV_STATS_
 
-int xconnect (const char *peer)
-{
-	int fd;
-	int pf = sockaddr_pf (peer);
-	char sockaddr[PATH_MAX] = {};
+#include <utils/mstats_base.h>
 
-	if (pf < 0 || sockaddr_addr (peer, sockaddr, sizeof (sockaddr)) != 0) {
-		errno = EINVAL;
-		return -1;
-	}
-	if ((fd = xsocket (pf, XCONNECTOR)) < 0)
-		return -1;
-	if (xbind (fd, sockaddr) < 0) {
-		/* before returned, no anyone can touch this socket, doesn't need
-		 * lock and incr refs here
-		 */
-		__xclose (xgb.sockbases[fd]);
-		return -1;
-	}
-	return fd;
-}
+enum {
+	ST_EV_IN = 0,
+	ST_EV_OUT,
+	ST_EV_ERR,
+	ST_EV_NOTHG,
+	ST_EV_KEYRANGE,
+};
+
+void ev_s_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+
+void ev_m_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+
+void ev_h_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+
+void ev_d_warn (struct mstats_base *stb, int sl, int key, i64 thres,
+		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+
+DEFINE_MSTATS (ev, ST_EV_KEYRANGE);
+
+
+#endif

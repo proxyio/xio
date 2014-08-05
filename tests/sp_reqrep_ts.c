@@ -133,6 +133,7 @@ int server2()
 	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
 	sbuf = ubuf_alloc (0);
 	BUG_ON (sp_send (eid, sbuf) != -1);
+	ubuf_free (sbuf);
 
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		sprintf (host, "%s%s", pf[i], addr);

@@ -73,7 +73,7 @@ int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf)
 		bh->ev_hndl->rm (bh);
 
 	/* the first time when msgbuf_head is non-full */
-	if (bh->ev_hndl && bh->ev_hndl->nonfull && (bh->wnd - bh->size <= ubuf_len (*ubuf)))
+	if (bh->ev_hndl && bh->ev_hndl->nonfull && bh->wnd - bh->size > 0)
 		bh->ev_hndl->nonfull (bh);
 	if (bh->ev_hndl && bh->ev_hndl->empty && msgbuf_head_empty (bh))
 		bh->ev_hndl->empty (bh);
@@ -95,7 +95,7 @@ int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
 		bh->ev_hndl->add (bh);
 
 	/* the first time when msgbuf_head is full */
-	if (bh->ev_hndl && bh->ev_hndl->full && bh->wnd - bh->size <= ubuf_len (ubuf))
+	if (bh->ev_hndl && bh->ev_hndl->full && bh->wnd - bh->size <= 0)
 		bh->ev_hndl->full (bh);
 	return 0;
 }

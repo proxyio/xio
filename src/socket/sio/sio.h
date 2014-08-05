@@ -32,9 +32,11 @@ struct sio_sock {
 	struct rex_sock s;
 	struct bio in;
 	struct io ops;
-	struct list_head un_head;
-	int un_snd;                  /* the number of un_iov */
-	struct rex_iov un_iov[100];
+
+	/* the local-storage caching of sio_sock */
+	struct list_head ls_head;
+	int ls_free;                  /* the number of ls_iov */
+	struct rex_iov ls_iov[100];
 };
 
 int sio_setopt (struct sockbase *sb, int opt, void *optval, int optlen);

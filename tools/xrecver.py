@@ -4,23 +4,30 @@ import sys
 import time
 from xio import *
 
-if (len (sys.argv) != 2) :
+if (len (sys.argv) < 2) :
     print "Usage: xrecver sockaddr";
     exit(0);
 
 host = sys.argv[1];
+count = 1E9;
+if (len (sys.argv) == 3) :
+    count = int(sys.argv[2]);
+    
 recver = sp_endpoint(SP_REQREP, SP_REP);
 assert (sp_listen(recver, host) >= 0);
 
 start_time = time.time ();
 thr = 0;    
 
-while (1):
+while (count > 0):
     rc, req = sp_recv(recver);
     if rc:
         continue;
-    sp_send(recver, req);
+    while (sp_send(recver, req) != 0):
+        time.sleep (0.001);
+        
     thr += 1;
+    count -= 1;
     cost = time.time () - start_time;
     if (cost >= 1) :
         start_time = time.time ();

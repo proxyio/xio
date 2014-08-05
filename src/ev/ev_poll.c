@@ -94,7 +94,9 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	int fd_size = 0;
 	struct pollfd fds[EV_MAXEVENTS] = {};
 	struct list_head fd_head = LIST_HEAD_INITIALIZE (fd_head);
-	
+	struct ev_fdset *evfds;
+
+	evfds = cont_of (evp, struct ev_fdset, eventpoll);
 	if (max > EV_MAXEVENTS)
 		max = EV_MAXEVENTS;
 	walk_fdd_s (fdd, tmp, &evp->fds) {
@@ -111,18 +113,25 @@ int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeo
 	}
 	list_splice (&fd_head, &evp->fds);
 
-	if ((rc = poll (fds, fd_size, timeout)) <= 0)
+	if ((rc = poll (fds, fd_size, timeout)) <= 0) {
+		ev_mstats_incr (&evfds->stats, ST_EV_NOTHG);
 		return rc;
+	}
 	for (i = 0, rc = 0; i < fd_size; i++) {
 		fdd = fdds[i];
 		fdd->ready_events = 0;
 		if (fds[i].revents) {
-			if (fds[i].revents & (POLLIN|POLLHUP|POLLERR))
+			if (fds[i].revents & (POLLIN|POLLHUP|POLLERR)) {
 				fdd->ready_events |= EV_READ;
-			if (fds[i].revents & (POLLOUT))
+				ev_mstats_incr (&evfds->stats, ST_EV_IN);
+			}
+			if (fds[i].revents & (POLLOUT)) {
 				fdd->ready_events |= EV_WRITE;
+				ev_mstats_incr (&evfds->stats, ST_EV_OUT);
+			}
 			fdds[rc++] = fdd;
 		}
 	}
+	mstats_base_emit (&evfds->stats.base, gettimeofms ());
 	return rc;
 }

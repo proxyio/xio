@@ -241,15 +241,16 @@ static void tcp_sg_send()
 	int afd = xlisten ("tcp://127.0.0.1:15100");
 	int cfd = xconnect ("tcp://127.0.0.1:15100");
 	int i;
+	int rc;
 	char *ubuf;
 	
 	BUG_ON (afd < 0 || cfd < 0);
 	for (i = 0; i < 1000; i++) {
 		ubuf = ubuf_alloc (12);
-		BUG_ON (xsend (cfd, ubuf));
+		BUG_ON ((rc = xsend (cfd, ubuf)) != 0);
 	}
-	xclose (afd);
 	xclose (cfd);
+	xclose (afd);
 }
 
 int main (int argc, char **argv)
