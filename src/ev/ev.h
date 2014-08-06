@@ -23,6 +23,7 @@
 #ifndef _H_PROXYIO_EV_
 #define _H_PROXYIO_EV_
 
+#include <xio/env.h>
 #include <utils/list.h>
 #include <utils/bufio.h>
 #include <utils/spinlock.h>
@@ -30,6 +31,7 @@
 #include <utils/efd.h>
 #include <ev/eventpoll.h>
 #include "ev_stats.h"
+
 
 enum {
 	EV_READ     =        0x01, /* ev_io detected read will not block */

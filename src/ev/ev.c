@@ -318,6 +318,7 @@ static int ev_hndl (void *hndl)
 void __ev_init (void)
 {
 	int i;
+	char *env_max_cpus;
 	struct ev_loop *ev_loop;
 
 	spin_init (&ev_glk);
@@ -327,6 +328,10 @@ void __ev_init (void)
 	if ((ev_processors = sysconf (_SC_NPROCESSORS_ONLN)) < 1)
 		ev_processors = 1;
 #endif
+	if ((env_max_cpus = getenv (ENV_PROXYIO_MAX_CPUS))) {
+		if (0 == sscanf (env_max_cpus, "%d", &ev_processors))
+			ev_processors = 1;
+	}
 	taskpool_init (&ev_pool, ev_processors);
 	taskpool_start (&ev_pool);
 
