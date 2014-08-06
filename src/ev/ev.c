@@ -35,28 +35,51 @@ void ev_sig_init (struct ev_sig *sig, ev_sig_hndl hndl)
 	sig->evfd.fd = sig->efd.r;
 	sig->evfd.events = EV_READ;
 	sig->evfd.hndl = ev_sigfd_hndl;
+	bio_init (&sig->signals);
 }
 
 void ev_sig_term (struct ev_sig *sig)
 {
 	spin_destroy (&sig->lock);
 	efd_destroy (&sig->efd);
+	bio_destroy (&sig->signals);
 }
 
 void ev_signal (struct ev_sig *sig, int signo)
 {
+	int rc;
+
 	spin_lock (&sig->lock);
-	efd_signal (&sig->efd, signo);
+	if (bio_size (&sig->signals) == 0)
+		efd_signal (&sig->efd, 1);
+	rc = bio_write (&sig->signals, (char *) &signo, sizeof (signo));
+	BUG_ON (rc != sizeof (signo));
 	spin_unlock (&sig->lock);
 }
 
-static int ev_unsignal (struct ev_sig *sig, int *sigset, int size)
+static int ev_get_signals (struct ev_sig *sig, int *sigset, int size)
 {
 	int rc;
 	spin_lock (&sig->lock);
-	rc = efd_unsignal2 (&sig->efd, sigset, size);
+	rc = bio_read (&sig->signals, (char *) sigset, sizeof (int) * size);
 	spin_unlock (&sig->lock);
+	rc /= sizeof (int);
 	return rc;
+}
+
+static void ev_unsignal (struct ev_sig *sig)
+{
+	int rc;
+	int sigset[128];
+
+	spin_lock (&sig->lock);
+	if (bio_empty (&sig->signals)) {
+		while ((rc = efd_unsignal2 (&sig->efd, sigset,
+					    NELEM (sigset, int))) > 0) {
+		}
+	} else
+		efd_unsignal (&sig->efd);
+	spin_unlock (&sig->lock);
 }
 
 static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
@@ -67,10 +90,11 @@ static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 	int sigset[1024];
 	struct ev_sig *sig = cont_of (evfd, struct ev_sig, evfd);
 
-	while ((rc = ev_unsignal (sig, sigset, 1)) > 0) {
+	while ((rc = ev_get_signals (sig, sigset, 1)) > 0) {
 		for (i = 0; i < rc; i++)
 			sig->hndl (sig, sigset[i]);
 	}
+	ev_unsignal (sig);
 }
 
 

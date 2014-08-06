@@ -24,6 +24,7 @@
 #define _H_PROXYIO_EV_
 
 #include <utils/list.h>
+#include <utils/bufio.h>
 #include <utils/spinlock.h>
 #include <utils/waitgroup.h>
 #include <utils/efd.h>
@@ -154,6 +155,7 @@ struct ev_sig {
 	struct efd efd;
 	struct ev_fd evfd;
 	ev_sig_hndl hndl;
+	struct bio signals;
 };
 
 void ev_sig_init (struct ev_sig *sig, ev_sig_hndl hndl);
