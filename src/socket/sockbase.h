@@ -127,7 +127,7 @@ struct sockbase {
 		u64 verbose:4;
 	} flagset;
 	struct ev_sig sig;
-	struct ev_loop *evl;
+	struct ev_loop *el;
 
 	struct sockbase *owner;
 	struct list_head sub_socks;

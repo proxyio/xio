@@ -217,6 +217,9 @@ struct ev_loop {
    how to chosed ev_loop, the same hash mapped into the same ev_loop */
 struct ev_loop *ev_get_loop (int hash);
 
+/* get one ev_loop by the lowest load average */
+struct ev_loop *ev_get_loop_lla ();
+
 
 
 

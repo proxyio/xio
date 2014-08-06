@@ -22,6 +22,7 @@
 
 #include <ev/ev.h>
 #include <unistd.h>
+#include <utils/atomic.h>
 #include <utils/taskpool.h>
 
 static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
@@ -274,42 +275,44 @@ static int ev_processors = 1;    /* The number of processors currently online */
 static struct taskpool ev_pool;
 static struct ev_loop ev_loops[EV_MAXPROCESSORS];
 
-static spin_t ev_glk;
+static spin_t ev_glock;
 static struct list_head ev_tasks;
+
+
 
 void ev_add_gtask (struct ev_task *ts)
 {
-	spin_lock (&ev_glk);
+	spin_lock (&ev_glock);
 	list_add_tail (&ts->item, &ev_tasks);
-	spin_unlock (&ev_glk);
+	spin_unlock (&ev_glock);
 }
 
 static struct ev_task *ev_pop_gtask ()
 {
 	struct ev_task *ts = 0;
 
-	spin_lock (&ev_glk);
+	spin_lock (&ev_glock);
 	if (!list_empty (&ev_tasks)) {
 		ts = list_first (&ev_tasks, struct ev_task, item);
 		list_del_init (&ts->item);
 	}
-	spin_unlock (&ev_glk);
+	spin_unlock (&ev_glock);
 	return ts;
 }
 
 
 static int ev_hndl (void *hndl)
 {
-	struct ev_loop *ev_loop = (struct ev_loop *) hndl;
+	struct ev_loop *el = (struct ev_loop *) hndl;
 	struct ev_task *ts;
 
-	ev_fdset_init (&ev_loop->fdset);
-	waitgroup_done (&ev_loop->wg);
+	ev_fdset_init (&el->fdset);
+	waitgroup_done (&el->wg);
 
-	while (!ev_loop->stopped) {
-		ev_fdset_poll (&ev_loop->fdset, 1);
+	while (!el->stopped) {
+		ev_fdset_poll (&el->fdset, 1);
 		if ((ts = ev_pop_gtask ()))
-			ts->hndl (ev_loop, ts);
+			ts->hndl (el, ts);
 	}
 	return 0;
 }
@@ -319,9 +322,9 @@ void __ev_init (void)
 {
 	int i;
 	char *env_max_cpus;
-	struct ev_loop *ev_loop;
+	struct ev_loop *el;
 
-	spin_init (&ev_glk);
+	spin_init (&ev_glock);
 	INIT_LIST_HEAD (&ev_tasks);
 
 #if defined _SC_NPROCESSORS_ONLN
@@ -336,12 +339,12 @@ void __ev_init (void)
 	taskpool_start (&ev_pool);
 
 	for (i = 0; i < ev_processors; i++) {
-		ev_loop = &ev_loops[i];
-		waitgroup_init (&ev_loop->wg);
-		waitgroup_add (&ev_loop->wg);
-		ev_loop->stopped = false;
-		taskpool_run (&ev_pool, ev_hndl, ev_loop);
-		waitgroup_wait (&ev_loop->wg);
+		el = &ev_loops[i];
+		waitgroup_init (&el->wg);
+		waitgroup_add (&el->wg);
+		el->stopped = false;
+		taskpool_run (&ev_pool, ev_hndl, el);
+		waitgroup_wait (&el->wg);
 	}
 }
 
@@ -353,10 +356,26 @@ void __ev_exit (void)
 		ev_loops[i].stopped = true;
 	taskpool_stop (&ev_pool);
 	taskpool_destroy (&ev_pool);
+	spin_destroy (&ev_glock);
 }
 
 
 struct ev_loop *ev_get_loop (int hash)
 {
 	return &ev_loops[hash % ev_processors];
+}
+
+struct ev_loop *ev_get_loop_lla ()
+{
+	int i;
+	int chosed = 0;
+	struct ev_loop *cur_el;
+	struct ev_loop *chosed_el = &ev_loops[0];
+
+	for (i = 1; i < ev_processors; i++) {
+		cur_el = &ev_loops[i];
+		if (cur_el->fdset.fd_size < chosed_el->fdset.fd_size)
+			chosed_el = cur_el;
+	}
+	return chosed_el;
 }

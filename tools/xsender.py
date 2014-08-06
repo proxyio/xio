@@ -26,13 +26,13 @@ start_time = time.time ();
 thr = 0;    
 
 while (count > 0):
-    for i in range (0, 200) :
+    for i in range (0, 160) :
         req = Msg ();
         req.data = buf;
         while (sp_send(sender, req) != 0) :
             time.sleep (0.001);
 
-    for i in range (0, 200) :
+    for i in range (0, 160) :
         rc, resp = sp_recv(sender)
         assert (rc == 0);
         thr = thr + 1;

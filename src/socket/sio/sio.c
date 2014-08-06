@@ -44,7 +44,7 @@ struct io sio_ops = {
 static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *evl = sb->evl;
+	struct ev_loop *el = sb->el;
 
 	mutex_lock (&sb->lock);
 
@@ -57,7 +57,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 	    (tcps->et.events & EV_WRITE)) {
 		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
 		tcps->et.events &= ~EV_WRITE;
-		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
 		socket_mstats_incr (&sb->stats, ST_EV_WRITE_OFF);
 	}
 	mutex_unlock (&sb->lock);
@@ -66,14 +66,14 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *evl = sb->evl;
+	struct ev_loop *el = sb->el;
 
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if (!(tcps->et.events & EV_WRITE)) {
 		SKLOG_DEBUG (sb, "%d enable EV_WRITE", sb->fd);
 		tcps->et.events |= EV_WRITE;
-		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
 		socket_mstats_incr (&sb->stats, ST_EV_WRITE_ON);
 	}
 	mutex_unlock (&sb->lock);
@@ -90,14 +90,14 @@ static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)
 static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *evl = sb->evl;
+	struct ev_loop *el = sb->el;
 
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if ((tcps->et.events & EV_READ)) {
 		SKLOG_DEBUG (sb, "%d disable EV_READ", sb->fd);
 		tcps->et.events &= ~EV_READ;
-		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
 		socket_mstats_incr (&sb->stats, ST_EV_READ_OFF);
 	}
 	mutex_unlock (&sb->lock);
@@ -107,14 +107,14 @@ static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *evl = sb->evl;
+	struct ev_loop *el = sb->el;
 
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
 	if (!(tcps->et.events & EV_READ)) {
 		SKLOG_DEBUG (sb, "%d enable EV_READ", sb->fd);
 		tcps->et.events |= EV_READ;
-		BUG_ON (__ev_fdset_ctl (&evl->fdset, EV_MOD, &tcps->et) != 0);
+		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
 		socket_mstats_incr (&sb->stats, ST_EV_READ_ON);
 	}
 	mutex_unlock (&sb->lock);
@@ -182,7 +182,7 @@ static int sio_connector_send (struct sockbase *sb, char *ubuf)
 void sio_socket_init (struct sio_sock *tcps)
 {
 	struct sockbase *sb = &tcps->base;
-	struct ev_loop *evl = sb->evl;
+	struct ev_loop *el = sb->el;
 	int on = 1;
 
 	rex_sock_setopt (&tcps->s, REX_SO_NOBLOCK, &on, sizeof (on));
@@ -201,7 +201,7 @@ static int sio_connector_bind (struct sockbase *sb, const char *sock)
 		return -1;
 	strcpy (sb->peer, sock);
 	sio_socket_init (tcps);
-	rc = ev_fdset_ctl (&sb->evl->fdset, EV_ADD, &tcps->et);
+	rc = ev_fdset_ctl (&sb->el->fdset, EV_ADD, &tcps->et);
 	return rc;
 }
 
@@ -210,14 +210,14 @@ static int sio_connector_snd (struct sockbase *sb);
 static void sio_connector_close (struct sockbase *sb)
 {
 	struct sio_sock *tcps;
-	struct ev_loop *evl;
+	struct ev_loop *el;
 
-	evl = sb->evl;
+	el = sb->el;
 	tcps = cont_of (sb, struct sio_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
 	if (tcps->s.ss_fd > 0)
-		BUG_ON (ev_fdset_ctl (&evl->fdset, EV_DEL, &tcps->et) != 0);
+		BUG_ON (ev_fdset_ctl (&el->fdset, EV_DEL, &tcps->et) != 0);
 
 	/* Try flush buf massage into network before close */
 	sio_connector_snd (sb);

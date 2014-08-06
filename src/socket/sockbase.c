@@ -248,7 +248,7 @@ void sockbase_init (struct sockbase *sb)
 
 	atomic_init (&sb->ref);
 	ev_sig_init (&sb->sig, sockbase_signal_hndl);
-	sb->evl = ev_get_loop (rand ());
+	sb->el = ev_get_loop_lla ();
 
 	socket_mstats_init (&sb->stats);
 	mstats_base_set_thres (&sb->stats.base, MSL_S, ST_EV_READ, 1);

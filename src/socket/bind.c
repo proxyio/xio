@@ -50,7 +50,7 @@ int xbind (int fd, const char *addr)
 	}
 	BUG_ON (!sb->vfptr);
 	if ((rc = sb->vfptr->bind (sb, addr)) == 0)
-		ev_fdset_sighndl (&sb->evl->fdset, &sb->sig);
+		ev_fdset_sighndl (&sb->el->fdset, &sb->sig);
 	xput (fd);
 	return rc;
 }
