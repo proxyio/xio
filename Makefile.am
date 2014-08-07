@@ -124,7 +124,13 @@ LDADD = libxio.la
 
 
 #  tools
-bin_PROGRAMS =
+lat_sender_SOURCES = \
+	tools/lat/sender.c
+lat_recver_SOURCES = \
+	tools/lat/recver.c
+
+bin_PROGRAMS = lat_sender \
+	lat_recver
 
 #  automated tests
 UTILS_TESTS = \
