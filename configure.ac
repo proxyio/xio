@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.63])
+AC_PREREQ([2.59])
 AC_INIT([xio], [0.9], [yp.fangdong@gmail.com])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS(config.h)
@@ -15,8 +15,6 @@ CFLAGS="${CFLAGS} -I/usr/local/include/ -L/usr/local/lib/ -L/usr/local/lib64 -L/
 
 # Checks for programs.
 AC_PROG_LIBTOOL
-AC_PROG_CXX
-AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
