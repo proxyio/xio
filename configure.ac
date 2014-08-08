@@ -15,6 +15,7 @@ CFLAGS="${CFLAGS} -I/usr/local/include/ -L/usr/local/lib/ -L/usr/local/lib64 -L/
 
 # Checks for programs.
 AC_PROG_LIBTOOL
+AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
