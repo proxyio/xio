@@ -63,3 +63,11 @@ doc/asciidoc.conf
 doltcompile
 doltlibtool
 
+
+
+
+#perf and tools
+lat_sender
+lat_recver
+thr_sender
+thr_recver
