@@ -32,7 +32,7 @@ static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
 {
 	struct sio_sock *tcps = cont_of (ops, struct sio_sock, ops);
 	i64 rc = rex_sock_recv (&tcps->s, buf, size);
-	SKLOG_NOTICE (&tcps->base, "%d sock recv %lld bytes from network", tcps->base.fd, rc);
+	SKLOG_NOTICE (&tcps->base, "%d sock recv %"PRId64" bytes from network", tcps->base.fd, rc);
 	return rc;
 }
 
@@ -314,7 +314,7 @@ static int sio_connector_snd (struct sockbase *sb)
 	}
 	if ((nbytes = rex_sock_sendv (&tcps->s, tcps->ls_iov, n - tcps->ls_free)) < 0)
 		return -1;
-	SKLOG_NOTICE (sb, "%d sock send %lld bytes into network", sb->fd, nbytes);
+	SKLOG_NOTICE (sb, "%d sock send %"PRId64" bytes into network", sb->fd, nbytes);
 	for (i = 0; i < n - tcps->ls_free; i++) {
 		if (nbytes < tcps->ls_iov[i].iov_len) {
 			tcps->ls_iov[i].iov_base += nbytes;

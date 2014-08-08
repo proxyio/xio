@@ -4,6 +4,7 @@
 #include <xio/sp_reqrep.h>
 #include <xio/socket.h>
 #include <utils/spinlock.h>
+#include <utils/timer.h>
 #include <utils/thread.h>
 
 int main (int argc, char **argv)
@@ -30,7 +31,7 @@ int main (int argc, char **argv)
 		BUG_ON (sp_send (eid, ubuf));
 
 		if (i % 1000 == 0 && (lt = gettimeofms ()) - st > 1000) {
-			printf ("%d qps %d/s\n", getpid (), qps * 1000 / (lt - st));
+			printf ("%d qps %"PRId64"/s\n", getpid (), qps * 1000 / (lt - st));
 			st = lt;
 			qps = 0;
 		}

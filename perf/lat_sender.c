@@ -46,7 +46,7 @@ int task_main (void *args)
 			ubuf_free (ubuf);
 		}
 		if ((lt = gettimeofms ()) - st > 1000) {
-			printf ("%d qps %d/s\n", getpid (), qps * 1000 / (lt - st));
+			printf ("%d qps %"PRId64"/s\n", getpid (), qps * 1000 / (lt - st));
 			st = lt;
 			qps = 0;
 		}
