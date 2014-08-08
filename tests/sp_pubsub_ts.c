@@ -41,7 +41,7 @@ int server1()
 	char *addr = "://127.0.0.1:15100";
 	char host[1024] = {};
 	u32 i;
-	thread_t t[20];
+	thread_t t[2];
 	const char *pf[] = {
 		"ipc",
 		"tcp",
