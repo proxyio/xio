@@ -255,9 +255,9 @@ void sockbase_init (struct sockbase *sb)
 	mstats_base_set_thres (&sb->stats.base, MSL_S, ST_EV_WRITE, 1);
 	mstats_base_set_warnf (&sb->stats.base, MSL_S, socket_s_warn);
 
-	msgbuf_head_init (&sb->rcv, 4096);
+	msgbuf_head_init (&sb->rcv, 409600);
 	msgbuf_head_ev_hndl (&sb->rcv, &rcv_msgbuf_vfptr);
-	msgbuf_head_init (&sb->snd, 4096);
+	msgbuf_head_init (&sb->snd, 409600);
 	msgbuf_head_ev_hndl (&sb->snd, &snd_msgbuf_vfptr);
 
 	INIT_LIST_HEAD (&sb->poll_entries);

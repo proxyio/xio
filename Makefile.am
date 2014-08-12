@@ -126,7 +126,9 @@ LDADD = libxio.la
 #  tools
 bin_PROGRAMS = \
 	perf/lat_sender \
-	perf/lat_recver
+	perf/lat_recver \
+	perf/thr_sender \
+	perf/thr_recver
 
 #  automated tests
 UTILS_TESTS = \
