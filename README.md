@@ -6,6 +6,12 @@ PROXYIO
 PROXYIO is a socket library that provides several common communication patterns.
 for more details about this project, see [Home](http://proxyio.org)
 
+Requires
+--------
+
+[libuuid](http://sourceforge.net/projects/libuuid/)
+
+
 Build
 -----
 To build proxyio :
