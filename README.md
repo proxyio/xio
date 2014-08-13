@@ -9,7 +9,7 @@ for more details about this project, see [Home](http://proxyio.org)
 Requires
 --------
 
-	[libuuid](http://sourceforge.net/projects/libuuid/)
+[libuuid](http://sourceforge.net/projects/libuuid/)
 
 
 Build
