@@ -13,6 +13,7 @@ static char **argv;
 int task_main (void *args)
 {
 	int i;
+	int j;
 	int conns = 4;
 	int eid;
 	int size;
@@ -33,9 +34,9 @@ int task_main (void *args)
 
 	st = gettimeofus ();
 	for (i = 0; i < rts; i++) {
-		for (i = 0; i < conns; i++)
+		for (j = 0; j < conns; j++)
 			BUG_ON (sp_send (eid, ubuf_alloc (size)) != 0);
-		for (i = 0; i < conns; i++) {
+		for (j = 0; j < conns; j++) {
 			BUG_ON (sp_recv (eid, &ubuf) != 0);
 			ubuf_free (ubuf);
 		}
