@@ -13,7 +13,7 @@ static char **argv;
 int task_main (void *args)
 {
 	int i;
-	int conns = 1;
+	int conns = 4;
 	int eid;
 	int size;
 	int rts;

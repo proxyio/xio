@@ -1,0 +1,21 @@
+#!/bin/env stap
+
+global bt;
+global quit;
+probe timer.s(60) {
+      quit = 1;
+}
+
+probe timer.profile {
+      if (pid() == target()) {
+      	 if (!quit) {
+	    bt[ubacktrace()] <<< 1;
+	 } else {
+	   foreach (a in bt+) {
+	   	   print_ustack(a);
+		   printf("\t%d\n", @count(bt[a]));
+          }
+	  exit();
+	  }
+	  }
+	  }
