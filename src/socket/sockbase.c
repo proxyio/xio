@@ -135,37 +135,43 @@ void xput (int fd)
 static void snd_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	ev_signal (&sb->sig, EV_SNDBUF_EMPTY);
+	if (sb->vfptr->notify_events & EV_SNDBUF_EMPTY)
+		ev_signal (&sb->sig, EV_SNDBUF_EMPTY);
 }
 
 static void snd_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	ev_signal (&sb->sig, EV_SNDBUF_NONEMPTY);
+	if (sb->vfptr->notify_events & EV_SNDBUF_NONEMPTY)
+		ev_signal (&sb->sig, EV_SNDBUF_NONEMPTY);
 }
 
 static void snd_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	ev_signal (&sb->sig, EV_SNDBUF_FULL);
+	if (sb->vfptr->notify_events & EV_SNDBUF_FULL)
+		ev_signal (&sb->sig, EV_SNDBUF_FULL);
 }
 
 static void snd_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	ev_signal (&sb->sig, EV_SNDBUF_NONFULL);
+	if (sb->vfptr->notify_events & EV_SNDBUF_NONFULL)
+		ev_signal (&sb->sig, EV_SNDBUF_NONFULL);
 }
 
 static void snd_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	ev_signal (&sb->sig, EV_SNDBUF_ADD);
+	if (sb->vfptr->notify_events & EV_SNDBUF_ADD)
+		ev_signal (&sb->sig, EV_SNDBUF_ADD);
 }
 
 static void snd_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, snd);
-	ev_signal (&sb->sig, EV_SNDBUF_RM);
+	if (sb->vfptr->notify_events & EV_SNDBUF_RM)
+		ev_signal (&sb->sig, EV_SNDBUF_RM);
 }
 
 
@@ -173,37 +179,43 @@ static void snd_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 static void rcv_msgbuf_head_empty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	ev_signal (&sb->sig, EV_RCVBUF_EMPTY);
+	if (sb->vfptr->notify_events & EV_RCVBUF_EMPTY)
+		ev_signal (&sb->sig, EV_RCVBUF_EMPTY);
 }
 
 static void rcv_msgbuf_head_nonempty_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	ev_signal (&sb->sig, EV_RCVBUF_NONEMPTY);
+	if (sb->vfptr->notify_events & EV_RCVBUF_NONEMPTY)
+		ev_signal (&sb->sig, EV_RCVBUF_NONEMPTY);
 }
 
 static void rcv_msgbuf_head_full_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	ev_signal (&sb->sig, EV_RCVBUF_FULL);
+	if (sb->vfptr->notify_events & EV_RCVBUF_FULL)
+		ev_signal (&sb->sig, EV_RCVBUF_FULL);
 }
 
 static void rcv_msgbuf_head_nonfull_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	ev_signal (&sb->sig, EV_RCVBUF_NONFULL);
+	if (sb->vfptr->notify_events & EV_RCVBUF_NONFULL)
+		ev_signal (&sb->sig, EV_RCVBUF_NONFULL);
 }
 
 static void rcv_msgbuf_head_add_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	ev_signal (&sb->sig, EV_RCVBUF_ADD);
+	if (sb->vfptr->notify_events & EV_RCVBUF_ADD)
+		ev_signal (&sb->sig, EV_RCVBUF_ADD);
 }
 
 static void rcv_msgbuf_head_rm_ev_hndl (struct msgbuf_head *bh)
 {
 	struct sockbase *sb = cont_of (bh, struct sockbase, rcv);
-	ev_signal (&sb->sig, EV_RCVBUF_RM);
+	if (sb->vfptr->notify_events & EV_RCVBUF_RM)
+		ev_signal (&sb->sig, EV_RCVBUF_RM);
 }
 
 

@@ -148,6 +148,9 @@ struct sockbase *ipc_open ()
 	return &tcps->base;
 }
 
+
+
+
 static void sio_connector_notify (struct sockbase *sb, int ev)
 {
 	switch (ev) {
@@ -364,8 +367,9 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
-	.open = tcp_open,
+	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_RM|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
 	.notify = sio_connector_notify,
+	.open = tcp_open,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
 	.send = sio_connector_send,
@@ -376,8 +380,9 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
-	.open = ipc_open,
+	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_RM|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
 	.notify = sio_connector_notify,
+	.open = ipc_open,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
 	.send = sio_connector_send,

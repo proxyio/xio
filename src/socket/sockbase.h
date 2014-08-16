@@ -103,6 +103,7 @@ struct sockbase;
 struct sockbase_vfptr {
 	int type;
 	int pf;
+	int notify_events;
 	struct sockbase * (*open) ();
 	void  (*close)  (struct sockbase *sb);
 	void  (*notify) (struct sockbase *sb, int ev);

@@ -71,7 +71,7 @@ static int ev_get_signals (struct ev_sig *sig, int *sigset, int size)
 static void ev_unsignal (struct ev_sig *sig)
 {
 	int rc;
-	int sigset[128];
+	int sigset[1024];
 
 	spin_lock (&sig->lock);
 	if (bio_empty (&sig->signals)) {

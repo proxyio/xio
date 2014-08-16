@@ -131,8 +131,9 @@ extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen
 struct sockbase_vfptr inproc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_INPROC,
-	.open = inproc_open,
+	.notify_events = 0,
 	.notify = 0,
+	.open = inproc_open,
 	.getopt = inproc_getopt,
 	.setopt = inproc_setopt,
 	.send = inproc_send,

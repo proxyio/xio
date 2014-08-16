@@ -14,7 +14,7 @@ int task_main (void *args)
 {
 	int i;
 	int j;
-	int conns = 4;
+	int conns = 40;
 	int eid;
 	int size;
 	int rts;
