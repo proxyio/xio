@@ -13,6 +13,7 @@ static char **argv;
 int task_main (void *args)
 {
 	int i;
+	int conns = 1;
 	int eid;
 	int size;
 	int rts;
@@ -27,19 +28,23 @@ int task_main (void *args)
 	size = atoi (argv[2]);
 	rts = atoi (argv[3]);
 	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
-	BUG_ON (sp_connect (eid, argv[1]) < 0);
+	for (i = 0; i < conns; i++)
+		BUG_ON (sp_connect (eid, argv[1]) < 0);
 
 	st = gettimeofus ();
 	for (i = 0; i < rts; i++) {
-		BUG_ON (sp_send (eid, ubuf_alloc (size)) != 0);
-		BUG_ON (sp_recv (eid, &ubuf) != 0);
-		ubuf_free (ubuf);
+		for (i = 0; i < conns; i++)
+			BUG_ON (sp_send (eid, ubuf_alloc (size)) != 0);
+		for (i = 0; i < conns; i++) {
+			BUG_ON (sp_recv (eid, &ubuf) != 0);
+			ubuf_free (ubuf);
+		}
 	}
 	lt = gettimeofus ();
 
 	printf ("message size: %d [B]\n", size);
-	printf ("roundtrip count: %d\n", rts);
-	printf ("average latency: %.3f [us]\n", (double)(lt - st) / (rts * 2));
+	printf ("roundtrip count: %d\n", rts * conns);
+	printf ("average latency: %.3f [us]\n", (double)(lt - st) / (rts * conns * 2));
 	sp_close (eid);
 	return 0;
 }
