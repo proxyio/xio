@@ -79,14 +79,6 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 	mutex_unlock (&sb->lock);
 }
 
-static void rcv_msgbuf_head_rm_ev_hndl (struct sockbase *sb)
-{
-	mutex_lock (&sb->lock);
-	if (sb->snd.waiters)
-		condition_signal (&sb->cond);
-	mutex_unlock (&sb->lock);
-}
-
 static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
@@ -159,9 +151,6 @@ static void sio_connector_notify (struct sockbase *sb, int ev)
 		break;
 	case EV_SNDBUF_NONEMPTY:
 		snd_msgbuf_head_nonempty_ev_hndl (sb);
-		break;
-	case EV_RCVBUF_RM:
-		rcv_msgbuf_head_rm_ev_hndl (sb);
 		break;
 	case EV_RCVBUF_FULL:
 		rcv_msgbuf_head_full_ev_hndl (sb);
@@ -367,7 +356,7 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
-	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_RM|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
+	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
 	.notify = sio_connector_notify,
 	.open = tcp_open,
 	.getopt = sio_getopt,
@@ -380,7 +369,7 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
-	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_RM|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
+	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
 	.notify = sio_connector_notify,
 	.open = ipc_open,
 	.getopt = sio_getopt,
