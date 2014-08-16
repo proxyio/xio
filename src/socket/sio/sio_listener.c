@@ -76,7 +76,8 @@ static void sio_listener_close (struct sockbase *sb)
 
 extern void sio_socket_init (struct sio_sock *sk);
 
-static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
+static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
+    int events)
 {
 	int rc;
 	int nfd;
