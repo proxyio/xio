@@ -15,7 +15,6 @@ CFLAGS="${CFLAGS} -I/usr/local/include/ -L/usr/local/lib/ -L/usr/local/lib64 -L/
 
 # Checks for programs.
 AC_PROG_LIBTOOL
-AC_PROG_CC_C99
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
@@ -27,6 +26,7 @@ AC_CHECK_LIB([pthread], [pthread_create])
 AC_CHECK_LIB([uuid], [uuid_copy])
 
 # Checks for header files.
+AC_CHECK_HEADERS([uuid/uuid.h])
 AC_CHECK_HEADERS([fcntl.h inttypes.h malloc.h stdint.h stdlib.h string.h unistd.h])
 AC_CHECK_HEADERS([arpa/inet.h netdb.h netinet/in.h sys/socket.h sys/time.h netinet/tcp.h net/if.h])
 AC_CHECK_HEADERS([sys/un.h])
@@ -34,17 +34,19 @@ AC_CHECK_HEADERS([sys/un.h])
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
 AC_C_INLINE
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_INT64_T
-AC_TYPE_INT8_T
+
+#AC_TYPE_INT16_T
+#AC_TYPE_INT32_T
+#AC_TYPE_INT64_T
+#AC_TYPE_INT8_T
+
 AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT64_T
-AC_TYPE_UINT8_T
+#AC_TYPE_SIZE_T
+#AC_TYPE_SSIZE_T
+#AC_TYPE_UINT16_T
+#AC_TYPE_UINT32_T
+#AC_TYPE_UINT64_T
+#AC_TYPE_UINT8_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC

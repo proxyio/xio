@@ -22,6 +22,16 @@
 
 #include <ev/ev.h>
 
+
+
+/* Fix some platform glibc too old not support EPOLLRDHUP flag
+ * linux kernel support EPOLLRDHUP since Linux 2.6.17
+ */
+#ifndef EPOLLRDHUP
+#define EPOLLRDHUP 0x2000
+#endif
+
+
 void fdd_init (struct fdd *fdd)
 {
 	INIT_LIST_HEAD (&fdd->item);
