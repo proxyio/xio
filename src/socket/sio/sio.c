@@ -41,77 +41,6 @@ struct io sio_ops = {
 	.write = 0,
 };
 
-static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
-{
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *el = sb->el;
-
-	mutex_lock (&sb->lock);
-
-	/* Disable POLLOUT event when snd_head is empty
-	 * BUG: we do not disable write-event when tcps->ls_head is not empty,
-	 * but once tcps->ls_head is empty and no any new message come in,
-	 * the write-event wouldn't disable anymore
-	 */
-	if (msgbuf_head_empty(&sb->snd) && list_empty (&tcps->ls_head) &&
-	    (tcps->et.events & EV_WRITE)) {
-		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
-		tcps->et.events &= ~EV_WRITE;
-		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
-		socket_mstats_incr (&sb->stats, ST_EV_WRITE_OFF);
-	}
-	mutex_unlock (&sb->lock);
-}
-
-static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
-{
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *el = sb->el;
-
-	mutex_lock (&sb->lock);
-	/* Enable POLLOUT event when snd_head isn't empty */
-	if (!(tcps->et.events & EV_WRITE)) {
-		SKLOG_DEBUG (sb, "%d enable EV_WRITE", sb->fd);
-		tcps->et.events |= EV_WRITE;
-		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
-		socket_mstats_incr (&sb->stats, ST_EV_WRITE_ON);
-	}
-	mutex_unlock (&sb->lock);
-}
-
-static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
-{
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *el = sb->el;
-
-	mutex_lock (&sb->lock);
-	/* Enable POLLOUT event when snd_head isn't empty */
-	if ((tcps->et.events & EV_READ)) {
-		SKLOG_DEBUG (sb, "%d disable EV_READ", sb->fd);
-		tcps->et.events &= ~EV_READ;
-		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
-		socket_mstats_incr (&sb->stats, ST_EV_READ_OFF);
-	}
-	mutex_unlock (&sb->lock);
-}
-
-
-static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
-{
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	struct ev_loop *el = sb->el;
-
-	mutex_lock (&sb->lock);
-	/* Enable POLLOUT event when snd_head isn't empty */
-	if (!(tcps->et.events & EV_READ)) {
-		SKLOG_DEBUG (sb, "%d enable EV_READ", sb->fd);
-		tcps->et.events |= EV_READ;
-		BUG_ON (__ev_fdset_ctl (&el->fdset, EV_MOD, &tcps->et) != 0);
-		socket_mstats_incr (&sb->stats, ST_EV_READ_ON);
-	}
-	mutex_unlock (&sb->lock);
-}
-
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
 static struct sio_sock *__sio_alloc ()
@@ -119,6 +48,11 @@ static struct sio_sock *__sio_alloc ()
 	struct sio_sock *tcps = mem_zalloc (sizeof (struct sio_sock));
 
 	sockbase_init (&tcps->base);
+	ev_sig_init (&tcps->sig, sio_usignal_hndl);
+	tcps->el = ev_get_loop_lla ();
+	msgbuf_head_ev_hndl (&tcps->base.rcv, &tcps_rcvhead_vfptr);
+	msgbuf_head_ev_hndl (&tcps->base.snd, &tcps_sndhead_vfptr);
+	
 	ev_fd_init (&tcps->et);
 	bio_init (&tcps->in);
 	INIT_LIST_HEAD (&tcps->ls_head);
@@ -141,26 +75,6 @@ struct sockbase *ipc_open ()
 }
 
 
-
-
-static void sio_connector_notify (struct sockbase *sb, int ev)
-{
-	switch (ev) {
-	case EV_SNDBUF_EMPTY:
-		snd_msgbuf_head_empty_ev_hndl (sb);
-		break;
-	case EV_SNDBUF_NONEMPTY:
-		snd_msgbuf_head_nonempty_ev_hndl (sb);
-		break;
-	case EV_RCVBUF_FULL:
-		rcv_msgbuf_head_full_ev_hndl (sb);
-		break;
-	case EV_RCVBUF_NONFULL:
-		rcv_msgbuf_head_nonfull_ev_hndl (sb);
-		break;
-	}
-}
-
 static int sio_connector_send (struct sockbase *sb, char *ubuf)
 {
 	int rc;
@@ -174,7 +88,7 @@ static int sio_connector_send (struct sockbase *sb, char *ubuf)
 void sio_socket_init (struct sio_sock *tcps)
 {
 	struct sockbase *sb = &tcps->base;
-	struct ev_loop *el = sb->el;
+	struct ev_loop *el = tcps->el;
 	int on = 1;
 
 	rex_sock_setopt (&tcps->s, REX_SO_NOBLOCK, &on, sizeof (on));
@@ -193,7 +107,8 @@ static int sio_connector_bind (struct sockbase *sb, const char *sock)
 		return -1;
 	strcpy (sb->peer, sock);
 	sio_socket_init (tcps);
-	rc = ev_fdset_ctl (&sb->el->fdset, EV_ADD, &tcps->et);
+	ev_fdset_sighndl (&tcps->el->fdset, &tcps->sig);
+	rc = ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et);
 	return rc;
 }
 
@@ -202,19 +117,19 @@ static int sio_connector_snd (struct sockbase *sb);
 static void sio_connector_close (struct sockbase *sb)
 {
 	struct sio_sock *tcps;
-	struct ev_loop *el;
 
-	el = sb->el;
 	tcps = cont_of (sb, struct sio_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
 	if (tcps->s.ss_fd > 0)
-		BUG_ON (ev_fdset_ctl (&el->fdset, EV_DEL, &tcps->et) != 0);
+		BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
+	ev_fdset_unsighndl (&tcps->el->fdset, &tcps->sig);
 
 	/* Try flush buf massage into network before close */
 	sio_connector_snd (sb);
 	rex_sock_destroy (&tcps->s);
 
+	ev_sig_term (&tcps->sig);
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
 	mem_free (tcps, sizeof (*tcps));
@@ -356,8 +271,6 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
-	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
-	.notify = sio_connector_notify,
 	.open = tcp_open,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
@@ -369,8 +282,6 @@ struct sockbase_vfptr tcp_connector_vfptr = {
 struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
-	.notify_events = EV_SNDBUF_EMPTY|EV_SNDBUF_NONEMPTY|EV_RCVBUF_FULL|EV_RCVBUF_NONFULL,
-	.notify = sio_connector_notify,
 	.open = ipc_open,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,

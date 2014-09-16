@@ -186,6 +186,8 @@ int ev_fdset_ctl (struct ev_fdset *evfds, int op /* EV_ADD|EV_DEL|EV_MOD */,
 /* register the signal hndl into ev_fdset */
 int ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig);
 
+int __ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig);
+
 /* unregister the signal hndl from ev_fdset */
 int ev_fdset_unsighndl (struct ev_fdset *evfds, struct ev_sig *sig);
 

@@ -93,8 +93,6 @@ extern int mix_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
 struct sockbase_vfptr mix_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_MIX,
-	.notify_events = 0,
-	.notify = 0,
 	.open = mix_open,
 	.setopt = mix_setopt,
 	.getopt = mix_getopt,

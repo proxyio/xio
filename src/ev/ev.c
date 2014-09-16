@@ -229,6 +229,11 @@ int __ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 }
 
 
+int __ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig)
+{
+	return __ev_fdset_ctl (evfds, EV_ADD, &sig->evfd);
+}
+
 int ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig)
 {
 	return ev_fdset_ctl (evfds, EV_ADD, &sig->evfd);
