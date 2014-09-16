@@ -30,7 +30,7 @@ static void test_str_array ()
 static void test_unorder_p_array ()
 {
 	int i;
-	int idxs[10000];
+	int idxs[100];
 	struct unorder_p_array arr = {};
 
 	unorder_p_array_init (&arr);
@@ -62,6 +62,6 @@ void test_compiler_feature () {
 int main (int argc, char **argv)
 {
 	test_compiler_feature();
-	//test_str_array ();
+	test_str_array ();
 	test_unorder_p_array ();
 }
