@@ -44,9 +44,7 @@ static void test_unorder_p_array ()
 	unorder_p_array_destroy (&arr);
 }
 
-
-int main (int argc, char **argv)
-{
+void test_compiler_feature () {
 	struct flagset fs = {};
 
 	BUG_ON(fs.bad);
@@ -58,7 +56,13 @@ int main (int argc, char **argv)
 	BUG_ON(fs.bad);
 	fs.shutdown = 1;
 	BUG_ON(!fs.bad);
+}
 
+
+int main (int argc, char **argv)
+{
+	test_compiler_feature();
 	test_str_array ();
 	test_unorder_p_array ();
+	return 0;
 }
