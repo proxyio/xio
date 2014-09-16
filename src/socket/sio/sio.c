@@ -101,14 +101,14 @@ void sio_socket_init (struct sio_sock *tcps)
 static int sio_connector_bind (struct sockbase *sb, const char *sock)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
-	int rc;
+	int rc = 0;
 
 	if ((rc = rex_sock_connect (&tcps->s, sock)) < 0)
 		return -1;
 	strcpy (sb->peer, sock);
 	sio_socket_init (tcps);
-	ev_fdset_sighndl (&tcps->el->fdset, &tcps->sig);
-	rc = ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et);
+	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et));
+	BUG_ON (ev_fdset_sighndl (&tcps->el->fdset, &tcps->sig) != 0);
 	return rc;
 }
 
@@ -120,10 +120,11 @@ static void sio_connector_close (struct sockbase *sb)
 
 	tcps = cont_of (sb, struct sio_sock, base);
 
+	BUG_ON (ev_fdset_unsighndl (&tcps->el->fdset, &tcps->sig) != 0);
+	
 	/* Detach sock low-level file descriptor from poller */
 	if (tcps->s.ss_fd > 0)
 		BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
-	ev_fdset_unsighndl (&tcps->el->fdset, &tcps->sig);
 
 	/* Try flush buf massage into network before close */
 	sio_connector_snd (sb);

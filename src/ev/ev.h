@@ -152,8 +152,14 @@ static inline void ev_fd_init (struct ev_fd *evfd)
 struct ev_sig;
 typedef void (*ev_sig_hndl) (struct ev_sig *sig, int signo);
 
+enum {
+	SIG_ATTACHED_MAGIC = 711,
+	SIG_UNATTACHED_MAGIC = -522,
+};
+
 struct ev_sig {
 	spin_t lock;
+	int is_attached;
 	struct efd efd;
 	struct ev_fd evfd;
 	ev_sig_hndl hndl;

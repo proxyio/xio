@@ -30,6 +30,7 @@ static void ev_sigfd_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int event
 void ev_sig_init (struct ev_sig *sig, ev_sig_hndl hndl)
 {
 	spin_init (&sig->lock);
+	sig->is_attached = SIG_UNATTACHED_MAGIC;
 	efd_init (&sig->efd);
 	sig->hndl = hndl;
 	ev_fd_init (&sig->evfd);
@@ -231,12 +232,20 @@ int __ev_fdset_ctl (struct ev_fdset *evfds, int op, struct ev_fd *evfd)
 
 int __ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig)
 {
-	return __ev_fdset_ctl (evfds, EV_ADD, &sig->evfd);
+	int rc;
+	sig->is_attached = SIG_ATTACHED_MAGIC;
+	if ((rc = __ev_fdset_ctl (evfds, EV_ADD, &sig->evfd)) == 0)
+		BUG_ON (list_empty (&sig->evfd.fdd.item));
+	return rc;
 }
 
 int ev_fdset_sighndl (struct ev_fdset *evfds, struct ev_sig *sig)
 {
-	return ev_fdset_ctl (evfds, EV_ADD, &sig->evfd);
+	int rc;
+	sig->is_attached = SIG_ATTACHED_MAGIC;
+	if ((rc = ev_fdset_ctl (evfds, EV_ADD, &sig->evfd)) == 0)
+		BUG_ON (list_empty (&sig->evfd.fdd.item));
+	return rc;
 }
 
 int ev_fdset_unsighndl (struct ev_fdset *evfds, struct ev_sig *sig)

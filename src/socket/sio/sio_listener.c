@@ -101,8 +101,8 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 	}
 	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, nfd);
 	sio_socket_init (ntcps);
-	__ev_fdset_sighndl (&ntcps->el->fdset, &ntcps->sig);
-	__ev_fdset_ctl (&ntcps->el->fdset, EV_ADD, &ntcps->et);
+	BUG_ON (__ev_fdset_ctl (&ntcps->el->fdset, EV_ADD, &ntcps->et) != 0);
+	BUG_ON (__ev_fdset_sighndl (&ntcps->el->fdset, &ntcps->sig) != 0);
 	acceptq_add (sb, nsb);
 }
 
