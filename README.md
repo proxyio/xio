@@ -11,6 +11,14 @@ Requires
 
 [libuuid](http://sourceforge.net/projects/libuuid/)
 
+if you using ubuntu system:
+
+	$ sudo apt-get install uuid-dev
+
+if you using centos/redhat/Oracle system:
+	
+	$ sudo yum install libuuid-devel
+
 
 Build
 -----
