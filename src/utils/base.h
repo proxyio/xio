@@ -44,8 +44,8 @@ int gettid();
 
 #define BUG_ON(condition) do {					\
 	if (condition) {					\
-	    printf("%s:%d %s() !%s ", __FILE__,			\
-		   __LINE__, __func__, #condition);		\
+	    printf("%s:%d %s() %s false with errno: %d", __FILE__,	\
+		   __LINE__, __func__, #condition, errno);	\
 	    abort();						\
 	}							\
     } while (0)
