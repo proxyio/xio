@@ -32,14 +32,11 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 
 static int sio_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct ev_loop *el;
 	struct sio_sock *tcps;
 	int rc;
 	int on = 1;
 
-	el = sb->el;
 	tcps = cont_of (sb, struct sio_sock, base);
-
 
 	if ((rc = rex_sock_listen (&tcps->s, sock)) < 0)
 		return -1;
@@ -48,27 +45,26 @@ static int sio_listener_bind (struct sockbase *sb, const char *sock)
 	tcps->et.events = EV_READ;
 	tcps->et.fd = tcps->s.ss_fd;
 	tcps->et.hndl = sio_listener_hndl;
-	BUG_ON (ev_fdset_ctl (&el->fdset, EV_ADD, &tcps->et) != 0);
+	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et) != 0);
 	return 0;
 }
 
 static void sio_listener_close (struct sockbase *sb)
 {
-	struct ev_loop *el;
-	struct sio_sock *tcps;
 	struct sockbase *tmp;
+	struct sio_sock *tcps;
 
-	el = sb->el;
 	tcps = cont_of (sb, struct sio_sock, base);
 
 	/* Detach sock low-level file descriptor from poller */
-	BUG_ON (ev_fdset_ctl (&el->fdset, EV_DEL, &tcps->et) != 0);
+	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
 	rex_sock_destroy (&tcps->s);
 
 	/* Destroy acceptq's connection */
 	while (acceptq_rm_nohup (sb, &tmp) == 0)
 		__xclose (tmp);
 
+	ev_sig_term (&tcps->sig);
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
 	mem_free (tcps, sizeof (*tcps));
@@ -105,7 +101,8 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 	}
 	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, nfd);
 	sio_socket_init (ntcps);
-	__ev_fdset_ctl (&nsb->el->fdset, EV_ADD, &ntcps->et);
+	__ev_fdset_sighndl (&ntcps->el->fdset, &ntcps->sig);
+	__ev_fdset_ctl (&ntcps->el->fdset, EV_ADD, &ntcps->et);
 	acceptq_add (sb, nsb);
 }
 
@@ -115,8 +112,6 @@ extern struct sockbase *ipc_open();
 struct sockbase_vfptr tcp_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_TCP,
-	.notify_events = 0,
-	.notify = 0,
 	.open = tcp_open,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
@@ -128,8 +123,6 @@ struct sockbase_vfptr tcp_listener_vfptr = {
 struct sockbase_vfptr ipc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_IPC,
-	.notify_events = 0,
-	.notify = 0,
 	.open = ipc_open,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,

@@ -125,8 +125,6 @@ extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen
 struct sockbase_vfptr inproc_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_INPROC,
-	.notify_events = 0,
-	.notify = 0,
 	.open = inproc_open,
 	.getopt = inproc_getopt,
 	.setopt = inproc_setopt,

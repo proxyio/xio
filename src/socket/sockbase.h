@@ -103,10 +103,8 @@ struct sockbase;
 struct sockbase_vfptr {
 	int type;
 	int pf;
-	int notify_events;
 	struct sockbase * (*open) ();
 	void  (*close)  (struct sockbase *sb);
-	void  (*notify) (struct sockbase *sb, int ev);
 	int   (*send)   (struct sockbase *sb, char *ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
 	int   (*setopt) (struct sockbase *sb, int opt, void *optval, int optlen);
@@ -127,8 +125,6 @@ struct sockbase {
 		u64 epipe:1;
 		u64 verbose:4;
 	} flagset;
-	struct ev_sig sig;
-	struct ev_loop *el;
 
 	struct sockbase *owner;
 	struct list_head sub_socks;

@@ -28,6 +28,8 @@
 
 struct sio_sock {
 	struct sockbase base;
+	struct ev_sig sig;
+	struct ev_loop *el;
 	struct ev_fd et;
 	struct rex_sock s;
 	struct bio in;
@@ -46,5 +48,13 @@ extern struct sockbase_vfptr tcp_listener_vfptr;
 extern struct sockbase_vfptr tcp_connector_vfptr;
 extern struct sockbase_vfptr ipc_listener_vfptr;
 extern struct sockbase_vfptr ipc_connector_vfptr;
+
+
+
+
+extern struct msgbuf_vfptr tcps_sndhead_vfptr;
+extern struct msgbuf_vfptr tcps_rcvhead_vfptr;
+void sio_usignal_hndl (struct ev_sig *sig, int ev);
+
 
 #endif

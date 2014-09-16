@@ -61,7 +61,6 @@ int xclose (int fd) {
 		return -1;
 	}
 	__xclose (sb);
-	ev_fdset_unsighndl (&sb->el->fdset, &sb->sig);
 	xput (fd);
 	return 0;
 }

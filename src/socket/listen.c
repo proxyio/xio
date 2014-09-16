@@ -96,7 +96,6 @@ int xaccept (int fd)
 		errno = EAGAIN;
 		return -1;
 	}
-	ev_fdset_sighndl (&new->el->fdset, &new->sig);
 	xput (fd);
 	return new->fd;
 }
