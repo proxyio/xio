@@ -309,7 +309,6 @@ static void test_tcp_ev () {
 		thread_stop (&server_thread[i]);
 		thread_stop (&client_thread[i]);
 	}
-	return 0;
 }
 
 

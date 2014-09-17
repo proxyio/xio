@@ -5,7 +5,7 @@
 # Libraries
 *.lib
 *.a
-
+vgcore.*
 
 # Shared objects (inc. Windows DLLs)
 *.dll
