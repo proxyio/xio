@@ -5,6 +5,7 @@
 #include <utils/thread.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
+#include <xio/env.h>
 #include <xio/cmsghdr.h>
 #include "testutil.h"
 
@@ -253,10 +254,70 @@ static void tcp_sg_send()
 	xclose (afd);
 }
 
+static int tcp_ev_server (void *args) {
+	int i;
+	int fd;
+	int client;
+	char *hosts = (char *) args;
+
+	if ((fd = xlisten (hosts)) < 0) {
+		return -1;
+	}
+	for (i = 0; i < 50; i++) {	
+		BUG_ON ((client = xaccept (fd)) < 0);
+		xclose (client);
+	}
+	xclose (fd);
+	return 0;
+}
+
+
+static int tcp_ev_client (void *args) {
+	int i;
+	int fd;
+	char *hosts = (char *) args;
+	
+	for (i = 0; i < 50; i++) {
+		BUG_ON ((fd = xconnect (hosts)) < 0);
+		xclose (fd);
+	}
+	return 0;
+}
+
+static void test_tcp_ev () {
+	int i;
+	int fd;
+	thread_t server_thread[10] = {};
+	thread_t client_thread[10] = {};
+	char *tcp_addr[] = {
+		"tcp://127.0.0.1:15111",
+		"tcp://127.0.0.1:15112",
+		"tcp://127.0.0.1:15113",
+		"tcp://127.0.0.1:15114",
+		"tcp://127.0.0.1:15115",
+		"tcp://127.0.0.1:15116",
+		"tcp://127.0.0.1:15117",
+		"tcp://127.0.0.1:15118",
+		"tcp://127.0.0.1:15119",
+		"tcp://127.0.0.1:15120",
+	}; 
+	for (i = 0; i < 10; i++) {	
+		thread_start (&server_thread[i], tcp_ev_server, tcp_addr[i]);
+		thread_start (&client_thread[i], tcp_ev_client, tcp_addr[i]);
+	}
+	for (i = 0; i < 10; i++) {	
+		thread_stop (&server_thread[i]);
+		thread_stop (&client_thread[i]);
+	}
+	return 0;
+}
+
+
 int main (int argc, char **argv)
 {
 	xsock_test (1);
 	xexp_test ();
 	tcp_sg_send ();
+	test_tcp_ev ();
 	return 0;
 }
