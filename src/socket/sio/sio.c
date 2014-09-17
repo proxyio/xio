@@ -117,6 +117,7 @@ static int sio_connector_snd (struct sockbase *sb);
 static void sio_connector_close (struct sockbase *sb)
 {
 	struct sio_sock *tcps;
+	struct msgbuf *msg, *tmp;
 
 	tcps = cont_of (sb, struct sio_sock, base);
 
@@ -131,6 +132,11 @@ static void sio_connector_close (struct sockbase *sb)
 	rex_sock_destroy (&tcps->s);
 
 	ev_sig_term (&tcps->sig);
+	
+	/* Free socket local cache messages */
+	walk_msg_s (msg, tmp, &tcps->ls_head)
+		msgbuf_free (msg);
+	
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
 	mem_free (tcps, sizeof (*tcps));
