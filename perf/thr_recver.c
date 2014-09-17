@@ -14,7 +14,7 @@ int main (int argc, char **argv)
 	int count;
 	int size;
 	char *ubuf;
-	uint64_t thr;
+	int thr;
 	double mbs;
 	uint64_t st, lt;
 

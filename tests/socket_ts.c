@@ -327,9 +327,9 @@ int main (int argc, char **argv)
 {
 	test_bad_connect ();
 	test_bad_listen ();
-	//test_simple (1);
-	//test_exception ();
-	//test_sg ();
-	//test_tcp_ev ();
+	test_simple (1);
+	test_exception ();
+	test_sg ();
+	test_tcp_ev ();
 	return 0;
 }
