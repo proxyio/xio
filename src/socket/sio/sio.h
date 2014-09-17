@@ -27,13 +27,13 @@
 #include "../sockbase.h"
 
 struct sio {
+	struct io ops;
 	struct sockbase base;
 	struct ev_sig sig;
 	struct ev_loop *el;
 	struct ev_fd et;
 	struct rex_sock s;
-	struct bio in;
-	struct io ops;
+	struct bio rbuf;
 
 	/* the local-storage caching of sio */
 	struct list_head ls_head;
