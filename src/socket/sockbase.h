@@ -82,23 +82,6 @@ void pollbase_init (struct pollbase *pb, struct pollbase_vfptr *vfptr)
 	INIT_LIST_HEAD (&pb->link);
 }
 
-enum {
-	/* Following msgbuf_head events are provided by sockbase */
-	EV_SNDBUF_ADD        =     0x001,
-	EV_SNDBUF_RM         =     0x002,
-	EV_SNDBUF_EMPTY      =     0x004,
-	EV_SNDBUF_NONEMPTY   =     0x008,
-	EV_SNDBUF_FULL       =     0x010,
-	EV_SNDBUF_NONFULL    =     0x020,
-
-	EV_RCVBUF_ADD        =     0x101,
-	EV_RCVBUF_RM         =     0x102,
-	EV_RCVBUF_EMPTY      =     0x104,
-	EV_RCVBUF_NONEMPTY   =     0x108,
-	EV_RCVBUF_FULL       =     0x110,
-	EV_RCVBUF_NONFULL    =     0x120,
-};
-
 struct sockbase;
 struct sockbase_vfptr {
 	int type;

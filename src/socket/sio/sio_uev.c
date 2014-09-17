@@ -25,6 +25,25 @@
 #include <string.h>
 #include "sio.h"
 
+
+enum {
+	/* Following msgbuf_head events are provided by sockbase */
+	EV_SNDBUF_ADD        =     0x001,
+	EV_SNDBUF_RM         =     0x002,
+	EV_SNDBUF_EMPTY      =     0x004,
+	EV_SNDBUF_NONEMPTY   =     0x008,
+	EV_SNDBUF_FULL       =     0x010,
+	EV_SNDBUF_NONFULL    =     0x020,
+
+	EV_RCVBUF_ADD        =     0x101,
+	EV_RCVBUF_RM         =     0x102,
+	EV_RCVBUF_EMPTY      =     0x104,
+	EV_RCVBUF_NONEMPTY   =     0x108,
+	EV_RCVBUF_FULL       =     0x110,
+	EV_RCVBUF_NONFULL    =     0x120,
+};
+
+
 static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 {
 	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
