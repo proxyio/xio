@@ -63,29 +63,35 @@ int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 	return 0;
 }
 
+int xgeneric_recv (struct sockbase *sb, char **ubuf)
+{
+	struct msgbuf *msg = 0;
+
+	if (!(msg = rcv_msgbuf_head_rm (sb))) {
+		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
+		return -1;
+	} else
+		*ubuf = msg->chunk.ubuf_base;
+	return 0;
+}
+
+
 int xrecv (int fd, char **ubuf)
 {
 	int rc = 0;
 	struct sockbase *sb;
-	struct msgbuf *msg = 0;
 
-	if (!ubuf) {
-		errno = EINVAL;
-		return -1;
-	}
+	BUG_ON (!ubuf);
 	if (!(sb = xget (fd))) {
 		errno = EBADF;
 		return -1;
 	}
-	if (!(msg = rcv_msgbuf_head_rm (sb))) {
-		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
-		rc = -1;
-	} else {
-		*ubuf = msg->chunk.ubuf_base;
+	if (!sb->vfptr->recv) {
+		xput (fd);
+		errno = EINVAL;
+		return -1;
 	}
+	rc = sb->vfptr->recv (sb, ubuf);
 	xput (fd);
 	return rc;
 }
-
-
-

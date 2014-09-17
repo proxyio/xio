@@ -89,6 +89,7 @@ struct sockbase_vfptr {
 	struct sockbase * (*open) ();
 	void  (*close)  (struct sockbase *sb);
 	int   (*send)   (struct sockbase *sb, char *ubuf);
+	int   (*recv)   (struct sockbase *sb, char **ubuf);
 	int   (*bind)   (struct sockbase *sb, const char *sock);
 	int   (*setopt) (struct sockbase *sb, int opt, void *optval, int optlen);
 	int   (*getopt) (struct sockbase *sb, int opt, void *optval, int *optlen);

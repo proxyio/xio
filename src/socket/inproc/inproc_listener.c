@@ -129,6 +129,7 @@ struct sockbase_vfptr inproc_listener_vfptr = {
 	.getopt = inproc_getopt,
 	.setopt = inproc_setopt,
 	.send = 0,
+	.recv = 0,
 	.bind = inproc_listener_bind,
 	.close = inproc_listener_close,
 };

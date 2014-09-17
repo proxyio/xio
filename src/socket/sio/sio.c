@@ -54,7 +54,7 @@ static struct sio *__sio_alloc ()
 	msgbuf_head_ev_hndl (&tcps->base.snd, &tcps_sndhead_vfptr);
 	
 	ev_fd_init (&tcps->et);
-	bio_init (&tcps->in);
+	bio_init (&tcps->rbuf);
 	INIT_LIST_HEAD (&tcps->ls_head);
 	tcps->ls_free = NELEM (tcps->ls_iov, struct rex_iov);
 	return tcps;
@@ -172,17 +172,17 @@ static int sio_connector_rcv (struct sockbase *sb)
 	u16 cmsg_num;
 	struct msgbuf *msg = 0, *cmsg = 0;
 
-	if ((nbytes = bio_prefetch (&tcps->in, &tcps->ops)) < 0 && errno != EAGAIN)
+	if ((nbytes = bio_prefetch (&tcps->rbuf, &tcps->ops)) < 0 && errno != EAGAIN)
 		return -1;
-	while (bufio_check_msg (&tcps->in)) {
+	while (bufio_check_msg (&tcps->rbuf)) {
 		SKLOG_NOTICE (sb, "%d sock recv msg from network", sb->fd);
 		msg = 0;
-		bufio_rm (&tcps->in, &msg);
+		bufio_rm (&tcps->rbuf, &msg);
 		BUG_ON (!msg);
 		cmsg_num = msg->chunk.cmsg_num;
 		while (cmsg_num--) {
 			cmsg = 0;
-			bufio_rm (&tcps->in, &cmsg);
+			bufio_rm (&tcps->rbuf, &cmsg);
 			BUG_ON (!cmsg);
 			list_add_tail (&cmsg->item, &msg->cmsg_head);
 		}
@@ -274,25 +274,28 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 }
 
 
+extern int xgeneric_recv (struct sockbase *sb, char **ubuf);
 
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
 	.open = tcp_open,
+	.close = sio_connector_close,
+	.bind = sio_connector_bind,
+	.send = sio_connector_send,
+	.recv = xgeneric_recv,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
-	.send = sio_connector_send,
-	.bind = sio_connector_bind,
-	.close = sio_connector_close,
 };
 
 struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
 	.open = ipc_open,
+	.close = sio_connector_close,
+	.bind = sio_connector_bind,
+	.send = sio_connector_send,
+	.recv = xgeneric_recv,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
-	.send = sio_connector_send,
-	.bind = sio_connector_bind,
-	.close = sio_connector_close,
 };
