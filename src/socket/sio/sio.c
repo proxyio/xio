@@ -30,7 +30,7 @@
 
 static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
 {
-	struct sio_sock *tcps = cont_of (ops, struct sio_sock, ops);
+	struct sio *tcps = cont_of (ops, struct sio, ops);
 	i64 rc = rex_sock_recv (&tcps->s, buf, size);
 	SKLOG_NOTICE (&tcps->base, "%d sock recv %"PRId64" bytes from network", tcps->base.fd, rc);
 	return rc;
@@ -43,9 +43,9 @@ struct io sio_ops = {
 
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
-static struct sio_sock *__sio_alloc ()
+static struct sio *__sio_alloc ()
 {
-	struct sio_sock *tcps = mem_zalloc (sizeof (struct sio_sock));
+	struct sio *tcps = mem_zalloc (sizeof (struct sio));
 
 	sockbase_init (&tcps->base);
 	ev_sig_init (&tcps->sig, sio_usignal_hndl);
@@ -62,14 +62,14 @@ static struct sio_sock *__sio_alloc ()
 
 struct sockbase *tcp_open ()
 {
-	struct sio_sock *tcps = __sio_alloc ();
+	struct sio *tcps = __sio_alloc ();
 	rex_sock_init (&tcps->s, REX_AF_TCP);
 	return &tcps->base;
 }
 
 struct sockbase *ipc_open ()
 {
-	struct sio_sock *tcps = __sio_alloc ();
+	struct sio *tcps = __sio_alloc ();
 	rex_sock_init (&tcps->s, REX_AF_LOCAL);
 	return &tcps->base;
 }
@@ -85,7 +85,7 @@ static int sio_connector_send (struct sockbase *sb, char *ubuf)
 	return rc;
 }
 
-void sio_socket_init (struct sio_sock *tcps)
+void sio_init (struct sio *tcps)
 {
 	struct sockbase *sb = &tcps->base;
 	struct ev_loop *el = tcps->el;
@@ -100,13 +100,13 @@ void sio_socket_init (struct sio_sock *tcps)
 
 static int sio_connector_bind (struct sockbase *sb, const char *sock)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 	int rc = 0;
 
 	if ((rc = rex_sock_connect (&tcps->s, sock)) < 0)
 		return -1;
 	strcpy (sb->peer, sock);
-	sio_socket_init (tcps);
+	sio_init (tcps);
 	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et));
 	BUG_ON (ev_fdset_sighndl (&tcps->el->fdset, &tcps->sig) != 0);
 	return rc;
@@ -116,10 +116,10 @@ static int sio_connector_snd (struct sockbase *sb);
 
 static void sio_connector_close (struct sockbase *sb)
 {
-	struct sio_sock *tcps;
+	struct sio *tcps;
 	struct msgbuf *msg, *tmp;
 
-	tcps = cont_of (sb, struct sio_sock, base);
+	tcps = cont_of (sb, struct sio, base);
 
 	BUG_ON (ev_fdset_unsighndl (&tcps->el->fdset, &tcps->sig) != 0);
 	
@@ -167,7 +167,7 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 
 static int sio_connector_rcv (struct sockbase *sb)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 	int nbytes;
 	u16 cmsg_num;
 	struct msgbuf *msg = 0, *cmsg = 0;
@@ -191,7 +191,7 @@ static int sio_connector_rcv (struct sockbase *sb)
 	return 0;
 }
 
-static void fill_msgbuf_iovs (struct sio_sock *tcps)
+static void fill_msgbuf_iovs (struct sio *tcps)
 {
 	int n = NELEM (tcps->ls_iov, struct rex_iov);
 	int i = 0;
@@ -212,7 +212,7 @@ static void fill_msgbuf_iovs (struct sio_sock *tcps)
 
 static int sio_connector_snd (struct sockbase *sb)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 	i64 nbytes;
 	int i;
 	int n = NELEM (tcps->ls_iov, struct rex_iov);
@@ -248,7 +248,7 @@ static int sio_connector_snd (struct sockbase *sb)
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	int rc = 0;
-	struct sockbase *sb = &cont_of (evfd, struct sio_sock, et)->base;
+	struct sockbase *sb = &cont_of (evfd, struct sio, et)->base;
 
 	if (events & EV_READ) {
 		SKLOG_DEBUG (sb, "%d sock EV_READ", sb->fd);

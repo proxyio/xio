@@ -46,7 +46,7 @@ enum {
 
 static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 
@@ -67,7 +67,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 
 static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
@@ -82,7 +82,7 @@ static void snd_msgbuf_head_nonempty_ev_hndl (struct sockbase *sb)
 
 static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
@@ -98,7 +98,7 @@ static void rcv_msgbuf_head_full_ev_hndl (struct sockbase *sb)
 
 static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 {
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	/* Enable POLLOUT event when snd_head isn't empty */
@@ -116,25 +116,25 @@ static void rcv_msgbuf_head_nonfull_ev_hndl (struct sockbase *sb)
 
 static void sndhead_empty_ev_usignal (struct msgbuf_head *bh)
 {
-	struct sio_sock *tcps = cont_of (bh, struct sio_sock, base.snd);
+	struct sio *tcps = cont_of (bh, struct sio, base.snd);
 	ev_signal (&tcps->sig, EV_SNDBUF_EMPTY);
 }
 
 static void sndhead_nonempty_ev_usignal (struct msgbuf_head *bh)
 {
-	struct sio_sock *tcps = cont_of (bh, struct sio_sock, base.snd);
+	struct sio *tcps = cont_of (bh, struct sio, base.snd);
 	ev_signal (&tcps->sig, EV_SNDBUF_NONEMPTY);
 }
 
 static void rcvhead_full_ev_usignal (struct msgbuf_head *bh)
 {
-	struct sio_sock *tcps = cont_of (bh, struct sio_sock, base.rcv);
+	struct sio *tcps = cont_of (bh, struct sio, base.rcv);
 	ev_signal (&tcps->sig, EV_RCVBUF_FULL);
 }
 
 static void rcvhead_nonfull_ev_usignal (struct msgbuf_head *bh)
 {
-	struct sio_sock *tcps = cont_of (bh, struct sio_sock, base.rcv);
+	struct sio *tcps = cont_of (bh, struct sio, base.rcv);
 	ev_signal (&tcps->sig, EV_RCVBUF_NONFULL);
 }
 
@@ -151,7 +151,7 @@ struct msgbuf_vfptr tcps_rcvhead_vfptr = {
 
 void sio_usignal_hndl (struct ev_sig *sig, int ev)
 {
-	struct sio_sock *tcps = cont_of (sig, struct sio_sock, sig);
+	struct sio *tcps = cont_of (sig, struct sio, sig);
 	switch (ev) {
 		case EV_SNDBUF_EMPTY:
 			snd_msgbuf_head_empty_ev_hndl (&tcps->base);

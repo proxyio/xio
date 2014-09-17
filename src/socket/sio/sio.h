@@ -26,7 +26,7 @@
 #include <rex/rex.h>
 #include "../sockbase.h"
 
-struct sio_sock {
+struct sio {
 	struct sockbase base;
 	struct ev_sig sig;
 	struct ev_loop *el;
@@ -35,7 +35,7 @@ struct sio_sock {
 	struct bio in;
 	struct io ops;
 
-	/* the local-storage caching of sio_sock */
+	/* the local-storage caching of sio */
 	struct list_head ls_head;
 	int ls_free;                  /* the number of ls_iov */
 	struct rex_iov ls_iov[100];

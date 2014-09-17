@@ -32,11 +32,11 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int e
 
 static int sio_listener_bind (struct sockbase *sb, const char *sock)
 {
-	struct sio_sock *tcps;
+	struct sio *tcps;
 	int rc;
 	int on = 1;
 
-	tcps = cont_of (sb, struct sio_sock, base);
+	tcps = cont_of (sb, struct sio, base);
 
 	if ((rc = rex_sock_listen (&tcps->s, sock)) < 0)
 		return -1;
@@ -52,9 +52,9 @@ static int sio_listener_bind (struct sockbase *sb, const char *sock)
 static void sio_listener_close (struct sockbase *sb)
 {
 	struct sockbase *tmp;
-	struct sio_sock *tcps;
+	struct sio *tcps;
 
-	tcps = cont_of (sb, struct sio_sock, base);
+	tcps = cont_of (sb, struct sio, base);
 
 	/* Detach sock low-level file descriptor from poller */
 	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
@@ -70,23 +70,23 @@ static void sio_listener_close (struct sockbase *sb)
 	mem_free (tcps, sizeof (*tcps));
 }
 
-extern void sio_socket_init (struct sio_sock *sk);
+extern void sio_init (struct sio *sk);
 
 static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
     int events)
 {
 	int rc;
 	int nfd;
-	struct sio_sock *tcps;
+	struct sio *tcps;
 	struct sockbase *sb;
-	struct sio_sock *ntcps;
+	struct sio *ntcps;
 	struct sockbase *nsb;
 
-	tcps = cont_of (evfd, struct sio_sock, et);
+	tcps = cont_of (evfd, struct sio, et);
 	sb = &tcps->base;
 	nfd = xalloc (sb->vfptr->pf, XCONNECTOR);
 	nsb = xgb.sockbases[nfd];
-	ntcps = cont_of (nsb, struct sio_sock, base);
+	ntcps = cont_of (nsb, struct sio, base);
 
 	if ((rc = rex_sock_accept (&tcps->s, &ntcps->s)) < 0) {
 		if (errno != EAGAIN) {
@@ -100,7 +100,7 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 		return;
 	}
 	SKLOG_DEBUG (sb, "%d accept new connection %d", sb->fd, nfd);
-	sio_socket_init (ntcps);
+	sio_init (ntcps);
 	BUG_ON (__ev_fdset_ctl (&ntcps->el->fdset, EV_ADD, &ntcps->et) != 0);
 	BUG_ON (__ev_fdset_sighndl (&ntcps->el->fdset, &ntcps->sig) != 0);
 	acceptq_add (sb, nsb);

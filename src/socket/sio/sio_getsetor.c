@@ -33,7 +33,7 @@ static int get_noblock (struct sockbase *sb, void *optval, int *optlen)
 static int get_nodelay (struct sockbase *sb, void *optval, int *optlen)
 {
 	int rc;
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	rc = rex_sock_getopt (&tcps->s, REX_SO_NODELAY, optval, optlen);
@@ -60,7 +60,7 @@ static int get_rcvbuf (struct sockbase *sb, void *optval, int *optlen)
 static int get_linger (struct sockbase *sb, void *optval, int *optlen)
 {
 	int rc;
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	rc = rex_sock_getopt (&tcps->s, REX_SO_LINGER, optval, optlen);
@@ -140,7 +140,7 @@ static int set_noblock (struct sockbase *sb, void *optval, int optlen)
 static int set_nodelay (struct sockbase *sb, void *optval, int optlen)
 {
 	int rc;
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	rc = rex_sock_setopt (&tcps->s, REX_SO_NODELAY, optval, optlen);
@@ -167,7 +167,7 @@ static int set_rcvbuf (struct sockbase *sb, void *optval, int optlen)
 static int set_linger (struct sockbase *sb, void *optval, int optlen)
 {
 	int rc;
-	struct sio_sock *tcps = cont_of (sb, struct sio_sock, base);
+	struct sio *tcps = cont_of (sb, struct sio, base);
 
 	mutex_lock (&sb->lock);
 	rc = rex_sock_setopt (&tcps->s, REX_SO_LINGER, optval, optlen);
