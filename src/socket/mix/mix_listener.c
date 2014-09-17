@@ -94,9 +94,10 @@ struct sockbase_vfptr mix_listener_vfptr = {
 	.type = XLISTENER,
 	.pf = XAF_MIX,
 	.open = mix_open,
+	.close = mix_listener_close,
+	.bind = mix_listener_bind,
+	.send = 0,
+	.recv = 0,
 	.setopt = mix_setopt,
 	.getopt = mix_getopt,
-	.send = 0,
-	.bind = mix_listener_bind,
-	.close = mix_listener_close,
 };

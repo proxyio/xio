@@ -274,25 +274,28 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 }
 
 
+extern int xgeneric_recv (struct sockbase *sb, char **ubuf);
 
 struct sockbase_vfptr tcp_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_TCP,
 	.open = tcp_open,
+	.close = sio_connector_close,
+	.bind = sio_connector_bind,
+	.send = sio_connector_send,
+	.recv = xgeneric_recv,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
-	.send = sio_connector_send,
-	.bind = sio_connector_bind,
-	.close = sio_connector_close,
 };
 
 struct sockbase_vfptr ipc_connector_vfptr = {
 	.type = XCONNECTOR,
 	.pf = XAF_IPC,
 	.open = ipc_open,
+	.close = sio_connector_close,
+	.bind = sio_connector_bind,
+	.send = sio_connector_send,
+	.recv = xgeneric_recv,
 	.getopt = sio_getopt,
 	.setopt = sio_setopt,
-	.send = sio_connector_send,
-	.bind = sio_connector_bind,
-	.close = sio_connector_close,
 };

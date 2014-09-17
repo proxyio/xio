@@ -125,6 +125,7 @@ static void inproc_connector_close (struct sockbase *sb)
 	}
 }
 
+extern int xgeneric_recv (struct sockbase *sb, char **ubuf);
 extern int inproc_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
 extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
 
@@ -135,6 +136,7 @@ struct sockbase_vfptr inproc_connector_vfptr = {
 	.getopt = inproc_getopt,
 	.setopt = inproc_setopt,
 	.send = inproc_send,
+	.recv = xgeneric_recv,
 	.bind = inproc_connector_bind,
 	.close = inproc_connector_close,
 };
