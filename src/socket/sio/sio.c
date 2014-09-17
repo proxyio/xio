@@ -43,7 +43,7 @@ struct io sio_ops = {
 
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
 
-static struct sio *__sio_alloc ()
+static struct sio *salloc ()
 {
 	struct sio *tcps = mem_zalloc (sizeof (struct sio));
 
@@ -62,14 +62,14 @@ static struct sio *__sio_alloc ()
 
 struct sockbase *tcp_open ()
 {
-	struct sio *tcps = __sio_alloc ();
+	struct sio *tcps = salloc ();
 	rex_sock_init (&tcps->s, REX_AF_TCP);
 	return &tcps->base;
 }
 
 struct sockbase *ipc_open ()
 {
-	struct sio *tcps = __sio_alloc ();
+	struct sio *tcps = salloc ();
 	rex_sock_init (&tcps->s, REX_AF_LOCAL);
 	return &tcps->base;
 }
