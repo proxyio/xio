@@ -162,7 +162,7 @@ static void xserver2()
 	xclose (afd);
 }
 
-static void xsock_test (int count)
+static void test_simple (int count)
 {
 	while (count-- > 0) {
 		xserver();
@@ -230,14 +230,14 @@ static void inproc_server_thread2()
 	thread_stop (&cli_thread[1]);
 }
 
-static void xexp_test()
+static void test_exception ()
 {
 	inproc_server_thread2();
 }
 
 
 
-static void tcp_sg_send()
+static void test_sg ()
 {
 	int afd = xlisten ("tcp://127.0.0.1:15100");
 	int cfd = xconnect ("tcp://127.0.0.1:15100");
@@ -254,24 +254,6 @@ static void tcp_sg_send()
 	xclose (afd);
 }
 
-static int tcp_ev_server (void *args) {
-	int i;
-	int fd;
-	int client;
-	char *hosts = (char *) args;
-
-	if ((fd = xlisten (hosts)) < 0) {
-		return -1;
-	}
-	for (i = 0; i < 50; i++) {	
-		BUG_ON ((client = xaccept (fd)) < 0);
-		xclose (client);
-	}
-	xclose (fd);
-	return 0;
-}
-
-
 static int tcp_ev_client (void *args) {
 	int i;
 	int fd;
@@ -284,11 +266,30 @@ static int tcp_ev_client (void *args) {
 	return 0;
 }
 
+static int tcp_ev_server (void *args) {
+	int i;
+	int fd;
+	int client;
+	char *hosts = (char *) args;
+	thread_t client_thread;
+	
+	if ((fd = xlisten (hosts)) < 0)
+		return -1;
+	thread_start (&client_thread, tcp_ev_client, hosts);
+
+	for (i = 0; i < 50; i++) {	
+		BUG_ON ((client = xaccept (fd)) < 0);
+		xclose (client);
+	}
+	thread_stop (&client_thread);
+	xclose (fd);
+	return 0;
+}
+
 static void test_tcp_ev () {
 	int i;
 	int fd;
 	thread_t server_thread[10] = {};
-	thread_t client_thread[10] = {};
 	char *tcp_addr[] = {
 		"tcp://127.0.0.1:15111",
 		"tcp://127.0.0.1:15112",
@@ -303,20 +304,32 @@ static void test_tcp_ev () {
 	}; 
 	for (i = 0; i < 10; i++) {	
 		thread_start (&server_thread[i], tcp_ev_server, tcp_addr[i]);
-		thread_start (&client_thread[i], tcp_ev_client, tcp_addr[i]);
 	}
 	for (i = 0; i < 10; i++) {	
 		thread_stop (&server_thread[i]);
-		thread_stop (&client_thread[i]);
 	}
 }
 
 
+static void test_bad_connect () {
+	int fd;
+	BUG_ON ((fd = xconnect ("tcp://127.0.0.1:15122")) > 0);
+}
+
+static void test_bad_listen () {
+	int fd;
+	BUG_ON ((fd = xlisten ("tcp://127.0.0.1:15122")) < 0);
+	BUG_ON (xlisten ("tcp://127.0.0.1:15122") > 0);
+	xclose (fd);
+}
+
 int main (int argc, char **argv)
 {
-	xsock_test (1);
-	xexp_test ();
-	tcp_sg_send ();
-	test_tcp_ev ();
+	test_bad_connect ();
+	test_bad_listen ();
+	//test_simple (1);
+	//test_exception ();
+	//test_sg ();
+	//test_tcp_ev ();
 	return 0;
 }

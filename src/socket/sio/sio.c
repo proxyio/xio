@@ -96,6 +96,7 @@ void sio_init (struct sio *tcps)
 	tcps->et.events = EV_READ;
 	tcps->et.fd = tcps->s.ss_fd;
 	tcps->et.hndl = sio_connector_hndl;
+	tcps->flagset.binded = 0;
 }
 
 static int sio_connector_bind (struct sockbase *sb, const char *sock)
@@ -107,8 +108,9 @@ static int sio_connector_bind (struct sockbase *sb, const char *sock)
 		return -1;
 	strcpy (sb->peer, sock);
 	sio_init (tcps);
-	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et));
+	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et) != 0);
 	BUG_ON (ev_fdset_sighndl (&tcps->el->fdset, &tcps->sig) != 0);
+	tcps->flagset.binded = 1;
 	return rc;
 }
 
@@ -121,18 +123,19 @@ static void sio_connector_close (struct sockbase *sb)
 
 	tcps = cont_of (sb, struct sio, base);
 
-	BUG_ON (ev_fdset_unsighndl (&tcps->el->fdset, &tcps->sig) != 0);
-	
+
 	/* Detach sock low-level file descriptor from poller */
-	if (tcps->s.ss_fd > 0)
+	if (tcps->flagset.binded) {
+		BUG_ON (ev_fdset_unsighndl (&tcps->el->fdset, &tcps->sig) != 0);
 		BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
 
-	/* Try flush buf massage into network before close */
-	sio_connector_snd (sb);
-	rex_sock_destroy (&tcps->s);
+		/* Try flush buf massage into network before close */
+		sio_connector_snd (sb);
+		rex_sock_destroy (&tcps->s);
+	}
 
 	ev_sig_term (&tcps->sig);
-	
+
 	/* Free socket local cache messages */
 	walk_msg_s (msg, tmp, &tcps->ls_head)
 		msgbuf_free (msg);

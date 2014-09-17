@@ -42,10 +42,7 @@ int xconnect (const char *peer)
 	if ((fd = xsocket (pf, XCONNECTOR)) < 0)
 		return -1;
 	if (xbind (fd, sockaddr) < 0) {
-		/* before returned, no anyone can touch this socket, doesn't need
-		 * lock and incr refs here
-		 */
-		__xclose (xgb.sockbases[fd]);
+		xclose (fd);
 		return -1;
 	}
 	return fd;

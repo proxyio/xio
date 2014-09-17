@@ -46,6 +46,7 @@ static int sio_listener_bind (struct sockbase *sb, const char *sock)
 	tcps->et.fd = tcps->s.ss_fd;
 	tcps->et.hndl = sio_listener_hndl;
 	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_ADD, &tcps->et) != 0);
+	tcps->flagset.binded = 1;
 	return 0;
 }
 
@@ -57,12 +58,14 @@ static void sio_listener_close (struct sockbase *sb)
 	tcps = cont_of (sb, struct sio, base);
 
 	/* Detach sock low-level file descriptor from poller */
-	BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
-	rex_sock_destroy (&tcps->s);
+	if (tcps->flagset.binded) {
+		BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
+		rex_sock_destroy (&tcps->s);
 
-	/* Destroy acceptq's connection */
-	while (acceptq_rm_nohup (sb, &tmp) == 0)
-		__xclose (tmp);
+		/* Destroy acceptq's connection */
+		while (acceptq_rm_nohup (sb, &tmp) == 0)
+			__xclose (tmp);
+	}
 
 	ev_sig_term (&tcps->sig);
 	/* Destroy the sock base and free sockid. */
@@ -103,6 +106,7 @@ static void sio_listener_hndl (struct ev_fdset *evfds, struct ev_fd *evfd,
 	sio_init (ntcps);
 	BUG_ON (__ev_fdset_ctl (&ntcps->el->fdset, EV_ADD, &ntcps->et) != 0);
 	BUG_ON (__ev_fdset_sighndl (&ntcps->el->fdset, &ntcps->sig) != 0);
+	ntcps->flagset.binded = 1;
 	acceptq_add (sb, nsb);
 }
 

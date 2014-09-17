@@ -34,6 +34,9 @@ struct sio {
 	struct ev_fd et;
 	struct rex_sock s;
 	struct bio rbuf;
+	struct {
+		u64 binded:1;
+	} flagset;
 
 	/* the local-storage caching of sio */
 	struct list_head ls_head;
