@@ -28,7 +28,7 @@
 #include <rex/rex.h>
 #include "sio.h"
 
-static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
+static i64 socket_read (struct io *ops, char *buf, i64 size)
 {
 	struct sio *tcps = cont_of (ops, struct sio, ops);
 	i64 rc = rex_sock_recv (&tcps->s, buf, size);
@@ -37,7 +37,7 @@ static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
 }
 
 struct io sio_ops = {
-	.read = sio_connector_read,
+	.read = socket_read,
 	.write = 0,
 };
 
