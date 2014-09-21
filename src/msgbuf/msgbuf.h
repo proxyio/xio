@@ -28,6 +28,7 @@
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
 #include <utils/atomic.h>
+#include <rex/rex.h>
 
 /* The transport protocol header is 6 bytes long and looks like this:
  * +--------+------------+------------+
@@ -45,7 +46,7 @@
 struct msgbuf {
 	struct list_head item;
 	struct list_head cmsg_head;
-	atomic_t ref;
+	u32 doff;
 
 	struct {
 		u16 checksum;
@@ -61,12 +62,14 @@ char *msgbuf_base (struct msgbuf *msg);
 struct msgbuf *msgbuf_alloc (int size);
 void msgbuf_free (struct msgbuf *msg);
 
+#define walk_msg(pos, head)				\
+    walk_each_entry (pos, head, struct msgbuf, item)
+
+
 #define walk_msg_s(pos, next, head)				\
     walk_each_entry_s(pos, next, head, struct msgbuf, item)
 
 int msgbuf_serialize (struct msgbuf *msg, struct list_head *head);
-
-
 
 static inline struct msgbuf *get_msgbuf (char *ubuf) {
 	return cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
@@ -76,6 +79,9 @@ static inline char *get_ubuf (struct msgbuf *msg)
 {
 	return msg->chunk.ubuf_base;
 }
+
+
+int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n);
 
 
 #endif

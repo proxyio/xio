@@ -110,4 +110,11 @@ static inline void msgbuf_head_decr_waiters (struct msgbuf_head *bh)
 	bh->waiters--;
 }
 
+
+int msgbuf_head_preinstall_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, int n);
+
+
+
+
+
 #endif

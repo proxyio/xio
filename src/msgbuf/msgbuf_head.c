@@ -100,3 +100,7 @@ int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
 	return 0;
 }
 
+int msgbuf_head_preinstall_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, int n)
+{
+	return 0;
+}

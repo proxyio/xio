@@ -69,8 +69,6 @@ struct msgbuf *msgbuf_alloc (int size) {
 	INIT_LIST_HEAD (&msg->cmsg_head);
 	msg->chunk.ubuf_len = size;
 	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ubuf_len, sizeof (msg->chunk.ubuf_len));
-	atomic_init (&msg->ref);
-	atomic_incr (&msg->ref);
 	return msg;
 }
 
@@ -240,4 +238,25 @@ int ubufctl (char *ubuf, int opt, void *optval)
 	}
 	rc = msgbuf_vfptr[opt] (ubuf, optval);
 	return rc;
+}
+
+
+int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n)
+{
+	int installed = 0;
+	struct msgbuf *cmsg;
+
+	BUG_ON (n < 0);
+	if (n == 0)
+		return 0;
+	installed++;
+	iovs->iov_len = msgbuf_len (msg) - msg->doff;
+	iovs->iov_base = msgbuf_base (msg) + msg->doff;
+	walk_msg (cmsg, &msg->cmsg_head) {
+		installed += msgbuf_preinstall_iovs (cmsg, iovs + installed, n - installed);
+		BUG_ON (installed > n);
+		if (installed == n)
+			break;
+	}
+	return installed;
 }
