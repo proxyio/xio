@@ -14,20 +14,21 @@ int task_main (void *args)
 {
 	int i;
 	int j;
-	int conns = 40;
+	int conns = 1;
 	int eid;
 	int size;
 	int rts;
 	char *ubuf;
 	int64_t st, lt;
 
-	if (argc < 4) {
-		printf ("usage: lat_sender <connect-to> <msg-size> <roundtrips>\n");
+	if (argc < 5) {
+		printf ("usage: lat_sender <connect-to> <msg-size> <roundtrips> <threads>\n");
 		return 0;
 	}
 
 	size = atoi (argv[2]);
 	rts = atoi (argv[3]);
+	conns = atoi (argv[4]);
 	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
 	for (i = 0; i < conns; i++)
 		BUG_ON (sp_connect (eid, argv[1]) < 0);

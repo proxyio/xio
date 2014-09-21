@@ -28,7 +28,7 @@
 #include <rex/rex.h>
 #include "sio.h"
 
-static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
+static i64 socket_read (struct io *ops, char *buf, i64 size)
 {
 	struct sio *tcps = cont_of (ops, struct sio, ops);
 	i64 rc = rex_sock_recv (&tcps->s, buf, size);
@@ -37,7 +37,7 @@ static i64 sio_connector_read (struct io *ops, char *buf, i64 size)
 }
 
 struct io sio_ops = {
-	.read = sio_connector_read,
+	.read = socket_read,
 	.write = 0,
 };
 
@@ -55,8 +55,6 @@ static struct sio *salloc ()
 	
 	ev_fd_init (&tcps->et);
 	bio_init (&tcps->rbuf);
-	INIT_LIST_HEAD (&tcps->ls_head);
-	tcps->ls_free = NELEM (tcps->ls_iov, struct rex_iov);
 	return tcps;
 }
 
@@ -136,10 +134,6 @@ static void sio_connector_close (struct sockbase *sb)
 
 	ev_sig_term (&tcps->sig);
 
-	/* Free socket local cache messages */
-	walk_msg_s (msg, tmp, &tcps->ls_head)
-		msgbuf_free (msg);
-	
 	/* Destroy the sock base and free sockid. */
 	sockbase_exit (sb);
 	mem_free (tcps, sizeof (*tcps));
@@ -194,57 +188,46 @@ static int sio_connector_rcv (struct sockbase *sb)
 	return 0;
 }
 
-static void fill_msgbuf_iovs (struct sio *tcps)
-{
-	int n = NELEM (tcps->ls_iov, struct rex_iov);
-	int i = 0;
-	struct msgbuf *msg, *tmp;
 
-	walk_each_entry_s (msg, tmp, &tcps->ls_head, struct msgbuf, item) {
-		if (tcps->ls_free == 0)
-			break;
-		if (i < n - tcps->ls_free)
-			continue;
-		BUG_ON (i != n - tcps->ls_free);
-		tcps->ls_free--;
-		tcps->ls_iov[i].iov_len = msgbuf_len (msg);
-		tcps->ls_iov[i].iov_base = msgbuf_base (msg);
-		i++;
-	}
+static int sndhead_preinstall_iovs (struct sockbase *sb, struct rex_iov *iovs, int n)
+{
+	int rc;
+	mutex_lock (&sb->lock);
+	rc = msgbuf_head_preinstall_iovs (&sb->snd, iovs, n);
+	mutex_unlock (&sb->lock);
+	return rc;
 }
 
+static void sndhead_install_iovs (struct sockbase *sb, struct rex_iov *iovs, i64 nbytes)
+{
+	int n;
+	struct msgbuf *msg;
+
+	mutex_lock (&sb->lock);
+	n = msgbuf_head_install_iovs (&sb->snd, iovs, nbytes);
+	while (n--) {
+		BUG_ON (!(msg = __snd_msgbuf_head_rm (sb)));
+		msgbuf_free (msg);
+		SKLOG_NOTICE (sb, "%d sock send msg into network", sb->fd);
+	}
+	mutex_unlock (&sb->lock);
+}
+	
 static int sio_connector_snd (struct sockbase *sb)
 {
 	struct sio *tcps = cont_of (sb, struct sio, base);
 	i64 nbytes;
-	int i;
-	int n = NELEM (tcps->ls_iov, struct rex_iov);
-	struct msgbuf *msg;
+	int n;
+	struct rex_iov iovs[100];
 
-	while (tcps->ls_free > 0 && (msg = snd_msgbuf_head_rm (sb)))
-		msgbuf_serialize (msg, &tcps->ls_head);
-	fill_msgbuf_iovs (tcps);
-
-	if (tcps->ls_free == n) {
+	if ((n = sndhead_preinstall_iovs (sb, iovs, NELEM (iovs, struct rex_iov))) == 0) {
 		errno = EAGAIN;
-		return -1;   /* no available msgbuf needed send */
+		return -1;
 	}
-	if ((nbytes = rex_sock_sendv (&tcps->s, tcps->ls_iov, n - tcps->ls_free)) < 0)
+	if ((nbytes = rex_sock_sendv (&tcps->s, iovs, n)) < 0)
 		return -1;
 	SKLOG_NOTICE (sb, "%d sock send %"PRId64" bytes into network", sb->fd, nbytes);
-	for (i = 0; i < n - tcps->ls_free; i++) {
-		if (nbytes < tcps->ls_iov[i].iov_len) {
-			tcps->ls_iov[i].iov_base += nbytes;
-			tcps->ls_iov[i].iov_len -= nbytes;
-			break;
-		}
-		msg = list_first (&tcps->ls_head, struct msgbuf, item);
-		list_del_init (&msg->item);
-		msgbuf_free (msg);
-		SKLOG_NOTICE (sb, "%d sock send msg into network", sb->fd);
-	}
-	tcps->ls_free += i;
-	memmove (tcps->ls_iov, tcps->ls_iov + i, n - tcps->ls_free);
+	sndhead_install_iovs (sb, iovs, nbytes);
 	return 0;
 }
 

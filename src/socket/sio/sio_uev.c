@@ -50,13 +50,7 @@ static void snd_msgbuf_head_empty_ev_hndl (struct sockbase *sb)
 
 	mutex_lock (&sb->lock);
 
-	/* Disable POLLOUT event when snd_head is empty
-	 * BUG: we do not disable write-event when tcps->ls_head is not empty,
-	 * but once tcps->ls_head is empty and no any new message come in,
-	 * the write-event wouldn't disable anymore
-	 */
-	if (msgbuf_head_empty(&sb->snd) && list_empty (&tcps->ls_head) &&
-	    (tcps->et.events & EV_WRITE)) {
+	if (msgbuf_head_empty(&sb->snd) && (tcps->et.events & EV_WRITE)) {
 		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
 		tcps->et.events &= ~EV_WRITE;
 		BUG_ON (__ev_fdset_ctl (&tcps->el->fdset, EV_MOD, &tcps->et) != 0);

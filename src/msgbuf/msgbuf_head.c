@@ -39,10 +39,9 @@ void msgbuf_head_ev_hndl (struct msgbuf_head *bh, struct msgbuf_vfptr *ev_hndl)
 void msgbuf_head_walk (struct msgbuf_head *bh, walk_fn f, void *data)
 {
 	int rc;
-	struct msgbuf *msg;
-	struct msgbuf *tmp;
+	struct msgbuf *msg, *tmp;
 	
-	walk_each_entry_s (msg, tmp, &bh->head, struct msgbuf, item) {
+	walk_msg_s (msg, tmp, &bh->head) {
 		if ((rc = f (bh, msg, data)) != 0)
 			break;
 	}
@@ -100,3 +99,32 @@ int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
 	return 0;
 }
 
+int msgbuf_head_preinstall_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, int n)
+{
+	int installed = 0;
+	struct msgbuf *msg;
+	
+	walk_msg (msg, &bh->head) {
+		installed += msgbuf_preinstall_iovs (msg, iovs + installed, n - installed);
+		BUG_ON (installed > n);
+		if (installed == n)
+			break;
+	}
+	return installed;
+}
+
+
+int msgbuf_head_install_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, i64 length)
+{
+	int n = 0;
+	struct msgbuf *msg;
+
+	walk_msg (msg, &bh->head) {
+		if (msgbuf_install_iovs (msg, iovs, &length) == 0)
+			n++;
+		BUG_ON (length < 0);
+		if (length == 0)
+			break;
+	}
+	return n;
+}

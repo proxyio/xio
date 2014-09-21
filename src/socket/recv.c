@@ -32,7 +32,6 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb)
 {
 	int rc;
 	struct msgbuf *msg = 0;
-	struct sockbase_vfptr *vfptr = sb->vfptr;
 
 	mutex_lock (&sb->lock);
 	while (!sb->flagset.epipe
@@ -51,7 +50,6 @@ struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb)
 int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 {
 	int rc;
-	struct sockbase_vfptr *vfptr = sb->vfptr;
 
 	mutex_lock (&sb->lock);
 	msgbuf_head_in_msg (&sb->rcv, msg);

@@ -37,11 +37,6 @@ struct sio {
 	struct {
 		u64 binded:1;
 	} flagset;
-
-	/* the local-storage caching of sio */
-	struct list_head ls_head;
-	int ls_free;                  /* the number of ls_iov */
-	struct rex_iov ls_iov[100];
 };
 
 int sio_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
