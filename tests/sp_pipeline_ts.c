@@ -26,7 +26,7 @@ static int req_thread (void *args)
 	}
 	for (i = 0; i < 9; i++) {
 		sbuf = rbuf = 0;
-		sbuf = ubuf_alloc (sizeof (buf));
+		sbuf = ualloc (sizeof (buf));
 		memcpy (sbuf, buf, sizeof (buf));
 		DEBUG_OFF ("producer send %d request: %10.10s", i, sbuf);
 		BUG_ON (sp_send (eid, sbuf) != 0);
@@ -35,9 +35,9 @@ static int req_thread (void *args)
 		}
 		DEBUG_OFF ("producer recv %d resp: %10.10s", i, rbuf);
 		DEBUG_OFF ("----------------------------------------");
-		BUG_ON (ubuf_len (rbuf) != sizeof (buf));
+		BUG_ON (ulength (rbuf) != sizeof (buf));
 		BUG_ON (memcmp (rbuf, buf, sizeof (buf)) != 0);
-		ubuf_free (rbuf);
+		ufree (rbuf);
 	}
 	sp_close (eid);
 	return 0;
@@ -69,6 +69,14 @@ static int proxy_thread (void *args)
 	sp_close (front_eid);
 	return 0;
 }
+
+static int uctl_num (char *ubuf)
+{
+	int sub_num = 0;
+	uctl (ubuf, SNUM, &sub_num);
+	return sub_num;
+}
+
 
 int main (int argc, char **argv)
 {
@@ -103,7 +111,7 @@ int main (int argc, char **argv)
 			usleep (1000);
 		}
 		DEBUG_OFF ("comsumer recv %d requst: %10.10s", i, ubuf);
-		BUG_ON (ubufctl_num (ubuf) != 1);
+		BUG_ON (uctl_num (ubuf) != 1);
 		BUG_ON (sp_send (eid, ubuf));
 	}
 

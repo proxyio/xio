@@ -36,10 +36,10 @@ int task_main (void *args)
 	st = gettimeofus ();
 	for (i = 0; i < rts; i++) {
 		for (j = 0; j < conns; j++)
-			BUG_ON (sp_send (eid, ubuf_alloc (size)) != 0);
+			BUG_ON (sp_send (eid, ualloc (size)) != 0);
 		for (j = 0; j < conns; j++) {
 			BUG_ON (sp_recv (eid, &ubuf) != 0);
-			ubuf_free (ubuf);
+			ufree (ubuf);
 		}
 	}
 	lt = gettimeofus ();

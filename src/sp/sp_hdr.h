@@ -48,7 +48,9 @@ struct sphdr {
 /* scalability protocol's header is saved in cmsg_head of ubuf and must be
    the first of it */
 static inline struct sphdr *get_sphdr (char *ubuf) {
-	return (struct sphdr *) ubufctl_first (ubuf);
+	struct sphdr *first = 0;
+	uctl (ubuf, SFIRST, &first);
+	return first;
 }
 
 /* checking the message is timeout or not, if timeout, the action was specified

@@ -59,7 +59,7 @@ static int reqep_send (struct epbase *ep, char *ubuf)
 		return -1;
 	uuid_copy (rt.uuid, go->uuid);
 	pg = new_rrhdr (&rt);
-	ubufctl_add (ubuf, (char *) pg);
+	uctl_add (ubuf, (char *) pg);
 	DEBUG_OFF ("ep %d send req %10.10s to socket %d", ep->eid, ubuf, go->tg.fd);
 	rc = xsend (go->tg.fd, ubuf);
 	return rc;

@@ -28,7 +28,7 @@
 
 u32 msgbuf_len (struct msgbuf *msg)
 {
-	return sizeof (msg->chunk) + msg->chunk.ubuf_len;
+	return sizeof (msg->chunk) + msg->chunk.ulength;
 }
 
 u32 msgbuf_lens (struct msgbuf *msg)
@@ -67,12 +67,12 @@ struct msgbuf *msgbuf_alloc (int size) {
 		return 0;
 	INIT_LIST_HEAD (&msg->item);
 	INIT_LIST_HEAD (&msg->cmsg_head);
-	msg->chunk.ubuf_len = size;
-	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ubuf_len, sizeof (msg->chunk.ubuf_len));
+	msg->chunk.ulength = size;
+	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ulength, sizeof (msg->chunk.ulength));
 	return msg;
 }
 
-char *ubuf_alloc (int size)
+char *ualloc (int size)
 {
 	struct msgbuf *msg = msgbuf_alloc (size);
 	if (!msg)
@@ -87,19 +87,19 @@ void msgbuf_free (struct msgbuf *msg)
 		list_del_init (&cmsg->item);
 		msgbuf_free (cmsg);
 	}
-	mem_free (msg, sizeof (*msg) + msg->chunk.ubuf_len);
+	mem_free (msg, sizeof (*msg) + msg->chunk.ulength);
 }
 
-void ubuf_free (char *ubuf)
+void ufree (char *ubuf)
 {
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 	msgbuf_free (msg);
 }
 
-int ubuf_len (char *ubuf)
+int ulength (char *ubuf)
 {
 	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	return msg->chunk.ubuf_len;
+	return msg->chunk.ulength;
 }
 
 
@@ -194,10 +194,10 @@ static int sub_msgbuf_switch (char *ubuf, void *optval)
 
 /* Simply copy the content of msgbuf to dest */
 static char *ubufdup (char *ubuf) {
-	char *dest = ubuf_alloc (ubuf_len (ubuf));
+	char *dest = ualloc (ulength (ubuf));
 
 	if (dest)
-		memcpy(dest, ubuf, ubuf_len (ubuf));
+		memcpy(dest, ubuf, ulength (ubuf));
 	return dest;
 }
 
@@ -228,7 +228,7 @@ static const msgbuf_ctl msgbuf_vfptr[] = {
 };
 
 
-int ubufctl (char *ubuf, int opt, void *optval)
+int uctl (char *ubuf, int opt, void *optval)
 {
 	int rc;
 

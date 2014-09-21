@@ -29,7 +29,7 @@ static int sub_thread (void *args)
 		}
 		DEBUG_OFF ("%d sub %d %10.10s", eid, i, ubuf);
 		BUG_ON (memcmp (ubuf, hello, strlen(hello)) != 0);
-		ubuf_free (ubuf);
+		ufree (ubuf);
 	}
 	sp_close (eid);
 	return 0;
@@ -61,7 +61,7 @@ int server1()
 	}
 	sleep (1);
 	for (i = 0; i < 5; i++) {
-		ubuf = ubuf_alloc (strlen(hello));
+		ubuf = ualloc (strlen(hello));
 		memcpy (ubuf, hello, strlen(hello));
 		DEBUG_OFF ("%d pub %d %10.10s", eid, i, ubuf);
 		BUG_ON (sp_send (eid, ubuf));

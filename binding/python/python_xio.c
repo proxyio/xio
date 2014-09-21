@@ -64,14 +64,14 @@ static PyObject *cpy_sp_send (PyObject *self, PyObject *args)
 		return 0;
 	if ((rc = PyString_AsStringAndSize (msg->data, &buff, &leng)))
 		return 0;
-	ubuf = ubuf_alloc (leng);
+	ubuf = ualloc (leng);
 	memcpy (ubuf, buff, leng);
 	if (PyObject_TypeCheck (msg->hdr, &Msghdr_Type)) {
 		hdr = (Msghdr *) msg->hdr;
-		ubufctl (hdr->ubuf, SCOPY, ubuf);
+		uctl (hdr->ubuf, SCOPY, ubuf);
 	}
 	if ((rc = sp_send (eid, ubuf)))
-		ubuf_free (ubuf);
+		ufree (ubuf);
 	return Py_BuildValue ("i", rc);
 }
 
@@ -91,7 +91,7 @@ static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 	msg->hdr = PyType_GenericAlloc (&Msghdr_Type, 0);
 	hdr = (Msghdr *) msg->hdr;
 	hdr->ubuf = ubuf;
-	msg->data = PyString_FromStringAndSize (ubuf, ubuf_len (ubuf));
+	msg->data = PyString_FromStringAndSize (ubuf, ulength (ubuf));
 	return Py_BuildValue ("iN", rc, msg);
 }
 

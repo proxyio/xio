@@ -51,19 +51,19 @@ static VALUE rb_sp_send (VALUE self, VALUE eid, VALUE msg)
 	int rc;
 	VALUE rb_hdr = 0;
 	char *hdr = 0;
-	char *ubuf = ubuf_alloc (RSTRING (msg)->len);
+	char *ubuf = ualloc (RSTRING (msg)->len);
 
-	memcpy (ubuf, RSTRING (msg)->ptr, ubuf_len (ubuf));
+	memcpy (ubuf, RSTRING (msg)->ptr, ulength (ubuf));
 
 	/* How can i checking the valid rb_values, fucking the ruby extension here
 	 */
 	if ((rb_hdr = rb_iv_get (msg, "@hdr")) != 4) {
 		Data_Get_Struct (rb_hdr, char, hdr);
 		if (hdr)
-			ubufctl (hdr, SCOPY, ubuf);
+			uctl (hdr, SCOPY, ubuf);
 	}
 	if ((rc = sp_send (_eid, ubuf)))
-		ubuf_free (ubuf);
+		ufree (ubuf);
 	return INT2FIX (rc);
 }
 
@@ -76,8 +76,8 @@ static VALUE rb_sp_recv (VALUE self, VALUE eid)
 
 	if ((rc = sp_recv (_eid, &ubuf)))
 		return Qnil;
-	msg = rb_str_new (ubuf, ubuf_len (ubuf));
-	rb_iv_set (msg, "@hdr", Data_Wrap_Struct (0, 0, ubuf_free, ubuf));
+	msg = rb_str_new (ubuf, ulength (ubuf));
+	rb_iv_set (msg, "@hdr", Data_Wrap_Struct (0, 0, ufree, ubuf));
 	return msg;
 }
 

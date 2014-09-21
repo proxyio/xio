@@ -63,45 +63,45 @@ static void test_ev_hndl ()
 	msgbuf_head_ev_hndl (&bh, &msgbuf_vfptr);
 	assert (isempty == 0 && size == 0 && isfull == 0);
 
-	msgbuf_head_in (&bh, ubuf_alloc (500));
+	msgbuf_head_in (&bh, ualloc (500));
 	assert (isempty == 0 && size == 1 && isfull == 0);
 
-	msgbuf_head_in (&bh, ubuf_alloc (500));
+	msgbuf_head_in (&bh, ualloc (500));
 	assert (isempty == 0 && size == 2 && isfull == 1);
 
-	msgbuf_head_in (&bh, ubuf_alloc (500));
+	msgbuf_head_in (&bh, ualloc (500));
 	assert (isempty == 0 && size == 3 && isfull == 1);
 
 	msgbuf_head_out (&bh, &ubuf);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 	assert (isempty == 0 && size == 2 && isfull == 1);
 
 	msgbuf_head_out (&bh, &ubuf);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 	assert (isempty == 0 && size == 1 && isfull == 0);
 
 	msgbuf_head_out (&bh, &ubuf);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 	assert (isempty == 1 && size == 0 && isfull == 0);
 
-	msgbuf_head_in (&bh, ubuf_alloc (1000));
+	msgbuf_head_in (&bh, ualloc (1000));
 	assert (isempty == 0 && size == 1 && isfull == 1);
 
 	msgbuf_head_out (&bh, &ubuf);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 	assert (isempty == 1 && size == 0 && isfull == 0);
 
-	msgbuf_head_in (&bh, ubuf_alloc (1100));
+	msgbuf_head_in (&bh, ualloc (1100));
 	assert (isempty == 0 && size == 1 && isfull == 1);
 
 	msgbuf_head_out (&bh, &ubuf);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 	assert (isempty == 1 && size == 0 && isfull == 0);
 }
 
 static char *simple_mk_ubuf (const char *str)
 {
-	char *ubuf = ubuf_alloc (strlen (str) + 1);
+	char *ubuf = ualloc (strlen (str) + 1);
 	strcpy (ubuf, str);
 	return ubuf;
 }
@@ -140,13 +140,13 @@ static void test_install_iovs ()
 	msgbuf_head_in (&bh, hello);
 	msgbuf_head_in (&bh, hello2);
 
-	ubufctl (apple, SADD, s4);
-	ubufctl (apple, SADD, s5);
-	ubufctl (acer, SADD, c50);
-	ubufctl (yes, SADD, apple);
-	ubufctl (yes, SADD, acer);
-	ubufctl (hello, SADD, ok);
-	ubufctl (hello, SADD, yes);
+	uctl (apple, SADD, s4);
+	uctl (apple, SADD, s5);
+	uctl (acer, SADD, c50);
+	uctl (yes, SADD, apple);
+	uctl (yes, SADD, acer);
+	uctl (hello, SADD, ok);
+	uctl (hello, SADD, yes);
 
 	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 1) != 1);
 	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 2) != 2);
@@ -164,7 +164,7 @@ static void test_install_iovs ()
 	install[3] = msgbuf_head_install_iovs (&bh, iov, tmp_length[3]);
 
 	BUG_ON (install[0] + install[1] + install[2] + install[3] != 2);
-	ubuf_free (hello);
+	ufree (hello);
 }
 
 
