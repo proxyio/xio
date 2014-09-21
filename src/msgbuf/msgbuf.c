@@ -249,9 +249,10 @@ int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n)
 	BUG_ON (n < 0);
 	if (n == 0)
 		return 0;
-	installed++;
 	iovs->iov_len = msgbuf_len (msg) - msg->doff;
 	iovs->iov_base = msgbuf_base (msg) + msg->doff;
+	if (iovs->iov_len > 0)
+		installed++;
 	walk_msg (cmsg, &msg->cmsg_head) {
 		installed += msgbuf_preinstall_iovs (cmsg, iovs + installed, n - installed);
 		BUG_ON (installed > n);
@@ -259,4 +260,32 @@ int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n)
 			break;
 	}
 	return installed;
+}
+
+static u32 __msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, u32 *length)
+{
+	u32 installed = 0;
+	u32 diff;
+	struct msgbuf *cmsg;
+
+	diff = *length > (msgbuf_len (msg) - msg->doff) ? (msgbuf_len (msg) - msg->doff) : *length;
+	msg->doff += diff;
+	if ((*length -= diff) == 0)
+		return msg->doff;
+	BUG_ON (*length < 0);
+	installed = msg->doff;
+
+	walk_msg (cmsg, &msg->cmsg_head) {
+		installed += __msgbuf_install_iovs (cmsg, iovs, length);
+		if (*length == 0)
+			break;
+	}
+	return installed;
+}
+
+int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, u32 *length)
+{
+	if (__msgbuf_install_iovs (msg, iovs, length) == msgbuf_len (msg) + msg->chunk.cmsg_length)
+		return 0;
+	return -1;
 }

@@ -130,6 +130,15 @@ static void test_install_iovs ()
 	char *s5 = simple_mk_ubuf ("s5");
 	char *acer = simple_mk_ubuf ("acer");
 	char *c50 = simple_mk_ubuf ("c50");
+	char *hello2 = simple_mk_ubuf ("hello2");
+	u32 length = 113;
+	u32 tmp_length[4];
+	int install[4];
+	struct msgbuf_head bh;
+	
+	msgbuf_head_init (&bh, 1);
+	msgbuf_head_in (&bh, hello);
+	msgbuf_head_in (&bh, hello2);
 
 	ubufctl (apple, SADD, s4);
 	ubufctl (apple, SADD, s5);
@@ -143,13 +152,28 @@ static void test_install_iovs ()
 	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 2) != 2);
 	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 20) != 8);
 
+	tmp_length[0] = rand () % 28;
+	tmp_length[1] = rand () % 28;
+	tmp_length[2] = rand () % 28;
+	tmp_length[3] = length - tmp_length[0] - tmp_length[1] - tmp_length[2];
+
+	
+	install[0] = msgbuf_head_install_iovs (&bh, iov, tmp_length[0]);
+	install[1] = msgbuf_head_install_iovs (&bh, iov, tmp_length[1]);
+	install[2] = msgbuf_head_install_iovs (&bh, iov, tmp_length[2]);
+	install[3] = msgbuf_head_install_iovs (&bh, iov, tmp_length[3]);
+
+	BUG_ON (install[0] + install[1] + install[2] + install[3] != 2);
 	ubuf_free (hello);
 }
 
 
 int main (int argc, char **argv)
 {
+	int i;
 	test_ev_hndl ();
-	test_install_iovs ();
+
+	for (i = 0; i < 1000; i++)
+		test_install_iovs ();
 	return 0;
 }
