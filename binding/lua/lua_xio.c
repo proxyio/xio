@@ -29,12 +29,12 @@
 #include <lauxlib.h>
 #include <utils/base.h>
 
-static int lua_ubuf_free (lua_State *L)
+static int lua_ufree (lua_State *L)
 {
 	char *ubuf = * (char **) lua_touserdata (L, 1);
 
 	if (ubuf) {
-		ubuf_free (ubuf);
+		ufree (ubuf);
 	}
 	return 0;
 }
@@ -69,14 +69,14 @@ static int lua_sp_send (lua_State *L)
 	if (hdr)
 		hdr = * (char **) hdr;
 
-	ubuf = ubuf_alloc (strlen (msg) + 1);
-	memcpy (ubuf, msg, ubuf_len (ubuf));
-	ubuf [ubuf_len (ubuf) - 1] = 0;
+	ubuf = ualloc (strlen (msg) + 1);
+	memcpy (ubuf, msg, ulength (ubuf));
+	ubuf [ulength (ubuf) - 1] = 0;
 
 	if (hdr)
-		ubufctl (hdr, SCOPY, ubuf);
+		uctl (hdr, SCOPY, ubuf);
 	if ((rc = sp_send (eid, ubuf)))
-		ubuf_free (ubuf);
+		ufree (ubuf);
 	lua_pushnumber (L, rc);
 	return 1;
 }
@@ -195,7 +195,7 @@ LUA_API int luaopen_xio (lua_State *L)
 	}
 
 	luaL_newmetatable (L, "ubuf_metatable");
-	lua_pushcfunction (L, lua_ubuf_free);
+	lua_pushcfunction (L, lua_ufree);
 	lua_setfield (L, -2, "__gc");
 	lua_pop (L, 1);
 	

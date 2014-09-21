@@ -32,9 +32,9 @@ int main (int argc, char **argv)
 	while (count > 0) {
 		BUG_ON (sp_recv (eid, &ubuf) != 0);
 		count--;
-		size += ubuf_len (ubuf);
+		size += ulength (ubuf);
 		if (count)
-			ubuf_free (ubuf);
+			ufree (ubuf);
 		else
 			BUG_ON (sp_send (eid, ubuf) != 0);			
 	}

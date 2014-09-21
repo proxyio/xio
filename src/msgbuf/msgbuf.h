@@ -52,7 +52,7 @@ struct msgbuf {
 		u16 checksum;
 		u16 cmsg_num:4;
 		u16 cmsg_length:12;
-		u32 ubuf_len;
+		u32 ulength;
 		char ubuf_base[0];
 	} chunk;
 };

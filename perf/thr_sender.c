@@ -28,11 +28,11 @@ int task_main (void *args)
 	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
 	BUG_ON (sp_connect (eid, argv[1]) < 0);
 
-	BUG_ON (sp_send (eid, ubuf_alloc (size)) != 0);
+	BUG_ON (sp_send (eid, ualloc (size)) != 0);
 	for (i = 0; i < rts; i++)
-		BUG_ON (sp_send (eid, ubuf_alloc (size)) != 0);
+		BUG_ON (sp_send (eid, ualloc (size)) != 0);
 	BUG_ON (sp_recv (eid, &ubuf) != 0);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 
 	sp_close (eid);
 	return 0;

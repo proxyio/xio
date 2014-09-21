@@ -52,7 +52,7 @@ static void connector_event_hndl (struct tgtd *tg)
 		if ((rc = xrecv (tg->fd, &ubuf)) == 0) {
 			DEBUG_OFF ("ep %d socket %d recv ok", ep->eid, tg->fd);
 			if ((rc = ep->vfptr.add (ep, tg, ubuf)) < 0) {
-				ubuf_free (ubuf);
+				ufree (ubuf);
 				DEBUG_OFF ("ep %d drop msg from socket %d of can't back",
 				           ep->eid, tg->fd);
 			}
@@ -63,7 +63,7 @@ static void connector_event_hndl (struct tgtd *tg)
 		if ((rc = ep->vfptr.rm (ep, tg, &ubuf)) == 0) {
 			DEBUG_OFF ("ep %d socket %d send begin", ep->eid, tg->fd);
 			if ((rc = xsend (tg->fd, ubuf)) < 0) {
-				ubuf_free (ubuf);
+				ufree (ubuf);
 				if (errno != EAGAIN)
 					happened |= XPOLLERR;
 				DEBUG_OFF ("ep %d socket %d send with errno %d", ep->eid,

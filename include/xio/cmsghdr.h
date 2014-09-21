@@ -26,9 +26,9 @@
 #include <inttypes.h>
 #include <xio/cplusplus_define.h>
 
-char *ubuf_alloc (int size);
-void ubuf_free (char *ubuf);
-int ubuf_len (char *ubuf);
+char *ualloc (int size);
+void ufree (char *ubuf);
+int ulength (char *ubuf);
 
 /* One normal ubuf can take at most 16 control ubuf. */
 enum {
@@ -43,43 +43,11 @@ enum {
 	SCOPY,
 };
 
-int ubufctl (char *ubuf, int opt, void *optval);
+int uctl (char *ubuf, int opt, void *optval);
 
-static inline int ubufctl_num (char *ubuf)
+static inline void uctl_add (char *ubuf, char *add)
 {
-	int sub_num = 0;
-	ubufctl (ubuf, SNUM, &sub_num);
-	return sub_num;
-}
-
-static inline char *ubufctl_first (char *ubuf)
-{
-	char *first = 0;
-	ubufctl (ubuf, SFIRST, &first);
-	return first;
-}
-
-static inline char *ubufctl_next (char *ubuf, char *cur)
-{
-	ubufctl (ubuf, SNEXT, &cur);
-	return cur;
-}
-
-static inline char *ubufctl_last (char *ubuf)
-{
-	char *last = 0;
-	ubufctl (ubuf, SLAST, &last);
-	return last;
-}
-
-static inline void ubufctl_add (char *ubuf, char *add)
-{
-	ubufctl (ubuf, SADD, add);
-}
-
-static inline void ubufctl_rm (char *ubuf, char *rm)
-{
-	ubufctl (ubuf, SRM, rm);
+	uctl (ubuf, SADD, add);
 }
 
 #include <xio/cplusplus_endif.h>

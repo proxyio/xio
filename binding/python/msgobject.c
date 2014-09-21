@@ -90,7 +90,7 @@ static PyObject *Msghdr_new (PyTypeObject *type, PyObject *args, PyObject *kwds)
 static void Msghdr_dealloc (Msghdr *self)
 {
 	if (self->ubuf)
-		ubuf_free (self->ubuf);
+		ufree (self->ubuf);
 	self->ob_type->tp_free ((PyObject *)self);
 }
 

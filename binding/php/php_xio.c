@@ -51,7 +51,7 @@ ZEND_METHOD (Msghdr, __destruct)
 	if (zend_hash_find (Z_OBJPROP_P (getThis ()), "__ptr", sizeof("__ptr"), (void **) &hdr) == FAILURE)
 		return;
 	if ((ptr = Z_STRVAL_PP (hdr)) && (ptr = * (char **) ptr)) {
-		ubuf_free (ptr);
+		ufree (ptr);
 	}
 }
 
@@ -126,18 +126,18 @@ PHP_FUNCTION (sp_send)
 		return;
 	if (zend_hash_find (Z_OBJPROP_P (msg), "data", sizeof ("data"), (void **) &data) == FAILURE)
 		return;
-	ubuf = ubuf_alloc (Z_STRLEN_PP (data));
+	ubuf = ualloc (Z_STRLEN_PP (data));
 	memcpy (ubuf, Z_STRVAL_PP (data), Z_STRLEN_PP (data));
 
 	if (zend_hash_find (Z_OBJPROP_P (msg), "hdr", sizeof ("hdr"), (void **) &hdr) == SUCCESS && !ZVAL_IS_NULL (*hdr)) {
 		if (zend_hash_find (Z_OBJPROP_PP (hdr), "__ptr", sizeof ("__ptr"), (void **) &__ptr) == SUCCESS) {
 			if ((ptr = Z_STRVAL_PP (__ptr)) && (ptr = * (char **) ptr)) {
-				ubufctl (ptr, SCOPY, ubuf);
+				uctl (ptr, SCOPY, ubuf);
 			}
 		}
 	}
 	if ((rc = sp_send ((int) eid, ubuf)))
-		ubuf_free (ubuf);
+		ufree (ubuf);
 	RETURN_LONG (rc);
 }
 
@@ -157,7 +157,7 @@ PHP_FUNCTION (sp_recv)
 		RETURN_LONG (rc);
 
 	MAKE_STD_ZVAL (data);
-	ZVAL_STRINGL (data, ubuf, ubuf_len (ubuf), 1);
+	ZVAL_STRINGL (data, ubuf, ulength (ubuf), 1);
 
 	if (zend_hash_update (Z_OBJPROP_P (msg), "data", sizeof ("data"), &data, sizeof (data), 0) == FAILURE)
 		BUG_ON (1);

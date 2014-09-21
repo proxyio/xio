@@ -267,13 +267,13 @@ typedef int (*ep_getopt) (struct epbase *ep, void *optval, int *optlen);
 static inline char *clone_ubuf (char *src)
 {
 	int rc;
-	char *dst = ubuf_alloc (ubuf_len (src));
+	char *dst = ualloc (ulength (src));
 	
 	BUG_ON (!dst);
-	memcpy (dst, src, ubuf_len (src));
+	memcpy (dst, src, ulength (src));
 
 	/* copy the sub msgbuf into dst */
-	rc = ubufctl (src, SCOPY, dst);
+	rc = uctl (src, SCOPY, dst);
 	BUG_ON (rc);
 	return dst;
 }

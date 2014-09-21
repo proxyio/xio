@@ -25,7 +25,7 @@ static int req_thread (void *args)
 	}
 	for (i = 0; i < 9; i++) {
 		sbuf = rbuf = 0;
-		sbuf = ubuf_alloc (sizeof (buf));
+		sbuf = ualloc (sizeof (buf));
 		memcpy (sbuf, buf, sizeof (buf));
 		DEBUG_OFF ("producer %d send %d request: %10.10s", eid, i, sbuf);
 		BUG_ON (sp_send (eid, sbuf) != 0);
@@ -34,9 +34,9 @@ static int req_thread (void *args)
 		}
 		DEBUG_OFF ("producer %d recv %d resp: %10.10s", eid, i, rbuf);
 		DEBUG_OFF ("----------------------------------------");
-		BUG_ON (ubuf_len (rbuf) != sizeof (buf));
+		BUG_ON (ulength (rbuf) != sizeof (buf));
 		BUG_ON (memcmp (rbuf, buf, sizeof (buf)) != 0);
-		ubuf_free (rbuf);
+		ufree (rbuf);
 	}
 	DEBUG_OFF ("producer %d close on %s", eid, host);
 	sp_close (eid);
@@ -131,9 +131,9 @@ int server2()
 	sleep (1);
 
 	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
-	sbuf = ubuf_alloc (0);
+	sbuf = ualloc (0);
 	BUG_ON (sp_send (eid, sbuf) != -1);
-	ubuf_free (sbuf);
+	ufree (sbuf);
 
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		sprintf (host, "%s%s", pf[i], addr);
@@ -142,7 +142,7 @@ int server2()
 	randstr (buf, sizeof (buf));
 	for (i = 0; i < NELEM (t, thread_t) * 30; i++) {
 		sbuf = rbuf = 0;
-		sbuf = ubuf_alloc (sizeof (buf));
+		sbuf = ualloc (sizeof (buf));
 		memcpy (sbuf, buf, sizeof (buf));
 		DEBUG_OFF ("producer %d send %d request: %10.10s", eid, i, sbuf);
 		BUG_ON (sp_send (eid, sbuf) != 0);
@@ -151,9 +151,9 @@ int server2()
 		}
 		DEBUG_OFF ("producer %d recv %d resp: %10.10s", eid, i, rbuf);
 		DEBUG_OFF ("----------------------------------------");
-		BUG_ON (ubuf_len (rbuf) != sizeof (buf));
+		BUG_ON (ulength (rbuf) != sizeof (buf));
 		BUG_ON (memcmp (rbuf, buf, sizeof (buf)) != 0);
-		ubuf_free (rbuf);
+		ufree (rbuf);
 	}
 	for (i = 0; i < NELEM (t, thread_t); i++) {
 		thread_stop (&t[i]);

@@ -158,7 +158,7 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 	struct msgbuf one = {};
 
 	bio_copy (b, (char *) (&one.chunk), sizeof (one.chunk));
-	*msg = msgbuf_alloc (one.chunk.ubuf_len);
+	*msg = msgbuf_alloc (one.chunk.ulength);
 	bio_read (b, msgbuf_base (*msg), msgbuf_len (*msg));
 }
 

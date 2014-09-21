@@ -31,7 +31,7 @@ int main (int argc, char **argv)
 	rc = sp_connect (cli2, "tcp://127.0.0.1:15200");
 	BUG_ON (rc < 0);
 
-	ubuf = ubuf_alloc (strlen (hello));
+	ubuf = ualloc (strlen (hello));
 	memcpy (ubuf, hello, strlen (hello));
 
 	rc = sp_send (cli1, ubuf);
@@ -41,7 +41,7 @@ int main (int argc, char **argv)
 	BUG_ON (rc);
 
 	BUG_ON (memcmp (ubuf, hello, strlen (hello)) != 0);
-	ubuf_free (ubuf);
+	ufree (ubuf);
 	
 	sp_close (n_eid1);
 	sp_close (n_eid2);

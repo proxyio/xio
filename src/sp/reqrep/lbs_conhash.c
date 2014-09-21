@@ -35,7 +35,7 @@ struct conhash_lbs {
 static struct req_tgtd *conhash_select (struct loadbalance_vfptr *lbs, char *ubuf)
 {
 	struct conhash_lbs *cl = cont_of_conhash (lbs);
-	int size = MIN (ubuf_len (ubuf), 16);
+	int size = MIN (ulength (ubuf), 16);
 
 	return (struct req_tgtd *) consistent_hash_get (&cl->tgs, ubuf, size);
 }
