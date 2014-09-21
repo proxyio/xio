@@ -188,33 +188,46 @@ static int sio_connector_rcv (struct sockbase *sb)
 	return 0;
 }
 
+
+static int sndhead_preinstall_iovs (struct sockbase *sb, struct rex_iov *iovs, int n)
+{
+	int rc;
+	mutex_lock (&sb->lock);
+	rc = msgbuf_head_preinstall_iovs (&sb->snd, iovs, n);
+	mutex_unlock (&sb->lock);
+	return rc;
+}
+
+static void sndhead_install_iovs (struct sockbase *sb, struct rex_iov *iovs, i64 nbytes)
+{
+	int n;
+	struct msgbuf *msg;
+
+	mutex_lock (&sb->lock);
+	n = msgbuf_head_install_iovs (&sb->snd, iovs, nbytes);
+	while (n--) {
+		BUG_ON (!(msg = __snd_msgbuf_head_rm (sb)));
+		msgbuf_free (msg);
+		SKLOG_NOTICE (sb, "%d sock send msg into network", sb->fd);
+	}
+	mutex_unlock (&sb->lock);
+}
+	
 static int sio_connector_snd (struct sockbase *sb)
 {
 	struct sio *tcps = cont_of (sb, struct sio, base);
 	i64 nbytes;
-	int i;
 	int n;
-	struct msgbuf *msg;
 	struct rex_iov iovs[100];
 
-	mutex_lock (&sb->lock);
-	n = msgbuf_head_preinstall_iovs (&sb->snd, iovs, NELEM (iovs, struct rex_iov));
-	mutex_unlock (&sb->lock);
-	if (n == 0) {
+	if ((n = sndhead_preinstall_iovs (sb, iovs, NELEM (iovs, struct rex_iov))) == 0) {
 		errno = EAGAIN;
-		return -1;   /* no available msgbuf needed send */
+		return -1;
 	}
 	if ((nbytes = rex_sock_sendv (&tcps->s, iovs, n)) < 0)
 		return -1;
 	SKLOG_NOTICE (sb, "%d sock send %"PRId64" bytes into network", sb->fd, nbytes);
-	mutex_lock (&sb->lock);
-	n = msgbuf_head_install_iovs (&sb->snd, iovs, nbytes);
-	mutex_unlock (&sb->lock);
-	while (n--) {
-		BUG_ON (!(msg = snd_msgbuf_head_rm (sb)));
-		msgbuf_free (msg);
-		SKLOG_NOTICE (sb, "%d sock send msg into network", sb->fd);
-	}
+	sndhead_install_iovs (sb, iovs, nbytes);
 	return 0;
 }
 

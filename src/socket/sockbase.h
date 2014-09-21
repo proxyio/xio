@@ -141,6 +141,7 @@ int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg);
 struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb);
 
 int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg);
+struct msgbuf *__snd_msgbuf_head_rm (struct sockbase *sb);
 struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb);
 
 

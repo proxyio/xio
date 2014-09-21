@@ -28,25 +28,30 @@
 #include <utils/taskpool.h>
 #include "sockbase.h"
 
-struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
+struct msgbuf *__snd_msgbuf_head_rm (struct sockbase *sb) {
 	int rc;
-	struct sockbase_vfptr *vfptr = sb->vfptr;
 	struct msgbuf *msg = 0;
 
-	mutex_lock (&sb->lock);
 	if ((rc = msgbuf_head_out_msg (&sb->snd, &msg)) == 0) {
 		if (sb->snd.waiters > 0)
 			condition_broadcast (&sb->cond);
 		SKLOG_NOTICE (sb, "%d socket sndbuf rm %d", sb->fd, msgbuf_len (msg));
 	}
 	__emit_pollevents (sb);
+	return msg;
+}
+
+struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb) {
+	struct msgbuf *msg = 0;
+
+	mutex_lock (&sb->lock);
+	msg = __snd_msgbuf_head_rm (sb);
 	mutex_unlock (&sb->lock);
 	return msg;
 }
 
 int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg)
 {
-	struct sockbase_vfptr *vfptr = sb->vfptr;
 	int rc = -1;
 
 	mutex_lock (&sb->lock);
