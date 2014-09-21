@@ -83,7 +83,7 @@ static inline char *get_ubuf (struct msgbuf *msg)
 
 int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n);
 
-int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, u32 *length);
+int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length);
 
 
 #endif

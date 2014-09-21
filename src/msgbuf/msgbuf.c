@@ -262,9 +262,9 @@ int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n)
 	return installed;
 }
 
-static u32 __msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, u32 *length)
+static i64 __msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length)
 {
-	u32 installed = 0;
+	i64 installed = 0;
 	u32 diff;
 	struct msgbuf *cmsg;
 
@@ -283,7 +283,7 @@ static u32 __msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, u32 
 	return installed;
 }
 
-int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, u32 *length)
+int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length)
 {
 	if (__msgbuf_install_iovs (msg, iovs, length) == msgbuf_len (msg) + msg->chunk.cmsg_length)
 		return 0;

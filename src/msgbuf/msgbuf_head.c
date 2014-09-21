@@ -114,7 +114,7 @@ int msgbuf_head_preinstall_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, i
 }
 
 
-int msgbuf_head_install_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, u32 length)
+int msgbuf_head_install_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, i64 length)
 {
 	int n = 0;
 	struct msgbuf *msg;
