@@ -49,7 +49,7 @@ XIO_SOCKET = \
 	src/socket/bind.c \
 	src/socket/close.c \
 	src/socket/connect.c \
-	src/socket/sio/sio_uev.c \
+	src/socket/sio/sio_usig.c \
 	src/socket/sio/sio_listener.c \
 	src/socket/sio/sio_getsetor.c \
 	src/socket/sio/sio.c \
