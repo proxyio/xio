@@ -229,49 +229,16 @@ static void sio_connector_close (struct sockbase *sb)
 }
 
 
-static int bufio_check_msg (struct bio *b)
-{
-	struct msgbuf msg = {};
-
-	if (b->bsize < sizeof (msg.frame))
-		return false;
-	bio_copy (b, (char *) (&msg.frame), sizeof (msg.frame));
-	if (b->bsize < msgbuf_len (&msg) + (u32) msg.frame.cmsg_length)
-		return false;
-	return true;
-}
-
-
-static void bufio_rm (struct bio *b, struct msgbuf **msg)
-{
-	struct msgbuf one = {};
-
-	bio_copy (b, (char *) (&one.frame), sizeof (one.frame));
-	*msg = msgbuf_alloc (one.frame.ulen);
-	bio_read (b, msgbuf_base (*msg), msgbuf_len (*msg));
-}
-
 static int sio_connector_rcv (struct sockbase *sb)
 {
 	struct sio *tcps = cont_of (sb, struct sio, base);
 	int nbytes;
-	u16 cmsg_num;
-	struct msgbuf *msg = 0, *cmsg = 0;
+	struct msgbuf *msg = 0;
 
 	if ((nbytes = bio_prefetch (&tcps->rbuf, &tcps->ops)) < 0 && errno != EAGAIN)
 		return -1;
-	while (bufio_check_msg (&tcps->rbuf)) {
+	while (msgbuf_deserialize (&msg, &tcps->rbuf) == 0) {
 		SKLOG_NOTICE (sb, "%d sock recv msg from network", sb->fd);
-		msg = 0;
-		bufio_rm (&tcps->rbuf, &msg);
-		BUG_ON (!msg);
-		cmsg_num = msg->frame.cmsg_num;
-		while (cmsg_num--) {
-			cmsg = 0;
-			bufio_rm (&tcps->rbuf, &cmsg);
-			BUG_ON (!cmsg);
-			list_add_tail (&cmsg->item, &msg->cmsg_head);
-		}
 		rcv_msgbuf_head_add (sb, msg);
 	}
 	return 0;

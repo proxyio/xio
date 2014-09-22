@@ -44,6 +44,8 @@ struct bio {
 struct bio *bio_new();
 static inline void bio_init (struct bio *b)
 {
+	b->bsize = 0;
+	b->pno = 0;
 	INIT_LIST_HEAD (&b->page_head);
 }
 

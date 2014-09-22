@@ -3,6 +3,7 @@
 #include <string.h>
 #include <utils/spinlock.h>
 #include <utils/thread.h>
+#include <utils/bufio.h>
 #include <xio/poll.h>
 #include <xio/socket.h>
 #include <xio/cmsghdr.h>
@@ -99,10 +100,10 @@ static void test_ev_hndl ()
 	assert (isempty == 1 && size == 0 && isfull == 0);
 }
 
-static char *simple_mk_ubuf (const char *str)
+static char *simple_mk_ubuf (int len)
 {
-	char *ubuf = ualloc (strlen (str) + 1);
-	strcpy (ubuf, str);
+	char *ubuf = ualloc (len);
+	randstr (ubuf, len);
 	return ubuf;
 }
 
@@ -122,41 +123,56 @@ static char *simple_mk_ubuf (const char *str)
 static void test_install_iovs ()
 {
 	struct rex_iov iov[100];
-	char *hello = simple_mk_ubuf ("hello");
-	char *ok = simple_mk_ubuf ("ok");
-	char *yes = simple_mk_ubuf ("yes");
-	char *apple = simple_mk_ubuf ("apple");
-	char *s4 = simple_mk_ubuf ("s4");
-	char *s5 = simple_mk_ubuf ("s5");
-	char *acer = simple_mk_ubuf ("acer");
-	char *c50 = simple_mk_ubuf ("c50");
-	char *hello2 = simple_mk_ubuf ("hello2");
-	u32 length = 113;
+	char *hello = simple_mk_ubuf (rand () % 64);
+	char *ok = simple_mk_ubuf (rand () % 64);
+	char *yes = simple_mk_ubuf (rand () % 64);
+	char *apple = simple_mk_ubuf (rand () % 64);
+	char *s4 = simple_mk_ubuf (rand () % 64);
+	char *s5 = simple_mk_ubuf (rand () % 64);
+	char *acer = simple_mk_ubuf (rand () % 64);
+	char *c50 = simple_mk_ubuf (rand () % 64);
+	char *hello2 = simple_mk_ubuf (rand () % 64);
+	struct msgbuf *msg;
+	char *hello3;
+	int i;
+	u32 length = 0;
 	u32 tmp_length[4];
 	int install[4];
 	struct msgbuf_head bh;
-	
+	struct bio in;
+
 	msgbuf_head_init (&bh, 1);
+
+	BUG_ON (uctl (apple, SADD, s4));
+	BUG_ON (uctl (apple, SADD, s5));
+	BUG_ON (uctl (acer, SADD, c50));
+	BUG_ON (uctl (yes, SADD, apple));
+	BUG_ON (uctl (yes, SADD, acer));
+	BUG_ON (uctl (hello, SADD, ok));
+	BUG_ON (uctl (hello, SADD, yes));
+
 	msgbuf_head_in (&bh, hello);
 	msgbuf_head_in (&bh, hello2);
 
-	uctl (apple, SADD, s4);
-	uctl (apple, SADD, s5);
-	uctl (acer, SADD, c50);
-	uctl (yes, SADD, apple);
-	uctl (yes, SADD, acer);
-	uctl (hello, SADD, ok);
-	uctl (hello, SADD, yes);
-
+	length += msgbuf_len (get_msgbuf (hello));
+	length += msgbuf_len (get_msgbuf (ok));
+	length += msgbuf_len (get_msgbuf (yes));
+	length += msgbuf_len (get_msgbuf (apple));
+	length += msgbuf_len (get_msgbuf (s4));
+	length += msgbuf_len (get_msgbuf (s5));
+	length += msgbuf_len (get_msgbuf (acer));
+	length += msgbuf_len (get_msgbuf (c50));
+	length += msgbuf_len (get_msgbuf (hello2));
+	
 	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 1) != 1);
 	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 2) != 2);
-	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 20) != 8);
+	if (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 20) != 8)
+		BUG_ON (1);
 
-	tmp_length[0] = rand () % 28;
-	tmp_length[1] = rand () % 28;
-	tmp_length[2] = rand () % 28;
+	tmp_length[0] = rand () % (length/4);
+	tmp_length[1] = rand () % (length/4);
+	tmp_length[2] = rand () % (length/4);
 	tmp_length[3] = length - tmp_length[0] - tmp_length[1] - tmp_length[2];
-
 	
 	install[0] = msgbuf_head_install_iovs (&bh, iov, tmp_length[0]);
 	install[1] = msgbuf_head_install_iovs (&bh, iov, tmp_length[1]);
@@ -164,6 +180,17 @@ static void test_install_iovs ()
 	install[3] = msgbuf_head_install_iovs (&bh, iov, tmp_length[3]);
 
 	BUG_ON (install[0] + install[1] + install[2] + install[3] != 2);
+
+	bio_init (&in);
+	for (i = 0; i < 8; i++)
+		bio_write (&in, iov[i].iov_base, iov[i].iov_len);
+	msgbuf_deserialize (&msg, &in);
+	bio_destroy (&in);
+	hello3 = get_ubuf (msg);
+	BUG_ON (usize (hello3) != usize (hello));
+
+	ufree (hello3);
+	ufree (hello2);
 	ufree (hello);
 }
 

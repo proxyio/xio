@@ -289,3 +289,51 @@ int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length)
 		return 0;
 	return -1;
 }
+
+static int msgbuf_recv_finish (struct bio *b)
+{
+	struct msgbuf msg = {};
+
+	if (b->bsize < sizeof (msg.frame))
+		return false;
+	bio_copy (b, (char *) (&msg.frame), sizeof (msg.frame));
+	if (b->bsize < msgbuf_len (&msg) + (u32) msg.frame.cmsg_length)
+		return false;
+	return true;
+}
+
+static int extract_msgbuf (struct bio *b, struct msgbuf **msgp)
+{
+	i64 nbytes;
+	struct msgbuf msg = {};
+
+	bio_copy (b, (char *) &msg.frame, sizeof (msg.frame));
+	*msgp = msgbuf_alloc (msg.frame.ulen);
+	if (b->bsize < msgbuf_len (*msgp))
+		return -1;
+	nbytes = bio_read (b, msgbuf_base (*msgp), msgbuf_len (*msgp));
+	BUG_ON (nbytes != msgbuf_len (*msgp));
+	return 0;
+}
+
+
+
+int msgbuf_deserialize (struct msgbuf **msgp, struct bio *in)
+{
+	struct msgbuf *msg = 0, *s = 0;
+	int rc;
+	int sno;
+	
+	if (!msgbuf_recv_finish (in)) {
+		errno = EAGAIN;
+		return -1;
+	}
+	BUG_ON (extract_msgbuf (in, &msg) != 0);
+	sno = msg->frame.cmsg_num;
+	while (sno--) {
+		BUG_ON ((rc = msgbuf_deserialize (&s, in)) != 0);
+		list_add_tail (&s->item, &msg->cmsg_head);
+	}
+	*msgp = msg;
+	return 0;
+}
