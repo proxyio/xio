@@ -132,15 +132,18 @@ static void rcvhead_nonfull_ev_usignal (struct msgbuf_head *bh)
 	ev_signal (&tcps->sig, EV_RCVBUF_NONFULL);
 }
 
-struct msgbuf_vfptr tcps_sndhead_vfptr = {
+static struct msgbuf_vfptr tcps_sndhead_vf = {
 	.empty = sndhead_empty_ev_usignal,
 	.nonempty = sndhead_nonempty_ev_usignal,
 };
+struct msgbuf_vfptr *tcps_sndhead_vfptr = &tcps_sndhead_vf;
 
-struct msgbuf_vfptr tcps_rcvhead_vfptr = {
+
+static struct msgbuf_vfptr tcps_rcvhead_vf = {
 	.full = rcvhead_full_ev_usignal,
 	.nonfull = rcvhead_nonfull_ev_usignal,
 };
+struct msgbuf_vfptr *tcps_rcvhead_vfptr = &tcps_rcvhead_vf;
 
 
 void sio_usignal_hndl (struct ev_sig *sig, int ev)

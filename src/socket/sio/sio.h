@@ -47,11 +47,8 @@ extern struct sockbase_vfptr tcp_connector_vfptr;
 extern struct sockbase_vfptr ipc_listener_vfptr;
 extern struct sockbase_vfptr ipc_connector_vfptr;
 
-
-
-
-extern struct msgbuf_vfptr tcps_sndhead_vfptr;
-extern struct msgbuf_vfptr tcps_rcvhead_vfptr;
+extern struct msgbuf_vfptr *tcps_sndhead_vfptr;
+extern struct msgbuf_vfptr *tcps_rcvhead_vfptr;
 void sio_usignal_hndl (struct ev_sig *sig, int ev);
 
 

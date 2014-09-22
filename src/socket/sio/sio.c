@@ -50,8 +50,8 @@ static struct sio *salloc ()
 	sockbase_init (&tcps->base);
 	ev_sig_init (&tcps->sig, sio_usignal_hndl);
 	tcps->el = ev_get_loop_lla ();
-	msgbuf_head_ev_hndl (&tcps->base.rcv, &tcps_rcvhead_vfptr);
-	msgbuf_head_ev_hndl (&tcps->base.snd, &tcps_sndhead_vfptr);
+	msgbuf_head_ev_hndl (&tcps->base.rcv, tcps_rcvhead_vfptr);
+	msgbuf_head_ev_hndl (&tcps->base.snd, tcps_sndhead_vfptr);
 	
 	ev_fd_init (&tcps->et);
 	bio_init (&tcps->rbuf);
