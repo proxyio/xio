@@ -28,6 +28,100 @@
 #include <rex/rex.h>
 #include "sio.h"
 
+static void try_disable_ev_read (struct sio *tcps)
+{
+	struct sockbase *sb = &tcps->base;
+
+	mutex_lock (&sb->lock);
+	if ((tcps->et.events & EV_READ)) {
+		SKLOG_DEBUG (sb, "%d disable EV_READ", sb->fd);
+		tcps->et.events &= ~EV_READ;
+		BUG_ON (__ev_fdset_ctl (&tcps->el->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_READ_OFF);
+	}
+	mutex_unlock (&sb->lock);
+}
+
+
+static void try_enable_ev_read (struct sio *tcps)
+{
+	struct sockbase *sb = &tcps->base;
+
+	mutex_lock (&sb->lock);
+	if (!(tcps->et.events & EV_READ)) {
+		SKLOG_DEBUG (sb, "%d enable EV_READ", sb->fd);
+		tcps->et.events |= EV_READ;
+		BUG_ON (__ev_fdset_ctl (&tcps->el->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_READ_ON);
+	}
+	mutex_unlock (&sb->lock);
+}
+
+
+static void sndhead_add_ev_usignal (struct msgbuf_head *bh)
+{
+	struct sio *tcps = cont_of (bh, struct sio, base.snd);
+	struct sockbase *sb = &tcps->base;
+
+	if (!tcps->flagset.send_lock && !(tcps->et.events & EV_WRITE))
+		ev_signal (&tcps->sig, EV_SNDBUF_ADD);
+}
+
+static void rcvhead_full_ev_usignal (struct msgbuf_head *bh)
+{
+	struct sio *tcps = cont_of (bh, struct sio, base.rcv);
+	ev_signal (&tcps->sig, EV_RCVBUF_FULL);
+}
+
+static void rcvhead_nonfull_ev_usignal (struct msgbuf_head *bh)
+{
+	struct sio *tcps = cont_of (bh, struct sio, base.rcv);
+	ev_signal (&tcps->sig, EV_RCVBUF_NONFULL);
+}
+
+static struct msgbuf_vfptr tcps_sndhead_vfptr = {
+	.add = sndhead_add_ev_usignal,
+};
+
+static struct msgbuf_vfptr tcps_rcvhead_vfptr = {
+	.full = rcvhead_full_ev_usignal,
+	.nonfull = rcvhead_nonfull_ev_usignal,
+};
+
+static void rcv_msgbuf_head_full_ev_hndl (struct sio *tcps)
+{
+	try_disable_ev_read (tcps);
+}
+
+static void rcv_msgbuf_head_nonfull_ev_hndl (struct sio *tcps)
+{
+	try_enable_ev_read (tcps);
+}
+
+void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
+
+static void snd_msgbuf_head_add_ev_hndl (struct sio *tcps)
+{
+	sio_connector_hndl (&tcps->el->fdset, &tcps->et, EV_WRITE);
+}
+
+
+static void sio_usignal_hndl (struct ev_sig *sig, int ev)
+{
+	struct sio *tcps = cont_of (sig, struct sio, sig);
+	switch (ev) {
+	case EV_SNDBUF_ADD:
+		snd_msgbuf_head_add_ev_hndl (tcps);
+		break;
+	case EV_RCVBUF_FULL:
+		rcv_msgbuf_head_full_ev_hndl (tcps);
+		break;
+	case EV_RCVBUF_NONFULL:
+		rcv_msgbuf_head_nonfull_ev_hndl (tcps);
+		break;
+	}
+}
+
 static i64 socket_read (struct io *ops, char *buf, i64 size)
 {
 	struct sio *tcps = cont_of (ops, struct sio, ops);
@@ -41,7 +135,7 @@ struct io sio_ops = {
 	.write = 0,
 };
 
-void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events);
+
 
 static struct sio *salloc ()
 {
@@ -50,9 +144,8 @@ static struct sio *salloc ()
 	sockbase_init (&tcps->base);
 	ev_sig_init (&tcps->sig, sio_usignal_hndl);
 	tcps->el = ev_get_loop_lla ();
-	msgbuf_head_ev_hndl (&tcps->base.rcv, tcps_rcvhead_vfptr);
-	msgbuf_head_ev_hndl (&tcps->base.snd, tcps_sndhead_vfptr);
-	
+	msgbuf_head_ev_hndl (&tcps->base.rcv, &tcps_rcvhead_vfptr);
+	msgbuf_head_ev_hndl (&tcps->base.snd, &tcps_sndhead_vfptr);
 	ev_fd_init (&tcps->et);
 	bio_init (&tcps->rbuf);
 	return tcps;
@@ -111,7 +204,7 @@ static int sio_connector_bind (struct sockbase *sb, const char *sock)
 	return rc;
 }
 
-static int sio_connector_snd (struct sockbase *sb);
+static int flush_snd_msgbuf (struct sockbase *sb);
 
 static void sio_connector_close (struct sockbase *sb)
 {
@@ -127,7 +220,7 @@ static void sio_connector_close (struct sockbase *sb)
 		BUG_ON (ev_fdset_ctl (&tcps->el->fdset, EV_DEL, &tcps->et) != 0);
 
 		/* Try flush buf massage into network before close */
-		sio_connector_snd (sb);
+		flush_snd_msgbuf (sb);
 		rex_sock_destroy (&tcps->s);
 	}
 
@@ -211,8 +304,8 @@ static void sndhead_install_iovs (struct sockbase *sb, struct rex_iov *iovs, i64
 	}
 	mutex_unlock (&sb->lock);
 }
-	
-static int sio_connector_snd (struct sockbase *sb)
+
+static int __simple_send (struct sockbase *sb)
 {
 	struct sio *tcps = cont_of (sb, struct sio, base);
 	i64 nbytes;
@@ -223,17 +316,52 @@ static int sio_connector_snd (struct sockbase *sb)
 		errno = EAGAIN;
 		return -1;
 	}
-	if ((nbytes = rex_sock_sendv (&tcps->s, iovs, n)) < 0)
+	if ((nbytes = rex_sock_sendv (&tcps->s, iovs, n)) <= 0)
 		return -1;
 	SKLOG_NOTICE (sb, "%d sock send %"PRId64" bytes into network", sb->fd, nbytes);
 	sndhead_install_iovs (sb, iovs, nbytes);
 	return 0;
 }
 
+static int flush_snd_msgbuf (struct sockbase *sb)
+{
+	int rc;
+
+	while ((rc = __simple_send (sb)) == 0) {
+	}
+	return rc;
+}
+
+
+static void __try_disable_ev_write (struct sio *tcps)
+{
+	struct sockbase *sb = &tcps->base;
+
+	if (tcps->et.events & EV_WRITE) {
+		SKLOG_DEBUG (sb, "%d disable EV_WRITE", sb->fd);
+		tcps->et.events &= ~EV_WRITE;
+		BUG_ON (__ev_fdset_ctl (&tcps->el->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_WRITE_OFF);
+	}
+}
+
+static void __try_enable_ev_write (struct sio *tcps)
+{
+	struct sockbase *sb = &tcps->base;
+
+	if (!(tcps->et.events & EV_WRITE)) {
+		SKLOG_DEBUG (sb, "%d enable EV_WRITE", sb->fd);
+		tcps->et.events |= EV_WRITE;
+		BUG_ON (__ev_fdset_ctl (&tcps->el->fdset, EV_MOD, &tcps->et) != 0);
+		socket_mstats_incr (&sb->stats, ST_EV_WRITE_ON);
+	}
+}
+
 void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 {
 	int rc = 0;
-	struct sockbase *sb = &cont_of (evfd, struct sio, et)->base;
+	struct sio *tcps = cont_of (evfd, struct sio, et);
+	struct sockbase *sb = &tcps->base;
 
 	if (events & EV_READ) {
 		SKLOG_DEBUG (sb, "%d sock EV_READ", sb->fd);
@@ -241,8 +369,17 @@ void sio_connector_hndl (struct ev_fdset *evfds, struct ev_fd *evfd, int events)
 		socket_mstats_incr (&sb->stats, ST_EV_READ);
 	}
 	if (events & EV_WRITE) {
+		BUG_ON (!sio_lock_send (tcps));
 		SKLOG_DEBUG (sb, "%d sock EV_WRITE", sb->fd);
-		rc = sio_connector_snd (sb);
+		rc = flush_snd_msgbuf (sb);
+		mutex_lock (&sb->lock);
+		BUG_ON (!tcps->flagset.send_lock);
+		tcps->flagset.send_lock = 0;
+		if (!msgbuf_head_empty (&sb->snd))
+			__try_enable_ev_write (tcps);
+		else
+			__try_disable_ev_write (tcps);
+		mutex_unlock (&sb->lock);
 		socket_mstats_incr (&sb->stats, ST_EV_WRITE);
 	}
 	if (rc < 0 && errno != EAGAIN) {

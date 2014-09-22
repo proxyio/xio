@@ -26,6 +26,26 @@
 #include <rex/rex.h>
 #include "../sockbase.h"
 
+
+
+enum {
+	/* Following msgbuf_head events are provided by sockbase */
+	EV_SNDBUF_ADD        =     0x001,
+	EV_SNDBUF_RM         =     0x002,
+	EV_SNDBUF_EMPTY      =     0x004,
+	EV_SNDBUF_NONEMPTY   =     0x008,
+	EV_SNDBUF_FULL       =     0x010,
+	EV_SNDBUF_NONFULL    =     0x020,
+
+	EV_RCVBUF_ADD        =     0x101,
+	EV_RCVBUF_RM         =     0x102,
+	EV_RCVBUF_EMPTY      =     0x104,
+	EV_RCVBUF_NONEMPTY   =     0x108,
+	EV_RCVBUF_FULL       =     0x110,
+	EV_RCVBUF_NONFULL    =     0x120,
+};
+
+
 struct sio {
 	struct io ops;
 	struct sockbase base;
@@ -36,8 +56,23 @@ struct sio {
 	struct bio rbuf;
 	struct {
 		u64 binded:1;
+		u64 send_lock:1;
 	} flagset;
 };
+
+static inline int sio_lock_send (struct sio *tcps)
+{
+	int locked = 0;
+	struct sockbase *sb = &tcps->base;
+
+	mutex_lock (&sb->lock);
+	if (!tcps->flagset.send_lock) {
+		tcps->flagset.send_lock = 1;
+		locked = 1;
+	}
+	mutex_unlock (&sb->lock);
+	return locked;
+}
 
 int sio_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
 int sio_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
@@ -46,10 +81,5 @@ extern struct sockbase_vfptr tcp_listener_vfptr;
 extern struct sockbase_vfptr tcp_connector_vfptr;
 extern struct sockbase_vfptr ipc_listener_vfptr;
 extern struct sockbase_vfptr ipc_connector_vfptr;
-
-extern struct msgbuf_vfptr *tcps_sndhead_vfptr;
-extern struct msgbuf_vfptr *tcps_rcvhead_vfptr;
-void sio_usignal_hndl (struct ev_sig *sig, int ev);
-
 
 #endif
