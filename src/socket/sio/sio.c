@@ -130,12 +130,9 @@ static i64 socket_read (struct io *ops, char *buf, i64 size)
 	return rc;
 }
 
-struct io sio_ops = {
+static struct io sio_ops = {
 	.read = socket_read,
-	.write = 0,
 };
-
-
 
 static struct sio *salloc ()
 {
