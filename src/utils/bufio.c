@@ -25,7 +25,7 @@
 #include "alloc.h"
 
 #define walk_each_page_s(bp, tmp, head)				\
-    walk_each_entry_s(bp, tmp, head, bio_page_t, page_link)
+    walk_each_entry_s(bp, tmp, head, bio_page_t, item)
 
 int bio_empty (struct bio *b)
 {
@@ -38,7 +38,7 @@ static inline bio_page_t *bio_first (struct bio *b)
 {
 	bio_page_t *bp = NULL;
 	if (!list_empty (&b->page_head))
-		bp = list_first (&b->page_head, bio_page_t, page_link);
+		bp = list_first (&b->page_head, bio_page_t, item);
 	return bp;
 }
 
@@ -46,7 +46,7 @@ static inline bio_page_t *bio_last (struct bio *b)
 {
 	bio_page_t *bp = NULL;
 	if (!list_empty (&b->page_head))
-		bp = list_last (&b->page_head, bio_page_t, page_link);
+		bp = list_last (&b->page_head, bio_page_t, item);
 	return bp;
 }
 
@@ -110,7 +110,7 @@ void bio_reset (struct bio *b)
 {
 	bio_page_t *bp, *tmp;
 	walk_each_page_s (bp, tmp, &b->page_head) {
-		list_del (&bp->page_link);
+		list_del (&bp->item);
 		mem_free (bp, sizeof (*bp));
 	}
 }
@@ -126,7 +126,7 @@ static inline int bio_expand_one_page (struct bio *b)
 	if (!bp)
 		return -1;
 	b->pno++;
-	list_add_tail (&bp->page_link, &b->page_head);
+	list_add_tail (&bp->item, &b->page_head);
 	return 0;
 }
 
@@ -137,7 +137,7 @@ static inline int bio_shrink_one_page (struct bio *b)
 	if (list_empty (&b->page_head))
 		return -1;
 	bp = bio_last (b);
-	list_del (&bp->page_link);
+	list_del (&bp->item);
 	b->pno--;
 	mem_free (bp, sizeof (*bp));
 	return 0;
@@ -165,7 +165,7 @@ int64_t bio_read (struct bio *b, char *buff, int64_t sz)
 		bp = bio_first (b);
 		nbytes += bio_page_read (bp, buff + nbytes, sz - nbytes);
 		if (bio_page_empty (bp)) {
-			list_del (&bp->page_link);
+			list_del (&bp->item);
 			mem_free (bp, sizeof (*bp));
 		}
 	}

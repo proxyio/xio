@@ -31,7 +31,7 @@ typedef struct bio_page {
 	uint64_t start;
 	uint64_t end;
 	char page[PAGE_SIZE];
-	struct list_head page_link;
+	struct list_head item;
 } bio_page_t;
 
 
