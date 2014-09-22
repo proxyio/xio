@@ -30,6 +30,7 @@
 #include <utils/atomic.h>
 #include <rex/rex.h>
 #include <utils/bufio.h>
+#include <utils/md5.h>
 
 
 /* The transport protocol header is 6 bytes long and looks like this:
@@ -90,6 +91,10 @@ int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n);
 int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length);
 
 int msgbuf_deserialize (struct msgbuf **msg, struct bio *in);
+
+
+void msgbuf_md5 (struct msgbuf *msg, unsigned char out[16]);
+
 
 
 #endif

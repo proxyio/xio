@@ -337,3 +337,23 @@ int msgbuf_deserialize (struct msgbuf **msgp, struct bio *in)
 	*msgp = msg;
 	return 0;
 }
+
+
+static void __msgbuf_md5 (struct msgbuf *msg, struct md5_state *md5)
+{
+	struct msgbuf *cmsg;
+
+	md5_process (md5, msgbuf_base (msg), msgbuf_len (msg));
+	walk_msg (cmsg, &msg->cmsg_head) {
+		__msgbuf_md5 (cmsg, md5);
+	}
+}
+
+void msgbuf_md5 (struct msgbuf *msg, unsigned char out[16])
+{
+	struct md5_state md5;
+
+	md5_init (&md5);
+	__msgbuf_md5 (msg, &md5);
+	md5_done (&md5, out);
+}

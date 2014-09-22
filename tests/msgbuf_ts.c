@@ -140,7 +140,9 @@ static void test_install_iovs ()
 	int install[4];
 	struct msgbuf_head bh;
 	struct bio in;
-
+	char md51[16];
+	char md52[16];
+	
 	msgbuf_head_init (&bh, 1);
 
 	BUG_ON (uctl (apple, SADD, s4));
@@ -187,7 +189,10 @@ static void test_install_iovs ()
 	msgbuf_deserialize (&msg, &in);
 	bio_destroy (&in);
 	hello3 = get_ubuf (msg);
-	BUG_ON (usize (hello3) != usize (hello));
+
+	msgbuf_md5 (get_msgbuf (hello), md51);
+	msgbuf_md5 (get_msgbuf (hello3), md52);
+	BUG_ON (memcmp (md51, md52, 16) != 0);
 
 	ufree (hello3);
 	ufree (hello2);
@@ -200,7 +205,9 @@ int main (int argc, char **argv)
 	int i;
 	test_ev_hndl ();
 
-	for (i = 0; i < 1000; i++)
+	for (i = 0; i < 1000; i++) {
+		srand (time (NULL));
 		test_install_iovs ();
+	}
 	return 0;
 }
