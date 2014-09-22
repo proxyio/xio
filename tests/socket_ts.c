@@ -75,8 +75,8 @@ static void xserver()
 		for (i = 0; i < cnt * 2; i++) {
 			BUG_ON (0 != xrecv (sfd, &xbuf));
 			DEBUG_OFF ("%d recv", sfd);
-			ubuf = ualloc (ulength (xbuf));
-			memcpy (ubuf, xbuf, ulength (xbuf));
+			ubuf = ualloc (usize (xbuf));
+			memcpy (ubuf, xbuf, usize (xbuf));
 			uctl (xbuf, SSWITCH, ubuf);
 			BUG_ON (0 != xsend (sfd, ubuf));
 			ufree (xbuf);

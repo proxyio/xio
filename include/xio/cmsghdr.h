@@ -28,7 +28,7 @@
 
 char *ualloc (int size);
 void ufree (char *ubuf);
-int ulength (char *ubuf);
+int usize (char *ubuf);
 
 /* One normal ubuf can take at most 16 control ubuf. */
 enum {

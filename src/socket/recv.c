@@ -69,7 +69,7 @@ int xgeneric_recv (struct sockbase *sb, char **ubuf)
 		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 		return -1;
 	} else
-		*ubuf = msg->chunk.ubuf_base;
+		*ubuf = get_ubuf (msg);
 	return 0;
 }
 

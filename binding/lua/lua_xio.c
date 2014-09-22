@@ -70,8 +70,8 @@ static int lua_sp_send (lua_State *L)
 		hdr = * (char **) hdr;
 
 	ubuf = ualloc (strlen (msg) + 1);
-	memcpy (ubuf, msg, ulength (ubuf));
-	ubuf [ulength (ubuf) - 1] = 0;
+	memcpy (ubuf, msg, usize (ubuf));
+	ubuf [usize (ubuf) - 1] = 0;
 
 	if (hdr)
 		uctl (hdr, SCOPY, ubuf);

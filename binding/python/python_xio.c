@@ -91,7 +91,7 @@ static PyObject *cpy_sp_recv (PyObject *self, PyObject *args)
 	msg->hdr = PyType_GenericAlloc (&Msghdr_Type, 0);
 	hdr = (Msghdr *) msg->hdr;
 	hdr->ubuf = ubuf;
-	msg->data = PyString_FromStringAndSize (ubuf, ulength (ubuf));
+	msg->data = PyString_FromStringAndSize (ubuf, usize (ubuf));
 	return Py_BuildValue ("iN", rc, msg);
 }
 

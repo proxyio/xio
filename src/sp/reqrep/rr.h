@@ -93,7 +93,7 @@ static inline struct rtentry *rt_prev (char *ubuf) {
 
 static inline char *__rt_append (char *hdr, struct rtentry *rt)
 {
-	u32 hlen = ulength (hdr);
+	u32 hlen = usize (hdr);
 	char *nhdr = ualloc (hlen + sizeof (*rt) );
 	memcpy (nhdr, hdr, hlen);
 	ufree (hdr);

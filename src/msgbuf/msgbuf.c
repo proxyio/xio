@@ -28,7 +28,7 @@
 
 u32 msgbuf_len (struct msgbuf *msg)
 {
-	return sizeof (msg->chunk) + msg->chunk.ulength;
+	return sizeof (msg->frame) + msg->frame.ulen;
 }
 
 u32 msgbuf_lens (struct msgbuf *msg)
@@ -44,7 +44,7 @@ u32 msgbuf_lens (struct msgbuf *msg)
 
 char *msgbuf_base (struct msgbuf *msg)
 {
-	return (char *) &msg->chunk;
+	return (char *) &msg->frame;
 }
 
 int msgbuf_serialize (struct msgbuf *msg, struct list_head *head)
@@ -67,8 +67,8 @@ struct msgbuf *msgbuf_alloc (int size) {
 		return 0;
 	INIT_LIST_HEAD (&msg->item);
 	INIT_LIST_HEAD (&msg->cmsg_head);
-	msg->chunk.ulength = size;
-	msg->chunk.checksum = crc16 ((char *) &msg->chunk.ulength, sizeof (msg->chunk.ulength));
+	msg->frame.ulen = size;
+	msg->frame.checksum = crc16 ((char *) &msg->frame.ulen, sizeof (msg->frame.ulen));
 	return msg;
 }
 
@@ -77,7 +77,7 @@ char *ualloc (int size)
 	struct msgbuf *msg = msgbuf_alloc (size);
 	if (!msg)
 		return 0;
-	return msg->chunk.ubuf_base;
+	return msg->frame.ubase;
 }
 
 void msgbuf_free (struct msgbuf *msg)
@@ -87,19 +87,19 @@ void msgbuf_free (struct msgbuf *msg)
 		list_del_init (&cmsg->item);
 		msgbuf_free (cmsg);
 	}
-	mem_free (msg, sizeof (*msg) + msg->chunk.ulength);
+	mem_free (msg, sizeof (*msg) + msg->frame.ulen);
 }
 
 void ufree (char *ubuf)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
 	msgbuf_free (msg);
 }
 
-int ulength (char *ubuf)
+int usize (char *ubuf)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	return msg->chunk.ulength;
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
+	return msg->frame.ulen;
 }
 
 
@@ -107,19 +107,19 @@ typedef int (*msgbuf_ctl) (char *msgbuf, void *optval);
 
 static int sub_msgbuf_num (char *ubuf, void *optval)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	* (int *) optval = msg->chunk.cmsg_num;
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
+	* (int *) optval = msg->frame.cmsg_num;
 	return 0;
 }
 
 static int sub_msgbuf_first (char *ubuf, void *optval)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
 	struct msgbuf *cur;
 
 	if (!list_empty (&msg->cmsg_head)) {
 		cur = list_first (&msg->cmsg_head, struct msgbuf, item);
-		* (char **) optval = cur->chunk.ubuf_base;
+		* (char **) optval = cur->frame.ubase;
 		return 0;
 	}
 	return -1;
@@ -127,12 +127,12 @@ static int sub_msgbuf_first (char *ubuf, void *optval)
 
 static int sub_msgbuf_next (char *ubuf, void *optval)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	struct msgbuf *cur = cont_of (optval, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
+	struct msgbuf *cur = cont_of (optval, struct msgbuf, frame.ubase);
 
 	if (list_next (&cur->item) != &msg->cmsg_head) {
-		cur = cont_of (list_next (&cur->item), struct msgbuf, chunk.ubuf_base);
-		* (char **) optval = cur->chunk.ubuf_base;
+		cur = cont_of (list_next (&cur->item), struct msgbuf, frame.ubase);
+		* (char **) optval = cur->frame.ubase;
 		return 0;
 	}
 	return -1;
@@ -140,12 +140,12 @@ static int sub_msgbuf_next (char *ubuf, void *optval)
 
 static int sub_msgbuf_tail (char *ubuf, void *optval)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
 	struct msgbuf *cur;
 
 	if (!list_empty (&msg->cmsg_head)) {
 		cur = list_last (&msg->cmsg_head, struct msgbuf, item);
-		* (char **) optval = cur->chunk.ubuf_base;
+		* (char **) optval = cur->frame.ubase;
 		return 0;
 	}
 	return -1;
@@ -153,51 +153,51 @@ static int sub_msgbuf_tail (char *ubuf, void *optval)
 
 static int sub_msgbuf_add (char *ubuf, void *optval)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	struct msgbuf *new = cont_of (optval, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
+	struct msgbuf *new = cont_of (optval, struct msgbuf, frame.ubase);
 
-	if (msg->chunk.cmsg_num == MSGBUF_SUBNUMMARK ||
-	    msg->chunk.cmsg_length + msgbuf_lens (new) > MSGBUF_CMSGLENMARK) {
+	if (msg->frame.cmsg_num == MSGBUF_SUBNUMMARK ||
+	    msg->frame.cmsg_length + msgbuf_lens (new) > MSGBUF_CMSGLENMARK) {
 		errno = EFBIG;
 		return -1;
 	}
-	msg->chunk.cmsg_num++;
-	msg->chunk.cmsg_length += msgbuf_lens (new);
+	msg->frame.cmsg_num++;
+	msg->frame.cmsg_length += msgbuf_lens (new);
 	list_add_tail (&new->item, &msg->cmsg_head);
 	return 0;
 }
 
 static int sub_msgbuf_rm (char *ubuf, void *optval)
 {
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	struct msgbuf *rm = cont_of (optval, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, frame.ubase);
+	struct msgbuf *rm = cont_of (optval, struct msgbuf, frame.ubase);
 
-	msg->chunk.cmsg_num--;
-	msg->chunk.cmsg_length -= msgbuf_lens (rm);
+	msg->frame.cmsg_num--;
+	msg->frame.cmsg_length -= msgbuf_lens (rm);
 	list_del_init (&rm->item);
-	BUG_ON(msg->chunk.cmsg_num < 0 || msg->chunk.cmsg_length < 0);
+	BUG_ON(msg->frame.cmsg_num < 0 || msg->frame.cmsg_length < 0);
 	return 0;
 }
 
 static int sub_msgbuf_switch (char *ubuf, void *optval)
 {
-	struct msgbuf *src = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
-	struct msgbuf *dst = cont_of (optval, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *src = cont_of (ubuf, struct msgbuf, frame.ubase);
+	struct msgbuf *dst = cont_of (optval, struct msgbuf, frame.ubase);
 
-	dst->chunk.cmsg_num = src->chunk.cmsg_num;
-	src->chunk.cmsg_num = 0;
-	dst->chunk.cmsg_length = src->chunk.cmsg_length;
-	src->chunk.cmsg_length = 0;
+	dst->frame.cmsg_num = src->frame.cmsg_num;
+	src->frame.cmsg_num = 0;
+	dst->frame.cmsg_length = src->frame.cmsg_length;
+	src->frame.cmsg_length = 0;
 	list_splice (&src->cmsg_head, &dst->cmsg_head);
 	return 0;
 }
 
 /* Simply copy the content of msgbuf to dest */
 static char *ubufdup (char *ubuf) {
-	char *dest = ualloc (ulength (ubuf));
+	char *dest = ualloc (usize (ubuf));
 
 	if (dest)
-		memcpy(dest, ubuf, ulength (ubuf));
+		memcpy(dest, ubuf, usize (ubuf));
 	return dest;
 }
 
@@ -205,12 +205,12 @@ static char *ubufdup (char *ubuf) {
    WARNING: if the msgbuf is high level tree, only the children of the msgbuf
    would be copied, the sub of children isn't, remember that. */
 static int sub_msgbuf_copy (char *ubuf, void *optval) {
-	struct msgbuf *src = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+	struct msgbuf *src = cont_of (ubuf, struct msgbuf, frame.ubase);
 	struct msgbuf *cur, *tmp;
 	char *dest = (char *) optval;
 
 	walk_msg_s (cur, tmp, &src->cmsg_head) {
-		sub_msgbuf_add (dest, ubufdup (cur->chunk.ubuf_base));
+		sub_msgbuf_add (dest, ubufdup (cur->frame.ubase));
 	}
 	return 0;
 }
@@ -285,7 +285,7 @@ static i64 __msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 
 
 int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length)
 {
-	if (__msgbuf_install_iovs (msg, iovs, length) == msgbuf_len (msg) + msg->chunk.cmsg_length)
+	if (__msgbuf_install_iovs (msg, iovs, length) == msgbuf_len (msg) + msg->frame.cmsg_length)
 		return 0;
 	return -1;
 }

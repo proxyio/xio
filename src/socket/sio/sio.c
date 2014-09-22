@@ -76,9 +76,8 @@ struct sockbase *ipc_open ()
 static int sio_connector_send (struct sockbase *sb, char *ubuf)
 {
 	int rc;
-	struct msgbuf *msg = cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
 
-	if ((rc = snd_msgbuf_head_add (sb, msg)) < 0)
+	if ((rc = snd_msgbuf_head_add (sb, get_msgbuf (ubuf))) < 0)
 		errno = sb->flagset.epipe ? EPIPE : EAGAIN;
 	return rc;
 }
@@ -144,10 +143,10 @@ static int bufio_check_msg (struct bio *b)
 {
 	struct msgbuf aim = {};
 
-	if (b->bsize < sizeof (aim.chunk))
+	if (b->bsize < sizeof (aim.frame))
 		return false;
-	bio_copy (b, (char *) (&aim.chunk), sizeof (aim.chunk));
-	if (b->bsize < msgbuf_len (&aim) + (u32) aim.chunk.cmsg_length)
+	bio_copy (b, (char *) (&aim.frame), sizeof (aim.frame));
+	if (b->bsize < msgbuf_len (&aim) + (u32) aim.frame.cmsg_length)
 		return false;
 	return true;
 }
@@ -157,8 +156,8 @@ static void bufio_rm (struct bio *b, struct msgbuf **msg)
 {
 	struct msgbuf one = {};
 
-	bio_copy (b, (char *) (&one.chunk), sizeof (one.chunk));
-	*msg = msgbuf_alloc (one.chunk.ulength);
+	bio_copy (b, (char *) (&one.frame), sizeof (one.frame));
+	*msg = msgbuf_alloc (one.frame.ulen);
 	bio_read (b, msgbuf_base (*msg), msgbuf_len (*msg));
 }
 
@@ -176,7 +175,7 @@ static int sio_connector_rcv (struct sockbase *sb)
 		msg = 0;
 		bufio_rm (&tcps->rbuf, &msg);
 		BUG_ON (!msg);
-		cmsg_num = msg->chunk.cmsg_num;
+		cmsg_num = msg->frame.cmsg_num;
 		while (cmsg_num--) {
 			cmsg = 0;
 			bufio_rm (&tcps->rbuf, &cmsg);

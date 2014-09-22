@@ -34,7 +34,7 @@
  * +--------+------------+------------+
  * | 0xffff | 0xffffffff | 0xffffffff |
  * +--------+------------+------------+
- * |  crc16 |    size    |   chunk    |
+ * |  crc16 |    size    |   frame    |
  * +--------+------------+------------+
  */
 
@@ -42,19 +42,21 @@
 #define MSGBUF_SUBNUMMARK 0xf           // 16
 #define MSGBUF_CMSGLENMARK 0xfff        // 4k
 
+struct msghdr {
+	u16 checksum;
+	u16 cmsg_num:4;
+	u16 cmsg_length:12;
+	u32 ulen;
+	char ubase[0];
+};
+
+
 /* TODO: little endian and big endian */
 struct msgbuf {
 	struct list_head item;
 	struct list_head cmsg_head;
 	u32 doff;
-
-	struct {
-		u16 checksum;
-		u16 cmsg_num:4;
-		u16 cmsg_length:12;
-		u32 ulength;
-		char ubuf_base[0];
-	} chunk;
+	struct msghdr frame;
 };
 
 u32 msgbuf_len (struct msgbuf *msg);
@@ -72,12 +74,12 @@ void msgbuf_free (struct msgbuf *msg);
 int msgbuf_serialize (struct msgbuf *msg, struct list_head *head);
 
 static inline struct msgbuf *get_msgbuf (char *ubuf) {
-	return cont_of (ubuf, struct msgbuf, chunk.ubuf_base);
+	return cont_of (ubuf, struct msgbuf, frame.ubase);
 }
 
 static inline char *get_ubuf (struct msgbuf *msg)
 {
-	return msg->chunk.ubuf_base;
+	return msg->frame.ubase;
 }
 
 

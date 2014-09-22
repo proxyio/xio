@@ -34,7 +34,7 @@ static int req_thread (void *args)
 		}
 		DEBUG_OFF ("producer %d recv %d resp: %10.10s", eid, i, rbuf);
 		DEBUG_OFF ("----------------------------------------");
-		BUG_ON (ulength (rbuf) != sizeof (buf));
+		BUG_ON (usize (rbuf) != sizeof (buf));
 		BUG_ON (memcmp (rbuf, buf, sizeof (buf)) != 0);
 		ufree (rbuf);
 	}
@@ -151,7 +151,7 @@ int server2()
 		}
 		DEBUG_OFF ("producer %d recv %d resp: %10.10s", eid, i, rbuf);
 		DEBUG_OFF ("----------------------------------------");
-		BUG_ON (ulength (rbuf) != sizeof (buf));
+		BUG_ON (usize (rbuf) != sizeof (buf));
 		BUG_ON (memcmp (rbuf, buf, sizeof (buf)) != 0);
 		ufree (rbuf);
 	}

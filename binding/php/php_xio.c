@@ -157,7 +157,7 @@ PHP_FUNCTION (sp_recv)
 		RETURN_LONG (rc);
 
 	MAKE_STD_ZVAL (data);
-	ZVAL_STRINGL (data, ubuf, ulength (ubuf), 1);
+	ZVAL_STRINGL (data, ubuf, usize (ubuf), 1);
 
 	if (zend_hash_update (Z_OBJPROP_P (msg), "data", sizeof ("data"), &data, sizeof (data), 0) == FAILURE)
 		BUG_ON (1);

@@ -66,7 +66,7 @@ int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf)
 	msg = list_first (&bh->head, struct msgbuf, item);
 	list_del_init (&msg->item);
 	*ubuf = get_ubuf (msg);
-	bh->size -= ulength (*ubuf);
+	bh->size -= usize (*ubuf);
 
 	if (bh->ev_hndl && bh->ev_hndl->rm)
 		bh->ev_hndl->rm (bh);
@@ -88,7 +88,7 @@ int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf)
 		bh->ev_hndl->nonempty (bh);
 
 	list_add_tail (&msg->item, &bh->head);
-	bh->size += ulength (ubuf);
+	bh->size += usize (ubuf);
 
 	if (bh->ev_hndl && bh->ev_hndl->add)
 		bh->ev_hndl->add (bh);
