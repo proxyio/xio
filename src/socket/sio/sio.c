@@ -231,12 +231,12 @@ static void sio_connector_close (struct sockbase *sb)
 
 static int bufio_check_msg (struct bio *b)
 {
-	struct msgbuf aim = {};
+	struct msgbuf msg = {};
 
-	if (b->bsize < sizeof (aim.frame))
+	if (b->bsize < sizeof (msg.frame))
 		return false;
-	bio_copy (b, (char *) (&aim.frame), sizeof (aim.frame));
-	if (b->bsize < msgbuf_len (&aim) + (u32) aim.frame.cmsg_length)
+	bio_copy (b, (char *) (&msg.frame), sizeof (msg.frame));
+	if (b->bsize < msgbuf_len (&msg) + (u32) msg.frame.cmsg_length)
 		return false;
 	return true;
 }
