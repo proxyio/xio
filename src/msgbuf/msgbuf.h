@@ -58,7 +58,7 @@ struct msghdr {
 struct msgbuf {
 	struct list_head item;
 	struct list_head cmsg_head;
-	u32 doff;
+	u32 soff;
 	struct msghdr frame;
 };
 
@@ -74,8 +74,6 @@ void msgbuf_free (struct msgbuf *msg);
 #define walk_msg_s(pos, next, head)				\
     walk_each_entry_s(pos, next, head, struct msgbuf, item)
 
-int msgbuf_serialize (struct msgbuf *msg, struct list_head *head);
-
 static inline struct msgbuf *get_msgbuf (char *ubuf) {
 	return cont_of (ubuf, struct msgbuf, frame.ubase);
 }
@@ -86,7 +84,7 @@ static inline char *get_ubuf (struct msgbuf *msg)
 }
 
 
-int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n);
+int msgbuf_serialize (struct msgbuf *msg, struct rex_iov *iovs, int n);
 
 int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length);
 

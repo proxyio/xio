@@ -166,9 +166,9 @@ static void test_install_iovs ()
 	length += msgbuf_len (get_msgbuf (c50));
 	length += msgbuf_len (get_msgbuf (hello2));
 	
-	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 1) != 1);
-	BUG_ON (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 2) != 2);
-	if (msgbuf_preinstall_iovs (get_msgbuf (hello), iov, 20) != 8)
+	BUG_ON (msgbuf_serialize (get_msgbuf (hello), iov, 1) != 1);
+	BUG_ON (msgbuf_serialize (get_msgbuf (hello), iov, 2) != 2);
+	if (msgbuf_serialize (get_msgbuf (hello), iov, 20) != 8)
 		BUG_ON (1);
 
 	tmp_length[0] = rand () % (length/4);

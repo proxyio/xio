@@ -105,7 +105,7 @@ int msgbuf_head_preinstall_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, i
 	struct msgbuf *msg;
 	
 	walk_msg (msg, &bh->head) {
-		installed += msgbuf_preinstall_iovs (msg, iovs + installed, n - installed);
+		installed += msgbuf_serialize (msg, iovs + installed, n - installed);
 		BUG_ON (installed > n);
 		if (installed == n)
 			break;

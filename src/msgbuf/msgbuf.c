@@ -47,20 +47,6 @@ char *msgbuf_base (struct msgbuf *msg)
 	return (char *) &msg->frame;
 }
 
-int msgbuf_serialize (struct msgbuf *msg, struct list_head *head)
-{
-	int rc = 0;
-	struct msgbuf *cmsg, *tmp;
-
-	rc++;
-	list_add_tail (&msg->item, head);
-	walk_msg_s (cmsg, tmp, &msg->cmsg_head) {
-		list_del_init (&cmsg->item);
-		rc += msgbuf_serialize (cmsg, head);
-	}
-	return rc;
-}
-
 struct msgbuf *msgbuf_alloc (int size) {
 	struct msgbuf *msg = (struct msgbuf *) mem_zalloc (sizeof (*msg) + size);
 	if (!msg)
@@ -241,7 +227,7 @@ int uctl (char *ubuf, int opt, void *optval)
 }
 
 
-int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n)
+int msgbuf_serialize (struct msgbuf *msg, struct rex_iov *iovs, int n)
 {
 	int installed = 0;
 	struct msgbuf *cmsg;
@@ -249,12 +235,12 @@ int msgbuf_preinstall_iovs (struct msgbuf *msg, struct rex_iov *iovs, int n)
 	BUG_ON (n < 0);
 	if (n == 0)
 		return 0;
-	iovs->iov_len = msgbuf_len (msg) - msg->doff;
-	iovs->iov_base = msgbuf_base (msg) + msg->doff;
+	iovs->iov_len = msgbuf_len (msg) - msg->soff;
+	iovs->iov_base = msgbuf_base (msg) + msg->soff;
 	if (iovs->iov_len > 0)
 		installed++;
 	walk_msg (cmsg, &msg->cmsg_head) {
-		installed += msgbuf_preinstall_iovs (cmsg, iovs + installed, n - installed);
+		installed += msgbuf_serialize (cmsg, iovs + installed, n - installed);
 		BUG_ON (installed > n);
 		if (installed == n)
 			break;
@@ -268,12 +254,12 @@ static i64 __msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 
 	u32 diff;
 	struct msgbuf *cmsg;
 
-	diff = *length > (msgbuf_len (msg) - msg->doff) ? (msgbuf_len (msg) - msg->doff) : *length;
-	msg->doff += diff;
+	diff = *length > (msgbuf_len (msg) - msg->soff) ? (msgbuf_len (msg) - msg->soff) : *length;
+	msg->soff += diff;
 	if ((*length -= diff) == 0)
-		return msg->doff;
+		return msg->soff;
 	BUG_ON (*length < 0);
-	installed = msg->doff;
+	installed = msg->soff;
 
 	walk_msg (cmsg, &msg->cmsg_head) {
 		installed += __msgbuf_install_iovs (cmsg, iovs, length);
