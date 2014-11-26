@@ -33,63 +33,63 @@
 #include "stats.h"
 
 struct poll_entry {
-	struct pollbase base;
-	spin_t lock;
-	struct list_head lru_link;
-	int ref;
-	struct xpoll_t *owner;
+    struct pollbase base;
+    spin_t lock;
+    struct list_head lru_link;
+    int ref;
+    struct xpoll_t* owner;
 };
 
 extern struct pollbase_vfptr xpollbase_vfptr;
 
-#define walk_poll_entry_s(pfd, tmp, head)				\
+#define walk_poll_entry_s(pfd, tmp, head)               \
     walk_each_entry_s(pfd, tmp, head, struct poll_entry, lru_link)
 
-struct poll_entry *poll_entry_alloc();
-int poll_entry_get (struct poll_entry *pfd);
-int poll_entry_put (struct poll_entry *pfd);
+struct poll_entry* poll_entry_alloc();
+int poll_entry_get(struct poll_entry* pfd);
+int poll_entry_put(struct poll_entry* pfd);
 
 
 struct xpoll_t {
-	mutex_t lock;
-	condition_t cond;
-	u64 shutdown_state:1;
-	int id;
-	atomic_t ref;
-	int uwaiters;
-	int size;
-	struct list_head lru_head;
-	struct poll_mstats stats;
+    mutex_t lock;
+    condition_t cond;
+    u64 shutdown_state: 1;
+    int id;
+    atomic_t ref;
+    int uwaiters;
+    int size;
+    struct list_head lru_head;
+    struct poll_mstats stats;
 };
 
-struct xpoll_t *poll_alloc();
-struct xpoll_t *poll_get (int pollid);
-void poll_put (int pollid);
+struct xpoll_t* poll_alloc();
+struct xpoll_t* poll_get(int pollid);
+void poll_put(int pollid);
 
 #define XPOLL_HEADFD -0x3654
-struct poll_entry *get_poll_entry (struct xpoll_t *poll, int fd);
-struct poll_entry *add_poll_entry (struct xpoll_t *poll, int fd);
-int rm_poll_entry (struct xpoll_t *poll, int fd);
+struct poll_entry* get_poll_entry(struct xpoll_t* poll, int fd);
+struct poll_entry* add_poll_entry(struct xpoll_t* poll, int fd);
+int rm_poll_entry(struct xpoll_t* poll, int fd);
 
 
 /* Max number of concurrent socks. */
 #define PROXYIO_MAX_POLLS 10240
 
 struct pglobal {
-	spin_t lock;
+    spin_t lock;
 
-	/* The global table of existing xsock. The descriptor representing
-	 * the xsock is the index to this table. This pointer is also used to
-	 * find out whether context is initialised. If it is null, context is
-	 * uninitialised.
-	 */
-	struct xpoll_t *polls[PROXYIO_MAX_POLLS];
+    /* The global table of existing xsock. The descriptor representing
+     * the xsock is the index to this table. This pointer is also used to
+     * find out whether context is initialised. If it is null, context is
+     * uninitialised.
+     */
+    struct xpoll_t* polls[PROXYIO_MAX_POLLS];
 
-	/* Stack of unused xsock descriptors.  */
-	int unused[PROXYIO_MAX_POLLS];
+    /* Stack of unused xsock descriptors.  */
+    int unused[PROXYIO_MAX_POLLS];
 
-	/* Number of actual socks. */
-	size_t npolls;
+    /* Number of actual socks. */
+    size_t npolls;
 };
 
 extern struct pglobal pg;

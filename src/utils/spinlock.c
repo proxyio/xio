@@ -25,46 +25,50 @@
 
 #if !defined HAVE_DEBUG && defined HAVE_PTHREAD_SPIN_LOCK
 
-int spin_init (spin_t *spin)
-{
-	int rc;
-	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
-	if ((rc = pthread_spin_init (lock, 0)) != 0) {
-		ERRNO_RETURN (rc);
-	}
-	return 0;
+int spin_init(spin_t* spin) {
+    int rc;
+    pthread_spinlock_t* lock = (pthread_spinlock_t*) spin;
+
+    if ((rc = pthread_spin_init(lock, 0)) != 0) {
+        ERRNO_RETURN(rc);
+    }
+
+    return 0;
 }
 
 
-int spin_lock (spin_t *spin)
-{
-	int rc;
-	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
-	if ((rc = pthread_spin_lock (lock)) != 0) {
-		ERRNO_RETURN (rc);
-	}
-	return 0;
+int spin_lock(spin_t* spin) {
+    int rc;
+    pthread_spinlock_t* lock = (pthread_spinlock_t*) spin;
+
+    if ((rc = pthread_spin_lock(lock)) != 0) {
+        ERRNO_RETURN(rc);
+    }
+
+    return 0;
 }
 
-int spin_unlock (spin_t *spin)
-{
-	int rc;
-	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
-	if ((rc = pthread_spin_unlock (lock)) != 0) {
-		ERRNO_RETURN (rc);
-	}
-	return 0;
+int spin_unlock(spin_t* spin) {
+    int rc;
+    pthread_spinlock_t* lock = (pthread_spinlock_t*) spin;
+
+    if ((rc = pthread_spin_unlock(lock)) != 0) {
+        ERRNO_RETURN(rc);
+    }
+
+    return 0;
 }
 
 
-int spin_destroy (spin_t *spin)
-{
-	int rc;
-	pthread_spinlock_t *lock = (pthread_spinlock_t *) spin;
-	if ((rc = pthread_spin_destroy (lock)) != 0) {
-		ERRNO_RETURN (rc);
-	}
-	return 0;
+int spin_destroy(spin_t* spin) {
+    int rc;
+    pthread_spinlock_t* lock = (pthread_spinlock_t*) spin;
+
+    if ((rc = pthread_spin_destroy(lock)) != 0) {
+        ERRNO_RETURN(rc);
+    }
+
+    return 0;
 }
 
 

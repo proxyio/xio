@@ -34,23 +34,22 @@
 
 
 
-typedef int (*thread_func) (void *);
+typedef int (*thread_func)(void*);
 typedef struct thread {
-	pid_t krid;
-	pthread_t tid;
-	thread_func f;
-	void *args;
-	int res;
+    pid_t krid;
+    pthread_t tid;
+    thread_func f;
+    void* args;
+    int res;
 } thread_t;
 
-static inline thread_t *thread_new()
-{
-	thread_t *tt = mem_zalloc (sizeof (thread_t));
-	return tt;
+static inline thread_t* thread_new() {
+    thread_t* tt = mem_zalloc(sizeof(thread_t));
+    return tt;
 }
 
-int thread_start (thread_t *tt, thread_func f, void *args);
-int thread_stop (thread_t *tt);
+int thread_start(thread_t* tt, thread_func f, void* args);
+int thread_stop(thread_t* tt);
 
 
 

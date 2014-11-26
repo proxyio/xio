@@ -26,33 +26,33 @@
 #include <utils/mstats_base.h>
 
 enum {
-	ST_RCV = 0,
-	ST_SND,
-	ST_RCVBYTES,
-	ST_SNDBYTES,
-	ST_EV_READ,
-	ST_EV_READ_ON,
-	ST_EV_READ_OFF,
-	ST_EV_WRITE,
-	ST_EV_WRITE_ON,
-	ST_EV_WRITE_OFF,
-	ST_EV_ERROR,
-	ST_SOCKET_KEYRANGE,
+    ST_RCV = 0,
+    ST_SND,
+    ST_RCVBYTES,
+    ST_SNDBYTES,
+    ST_EV_READ,
+    ST_EV_READ_ON,
+    ST_EV_READ_OFF,
+    ST_EV_WRITE,
+    ST_EV_WRITE_ON,
+    ST_EV_WRITE_OFF,
+    ST_EV_ERROR,
+    ST_SOCKET_KEYRANGE,
 };
 
-void socket_s_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void socket_s_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+                   i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-void socket_m_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void socket_m_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+                   i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-void socket_h_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void socket_h_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+                   i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-void socket_d_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void socket_d_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+                   i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-DEFINE_MSTATS (socket, ST_SOCKET_KEYRANGE);
+DEFINE_MSTATS(socket, ST_SOCKET_KEYRANGE);
 
 
 #endif

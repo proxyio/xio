@@ -29,19 +29,19 @@
 #include "str_rb.h"
 
 enum {
-	CONHASH_DEFAULT_VNODES = 100,
+    CONHASH_DEFAULT_VNODES = 100,
 };
 
 struct consistent_hash {
-	struct str_rb v_rb_tree;
-	struct list_head head;
+    struct str_rb v_rb_tree;
+    struct list_head head;
 };
 
-void consistent_hash_init (struct consistent_hash *ch);
-void consistent_hash_destroy (struct consistent_hash *ch);
+void consistent_hash_init(struct consistent_hash* ch);
+void consistent_hash_destroy(struct consistent_hash* ch);
 
-int consistent_hash_add (struct consistent_hash *ch, const char *key, int size, void *owner);
-int consistent_hash_rm (struct consistent_hash *ch, const char *key, int size);
-void *consistent_hash_get (struct consistent_hash *ch, const char *key, int size);
+int consistent_hash_add(struct consistent_hash* ch, const char* key, int size, void* owner);
+int consistent_hash_rm(struct consistent_hash* ch, const char* key, int size);
+void* consistent_hash_get(struct consistent_hash* ch, const char* key, int size);
 
 #endif

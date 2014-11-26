@@ -27,51 +27,42 @@
    AF_LOCAL: the localhost communication
    AF_TCP:   the tcp4 communication
    AF_TCP6:  the tcp6 communication */
-int rex_sock_init (struct rex_sock *rs, int family /* AF_LOCAL|AF_TCP|AF_TCP6 */)
-{
+int rex_sock_init(struct rex_sock* rs, int family /* AF_LOCAL|AF_TCP|AF_TCP6 */) {
 }
 
-int rex_sock_destroy (struct rex_sock *rs)
-{
+int rex_sock_destroy(struct rex_sock* rs) {
 }
 
 /* listen on the sockaddr with a backlog hint for kernel */
-int rex_sock_listen (struct rex_sock *rs, const char *sockaddr, int backlog)
-{
+int rex_sock_listen(struct rex_sock* rs, const char* sockaddr, int backlog) {
 }
 
 /* accept one new connection for the initialized new sock */
-int rex_sock_accept (struct rex_sock *rs, struct rex_sock *new)
-{
+int rex_sock_accept(struct rex_sock* rs, struct rex_sock* new) {
 }
 
 /* connect to remote host */
-int rex_sock_connect (struct rex_sock *rs, const char *sockaddr)
-{
+int rex_sock_connect(struct rex_sock* rs, const char* sockaddr) {
 }
 
-int rex_sock_sendv (struct rex_sock *rs, struct rex_iov *iov, int niov)
-{
+int rex_sock_sendv(struct rex_sock* rs, struct rex_iov* iov, int niov) {
 }
 
-int rex_sock_recvv (struct rex_sock *rs, struct rex_iov *iov, int niov)
-{
+int rex_sock_recvv(struct rex_sock* rs, struct rex_iov* iov, int niov) {
 }
 
 /* Following gs[etsockopt] options are supported by rex library
-   REX_LINGER         
-   REX_SNDBUF         
-   REX_RCVBUF         
-   REX_NOBLOCK        
-   REX_NODELAY        
-   REX_RCVTIMEO       
-   REX_SNDTIMEO       
+   REX_LINGER
+   REX_SNDBUF
+   REX_RCVBUF
+   REX_NOBLOCK
+   REX_NODELAY
+   REX_RCVTIMEO
+   REX_SNDTIMEO
    REX_REUSEADDR
 */
-int rex_sock_setopt (struct rex_sock *rs, int opt, void *optval, int optlen)
-{
+int rex_sock_setopt(struct rex_sock* rs, int opt, void* optval, int optlen) {
 }
 
-int rex_sock_getopt (struct rex_sock *rs, int opt, void *optval, int *optlen)
-{
+int rex_sock_getopt(struct rex_sock* rs, int opt, void* optval, int* optlen) {
 }

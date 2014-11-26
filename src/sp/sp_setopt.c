@@ -23,15 +23,15 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int sp_setopt (int eid, int opt, void *optval, int optlen)
-{
-	int rc;
-	struct epbase *ep = eid_get (eid);
+int sp_setopt(int eid, int opt, void* optval, int optlen) {
+    int rc;
+    struct epbase* ep = eid_get(eid);
 
-	if (!ep) {
-		ERRNO_RETURN (EBADF);
-	}
-	rc = ep->vfptr.setopt (ep, opt, optval, optlen);
-	eid_put (eid);
-	return rc;
+    if (!ep) {
+        ERRNO_RETURN(EBADF);
+    }
+
+    rc = ep->vfptr.setopt(ep, opt, optval, optlen);
+    eid_put(eid);
+    return rc;
 }

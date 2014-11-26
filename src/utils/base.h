@@ -42,17 +42,17 @@ int gettid();
 #define true 1
 #define false 0
 
-#define BUG_ON(condition) do {					\
-	if (condition) {					\
-	    printf("%s:%d %s() %s false with errno: %d", __FILE__,	\
-		   __LINE__, __func__, #condition, errno);	\
-	    abort();						\
-	}							\
+#define BUG_ON(condition) do {                  \
+    if (condition) {                    \
+        printf("%s:%d %s() %s false with errno: %d", __FILE__,  \
+           __LINE__, __func__, #condition, errno);  \
+        abort();                        \
+    }                           \
     } while (0)
 
-#define DEBUG_ON(fmt, ...) do {						\
-	fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),		\
-		basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__);	\
+#define DEBUG_ON(fmt, ...) do {                     \
+    fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),      \
+        basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__); \
     } while(0)
 
 #define DEBUG_OFF(fmt, ...)
@@ -69,12 +69,12 @@ int gettid();
 #endif
 
 // Casts a member of a structure out to the containning structure
-#define cont_of(ptr, type, member) ({					\
-	    (type *)((char *)ptr - __offsetof(type, member)); })
+#define cont_of(ptr, type, member) ({                   \
+        (type *)((char *)ptr - __offsetof(type, member)); })
 
 typedef struct io {
-	int64_t (*read) (struct io *c, char *buf, int64_t size);
-	int64_t (*write) (struct io *c, char *buf, int64_t size);
+    int64_t (*read)(struct io* c, char* buf, int64_t size);
+    int64_t (*write)(struct io* c, char* buf, int64_t size);
 } io_t;
 
 
@@ -87,16 +87,16 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
-#define NELEM(x, type) (sizeof(x) / sizeof(type))
+#define NELEM(x) (sizeof(x) / sizeof(x[0]))
 
 #define MAX(a, b) (a > b ? a : b)
 
 #define MIN(a, b) (a > b ? b : a)
 
-#define ERRNO_RETURN(eno) do {			\
-		errno = eno;			\
-		return -1;			\
-	} while (0)
+#define ERRNO_RETURN(eno) do {          \
+        errno = eno;            \
+        return -1;          \
+    } while (0)
 
 
 

@@ -23,35 +23,36 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int sp_recv (int eid, char **ubuf)
-{
-	struct epbase *ep = eid_get (eid);
+int sp_recv(int eid, char** ubuf) {
+    struct epbase* ep = eid_get(eid);
 
-	if (!ep) {
-		ERRNO_RETURN (EBADF);
-	}
-	mutex_lock (&ep->lock);
+    if (!ep) {
+        ERRNO_RETURN(EBADF);
+    }
 
-	/* All the received message would saved in the rcv.head. if the endpoint
-	 * status ok and the rcv.head is empty, we wait here. when the endpoint
-	 * status is bad or has messages come, the wait return.
-	 * TODO: can condition_wait support timeout.
-	 */
-	while (!ep->status.shutdown && list_empty (&ep->rcv.head)) {
-		ep->rcv.waiters++;
-		condition_wait (&ep->cond, &ep->lock);
-		ep->rcv.waiters--;
-	}
+    mutex_lock(&ep->lock);
 
-	/* Check the endpoint status, maybe it's bad */
-	if (ep->status.shutdown) {
-		mutex_unlock (&ep->lock);
-		eid_put (eid);
-		ERRNO_RETURN (EBADF);
-	}
-	msgbuf_head_out (&ep->rcv, ubuf);
+    /* All the received message would saved in the rcv.head. if the endpoint
+     * status ok and the rcv.head is empty, we wait here. when the endpoint
+     * status is bad or has messages come, the wait return.
+     * TODO: can condition_wait support timeout.
+     */
+    while (!ep->status.shutdown && list_empty(&ep->rcv.head)) {
+        ep->rcv.waiters++;
+        condition_wait(&ep->cond, &ep->lock);
+        ep->rcv.waiters--;
+    }
 
-	mutex_unlock (&ep->lock);
-	eid_put (eid);
-	return 0;
+    /* Check the endpoint status, maybe it's bad */
+    if (ep->status.shutdown) {
+        mutex_unlock(&ep->lock);
+        eid_put(eid);
+        ERRNO_RETURN(EBADF);
+    }
+
+    msgbuf_head_out(&ep->rcv, ubuf);
+
+    mutex_unlock(&ep->lock);
+    eid_put(eid);
+    return 0;
 }

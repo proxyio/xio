@@ -25,22 +25,18 @@
 
 
 
-void ev_s_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
-{
+void ev_s_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val) {
 }
 
-void ev_m_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
-{
+void ev_m_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val) {
 }
 
-void ev_h_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
-{
+void ev_h_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val) {
 }
 
-void ev_d_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val)
-{
+void ev_d_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val) {
 }

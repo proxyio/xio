@@ -24,61 +24,56 @@
 #include "req_ep.h"
 
 struct conhash_lbs {
-	struct loadbalance_vfptr vf;
-	struct reqep *owner;
-	struct consistent_hash tgs;
+    struct loadbalance_vfptr vf;
+    struct reqep* owner;
+    struct consistent_hash tgs;
 };
 
-#define cont_of_conhash(lbs)			\
-	cont_of (lbs, struct conhash_lbs, vf);
+#define cont_of_conhash(lbs)            \
+    cont_of (lbs, struct conhash_lbs, vf);
 
-static struct req_tgtd *conhash_select (struct loadbalance_vfptr *lbs, char *ubuf)
-{
-	struct conhash_lbs *cl = cont_of_conhash (lbs);
-	int size = MIN (usize (ubuf), 16);
+static struct req_tgtd* conhash_select(struct loadbalance_vfptr* lbs, char* ubuf) {
+    struct conhash_lbs* cl = cont_of_conhash(lbs);
+    int size = MIN(usize(ubuf), 16);
 
-	return (struct req_tgtd *) consistent_hash_get (&cl->tgs, ubuf, size);
+    return (struct req_tgtd*) consistent_hash_get(&cl->tgs, ubuf, size);
 }
 
-static struct loadbalance_vfptr *conhash_new (struct reqep *reqep, ...)
-{
-	struct conhash_lbs *cl = mem_zalloc (sizeof (struct conhash_lbs));
+static struct loadbalance_vfptr* conhash_new(struct reqep* reqep, ...) {
+    struct conhash_lbs* cl = mem_zalloc(sizeof(struct conhash_lbs));
 
-	cl->owner = reqep;
-	cl->vf = *conhash_vfptr;
-	consistent_hash_init (&cl->tgs);
-	return &cl->vf;
+    cl->owner = reqep;
+    cl->vf = *conhash_vfptr;
+    consistent_hash_init(&cl->tgs);
+    return &cl->vf;
 }
 
-static void conhash_free (struct loadbalance_vfptr *lbs)
-{
-	struct conhash_lbs *cl = cont_of_conhash (lbs);
+static void conhash_free(struct loadbalance_vfptr* lbs) {
+    struct conhash_lbs* cl = cont_of_conhash(lbs);
 
-	consistent_hash_destroy (&cl->tgs);
-	mem_free (cl, sizeof (*cl));
+    consistent_hash_destroy(&cl->tgs);
+    mem_free(cl, sizeof(*cl));
 }
 
-static void conhash_add (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
-{
-	struct conhash_lbs *cl = cont_of_conhash (lbs);
-	consistent_hash_add (&cl->tgs, (const char *) tg->uuid, sizeof (tg->uuid), tg);
+static void conhash_add(struct loadbalance_vfptr* lbs, struct req_tgtd* tg) {
+    struct conhash_lbs* cl = cont_of_conhash(lbs);
+    consistent_hash_add(&cl->tgs, (const char*) tg->uuid, sizeof(tg->uuid), tg);
 }
 
-static void conhash_rm (struct loadbalance_vfptr *lbs, struct req_tgtd *tg)
-{
-	struct conhash_lbs *cl = cont_of_conhash (lbs);
-	consistent_hash_rm (&cl->tgs, (const char *) tg->uuid, sizeof (tg->uuid));
+static void conhash_rm(struct loadbalance_vfptr* lbs, struct req_tgtd* tg) {
+    struct conhash_lbs* cl = cont_of_conhash(lbs);
+    consistent_hash_rm(&cl->tgs, (const char*) tg->uuid, sizeof(tg->uuid));
 }
 
 
 struct loadbalance_vfptr conhash_ops = {
-	.type = SP_REQ_CONSISTENT_HASH,
-	.new = conhash_new,
-	.free = conhash_free,
-	.add = conhash_add,
-	.rm = conhash_rm,
-	.select = conhash_select,
+    .type = SP_REQ_CONSISTENT_HASH,
+    .new = conhash_new,
+    .free = conhash_free,
+    .add = conhash_add,
+    .rm = conhash_rm,
+    .select = conhash_select,
 };
 
-struct loadbalance_vfptr *conhash_vfptr = &conhash_ops;
+struct loadbalance_vfptr* conhash_vfptr = &conhash_ops;
 

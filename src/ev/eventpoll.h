@@ -31,21 +31,21 @@ struct eventpoll;
    three fields, fdd->fd|fdd->events|fdd->ready_events */
 struct fdd;
 
-void fdd_init (struct fdd *fdd);
-void fdd_term (struct fdd *fdd);
+void fdd_init(struct fdd* fdd);
+void fdd_term(struct fdd* fdd);
 
 /* initialize the underlying eventpoll */
-void eventpoll_init (struct eventpoll *evp);
+void eventpoll_init(struct eventpoll* evp);
 
 /* terminate the underlying eventpoll, all the registered fd will be removed */
-void eventpoll_term (struct eventpoll *evp);
+void eventpoll_term(struct eventpoll* evp);
 
 /* if an error occurred errno is must be set appropriately. */
-int eventpoll_ctl (struct eventpoll *evp, int op /* EVP_ADD|EVP_DEL|EVP_MOD */,
-		   struct fdd *fdd);
+int eventpoll_ctl(struct eventpoll* evp, int op /* EVP_ADD|EVP_DEL|EVP_MOD */,
+                  struct fdd* fdd);
 
 /* waiting events happened for a maximum time of timeout milliseconds */
-int eventpoll_wait (struct eventpoll *evp, struct fdd **fdds, int max, int timeout);
+int eventpoll_wait(struct eventpoll* evp, struct fdd** fdds, int max, int timeout);
 
 
 

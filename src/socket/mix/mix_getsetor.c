@@ -22,101 +22,97 @@
 
 #include "mix.h"
 
-static int get_noblock (struct sockbase *sb, void *optval, int *optlen)
-{
-	mutex_lock (&sb->lock);
-	* (int *) optval = sb->flagset.non_block ? true : false;
-	mutex_unlock (&sb->lock);
-	return 0;
+static int get_noblock(struct sockbase* sb, void* optval, int* optlen) {
+    mutex_lock(&sb->lock);
+    * (int*) optval = sb->flagset.non_block ? true : false;
+    mutex_unlock(&sb->lock);
+    return 0;
 }
 
-static int get_socktype (struct sockbase *sb, void *optval, int *optlen)
-{
-	mutex_lock (&sb->lock);
-	* (int *) optval = sb->vfptr->type;
-	mutex_unlock (&sb->lock);
-	return 0;
+static int get_socktype(struct sockbase* sb, void* optval, int* optlen) {
+    mutex_lock(&sb->lock);
+    * (int*) optval = sb->vfptr->type;
+    mutex_unlock(&sb->lock);
+    return 0;
 }
 
-static int get_sockpf (struct sockbase *sb, void *optval, int *optlen)
-{
-	mutex_lock (&sb->lock);
-	* (int *) optval = sb->vfptr->pf;
-	mutex_unlock (&sb->lock);
-	return 0;
+static int get_sockpf(struct sockbase* sb, void* optval, int* optlen) {
+    mutex_lock(&sb->lock);
+    * (int*) optval = sb->vfptr->pf;
+    mutex_unlock(&sb->lock);
+    return 0;
 }
 
-static int get_verbose (struct sockbase *sb, void *optval, int *optlen)
-{
-	mutex_lock (&sb->lock);
-	* (int *) optval = sb->flagset.verbose;
-	mutex_unlock (&sb->lock);
-	return 0;
+static int get_verbose(struct sockbase* sb, void* optval, int* optlen) {
+    mutex_lock(&sb->lock);
+    * (int*) optval = sb->flagset.verbose;
+    mutex_unlock(&sb->lock);
+    return 0;
 }
 
 
 static const sock_geter getopt_vfptr[] = {
-	0,
-	0,
-	0,
-	get_noblock,
-	0,
-	0,
-	0,
-	get_socktype,
-	get_sockpf,
-	get_verbose,
+    0,
+    0,
+    0,
+    get_noblock,
+    0,
+    0,
+    0,
+    get_socktype,
+    get_sockpf,
+    get_verbose,
 };
 
-int mix_getopt (struct sockbase *sb, int opt, void *optval, int *optlen)
-{
-	int rc;
-	if (opt >= NELEM (getopt_vfptr, sock_geter) || !getopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
-	}
-	rc = getopt_vfptr[opt] (sb, optval, optlen);
-	return rc;
+int mix_getopt(struct sockbase* sb, int opt, void* optval, int* optlen) {
+    int rc;
+
+    if (opt >= NELEM(getopt_vfptr) || !getopt_vfptr[opt]) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    rc = getopt_vfptr[opt](sb, optval, optlen);
+    return rc;
 }
 
 
 
-static int set_noblock (struct sockbase *sb, void *optval, int optlen)
-{
-	mutex_lock (&sb->lock);
-	sb->flagset.non_block = * (int *) optval ? true : false;
-	mutex_unlock (&sb->lock);
-	return 0;
+static int set_noblock(struct sockbase* sb, void* optval, int optlen) {
+    mutex_lock(&sb->lock);
+    sb->flagset.non_block = * (int*) optval ? true : false;
+    mutex_unlock(&sb->lock);
+    return 0;
 }
 
-static int set_verbose (struct sockbase *sb, void *optval, int optlen)
-{
-	mutex_lock (&sb->lock);
-	sb->flagset.verbose =  * (int *) optval & 0xf;
-	mutex_unlock (&sb->lock);
-	return 0;
+static int set_verbose(struct sockbase* sb, void* optval, int optlen) {
+    mutex_lock(&sb->lock);
+    sb->flagset.verbose =  * (int*) optval & 0xf;
+    mutex_unlock(&sb->lock);
+    return 0;
 }
-	
+
 static const sock_seter setopt_vfptr[] = {
-	0,
-	0,
-	0,
-	set_noblock,
-	0,
-	0,
-	0,
-	0,
-	0,
-	set_verbose,
+    0,
+    0,
+    0,
+    set_noblock,
+    0,
+    0,
+    0,
+    0,
+    0,
+    set_verbose,
 };
 
-int mix_setopt (struct sockbase *sb, int opt, void *optval, int optlen)
-{
-	int rc;
-	if (opt >= NELEM (setopt_vfptr, sock_seter) || !setopt_vfptr[opt]) {
-		errno = EINVAL;
-		return -1;
-	}
-	rc = setopt_vfptr[opt] (sb, optval, optlen);
-	return rc;
+int mix_setopt(struct sockbase* sb, int opt, void* optval, int optlen) {
+    int rc;
+
+    if (opt >= NELEM(setopt_vfptr) || !setopt_vfptr[opt]) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    rc = setopt_vfptr[opt](sb, optval, optlen);
+    return rc;
 }

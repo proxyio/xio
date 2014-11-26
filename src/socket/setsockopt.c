@@ -29,17 +29,17 @@
 #include "sockbase.h"
 
 
-int xsetopt (int fd, int opt, void *optval, int optlen)
-{
-	int rc;
-	struct sockbase *sb = xget (fd);
+int xsetopt(int fd, int opt, void* optval, int optlen) {
+    int rc;
+    struct sockbase* sb = xget(fd);
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
-	}
-	rc = sb->vfptr->setopt (sb, opt, optval, optlen);
-	xput (fd);
-	return rc;
+    if (!sb) {
+        errno = EBADF;
+        return -1;
+    }
+
+    rc = sb->vfptr->setopt(sb, opt, optval, optlen);
+    xput(fd);
+    return rc;
 }
 

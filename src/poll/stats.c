@@ -24,18 +24,14 @@
 #include "stats.h"
 
 
-void s_warn (struct mstats_base *self, int sl, int key, int64_t ts, int64_t val)
-{
+void s_warn(struct mstats_base* self, int sl, int key, int64_t ts, int64_t val) {
 }
 
-void m_warn (struct mstats_base *self, int sl, int key, int64_t ts, int64_t val)
-{
+void m_warn(struct mstats_base* self, int sl, int key, int64_t ts, int64_t val) {
 }
 
-void h_warn (struct mstats_base *self, int sl, int key, int64_t ts, int64_t val)
-{
+void h_warn(struct mstats_base* self, int sl, int key, int64_t ts, int64_t val) {
 }
 
-void d_warn (struct mstats_base *self, int sl, int key, int64_t ts, int64_t val)
-{
+void d_warn(struct mstats_base* self, int sl, int key, int64_t ts, int64_t val) {
 }

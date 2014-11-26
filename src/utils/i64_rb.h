@@ -28,33 +28,33 @@
 #include "krb.h"
 
 struct i64_rbe {
-	struct rb_node  rb;
-	int64_t         key;
-	void            *data;
+    struct rb_node  rb;
+    int64_t         key;
+    void*            data;
 };
 
 struct i64_rb {
-	int64_t elem_size;
-	struct rb_root root;
+    int64_t elem_size;
+    struct rb_root root;
 };
 
-#define i64_rb_init(tree)	do {		\
-		INIT_RB_ROOT(&(tree)->root);	\
-		(tree)->elem_size = 0;		\
-	} while (0)
+#define i64_rb_init(tree)   do {        \
+        INIT_RB_ROOT(&(tree)->root);    \
+        (tree)->elem_size = 0;      \
+    } while (0)
 
 #define i64_rb_empty(tree) RB_EMPTY_ROOT(&(tree)->root)
 
 /* Return the min rb_node of tree if tree is non-empty */
-struct i64_rbe *i64_rb_min (struct i64_rb *tree);
+struct i64_rbe* i64_rb_min(struct i64_rb* tree);
 
 /* Return the max rb_node of tree if tree is non-empty */
-struct i64_rbe *i64_rb_max (struct i64_rb *tree);
+struct i64_rbe* i64_rb_max(struct i64_rb* tree);
 
 /* Insert one node into rbtree */
-void i64_rb_insert (struct i64_rb *tree, struct i64_rbe *node);
+void i64_rb_insert(struct i64_rb* tree, struct i64_rbe* node);
 
 /* Remove node from rbtree */
-void i64_rb_delete (struct i64_rb *tree, struct i64_rbe *node);
+void i64_rb_delete(struct i64_rb* tree, struct i64_rbe* node);
 
 #endif /* _H_PROXYIO_I64_RB_ */

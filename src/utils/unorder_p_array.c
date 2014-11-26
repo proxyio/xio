@@ -24,20 +24,22 @@
 #include <string.h>
 #include "unorder_p_array.h"
 
-int unorder_p_array_push_back (struct unorder_p_array *arr, void *value)
-{
-	void **at = 0;
-	int rc;
+int unorder_p_array_push_back(struct unorder_p_array* arr, void* value) {
+    void** at = 0;
+    int rc;
 
-	if (arr->size == arr->cap) {
-		if (!(at = mem_zalloc (sizeof (void *) * arr->cap * 2)))
-			BUG_ON (1);
-		memcpy (at, arr->at, sizeof (void *) * arr->size);
-		mem_free (arr->at, sizeof (void *) * arr->cap);
-		arr->at = at;
-		arr->cap = arr->cap * 2;
-	}
-	arr->at[arr->size] = value;
-	rc = arr->size++;
-	return rc;
+    if (arr->size == arr->cap) {
+        if (!(at = mem_zalloc(sizeof(void*) * arr->cap * 2))) {
+            BUG_ON(1);
+        }
+
+        memcpy(at, arr->at, sizeof(void*) * arr->size);
+        mem_free(arr->at, sizeof(void*) * arr->cap);
+        arr->at = at;
+        arr->cap = arr->cap * 2;
+    }
+
+    arr->at[arr->size] = value;
+    rc = arr->size++;
+    return rc;
 }

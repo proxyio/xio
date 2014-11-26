@@ -24,35 +24,37 @@
 #include <string.h>
 #include "str_array.h"
 
-void str_array_add (struct str_array *arr, const char *str)
-{
-	char **at = 0;
+void str_array_add(struct str_array* arr, const char* str) {
+    char** at = 0;
 
-	if (arr->size == arr->cap) {
-		if (!(at = mem_zalloc (sizeof (char *) * arr->cap * 2)))
-			BUG_ON (1);
-		memcpy (at, arr->at, sizeof (char *) * arr->size);
-		mem_free (arr->at, sizeof (char *) * arr->cap);
-		arr->at = at;
-		arr->cap = arr->cap * 2;
-	}
-	arr->at[arr->size] = mem_zalloc (strlen (str) + 1);
-	strcpy (arr->at[arr->size], str);
-	arr->size++;
+    if (arr->size == arr->cap) {
+        if (!(at = mem_zalloc(sizeof(char*) * arr->cap * 2))) {
+            BUG_ON(1);
+        }
+
+        memcpy(at, arr->at, sizeof(char*) * arr->size);
+        mem_free(arr->at, sizeof(char*) * arr->cap);
+        arr->at = at;
+        arr->cap = arr->cap * 2;
+    }
+
+    arr->at[arr->size] = mem_zalloc(strlen(str) + 1);
+    strcpy(arr->at[arr->size], str);
+    arr->size++;
 }
 
 
-void str_split (const char *haystack, struct str_array *arr, const char *needle)
-{
-	char *hs = strdup (haystack);
-	char *cur = hs, *pos;
-	int needle_leng = strlen (needle);
+void str_split(const char* haystack, struct str_array* arr, const char* needle) {
+    char* hs = strdup(haystack);
+    char* cur = hs, *pos;
+    int needle_leng = strlen(needle);
 
-	while ((pos = strstr (cur, needle))) {
-		pos[0] = 0;
-		str_array_add (arr, cur);
-		cur = pos + needle_leng;
-	}
-	str_array_add (arr, cur);
-	free (hs);
+    while ((pos = strstr(cur, needle))) {
+        pos[0] = 0;
+        str_array_add(arr, cur);
+        cur = pos + needle_leng;
+    }
+
+    str_array_add(arr, cur);
+    free(hs);
 }

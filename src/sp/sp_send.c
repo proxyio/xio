@@ -24,15 +24,15 @@
 #include "sp_module.h"
 
 
-int sp_send (int eid, char *ubuf)
-{
-	int rc;
-	struct epbase *ep = eid_get (eid);
+int sp_send(int eid, char* ubuf) {
+    int rc;
+    struct epbase* ep = eid_get(eid);
 
-	if (!ep || ep->status.shutdown) {
-		ERRNO_RETURN (EBADF);
-	}
-	rc = ep->vfptr.send (ep, ubuf);
-	eid_put (eid);
-	return rc;
+    if (!ep || ep->status.shutdown) {
+        ERRNO_RETURN(EBADF);
+    }
+
+    rc = ep->vfptr.send(ep, ubuf);
+    eid_put(eid);
+    return rc;
 }

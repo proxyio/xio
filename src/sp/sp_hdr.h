@@ -39,25 +39,24 @@
  */
 
 struct sphdr {
-	u8 protocol;                    /* scalability protocol type    */
-	u8 version;                     /* scalability protocol version */
-	u16 timeout;                    /* message timeout by ms */
-	i64 sendstamp;                  /* the timestamp when massage first send */
+    u8 protocol;                    /* scalability protocol type    */
+    u8 version;                     /* scalability protocol version */
+    u16 timeout;                    /* message timeout by ms */
+    i64 sendstamp;                  /* the timestamp when massage first send */
 };
 
 /* scalability protocol's header is saved in cmsg_head of ubuf and must be
    the first of it */
-static inline struct sphdr *get_sphdr (char *ubuf) {
-	struct sphdr *first = 0;
-	uctl (ubuf, SFIRST, &first);
-	return first;
+static inline struct sphdr* get_sphdr(char* ubuf) {
+    struct sphdr* first = 0;
+    uctl(ubuf, SFIRST, &first);
+    return first;
 }
 
 /* checking the message is timeout or not, if timeout, the action was specified
    by the scalability protocols. for example, drop it simply. */
-static inline int sphdr_timeout (struct sphdr *sh)
-{
-	return sh->timeout && (sh->sendstamp + sh->timeout < gettimeof (ms) );
+static inline int sphdr_timeout(struct sphdr* sh) {
+    return sh->timeout && (sh->sendstamp + sh->timeout < gettimeof(ms));
 }
 
 #endif

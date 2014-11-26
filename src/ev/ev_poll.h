@@ -27,20 +27,20 @@
 #include <utils/list.h>
 
 struct fdd {
-	struct list_head item;
-	int fd;
-	int events;
-	int ready_events;
+    struct list_head item;
+    int fd;
+    int events;
+    int ready_events;
 };
 
 
 struct eventpoll {
-	struct list_head fds;
+    struct list_head fds;
 };
 
 
-#define walk_fdd_s(pos, tmp, head)				\
-	walk_each_entry_s (pos, tmp, head, struct fdd, item)
+#define walk_fdd_s(pos, tmp, head)              \
+    walk_each_entry_s (pos, tmp, head, struct fdd, item)
 
 
 

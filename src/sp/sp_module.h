@@ -37,102 +37,99 @@
 #include "sp_hdr.h"
 
 enum {
-	EP_SEND = 0,
-	EP_RECV,
-	EPBASE_STATS_KEYRANGE,
+    EP_SEND = 0,
+    EP_RECV,
+    EPBASE_STATS_KEYRANGE,
 };
 
-DEFINE_MSTATS (epbase, EPBASE_STATS_KEYRANGE);
+DEFINE_MSTATS(epbase, EPBASE_STATS_KEYRANGE);
 
 enum {
-	TG_SEND = 0,
-	TG_RECV,
-	TGTD_STATS_KEYRANGE,
+    TG_SEND = 0,
+    TG_RECV,
+    TGTD_STATS_KEYRANGE,
 };
 
-DEFINE_MSTATS (tgtd, TGTD_STATS_KEYRANGE);
+DEFINE_MSTATS(tgtd, TGTD_STATS_KEYRANGE);
 
 
-static inline int get_socktype (int fd)
-{
-	int socktype = 0, rc;
-	int optlen = sizeof (socktype);
+static inline int get_socktype(int fd) {
+    int socktype = 0, rc;
+    int optlen = sizeof(socktype);
 
-	BUG_ON ( (rc = xgetopt (fd, XSO_SOCKTYPE, &socktype, &optlen) ) );
-	return socktype;
+    BUG_ON((rc = xgetopt(fd, XSO_SOCKTYPE, &socktype, &optlen)));
+    return socktype;
 }
 
 struct epbase;
 struct tgtd;
 struct epbase_vfptr {
-	int sp_family;
-	int sp_type;
+    int sp_family;
+    int sp_type;
 
-	/* Alloc scalability protocol's specified endpoint and return the epbase pointer */
-	struct epbase * (*alloc) ();
+    /* Alloc scalability protocol's specified endpoint and return the epbase pointer */
+    struct epbase* (*alloc)();
 
-	/* Destroy endpoint, sp_module doesn't use it anymore */
-	void            (*destroy) (struct epbase *ep);
+    /* Destroy endpoint, sp_module doesn't use it anymore */
+    void (*destroy)(struct epbase* ep);
 
-	/* Call by sp_send() API, have message need send */
-	int             (*send)    (struct epbase *ep, char *ubuf);
+    /* Call by sp_send() API, have message need send */
+    int (*send)(struct epbase* ep, char* ubuf);
 
-	/* The current target sock specified by tg parameter is actived. take one message
-	 * from the epbase->snd.head and send into network */
-	int             (*rm)      (struct epbase *ep, struct tgtd *tg,
-				    char **ubuf);
+    /* The current target sock specified by tg parameter is actived. take one message
+     * from the epbase->snd.head and send into network */
+    int (*rm)(struct epbase* ep, struct tgtd* tg,
+              char** ubuf);
 
-	/* The incoming message specified by ubuf pointer */
-	int             (*add)     (struct epbase *ep, struct tgtd *tg,
-				    char *ubuf);
+    /* The incoming message specified by ubuf pointer */
+    int (*add)(struct epbase* ep, struct tgtd* tg,
+               char* ubuf);
 
-	struct tgtd *   (*join)    (struct epbase *ep, int fd);
-	void            (*term)    (struct epbase *ep, struct tgtd *tg);
-	int             (*setopt)  (struct epbase *ep, int opt, void *optval,
-				    int optlen);
-	int             (*getopt)  (struct epbase *ep, int opt, void *optval,
-				    int *optlen);
-	struct list_head item;
+    struct tgtd*    (*join)(struct epbase* ep, int fd);
+    void (*term)(struct epbase* ep, struct tgtd* tg);
+    int (*setopt)(struct epbase* ep, int opt, void* optval,
+                  int optlen);
+    int (*getopt)(struct epbase* ep, int opt, void* optval,
+                  int* optlen);
+    struct list_head item;
 };
 
 
 
 struct tgtd {
-	struct epbase *owner;           /* the owner of this target socket */
-	struct poll_fd pollfd;          /* xpoll entry */
-	u32 bad_status:1;
-	int fd;                         /* xsocket file descriptor */
-	struct list_head item;
-	struct tgtd_mstats stats;
+    struct epbase* owner;           /* the owner of this target socket */
+    struct poll_fd pollfd;          /* xpoll entry */
+    u32 bad_status: 1;
+    int fd;                         /* xsocket file descriptor */
+    struct list_head item;
+    struct tgtd_mstats stats;
 };
 
-void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd);
+void generic_tgtd_init(struct epbase* ep, struct tgtd* tg, int fd);
 
-void sg_add_tg (struct tgtd *tg);
-void sg_rm_tg (struct tgtd *tg);
-void sg_update_tg (struct tgtd *tg, u32 ev);
+void sg_add_tg(struct tgtd* tg);
+void sg_rm_tg(struct tgtd* tg);
+void sg_update_tg(struct tgtd* tg, u32 ev);
 
-int sp_generic_term_by_tgtd (struct epbase *ep, struct tgtd *tg);
-int sp_generic_term_by_fd (struct epbase *ep, int fd);
+int sp_generic_term_by_tgtd(struct epbase* ep, struct tgtd* tg);
+int sp_generic_term_by_fd(struct epbase* ep, int fd);
 
-static inline void tgtd_try_enable_out (struct tgtd *tg)
-{
-	struct epbase *ep = tg->owner;
+static inline void tgtd_try_enable_out(struct tgtd* tg) {
+    struct epbase* ep = tg->owner;
 
-	if (! (tg->pollfd.events & XPOLLOUT) ) {
-		sg_update_tg (tg, tg->pollfd.events | XPOLLOUT);
-		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
-	}
+    if (!(tg->pollfd.events & XPOLLOUT)) {
+        sg_update_tg(tg, tg->pollfd.events | XPOLLOUT);
+        DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, tg->fd);
+    }
 }
 
-static inline void tgtd_try_disable_out (struct tgtd *tg)
-{
-	struct epbase *ep = tg->owner;
+static inline void tgtd_try_disable_out(struct tgtd* tg) {
+    struct epbase* ep = tg->owner;
 
-	if ( (tg->pollfd.events & XPOLLOUT) ) {
-		sg_update_tg (tg, tg->pollfd.events & ~XPOLLOUT);
-		DEBUG_OFF ("ep %d socket %d enable pollout", ep->eid, tg->fd);
-	}
+    if ((tg->pollfd.events & XPOLLOUT)) {
+        sg_update_tg(tg, tg->pollfd.events & ~XPOLLOUT);
+        DEBUG_OFF("ep %d socket %d enable pollout", ep->eid, tg->fd);
+    }
 }
 
 
@@ -141,141 +138,141 @@ static inline void tgtd_try_disable_out (struct tgtd *tg)
 #define SP_RCVWND 1048576000
 
 struct epbase {
-	struct epbase_vfptr vfptr;      /* the endpoint's vfptr of sp */
-	union {
-		u32 shutdown:1;         /* endpoint is shutdown */
-		u32 bad;                /* the bad and other status bit field can share the memory */
-	} status;
-	atomic_t ref;                   /* reference counter */
-	int eid;                        /* endpoint id, the index of sp_global.endpoints array */
-	mutex_t lock;                   /* per epbase lock and condition */
-	condition_t cond;
-	struct msgbuf_head rcv;          /* recv buffer */
-	struct msgbuf_head snd;          /* send buffer */
-	struct list_head item;
+    struct epbase_vfptr vfptr;      /* the endpoint's vfptr of sp */
+    union {
+        u32 shutdown: 1;        /* endpoint is shutdown */
+        u32 bad;                /* the bad and other status bit field can share the memory */
+    } status;
+    atomic_t ref;                   /* reference counter */
+    int eid;                        /* endpoint id, the index of sp_global.endpoints array */
+    mutex_t lock;                   /* per epbase lock and condition */
+    condition_t cond;
+    struct msgbuf_head rcv;          /* recv buffer */
+    struct msgbuf_head snd;          /* send buffer */
+    struct list_head item;
 
-	/*
-	 * The next six fields are touched by walk_tgtd.  place them together
-	 * so they all fit in a cache line.
-	 */
-	struct list_head listeners;
-	u64 nlisteners;
-	struct list_head connectors;
-	u64 nconnectors;
-	struct list_head bad_socks;
-	u64 nbads;
+    /*
+     * The next six fields are touched by walk_tgtd.  place them together
+     * so they all fit in a cache line.
+     */
+    struct list_head listeners;
+    u64 nlisteners;
+    struct list_head connectors;
+    u64 nconnectors;
+    struct list_head bad_socks;
+    u64 nbads;
 
-	struct epbase_mstats stats;
+    struct epbase_mstats stats;
 };
 
-void epbase_init (struct epbase *ep);
-void epbase_exit (struct epbase *ep);
+void epbase_init(struct epbase* ep);
+void epbase_exit(struct epbase* ep);
 
-#define walk_tgtd(tg, head)				\
+#define walk_tgtd(tg, head)             \
     walk_each_entry(tg, head, struct tgtd, item)
 
-#define walk_tgtd_s(tg, tmp, head)			\
+#define walk_tgtd_s(tg, tmp, head)          \
     walk_each_entry_s(tg, tmp, head, struct tgtd, item)
 
-#define get_tgtd_if(tg, head, cond) ({				\
-	    int ok = false;					\
-	    walk_each_entry(tg, head, struct tgtd, item) {	\
-		if (cond) {					\
-		    ok = true;					\
-		    break;					\
-		}						\
-	    }							\
-	    if (!ok)						\
-		tg = 0;						\
-	    tg;							\
-	})
+#define get_tgtd_if(tg, head, cond) ({              \
+        int ok = false;                 \
+        walk_each_entry(tg, head, struct tgtd, item) {  \
+        if (cond) {                 \
+            ok = true;                  \
+            break;                  \
+        }                       \
+        }                           \
+        if (!ok)                        \
+        tg = 0;                     \
+        tg;                         \
+    })
 
-#define rm_tgtd_if(tg, head, cond) ({			\
-	if ((tg = get_tgtd_if(tg, head, cond))) {	\
-	    list_del_init(&tg->item);			\
-	    switch (get_socktype(tg->fd)) {		\
-	    case XLISTENER:				\
-		ep->nlisteners--;			\
-		break;					\
-	    case XCONNECTOR:				\
-		ep->nconnectors--;			\
-		break;					\
-	    default:					\
-		BUG_ON(1);				\
-	    }						\
-	    tg;						\
-	})
+#define rm_tgtd_if(tg, head, cond) ({           \
+    if ((tg = get_tgtd_if(tg, head, cond))) {   \
+        list_del_init(&tg->item);           \
+        switch (get_socktype(tg->fd)) {     \
+        case XLISTENER:             \
+        ep->nlisteners--;           \
+        break;                  \
+        case XCONNECTOR:                \
+        ep->nconnectors--;          \
+        break;                  \
+        default:                    \
+        BUG_ON(1);              \
+        }                       \
+        tg;                     \
+    })
 
-int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg);
+int epbase_add_tgtd(struct epbase* ep, struct tgtd* tg);
 
 
 #define MAX_ENDPOINTS 10240
 
 struct sp_global {
-	int exiting;
+    int exiting;
 
-	/* eid pool lock, protect endpoints/unused/nendpoints */
-	mutex_t lock;
+    /* eid pool lock, protect endpoints/unused/nendpoints */
+    mutex_t lock;
 
-	/* The global table of existing ep. The descriptor representing
-	 * the ep is the index to this table. This pointer is also used to
-	 * find out whether context is initialised. If it is null, context is
-	 * uninitialised.
-	 */
-	struct epbase *endpoints[MAX_ENDPOINTS];
+    /* The global table of existing ep. The descriptor representing
+     * the ep is the index to this table. This pointer is also used to
+     * find out whether context is initialised. If it is null, context is
+     * uninitialised.
+     */
+    struct epbase* endpoints[MAX_ENDPOINTS];
 
-	int unused[MAX_ENDPOINTS];          /* Stack of unused ep descriptors.  */
-	size_t nendpoints;                  /* Number of actual ep. */
+    int unused[MAX_ENDPOINTS];          /* Stack of unused ep descriptors.  */
+    size_t nendpoints;                  /* Number of actual ep. */
 
-	int pollid;
-	thread_t runner;                    /* backend events_hndl runner */
-	struct list_head epbase_head;       /* epbase_vfptrs head */
-	struct list_head shutdown_head;     /* shutdown the epbase asyncronous */
+    int pollid;
+    thread_t runner;                    /* backend events_hndl runner */
+    struct list_head epbase_head;       /* epbase_vfptrs head */
+    struct list_head shutdown_head;     /* shutdown the epbase asyncronous */
 };
 
 extern struct sp_global sg;
 
-#define walk_epbase_s(ep, tmp, head)				\
+#define walk_epbase_s(ep, tmp, head)                \
     walk_each_entry_s(ep, tmp, head, struct epbase, item)
 
-#define walk_epbase_vfptr(ep, tmp, head)			\
+#define walk_epbase_vfptr(ep, tmp, head)            \
     walk_each_entry_s(ep, tmp, head, struct epbase_vfptr, item)
 
 static inline
-struct epbase_vfptr *epbase_vfptr_lookup (int sp_family, int sp_type) {
-	struct epbase_vfptr *vfptr, *tmp;
+struct epbase_vfptr* epbase_vfptr_lookup(int sp_family, int sp_type) {
+    struct epbase_vfptr* vfptr, *tmp;
 
-	walk_epbase_vfptr (vfptr, tmp, &sg.epbase_head) {
-		if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type)
-			return vfptr;
-	}
-	return 0;
+    walk_epbase_vfptr(vfptr, tmp, &sg.epbase_head) {
+        if (vfptr->sp_family == sp_family && vfptr->sp_type == sp_type) {
+            return vfptr;
+        }
+    }
+    return 0;
 }
 
-extern int eid_alloc (int sp_family, int sp_type);
+extern int eid_alloc(int sp_family, int sp_type);
 
-extern struct epbase *eid_get (int eid);
+extern struct epbase* eid_get(int eid);
 
-extern void eid_put (int eid);
-
-
-typedef int (*ep_setopt) (struct epbase *ep, void *optval, int optlen);
-typedef int (*ep_getopt) (struct epbase *ep, void *optval, int *optlen);
+extern void eid_put(int eid);
 
 
+typedef int (*ep_setopt)(struct epbase* ep, void* optval, int optlen);
+typedef int (*ep_getopt)(struct epbase* ep, void* optval, int* optlen);
 
-static inline char *clone_ubuf (char *src)
-{
-	int rc;
-	char *dst = ualloc (usize (src));
-	
-	BUG_ON (!dst);
-	memcpy (dst, src, usize (src));
 
-	/* copy the sub msgbuf into dst */
-	rc = uctl (src, SCOPY, dst);
-	BUG_ON (rc);
-	return dst;
+
+static inline char* clone_ubuf(char* src) {
+    int rc;
+    char* dst = ualloc(usize(src));
+
+    BUG_ON(!dst);
+    memcpy(dst, src, usize(src));
+
+    /* copy the sub msgbuf into dst */
+    rc = uctl(src, SCOPY, dst);
+    BUG_ON(rc);
+    return dst;
 }
 
 

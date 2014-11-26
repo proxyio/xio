@@ -26,26 +26,26 @@
 #include <utils/mstats_base.h>
 
 enum {
-	ST_EV_IN = 0,
-	ST_EV_OUT,
-	ST_EV_ERR,
-	ST_EV_NOTHG,
-	ST_EV_KEYRANGE,
+    ST_EV_IN = 0,
+    ST_EV_OUT,
+    ST_EV_ERR,
+    ST_EV_NOTHG,
+    ST_EV_KEYRANGE,
 };
 
-void ev_s_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void ev_s_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-void ev_m_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void ev_m_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-void ev_h_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void ev_h_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-void ev_d_warn (struct mstats_base *stb, int sl, int key, i64 thres,
-		    i64 val, i64 min_val, i64 max_val, i64 avg_val);
+void ev_d_warn(struct mstats_base* stb, int sl, int key, i64 thres,
+               i64 val, i64 min_val, i64 max_val, i64 avg_val);
 
-DEFINE_MSTATS (ev, ST_EV_KEYRANGE);
+DEFINE_MSTATS(ev, ST_EV_KEYRANGE);
 
 
 #endif

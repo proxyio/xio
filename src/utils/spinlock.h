@@ -29,20 +29,19 @@
 #if !defined HAVE_DEBUG && defined HAVE_PTHREAD_SPIN_LOCK
 
 typedef struct spin {
-	pthread_spinlock_t _spin;
+    pthread_spinlock_t _spin;
 } spin_t;
 
-int spin_init (spin_t *lock);
-int spin_lock (spin_t *lock);
-int spin_unlock (spin_t *lock);
+int spin_init(spin_t* lock);
+int spin_lock(spin_t* lock);
+int spin_unlock(spin_t* lock);
 
-static inline void spin_relock (spin_t *lock)
-{
-	spin_unlock (lock);
-	spin_lock (lock);
+static inline void spin_relock(spin_t* lock) {
+    spin_unlock(lock);
+    spin_lock(lock);
 }
 
-int spin_destroy (spin_t *lock);
+int spin_destroy(spin_t* lock);
 
 #else
 
@@ -50,30 +49,25 @@ int spin_destroy (spin_t *lock);
 
 typedef mutex_t spin_t;
 
-static inline int spin_init (spin_t *lock)
-{
-	return mutex_init (lock);
+static inline int spin_init(spin_t* lock) {
+    return mutex_init(lock);
 }
 
-static inline int spin_lock (spin_t *lock)
-{
-	return mutex_lock (lock);
+static inline int spin_lock(spin_t* lock) {
+    return mutex_lock(lock);
 }
 
-static inline int spin_unlock (spin_t *lock)
-{
-	return mutex_unlock (lock);
+static inline int spin_unlock(spin_t* lock) {
+    return mutex_unlock(lock);
 }
 
-static inline void spin_relock (spin_t *lock)
-{
-	spin_unlock (lock);
-	spin_lock (lock);
+static inline void spin_relock(spin_t* lock) {
+    spin_unlock(lock);
+    spin_lock(lock);
 }
 
-static inline int spin_destroy (spin_t *lock)
-{
-	return mutex_destroy (lock);
+static inline int spin_destroy(spin_t* lock) {
+    return mutex_destroy(lock);
 }
 
 

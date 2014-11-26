@@ -29,31 +29,33 @@
 #define STR_ARRAY_DEFAULT_CAP 10
 
 struct str_array {
-	int size;
-	int cap;
-	char **at;
+    int size;
+    int cap;
+    char** at;
 };
 
-static inline void str_array_init (struct str_array *arr)
-{
-	arr->size = 0;
-	arr->cap = STR_ARRAY_DEFAULT_CAP;
-	if (!(arr->at = mem_zalloc (sizeof (char *) * arr->cap)))
-		BUG_ON (1);
+static inline void str_array_init(struct str_array* arr) {
+    arr->size = 0;
+    arr->cap = STR_ARRAY_DEFAULT_CAP;
+
+    if (!(arr->at = mem_zalloc(sizeof(char*) * arr->cap))) {
+        BUG_ON(1);
+    }
 }
 
-static inline void str_array_destroy (struct str_array *arr)
-{
-	int i;
-	for (i = 0; i < arr->size; i++) {
-		mem_free (arr->at[i], strlen (arr->at[i]));
-	}
-	mem_free (arr->at, sizeof (char *) * arr->cap);
-	ZERO (arr);
+static inline void str_array_destroy(struct str_array* arr) {
+    int i;
+
+    for (i = 0; i < arr->size; i++) {
+        mem_free(arr->at[i], strlen(arr->at[i]));
+    }
+
+    mem_free(arr->at, sizeof(char*) * arr->cap);
+    ZERO(arr);
 }
 
-void str_array_add (struct str_array *arr, const char *str);
-void str_split (const char *haystack, struct str_array *arr, const char *needle);
+void str_array_add(struct str_array* arr, const char* str);
+void str_split(const char* haystack, struct str_array* arr, const char* needle);
 
 
 

@@ -22,120 +22,124 @@
 
 #include "pub.h"
 
-static struct epbase *pub_ep_alloc() {
-	struct pub_ep *pub_ep = mem_zalloc (sizeof (struct pub_ep));
+static struct epbase* pub_ep_alloc() {
+    struct pub_ep* pub_ep = mem_zalloc(sizeof(struct pub_ep));
 
-	if (pub_ep) {
-		epbase_init (&pub_ep->base);
-	}
-	return &pub_ep->base;
+    if (pub_ep) {
+        epbase_init(&pub_ep->base);
+    }
+
+    return &pub_ep->base;
 }
 
-static void pub_ep_destroy (struct epbase *ep)
-{
-	struct pub_ep *pub_ep = cont_of (ep, struct pub_ep, base);
-	epbase_exit (ep);
-	mem_free (pub_ep, sizeof (*pub_ep));
+static void pub_ep_destroy(struct epbase* ep) {
+    struct pub_ep* pub_ep = cont_of(ep, struct pub_ep, base);
+    epbase_exit(ep);
+    mem_free(pub_ep, sizeof(*pub_ep));
 }
 
-static int pub_ep_send (struct epbase *ep, char *ubuf)
-{
-	int rc = 0;
-	char *dst;
-	struct tgtd *tg;
+static int pub_ep_send(struct epbase* ep, char* ubuf) {
+    int rc = 0;
+    char* dst;
+    struct tgtd* tg;
 
-	mutex_lock (&ep->lock);
-	walk_tgtd (tg, &ep->connectors) {
-		dst = ubuf;
-		if (list_next (&tg->item) != &ep->connectors)
-			dst = clone_ubuf (ubuf);
-		msgbuf_head_in (&get_pubsub_tgtd (tg)->ls_head, dst);
-		tgtd_try_enable_out (tg);
-	}
-	mutex_unlock (&ep->lock);
-	return rc;
+    mutex_lock(&ep->lock);
+    walk_tgtd(tg, &ep->connectors) {
+        dst = ubuf;
+
+        if (list_next(&tg->item) != &ep->connectors) {
+            dst = clone_ubuf(ubuf);
+        }
+
+        msgbuf_head_in(&get_pubsub_tgtd(tg)->ls_head, dst);
+        tgtd_try_enable_out(tg);
+    }
+    mutex_unlock(&ep->lock);
+    return rc;
 }
 
 /* limited by the pubsub protocol, the sub endpoint can't send any
    message to pub endpoint, if it do it, we can mark this socket on
    bad status, or drop the message simply. */
-static int pub_ep_add (struct epbase *ep, struct tgtd *tg, char *ubuf)
-{
-	ERRNO_RETURN (EPERM);
+static int pub_ep_add(struct epbase* ep, struct tgtd* tg, char* ubuf) {
+    ERRNO_RETURN(EPERM);
 }
 
-static int pub_ep_rm (struct epbase *ep, struct tgtd *tg, char **ubuf)
-{
-	mutex_lock (&ep->lock);
-	if (msgbuf_head_empty (&get_pubsub_tgtd (tg)->ls_head)) {
-		tgtd_try_disable_out (tg);
-		mutex_unlock (&ep->lock);
-		return -1;
-	}
-	msgbuf_head_out (&get_pubsub_tgtd (tg)->ls_head, ubuf);
-	mutex_unlock (&ep->lock);
-	return 0;
+static int pub_ep_rm(struct epbase* ep, struct tgtd* tg, char** ubuf) {
+    mutex_lock(&ep->lock);
+
+    if (msgbuf_head_empty(&get_pubsub_tgtd(tg)->ls_head)) {
+        tgtd_try_disable_out(tg);
+        mutex_unlock(&ep->lock);
+        return -1;
+    }
+
+    msgbuf_head_out(&get_pubsub_tgtd(tg)->ls_head, ubuf);
+    mutex_unlock(&ep->lock);
+    return 0;
 }
 
-static struct tgtd *pub_ep_join (struct epbase *ep, int fd)
-{
-	struct pubsub_tgtd *ps_tg = mem_zalloc (sizeof (struct pubsub_tgtd));
+static struct tgtd* pub_ep_join(struct epbase* ep, int fd) {
+    struct pubsub_tgtd* ps_tg = mem_zalloc(sizeof(struct pubsub_tgtd));
 
-	if (!ps_tg)
-		return 0;
-	msgbuf_head_init (&ps_tg->ls_head, SP_SNDWND);
-	generic_tgtd_init (ep, &ps_tg->tg, fd);
-	return &ps_tg->tg;
+    if (!ps_tg) {
+        return 0;
+    }
+
+    msgbuf_head_init(&ps_tg->ls_head, SP_SNDWND);
+    generic_tgtd_init(ep, &ps_tg->tg, fd);
+    return &ps_tg->tg;
 }
 
-static void pub_ep_term (struct epbase *ep, struct tgtd *tg)
-{
-	pubsub_tgtd_free (get_pubsub_tgtd (tg));
+static void pub_ep_term(struct epbase* ep, struct tgtd* tg) {
+    pubsub_tgtd_free(get_pubsub_tgtd(tg));
 }
 
 
 
 static const ep_setopt setopt_vfptr[] = {
-	0,
+    0,
 };
 
 static const ep_getopt getopt_vfptr[] = {
-	0,
+    0,
 };
 
-static int pub_ep_setopt (struct epbase *ep, int opt, void *optval, int optlen)
-{
-	int rc;
-	if (opt < 0 || opt >= NELEM (setopt_vfptr, ep_setopt) || !setopt_vfptr[opt]) {
-		ERRNO_RETURN (EINVAL);
-	}
-	rc = setopt_vfptr[opt] (ep, optval, optlen);
-	return rc;
+static int pub_ep_setopt(struct epbase* ep, int opt, void* optval, int optlen) {
+    int rc;
+
+    if (opt < 0 || opt >= NELEM(setopt_vfptr) || !setopt_vfptr[opt]) {
+        ERRNO_RETURN(EINVAL);
+    }
+
+    rc = setopt_vfptr[opt](ep, optval, optlen);
+    return rc;
 }
 
-static int pub_ep_getopt (struct epbase *ep, int opt, void *optval, int *optlen)
-{
-	int rc;
-	if (opt < 0 || opt >= NELEM (getopt_vfptr, ep_getopt) || !getopt_vfptr[opt]) {
-		ERRNO_RETURN (EINVAL);
-	}
-	rc = getopt_vfptr[opt] (ep, optval, optlen);
-	return rc;
+static int pub_ep_getopt(struct epbase* ep, int opt, void* optval, int* optlen) {
+    int rc;
+
+    if (opt < 0 || opt >= NELEM(getopt_vfptr) || !getopt_vfptr[opt]) {
+        ERRNO_RETURN(EINVAL);
+    }
+
+    rc = getopt_vfptr[opt](ep, optval, optlen);
+    return rc;
 }
 
 static struct epbase_vfptr pub_epbase = {
-	.sp_family = SP_PUBSUB,
-	.sp_type = SP_PUB,
-	.alloc = pub_ep_alloc,
-	.destroy = pub_ep_destroy,
-	.send = pub_ep_send,
-	.add = pub_ep_add,
-	.rm = pub_ep_rm,
-	.join = pub_ep_join,
-	.term = pub_ep_term,
-	.setopt = pub_ep_setopt,
-	.getopt = pub_ep_getopt,
+    .sp_family = SP_PUBSUB,
+    .sp_type = SP_PUB,
+    .alloc = pub_ep_alloc,
+    .destroy = pub_ep_destroy,
+    .send = pub_ep_send,
+    .add = pub_ep_add,
+    .rm = pub_ep_rm,
+    .join = pub_ep_join,
+    .term = pub_ep_term,
+    .setopt = pub_ep_setopt,
+    .getopt = pub_ep_getopt,
 };
 
-struct epbase_vfptr *pubep_vfptr = &pub_epbase;
+struct epbase_vfptr* pubep_vfptr = &pub_epbase;
 

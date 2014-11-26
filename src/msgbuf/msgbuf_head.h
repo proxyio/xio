@@ -27,93 +27,87 @@
 
 
 struct msgbuf_head;
-typedef void (*msgbuf_head_event_hndl) (struct msgbuf_head *bh);
+typedef void (*msgbuf_head_event_hndl)(struct msgbuf_head* bh);
 
 struct msgbuf_vfptr {
-	void (*add)         (struct msgbuf_head *bh);
-	void (*rm)          (struct msgbuf_head *bh);
-	void (*empty)       (struct msgbuf_head *bh);
-	void (*nonempty)    (struct msgbuf_head *bh);
-	void (*full)        (struct msgbuf_head *bh);
-	void (*nonfull)     (struct msgbuf_head *bh);
+    void (*add)(struct msgbuf_head* bh);
+    void (*rm)(struct msgbuf_head* bh);
+    void (*empty)(struct msgbuf_head* bh);
+    void (*nonempty)(struct msgbuf_head* bh);
+    void (*full)(struct msgbuf_head* bh);
+    void (*nonfull)(struct msgbuf_head* bh);
 };
 
 struct msgbuf_head {
-	struct msgbuf_vfptr *ev_hndl;
-	int wnd;                    /* msgbuf windows                     */
-	int size;                   /* current buffer size                */
-	int waiters;                /* wait the empty or non-empty events */
-	struct list_head head;      /* msgbuf head                        */
+    struct msgbuf_vfptr* ev_hndl;
+    int wnd;                    /* msgbuf windows                     */
+    int size;                   /* current buffer size                */
+    int waiters;                /* wait the empty or non-empty events */
+    struct list_head head;      /* msgbuf head                        */
 };
 
 enum {
-	WALK_STOP      = 0x01,
+    WALK_STOP      = 0x01,
 };
 
-typedef int (*walk_fn) (struct msgbuf_head *bh, struct msgbuf *msg, void *data);
+typedef int (*walk_fn)(struct msgbuf_head* bh, struct msgbuf* msg, void* data);
 
-void msgbuf_head_init (struct msgbuf_head *bh, int wnd);
-void msgbuf_head_ev_hndl (struct msgbuf_head *bh, struct msgbuf_vfptr *ev_hndl);
+void msgbuf_head_init(struct msgbuf_head* bh, int wnd);
+void msgbuf_head_ev_hndl(struct msgbuf_head* bh, struct msgbuf_vfptr* ev_hndl);
 
-void msgbuf_head_walk (struct msgbuf_head *bh, walk_fn f, void *data);
+void msgbuf_head_walk(struct msgbuf_head* bh, walk_fn f, void* data);
 
 /* we must guarantee that we can push one massage at least. */
-static inline int msgbuf_can_in (struct msgbuf_head *bh)
-{
-	return (list_empty (&bh->head) || bh->size < bh->wnd);
+static inline int msgbuf_can_in(struct msgbuf_head* bh) {
+    return (list_empty(&bh->head) || bh->size < bh->wnd);
 }
 
 /* check the msgbuf_head is empty. return 1 if true, otherwise return 0 */
-int msgbuf_head_empty (struct msgbuf_head *bh);
+int msgbuf_head_empty(struct msgbuf_head* bh);
 
 /* dequeue the first msgbuf from head. return 0 if head is non-empty and set
    ubuf correctly. otherwise return -1 (head is empty) */
-int msgbuf_head_out (struct msgbuf_head *bh, char **ubuf);
+int msgbuf_head_out(struct msgbuf_head* bh, char** ubuf);
 
 /* enqueue the ubuf into head. return 0 if success, otherwise return -1
    (head is full) */
-int msgbuf_head_in (struct msgbuf_head *bh, char *ubuf);
+int msgbuf_head_in(struct msgbuf_head* bh, char* ubuf);
 
-static inline int msgbuf_head_out_msg (struct msgbuf_head *bh, struct msgbuf **msg)
-{
-	int rc;
-	char *ubuf = 0;
+static inline int msgbuf_head_out_msg(struct msgbuf_head* bh, struct msgbuf** msg) {
+    int rc;
+    char* ubuf = 0;
 
-	if ((rc = msgbuf_head_out (bh, &ubuf)) == 0) {
-		*msg = get_msgbuf (ubuf);
-	}
-	return rc;
+    if ((rc = msgbuf_head_out(bh, &ubuf)) == 0) {
+        *msg = get_msgbuf(ubuf);
+    }
+
+    return rc;
 }
 
-static inline int msgbuf_head_in_msg (struct msgbuf_head *bh, struct msgbuf *msg)
-{
-	return msgbuf_head_in (bh, get_ubuf (msg));
+static inline int msgbuf_head_in_msg(struct msgbuf_head* bh, struct msgbuf* msg) {
+    return msgbuf_head_in(bh, get_ubuf(msg));
 }
 
-static inline void msgbuf_dequeue_all (struct msgbuf_head *bh, struct list_head *head)
-{
-	list_splice (&bh->head, head);
+static inline void msgbuf_dequeue_all(struct msgbuf_head* bh, struct list_head* head) {
+    list_splice(&bh->head, head);
 }
 
-static inline int msgbuf_head_has_waiters (struct msgbuf_head *bh)
-{
-	return bh->waiters > 0;
+static inline int msgbuf_head_has_waiters(struct msgbuf_head* bh) {
+    return bh->waiters > 0;
 }
 
-static inline void msgbuf_head_incr_waiters (struct msgbuf_head *bh)
-{
-	bh->waiters++;
+static inline void msgbuf_head_incr_waiters(struct msgbuf_head* bh) {
+    bh->waiters++;
 }
 
-static inline void msgbuf_head_decr_waiters (struct msgbuf_head *bh)
-{
-	bh->waiters--;
+static inline void msgbuf_head_decr_waiters(struct msgbuf_head* bh) {
+    bh->waiters--;
 }
 
 
-int msgbuf_head_preinstall_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, int n);
+int msgbuf_head_preinstall_iovs(struct msgbuf_head* bh, struct rex_iov* iovs, int n);
 
-int msgbuf_head_install_iovs (struct msgbuf_head *bh, struct rex_iov *iovs, i64 length);
+int msgbuf_head_install_iovs(struct msgbuf_head* bh, struct rex_iov* iovs, i64 length);
 
 
 

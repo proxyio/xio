@@ -26,7 +26,7 @@
 #include "../sockbase.h"
 
 struct mix_sock {
-	struct sockbase base;
+    struct sockbase base;
 };
 
 extern struct sockbase_vfptr mix_listener_vfptr;

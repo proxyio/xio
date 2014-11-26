@@ -44,10 +44,10 @@
 #define null NULL
 
 enum {
-	XAF_INPROC   =   1,
-	XAF_TCP      =   2,
-	XAF_IPC      =   3,
-	XAF_MIX      =   4,
+    XAF_INPROC   =   1,
+    XAF_TCP      =   2,
+    XAF_IPC      =   3,
+    XAF_MIX      =   4,
 };
 
 /* Default snd/rcv buffer size */
@@ -55,155 +55,154 @@ extern int default_sndbuf;
 extern int default_rcvbuf;
 
 struct sockbase;
-typedef int (*sock_seter) (struct sockbase *sb, void *optval, int optlen);
-typedef int (*sock_geter) (struct sockbase *sb, void *optval, int *optlen);
+typedef int (*sock_seter)(struct sockbase* sb, void* optval, int optlen);
+typedef int (*sock_geter)(struct sockbase* sb, void* optval, int* optlen);
 
-extern const char *pf_str[];
+extern const char* pf_str[];
 
 struct pollbase;
 struct pollbase_vfptr {
-	void (*emit) (struct pollbase *pb, u32 events);
-	void (*close) (struct pollbase *pb);
+    void (*emit)(struct pollbase* pb, u32 events);
+    void (*close)(struct pollbase* pb);
 };
 
 struct pollbase {
-	struct pollbase_vfptr *vfptr;
-	struct poll_fd pollfd;
-	struct list_head link;
+    struct pollbase_vfptr* vfptr;
+    struct poll_fd pollfd;
+    struct list_head link;
 };
 
-#define walk_pollbase_s(pb, tmp, head)				\
+#define walk_pollbase_s(pb, tmp, head)              \
     walk_each_entry_s(pb, tmp, head, struct pollbase, link)
 
 static inline
-void pollbase_init (struct pollbase *pb, struct pollbase_vfptr *vfptr)
-{
-	pb->vfptr = vfptr;
-	INIT_LIST_HEAD (&pb->link);
+void pollbase_init(struct pollbase* pb, struct pollbase_vfptr* vfptr) {
+    pb->vfptr = vfptr;
+    INIT_LIST_HEAD(&pb->link);
 }
 
 struct sockbase;
 struct sockbase_vfptr {
-	int type;
-	int pf;
-	struct sockbase * (*open) ();
-	void  (*close)  (struct sockbase *sb);
-	int   (*send)   (struct sockbase *sb, char *ubuf);
-	int   (*recv)   (struct sockbase *sb, char **ubuf);
-	int   (*bind)   (struct sockbase *sb, const char *sock);
-	int   (*setopt) (struct sockbase *sb, int opt, void *optval, int optlen);
-	int   (*getopt) (struct sockbase *sb, int opt, void *optval, int *optlen);
-	struct list_head item;
+    int type;
+    int pf;
+    struct sockbase* (*open)();
+    void (*close)(struct sockbase* sb);
+    int (*send)(struct sockbase* sb, char* ubuf);
+    int (*recv)(struct sockbase* sb, char** ubuf);
+    int (*bind)(struct sockbase* sb, const char* sock);
+    int (*setopt)(struct sockbase* sb, int opt, void* optval, int optlen);
+    int (*getopt)(struct sockbase* sb, int opt, void* optval, int* optlen);
+    struct list_head item;
 };
 
 struct sockbase {
-	struct sockbase_vfptr *vfptr;
-	mutex_t lock;
-	condition_t cond;
-	int fd;
-	atomic_t ref;
-	char addr[PATH_MAX];
-	char peer[PATH_MAX];
-	struct {
-		u64 non_block:1;
-		u64 epipe:1;
-		u64 verbose:4;
-	} flagset;
+    struct sockbase_vfptr* vfptr;
+    mutex_t lock;
+    condition_t cond;
+    int fd;
+    atomic_t ref;
+    char addr[PATH_MAX];
+    char peer[PATH_MAX];
+    struct {
+        u64 non_block: 1;
+        u64 epipe: 1;
+        u64 verbose: 4;
+    } flagset;
 
-	struct sockbase *owner;
-	struct list_head sub_socks;
-	struct list_head sib_link;
-	struct socket_mstats stats;
+    struct sockbase* owner;
+    struct list_head sub_socks;
+    struct list_head sib_link;
+    struct socket_mstats stats;
 
-	struct msgbuf_head rcv;
-	struct msgbuf_head snd;
+    struct msgbuf_head rcv;
+    struct msgbuf_head snd;
 
-	struct {
-		condition_t cond;
-		int waiters;
-		struct list_head head;
-		struct list_head link;
-	} acceptq;
-	struct list_head poll_entries;
+    struct {
+        condition_t cond;
+        int waiters;
+        struct list_head head;
+        struct list_head link;
+    } acceptq;
+    struct list_head poll_entries;
 };
 
-#define walk_sub_sock(sub, nx, head)				\
+#define walk_sub_sock(sub, nx, head)                \
     walk_each_entry_s(sub, nx, head, struct sockbase, sib_link)
 
 
-int xalloc (int family, int socktype);
-struct sockbase *xget (int fd);
-void xput (int fd);
-void sockbase_init (struct sockbase *sb);
-void sockbase_exit (struct sockbase *sb);
+int xalloc(int family, int socktype);
+struct sockbase* xget(int fd);
+void xput(int fd);
+void sockbase_init(struct sockbase* sb);
+void sockbase_exit(struct sockbase* sb);
 
-int rcv_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg);
-struct msgbuf *rcv_msgbuf_head_rm (struct sockbase *sb);
+int rcv_msgbuf_head_add(struct sockbase* sb, struct msgbuf* msg);
+struct msgbuf* rcv_msgbuf_head_rm(struct sockbase* sb);
 
-int snd_msgbuf_head_add (struct sockbase *sb, struct msgbuf *msg);
-struct msgbuf *__snd_msgbuf_head_rm (struct sockbase *sb);
-struct msgbuf *snd_msgbuf_head_rm (struct sockbase *sb);
+int snd_msgbuf_head_add(struct sockbase* sb, struct msgbuf* msg);
+struct msgbuf* __snd_msgbuf_head_rm(struct sockbase* sb);
+struct msgbuf* snd_msgbuf_head_rm(struct sockbase* sb);
 
 
-int acceptq_add (struct sockbase *sb, struct sockbase *new);
-int acceptq_rm (struct sockbase *sb, struct sockbase **new);
-int acceptq_rm_nohup (struct sockbase *sb, struct sockbase **new);
+int acceptq_add(struct sockbase* sb, struct sockbase* new);
+int acceptq_rm(struct sockbase* sb, struct sockbase** new);
+int acceptq_rm_nohup(struct sockbase* sb, struct sockbase** new);
 
-int xsocket (int pf, int socktype);
-int xbind (int fd, const char *sockaddr);
-void __xclose (struct sockbase *sb);
+int xsocket(int pf, int socktype);
+int xbind(int fd, const char* sockaddr);
+void __xclose(struct sockbase* sb);
 
-static inline int add_pollbase (int fd, struct pollbase *pb)
-{
-	struct sockbase *sb = xget (fd);
+static inline int add_pollbase(int fd, struct pollbase* pb) {
+    struct sockbase* sb = xget(fd);
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
-	}
-	mutex_lock (&sb->lock);
-	BUG_ON (attached (&pb->link) );
-	list_add_tail (&pb->link, &sb->poll_entries);
-	mutex_unlock (&sb->lock);
-	xput (fd);
-	return 0;
+    if (!sb) {
+        errno = EBADF;
+        return -1;
+    }
+
+    mutex_lock(&sb->lock);
+    BUG_ON(attached(&pb->link));
+    list_add_tail(&pb->link, &sb->poll_entries);
+    mutex_unlock(&sb->lock);
+    xput(fd);
+    return 0;
 }
 
-int check_pollevents (struct sockbase *sb, int events);
-void __emit_pollevents (struct sockbase *sb);
-void emit_pollevents (struct sockbase *sb);
+int check_pollevents(struct sockbase* sb, int events);
+void __emit_pollevents(struct sockbase* sb);
+void emit_pollevents(struct sockbase* sb);
 
 
 /* Max number of concurrent socks. */
 #define PROXYIO_MAX_SOCKS 10240
 
 struct xglobal {
-	mutex_t lock;
+    mutex_t lock;
 
-	/* The global table of existing xsock. The descriptor representing
-	 * the xsock is the index to this table. This pointer is also used to
-	 * find out whether context is initialised. If it is null, context is
-	 * uninitialised.
-	 */
-	struct sockbase *sockbases[PROXYIO_MAX_SOCKS];
+    /* The global table of existing xsock. The descriptor representing
+     * the xsock is the index to this table. This pointer is also used to
+     * find out whether context is initialised. If it is null, context is
+     * uninitialised.
+     */
+    struct sockbase* sockbases[PROXYIO_MAX_SOCKS];
 
-	/* Stack of unused xsock descriptors.  */
-	int unused[PROXYIO_MAX_SOCKS];
+    /* Stack of unused xsock descriptors.  */
+    int unused[PROXYIO_MAX_SOCKS];
 
-	/* Number of actual socks. */
-	size_t nsockbases;
+    /* Number of actual socks. */
+    size_t nsockbases;
 
-	/* INPROC global listening address mapping */
-	struct str_rb inproc_listeners;
+    /* INPROC global listening address mapping */
+    struct str_rb inproc_listeners;
 
-	/* Sockbase_vfptr head */
-	struct list_head sockbase_vfptr_head;
+    /* Sockbase_vfptr head */
+    struct list_head sockbase_vfptr_head;
 };
 
-#define walk_sockbase_vfptr_s(pos, nx, head)				\
+#define walk_sockbase_vfptr_s(pos, nx, head)                \
     walk_each_entry_s(pos, nx, head, struct sockbase_vfptr, item)
 
-struct sockbase_vfptr *sockbase_vfptr_lookup (int pf, int type);
+struct sockbase_vfptr* sockbase_vfptr_lookup(int pf, int type);
 
 extern struct xglobal xgb;
 

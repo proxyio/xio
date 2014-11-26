@@ -29,7 +29,7 @@
 
 
 struct pub_ep {
-	struct epbase base;
+    struct epbase base;
 };
 
 #endif

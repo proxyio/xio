@@ -24,57 +24,58 @@
 #include <inttypes.h>
 #include "i64_rb.h"
 
-struct i64_rbe *i64_rb_min (struct i64_rb *tree)
-{
-	struct rb_root *root = &tree->root;
-	struct rb_node *cur = root->rb_node, *parent = NULL;
-	struct i64_rbe *_min = NULL;
+struct i64_rbe* i64_rb_min(struct i64_rb* tree) {
+    struct rb_root* root = &tree->root;
+    struct rb_node* cur = root->rb_node, *parent = NULL;
+    struct i64_rbe* _min = NULL;
 
-	while (cur) {
-		parent = cur;
-		cur = parent->rb_left;
-		_min = rb_entry (parent, struct i64_rbe, rb);
-	}
-	return _min;
+    while (cur) {
+        parent = cur;
+        cur = parent->rb_left;
+        _min = rb_entry(parent, struct i64_rbe, rb);
+    }
+
+    return _min;
 }
 
 
-struct i64_rbe *i64_rb_max (struct i64_rb *tree)
-{
-	struct rb_root *root = &tree->root;
-	struct rb_node *cur = root->rb_node, *parent = NULL;
-	struct i64_rbe *_max = NULL;
+struct i64_rbe* i64_rb_max(struct i64_rb* tree) {
+    struct rb_root* root = &tree->root;
+    struct rb_node* cur = root->rb_node, *parent = NULL;
+    struct i64_rbe* _max = NULL;
 
-	while (cur) {
-		parent = cur;
-		cur = parent->rb_right;
-		_max = rb_entry (parent, struct i64_rbe, rb);
-	}
-	return _max;
+    while (cur) {
+        parent = cur;
+        cur = parent->rb_right;
+        _max = rb_entry(parent, struct i64_rbe, rb);
+    }
+
+    return _max;
 }
 
-void i64_rb_insert (struct i64_rb *tree, struct i64_rbe *node)
-{
-	struct rb_root *root = &tree->root;
-	struct rb_node **np = &root->rb_node, *parent = NULL;
-	int64_t key = node->key;
+void i64_rb_insert(struct i64_rb* tree, struct i64_rbe* node) {
+    struct rb_root* root = &tree->root;
+    struct rb_node** np = &root->rb_node, *parent = NULL;
+    int64_t key = node->key;
 
-	tree->elem_size++;
-	while (*np) {
-		parent = *np;
-		if (key < rb_entry (parent, struct i64_rbe, rb)->key)
-			np = &parent->rb_left;
-		else
-			np = &parent->rb_right;
-	}
+    tree->elem_size++;
 
-	rb_link_node (&node->rb, parent, np);
-	rb_insert_color (&node->rb, root);
+    while (*np) {
+        parent = *np;
+
+        if (key < rb_entry(parent, struct i64_rbe, rb)->key) {
+            np = &parent->rb_left;
+        } else {
+            np = &parent->rb_right;
+        }
+    }
+
+    rb_link_node(&node->rb, parent, np);
+    rb_insert_color(&node->rb, root);
 }
 
 
-void i64_rb_delete (struct i64_rb *tree, struct i64_rbe *node)
-{
-	tree->elem_size--;
-	rb_erase (&node->rb, &tree->root);
+void i64_rb_delete(struct i64_rb* tree, struct i64_rbe* node) {
+    tree->elem_size--;
+    rb_erase(&node->rb, &tree->root);
 }

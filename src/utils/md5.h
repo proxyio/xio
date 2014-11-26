@@ -43,17 +43,17 @@ typedef int64_t MD5_INT64; /* 64-bit integer */
 /* The structure for storing MD5 info */
 
 struct md5_state {
-	MD5_INT64 length;
-	MD5_INT32 state[4], curlen;
-	unsigned char buf[MD5_BLOCKSIZE];
+    MD5_INT64 length;
+    MD5_INT32 state[4], curlen;
+    unsigned char buf[MD5_BLOCKSIZE];
 };
 
 
-void md5_init(struct md5_state *md5);
+void md5_init(struct md5_state* md5);
 
-void md5_process(struct md5_state *md5, const unsigned char *in, ssize_t inlen);
+void md5_process(struct md5_state* md5, const unsigned char* in, ssize_t inlen);
 
-void md5_done(struct md5_state *md5, unsigned char *out);
+void md5_done(struct md5_state* md5, unsigned char* out);
 
 
 

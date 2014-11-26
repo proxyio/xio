@@ -27,112 +27,128 @@
 #include "base.h"
 #include "efd.h"
 
-void efd_init (struct efd *self)
-{
-	int rc;
-	int flags;
-	int p[2];
+void efd_init(struct efd* self) {
+    int rc;
+    int flags;
+    int p[2];
 
-	BUG_ON (pipe (p));
-	self->r = p[0];
-	self->w = p[1];
+    BUG_ON(pipe(p));
+    self->r = p[0];
+    self->w = p[1];
 
-	flags = fcntl (self->r, F_GETFL, 0);
-	if (flags == -1)
-		flags = 0;
-	if ((rc = fcntl (self->r, F_SETFL, flags | O_NONBLOCK)) < 0) {
-		efd_destroy (self);
-		BUG_ON (1);
-		return;
-	}
+    flags = fcntl(self->r, F_GETFL, 0);
 
-	flags = fcntl (self->w, F_GETFL, 0);
-	if (flags == -1)
-		flags = 0;
-	if ((rc = fcntl (self->w, F_SETFL, flags | O_NONBLOCK)) < 0) {
-		efd_destroy (self);
-		BUG_ON (1);
-		return;
-	}
-	self->unsignal_size = 0;
+    if (flags == -1) {
+        flags = 0;
+    }
+
+    if ((rc = fcntl(self->r, F_SETFL, flags | O_NONBLOCK)) < 0) {
+        efd_destroy(self);
+        BUG_ON(1);
+        return;
+    }
+
+    flags = fcntl(self->w, F_GETFL, 0);
+
+    if (flags == -1) {
+        flags = 0;
+    }
+
+    if ((rc = fcntl(self->w, F_SETFL, flags | O_NONBLOCK)) < 0) {
+        efd_destroy(self);
+        BUG_ON(1);
+        return;
+    }
+
+    self->unsignal_size = 0;
 }
 
-void efd_destroy (struct efd *self)
-{
-	close (self->r);
-	close (self->w);
+void efd_destroy(struct efd* self) {
+    close(self->r);
+    close(self->w);
 }
 
-int efd_signal_s (struct efd *self)
-{
-	int rc;
-	char c = 94;
+int efd_signal_s(struct efd* self) {
+    int rc;
+    char c = 94;
 
-	if ((rc = write (self->w, &c, 1)) == 1)
-		self->unsignal_size++;
-	return rc;
+    if ((rc = write(self->w, &c, 1)) == 1) {
+        self->unsignal_size++;
+    }
+
+    return rc;
 }
 
-int efd_unsignal_s (struct efd *self)
-{
-	ssize_t nbytes;
-	u8 buf[128];
+int efd_unsignal_s(struct efd* self) {
+    ssize_t nbytes;
+    u8 buf[128];
 
-	while (1) {
-		nbytes = read (self->r, buf, sizeof (buf));
-		if (nbytes < 0 && errno == EAGAIN)
-			nbytes = 0;
-		BUG_ON (nbytes < 0);
-		self->unsignal_size -= nbytes;
-		if ((size_t) nbytes < sizeof (buf))
-			break;
-	}
-	return 0;
+    while (1) {
+        nbytes = read(self->r, buf, sizeof(buf));
+
+        if (nbytes < 0 && errno == EAGAIN) {
+            nbytes = 0;
+        }
+
+        BUG_ON(nbytes < 0);
+        self->unsignal_size -= nbytes;
+
+        if ((size_t) nbytes < sizeof(buf)) {
+            break;
+        }
+    }
+
+    return 0;
 }
 
-int efd_signal (struct efd *self, int signo)
-{
-	int rc;
-	ssize_t nbytes = 0;
-	char *buf = (char *) &signo;
+int efd_signal(struct efd* self, int signo) {
+    int rc;
+    ssize_t nbytes = 0;
+    char* buf = (char*) &signo;
 
-	if (signo <= 0) {
-		errno = EINVAL;
-		return -1;
-	}
-	while (nbytes < sizeof (signo)) {
-		if ((rc = write (self->w, buf + nbytes, sizeof (signo) - nbytes)) >= 0)
-			nbytes += rc;
-	}
-	self->unsignal_size += nbytes;
-	return rc;
+    if (signo <= 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    while (nbytes < sizeof(signo)) {
+        if ((rc = write(self->w, buf + nbytes, sizeof(signo) - nbytes)) >= 0) {
+            nbytes += rc;
+        }
+    }
+
+    self->unsignal_size += nbytes;
+    return rc;
 }
 
-int efd_unsignal2 (struct efd *self, int *sigset, int size)
-{
-	int rc;
-	ssize_t nbytes = 0;
-	char *buf = (char *) sigset;
+int efd_unsignal2(struct efd* self, int* sigset, int size) {
+    int rc;
+    ssize_t nbytes = 0;
+    char* buf = (char*) sigset;
 
-	size = sizeof (int) * size;
-	while (nbytes < size) {
-		if ((rc = read (self->r, buf + nbytes, size - nbytes)) < 0) {
-			if (nbytes % sizeof (int) == 0)
-				break;
-			continue;
-		}
-		nbytes += rc;
-		self->unsignal_size -= rc;
-	}
-	BUG_ON ((nbytes % sizeof (int)) != 0);
-	return nbytes / sizeof (int);
+    size = sizeof(int) * size;
+
+    while (nbytes < size) {
+        if ((rc = read(self->r, buf + nbytes, size - nbytes)) < 0) {
+            if (nbytes % sizeof(int) == 0) {
+                break;
+            }
+
+            continue;
+        }
+
+        nbytes += rc;
+        self->unsignal_size -= rc;
+    }
+
+    BUG_ON((nbytes % sizeof(int)) != 0);
+    return nbytes / sizeof(int);
 }
 
-int efd_unsignal (struct efd *self)
-{
-	int rc;
-	int signo = -1;
-	rc = efd_unsignal2 (self, &signo, 1);
-	return signo;
+int efd_unsignal(struct efd* self) {
+    int rc;
+    int signo = -1;
+    rc = efd_unsignal2(self, &signo, 1);
+    return signo;
 }
 

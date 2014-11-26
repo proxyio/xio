@@ -29,41 +29,38 @@
 #define UNORDER_P_ARRAY_DEFAULT_CAP 10
 
 struct unorder_p_array {
-	int size;
-	int cap;
-	void **at;
+    int size;
+    int cap;
+    void** at;
 };
 
-static inline int unorder_p_array_size (struct unorder_p_array *arr)
-{
-	return arr->size;
+static inline int unorder_p_array_size(struct unorder_p_array* arr) {
+    return arr->size;
 }
 
-static inline void unorder_p_array_init (struct unorder_p_array *arr)
-{
-	arr->size = 0;
-	arr->cap = UNORDER_P_ARRAY_DEFAULT_CAP;
-	if (!(arr->at = mem_zalloc (sizeof (void *) * arr->cap)))
-		BUG_ON (1);
+static inline void unorder_p_array_init(struct unorder_p_array* arr) {
+    arr->size = 0;
+    arr->cap = UNORDER_P_ARRAY_DEFAULT_CAP;
+
+    if (!(arr->at = mem_zalloc(sizeof(void*) * arr->cap))) {
+        BUG_ON(1);
+    }
 }
 
-static inline void unorder_p_array_destroy (struct unorder_p_array *arr)
-{
-	int i;
-	mem_free (arr->at, sizeof (void *) * arr->cap);
-	ZERO (arr);
+static inline void unorder_p_array_destroy(struct unorder_p_array* arr) {
+    int i;
+    mem_free(arr->at, sizeof(void*) * arr->cap);
+    ZERO(arr);
 }
 
-int unorder_p_array_push_back (struct unorder_p_array *arr, void *value);
+int unorder_p_array_push_back(struct unorder_p_array* arr, void* value);
 
-static inline void *unorder_p_array_at (struct unorder_p_array *arr, int idx)
-{
-	return arr->at[idx];
+static inline void* unorder_p_array_at(struct unorder_p_array* arr, int idx) {
+    return arr->at[idx];
 }
 
-static inline void unorder_p_array_erase (struct unorder_p_array *arr, int idx)
-{
-	arr->at[idx] = arr->at[--arr->size];
+static inline void unorder_p_array_erase(struct unorder_p_array* arr, int idx) {
+    arr->at[idx] = arr->at[--arr->size];
 }
 
 

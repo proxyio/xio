@@ -29,32 +29,42 @@
 #include "log.h"
 #include "sockbase.h"
 
-extern const char *event_str[];
+extern const char* event_str[];
 
-int check_pollevents (struct sockbase *sb, int events)
-{
-	int happened = 0;
+int check_pollevents(struct sockbase* sb, int events) {
+    int happened = 0;
 
-	if (events & XPOLLIN) {
-		switch (sb->vfptr->type) {
-		case XCONNECTOR:
-			if (!msgbuf_head_empty (&sb->rcv))
-				happened |= XPOLLIN;
-			break;
-		case XLISTENER:
-			if (!list_empty (&sb->acceptq.head))
-				happened |= XPOLLIN;
-			break;
-		default:
-			BUG_ON (1);
-		}
-	}
-	if (events & XPOLLOUT)
-		happened |= msgbuf_can_in (&sb->snd) ? XPOLLOUT : 0;
-	if (events & XPOLLERR)
-		happened |= sb->flagset.epipe ? XPOLLERR : 0;
-	SKLOG_DEBUG (sb, "%d happen %s", sb->fd, event_str[happened]);
-	return happened;
+    if (events & XPOLLIN) {
+        switch (sb->vfptr->type) {
+        case XCONNECTOR:
+            if (!msgbuf_head_empty(&sb->rcv)) {
+                happened |= XPOLLIN;
+            }
+
+            break;
+
+        case XLISTENER:
+            if (!list_empty(&sb->acceptq.head)) {
+                happened |= XPOLLIN;
+            }
+
+            break;
+
+        default:
+            BUG_ON(1);
+        }
+    }
+
+    if (events & XPOLLOUT) {
+        happened |= msgbuf_can_in(&sb->snd) ? XPOLLOUT : 0;
+    }
+
+    if (events & XPOLLERR) {
+        happened |= sb->flagset.epipe ? XPOLLERR : 0;
+    }
+
+    SKLOG_DEBUG(sb, "%d happen %s", sb->fd, event_str[happened]);
+    return happened;
 }
 
 /* Generic xpoll_t notify function. always called by sockbase_vfptr
@@ -63,21 +73,19 @@ int check_pollevents (struct sockbase *sb, int events)
  * here we only check the mq events and proto_spec saved the other
  * events gived by sockbase_vfptr
  */
-void __emit_pollevents (struct sockbase *sb)
-{
-	int happened = 0;
-	struct pollbase *pb, *tmp;
+void __emit_pollevents(struct sockbase* sb) {
+    int happened = 0;
+    struct pollbase* pb, *tmp;
 
-	happened |= check_pollevents (sb, XPOLLIN|XPOLLOUT|XPOLLERR);
-	walk_pollbase_s (pb, tmp, &sb->poll_entries) {
-		BUG_ON (!pb->vfptr);
-		pb->vfptr->emit (pb, happened & pb->pollfd.events);
-	}
+    happened |= check_pollevents(sb, XPOLLIN | XPOLLOUT | XPOLLERR);
+    walk_pollbase_s(pb, tmp, &sb->poll_entries) {
+        BUG_ON(!pb->vfptr);
+        pb->vfptr->emit(pb, happened & pb->pollfd.events);
+    }
 }
 
-void emit_pollevents (struct sockbase *sb)
-{
-	mutex_lock (&sb->lock);
-	__emit_pollevents (sb);
-	mutex_unlock (&sb->lock);
+void emit_pollevents(struct sockbase* sb) {
+    mutex_lock(&sb->lock);
+    __emit_pollevents(sb);
+    mutex_unlock(&sb->lock);
 }

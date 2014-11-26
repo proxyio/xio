@@ -23,66 +23,69 @@
 #include <xio/sp.h>
 #include "sp_module.h"
 
-int epbase_add_tgtd (struct epbase *ep, struct tgtd *tg)
-{
-	mutex_lock (&ep->lock);
+int epbase_add_tgtd(struct epbase* ep, struct tgtd* tg) {
+    mutex_lock(&ep->lock);
 
-	/* Don't attach any target socket into bad status endpoint.
-	 * we check the endpoint status here, for example, the endpoint
-	 * was closed */
-	if (ep->status.bad) {
-		mutex_unlock(&ep->lock);
-		return -1;
-	}
-	switch (get_socktype (tg->fd)) {
-	case XLISTENER:
-		list_add_tail (&tg->item, &ep->listeners);
-		ep->nlisteners++;
-		break;
-	case XCONNECTOR:
-		list_add_tail (&tg->item, &ep->connectors);
-		ep->nconnectors++;
-		break;
-	default:
-		BUG_ON (1);
-	}
-	sg_add_tg (tg);
-	mutex_unlock (&ep->lock);
-	return 0;
+    /* Don't attach any target socket into bad status endpoint.
+     * we check the endpoint status here, for example, the endpoint
+     * was closed */
+    if (ep->status.bad) {
+        mutex_unlock(&ep->lock);
+        return -1;
+    }
+
+    switch (get_socktype(tg->fd)) {
+    case XLISTENER:
+        list_add_tail(&tg->item, &ep->listeners);
+        ep->nlisteners++;
+        break;
+
+    case XCONNECTOR:
+        list_add_tail(&tg->item, &ep->connectors);
+        ep->nconnectors++;
+        break;
+
+    default:
+        BUG_ON(1);
+    }
+
+    sg_add_tg(tg);
+    mutex_unlock(&ep->lock);
+    return 0;
 }
 
-void generic_tgtd_init (struct epbase *ep, struct tgtd *tg, int fd)
-{
-	int socktype = get_socktype (fd);
+void generic_tgtd_init(struct epbase* ep, struct tgtd* tg, int fd) {
+    int socktype = get_socktype(fd);
 
-	tg->fd = fd;
-	tg->owner = ep;
-	tg->pollfd.fd = fd;
-	tg->pollfd.hndl = tg;
-	tg->pollfd.events = XPOLLIN|XPOLLERR;
-	tg->pollfd.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
-	tgtd_mstats_init (&tg->stats);
+    tg->fd = fd;
+    tg->owner = ep;
+    tg->pollfd.fd = fd;
+    tg->pollfd.hndl = tg;
+    tg->pollfd.events = XPOLLIN | XPOLLERR;
+    tg->pollfd.events |= socktype == XCONNECTOR ? XPOLLOUT : 0;
+    tgtd_mstats_init(&tg->stats);
 }
 
-int sp_add (int eid, int fd)
-{
-	struct epbase *ep = eid_get (eid);
-	int rc;
-	int on = 1;
-	struct tgtd *tg;
+int sp_add(int eid, int fd) {
+    struct epbase* ep = eid_get(eid);
+    int rc;
+    int on = 1;
+    struct tgtd* tg;
 
-	if (!ep) {
-		ERRNO_RETURN (EBADF);
-	}
-	if ((tg = ep->vfptr.join (ep, fd))) {
-		if ((rc = epbase_add_tgtd (ep, tg))) {
-			ep->vfptr.term (ep, tg);
-			eid_put (eid);
-			return -1;
-		}
-	}
-	xsetopt (fd, XSO_NOBLOCK, &on, sizeof (on));
-	xsetopt (fd, XSO_NODELAY, &on, sizeof (on));
-	eid_put (eid);
-	return 0;
+    if (!ep) {
+        ERRNO_RETURN(EBADF);
+    }
+
+    if ((tg = ep->vfptr.join(ep, fd))) {
+        if ((rc = epbase_add_tgtd(ep, tg))) {
+            ep->vfptr.term(ep, tg);
+            eid_put(eid);
+            return -1;
+        }
+    }
+
+    xsetopt(fd, XSO_NOBLOCK, &on, sizeof(on));
+    xsetopt(fd, XSO_NODELAY, &on, sizeof(on));
+    eid_put(eid);
+    return 0;
 }

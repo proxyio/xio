@@ -46,52 +46,51 @@
 #define MSGBUF_CMSGLENMARK 0xfff        // 4k
 
 struct msghdr {
-	u16 checksum;
-	u16 cmsg_num:4;
-	u16 cmsg_length:12;
-	u32 ulen;
-	char ubase[0];
+    u16 checksum;
+    u16 cmsg_num: 4;
+    u16 cmsg_length: 12;
+    u32 ulen;
+    char ubase[0];
 };
 
 
 /* TODO: little endian and big endian */
 struct msgbuf {
-	struct list_head item;
-	struct list_head cmsg_head;
-	u32 soff;
-	struct msghdr frame;
+    struct list_head item;
+    struct list_head cmsg_head;
+    u32 soff;
+    struct msghdr frame;
 };
 
-u32 msgbuf_len (struct msgbuf *msg);
-char *msgbuf_base (struct msgbuf *msg);
-struct msgbuf *msgbuf_alloc (int size);
-void msgbuf_free (struct msgbuf *msg);
+u32 msgbuf_len(struct msgbuf* msg);
+char* msgbuf_base(struct msgbuf* msg);
+struct msgbuf* msgbuf_alloc(int size);
+void msgbuf_free(struct msgbuf* msg);
 
-#define walk_msg(pos, head)				\
+#define walk_msg(pos, head)             \
     walk_each_entry (pos, head, struct msgbuf, item)
 
 
-#define walk_msg_s(pos, next, head)				\
+#define walk_msg_s(pos, next, head)             \
     walk_each_entry_s(pos, next, head, struct msgbuf, item)
 
-static inline struct msgbuf *get_msgbuf (char *ubuf) {
-	return cont_of (ubuf, struct msgbuf, frame.ubase);
+static inline struct msgbuf* get_msgbuf(char* ubuf) {
+    return cont_of(ubuf, struct msgbuf, frame.ubase);
 }
 
-static inline char *get_ubuf (struct msgbuf *msg)
-{
-	return msg->frame.ubase;
+static inline char* get_ubuf(struct msgbuf* msg) {
+    return msg->frame.ubase;
 }
 
 
-int msgbuf_serialize (struct msgbuf *msg, struct rex_iov *iovs, int n);
+int msgbuf_serialize(struct msgbuf* msg, struct rex_iov* iovs, int n);
 
-int msgbuf_install_iovs (struct msgbuf *msg, struct rex_iov *iovs, i64 *length);
+int msgbuf_install_iovs(struct msgbuf* msg, struct rex_iov* iovs, i64* length);
 
-int msgbuf_deserialize (struct msgbuf **msg, struct bio *in);
+int msgbuf_deserialize(struct msgbuf** msg, struct bio* in);
 
 
-void msgbuf_md5 (struct msgbuf *msg, unsigned char out[16]);
+void msgbuf_md5(struct msgbuf* msg, unsigned char out[16]);
 
 
 

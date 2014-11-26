@@ -27,109 +27,116 @@
 #include <utils/taskpool.h>
 #include "inproc.h"
 
-struct sockbase *getlistener (const char *addr) {
-	int refed = false;
-	struct str_rbe *entry;
-	struct sockbase *sb = 0;
+struct sockbase* getlistener(const char* addr) {
+    int refed = false;
+    struct str_rbe* entry;
+    struct sockbase* sb = 0;
 
-	mutex_lock (&xgb.lock);
-	if ((entry = str_rb_find (&xgb.inproc_listeners, addr, strlen (addr)))) {
-		sb = & (cont_of (entry, struct inproc_sock, lhentry))->base;
-		mutex_lock (&sb->lock);
-		if (!sb->flagset.epipe) {
-			refed = true;
-			atomic_incr (&sb->ref);
-		}
-		mutex_unlock (&sb->lock);
-		if (!refed)
-			sb = 0;
-	}
-	mutex_unlock (&xgb.lock);
-	return sb;
+    mutex_lock(&xgb.lock);
+
+    if ((entry = str_rb_find(&xgb.inproc_listeners, addr, strlen(addr)))) {
+        sb = & (cont_of(entry, struct inproc_sock, lhentry))->base;
+        mutex_lock(&sb->lock);
+
+        if (!sb->flagset.epipe) {
+            refed = true;
+            atomic_incr(&sb->ref);
+        }
+
+        mutex_unlock(&sb->lock);
+
+        if (!refed) {
+            sb = 0;
+        }
+    }
+
+    mutex_unlock(&xgb.lock);
+    return sb;
 }
 
-static int addlistener (struct str_rbe *entry)
-{
-	int rc = -1;
+static int addlistener(struct str_rbe* entry) {
+    int rc = -1;
 
-	mutex_lock (&xgb.lock);
-	if (!str_rb_find (&xgb.inproc_listeners, entry->key, entry->keylen)) {
-		rc = 0;
-		str_rb_insert (&xgb.inproc_listeners, entry);
-	}
-	mutex_unlock (&xgb.lock);
-	return rc;
+    mutex_lock(&xgb.lock);
+
+    if (!str_rb_find(&xgb.inproc_listeners, entry->key, entry->keylen)) {
+        rc = 0;
+        str_rb_insert(&xgb.inproc_listeners, entry);
+    }
+
+    mutex_unlock(&xgb.lock);
+    return rc;
 }
 
 
-static void rmlistener (struct str_rbe *entry)
-{
-	mutex_lock (&xgb.lock);
-	str_rb_delete (&xgb.inproc_listeners, entry);
-	mutex_unlock (&xgb.lock);
+static void rmlistener(struct str_rbe* entry) {
+    mutex_lock(&xgb.lock);
+    str_rb_delete(&xgb.inproc_listeners, entry);
+    mutex_unlock(&xgb.lock);
 }
 
-static struct sockbase *inproc_open() {
-	struct inproc_sock *self = mem_zalloc (sizeof (struct inproc_sock));
+static struct sockbase* inproc_open() {
+    struct inproc_sock* self = mem_zalloc(sizeof(struct inproc_sock));
 
-	if (self) {
-		sockbase_init (&self->base);
-		return &self->base;
-	}
-	return 0;
+    if (self) {
+        sockbase_init(&self->base);
+        return &self->base;
+    }
+
+    return 0;
 }
 
-static int inproc_listener_bind (struct sockbase *sb, const char *sock)
-{
-	struct str_rbe *entry = 0;
-	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
+static int inproc_listener_bind(struct sockbase* sb, const char* sock) {
+    struct str_rbe* entry = 0;
+    struct inproc_sock* self = cont_of(sb, struct inproc_sock, base);
 
-	strcpy (sb->addr, sock);
-	entry = &self->lhentry;
-	entry->key = sb->addr;
-	entry->keylen = strlen (sb->addr);
-	if (addlistener (entry)) {
-		errno = EADDRINUSE;
-		return -1;
-	}
-	return 0;
+    strcpy(sb->addr, sock);
+    entry = &self->lhentry;
+    entry->key = sb->addr;
+    entry->keylen = strlen(sb->addr);
+
+    if (addlistener(entry)) {
+        errno = EADDRINUSE;
+        return -1;
+    }
+
+    return 0;
 }
 
-static void inproc_listener_close (struct sockbase *sb)
-{
-	struct sockbase *nsb;
-	struct inproc_sock *self = cont_of (sb, struct inproc_sock, base);
+static void inproc_listener_close(struct sockbase* sb) {
+    struct sockbase* nsb;
+    struct inproc_sock* self = cont_of(sb, struct inproc_sock, base);
 
-	/* Avoiding the new connectors and remove listen file */
-	rmlistener (&self->lhentry);
+    /* Avoiding the new connectors and remove listen file */
+    rmlistener(&self->lhentry);
 
-	/* we remove the file here because of Unix domain socket doesn't unlink
-	 * the file when socket closed. and don't support getsockname ()
-	 * or getpeername () API. */
-	remove (sb->addr);
+    /* we remove the file here because of Unix domain socket doesn't unlink
+     * the file when socket closed. and don't support getsockname ()
+     * or getpeername () API. */
+    remove(sb->addr);
 
-	/* Destroy acceptq's connection */
-	while (acceptq_rm_nohup (sb, &nsb) == 0) {
-		SKLOG_DEBUG (sb, "listener %d close unaccept socket %d", sb->fd, nsb->fd);
-		__xclose (nsb);
-	}
+    /* Destroy acceptq's connection */
+    while (acceptq_rm_nohup(sb, &nsb) == 0) {
+        SKLOG_DEBUG(sb, "listener %d close unaccept socket %d", sb->fd, nsb->fd);
+        __xclose(nsb);
+    }
 
-	/* Close the sock and free sock id. */
-	sockbase_exit (sb);
-	mem_free (self, sizeof (*self));
+    /* Close the sock and free sock id. */
+    sockbase_exit(sb);
+    mem_free(self, sizeof(*self));
 }
 
-extern int inproc_getopt (struct sockbase *sb, int opt, void *optval, int *optlen);
-extern int inproc_setopt (struct sockbase *sb, int opt, void *optval, int optlen);
+extern int inproc_getopt(struct sockbase* sb, int opt, void* optval, int* optlen);
+extern int inproc_setopt(struct sockbase* sb, int opt, void* optval, int optlen);
 
 struct sockbase_vfptr inproc_listener_vfptr = {
-	.type = XLISTENER,
-	.pf = XAF_INPROC,
-	.open = inproc_open,
-	.getopt = inproc_getopt,
-	.setopt = inproc_setopt,
-	.send = 0,
-	.recv = 0,
-	.bind = inproc_listener_bind,
-	.close = inproc_listener_close,
+    .type = XLISTENER,
+    .pf = XAF_INPROC,
+    .open = inproc_open,
+    .getopt = inproc_getopt,
+    .setopt = inproc_setopt,
+    .send = 0,
+    .recv = 0,
+    .bind = inproc_listener_bind,
+    .close = inproc_listener_close,
 };

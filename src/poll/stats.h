@@ -26,19 +26,19 @@
 #include <utils/mstats_base.h>
 
 enum {
-	ST_POLLIN = 0,
-	ST_POLLOUT,
-	ST_POLLERR,
-	ST_POLL_KEYRANGE,
+    ST_POLLIN = 0,
+    ST_POLLOUT,
+    ST_POLLERR,
+    ST_POLL_KEYRANGE,
 };
 
-void s_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val);
-void m_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val);
-void h_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val);
-void d_warn (struct mstats_base *stb, int sl, int key, int64_t ts, int64_t val);
+void s_warn(struct mstats_base* stb, int sl, int key, int64_t ts, int64_t val);
+void m_warn(struct mstats_base* stb, int sl, int key, int64_t ts, int64_t val);
+void h_warn(struct mstats_base* stb, int sl, int key, int64_t ts, int64_t val);
+void d_warn(struct mstats_base* stb, int sl, int key, int64_t ts, int64_t val);
 
 
-DEFINE_MSTATS (poll, ST_POLL_KEYRANGE);
+DEFINE_MSTATS(poll, ST_POLL_KEYRANGE);
 
 
 #endif

@@ -28,39 +28,44 @@
 #include <utils/taskpool.h>
 #include "sockbase.h"
 
-void __xclose (struct sockbase *sb)
-{
-	struct pollbase *pb, *tmp;
-	struct list_head poll_entries = {};
+void __xclose(struct sockbase* sb) {
+    struct pollbase* pb, *tmp;
+    struct list_head poll_entries = {};
 
-	INIT_LIST_HEAD (&poll_entries);
-	mutex_lock (&sb->lock);
+    INIT_LIST_HEAD(&poll_entries);
+    mutex_lock(&sb->lock);
 
-	sb->flagset.epipe = true;
-	if (sb->rcv.waiters || sb->snd.waiters)
-		condition_broadcast (&sb->cond);
-	if (sb->acceptq.waiters)
-		condition_broadcast (&sb->acceptq.cond);
-	list_splice (&sb->poll_entries, &poll_entries);
-	mutex_unlock (&sb->lock);
+    sb->flagset.epipe = true;
 
-	walk_pollbase_s (pb, tmp, &poll_entries) {
-		list_del_init (&pb->link);
-		BUG_ON (!pb->vfptr);
-		pb->vfptr->close (pb);
-	}
-	BUG_ON (!list_empty (&poll_entries));
-	xput (sb->fd);
+    if (sb->rcv.waiters || sb->snd.waiters) {
+        condition_broadcast(&sb->cond);
+    }
+
+    if (sb->acceptq.waiters) {
+        condition_broadcast(&sb->acceptq.cond);
+    }
+
+    list_splice(&sb->poll_entries, &poll_entries);
+    mutex_unlock(&sb->lock);
+
+    walk_pollbase_s(pb, tmp, &poll_entries) {
+        list_del_init(&pb->link);
+        BUG_ON(!pb->vfptr);
+        pb->vfptr->close(pb);
+    }
+    BUG_ON(!list_empty(&poll_entries));
+    xput(sb->fd);
 }
 
-int xclose (int fd) {
-	struct sockbase *sb = xget (fd);
+int xclose(int fd) {
+    struct sockbase* sb = xget(fd);
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
-	}
-	__xclose (sb);
-	xput (fd);
-	return 0;
+    if (!sb) {
+        errno = EBADF;
+        return -1;
+    }
+
+    __xclose(sb);
+    xput(fd);
+    return 0;
 }

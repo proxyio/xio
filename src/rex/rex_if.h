@@ -29,19 +29,19 @@
 
 /* The underlying rex socket vfptr */
 struct rex_vfptr {
-	int un_family;
-	int (*init)    (struct rex_sock *rs);
-	int (*destroy) (struct rex_sock *rs);
-	int (*listen)  (struct rex_sock *rs, const char *sock);
-	int (*accept)  (struct rex_sock *rs, struct rex_sock *new);
-	int (*connect) (struct rex_sock *rs, const char *peer);
-	int (*send)    (struct rex_sock *rs, struct rex_iov *iov, int niov);
-	int (*recv)    (struct rex_sock *rs, struct rex_iov *iov, int niov);
-	int (*setopt)  (struct rex_sock *rs, int opt, void *optval, int optlen);
-	int (*getopt)  (struct rex_sock *rs, int opt, void *optval, int *optlen);
-	struct list_head item;
+    int un_family;
+    int (*init)(struct rex_sock* rs);
+    int (*destroy)(struct rex_sock* rs);
+    int (*listen)(struct rex_sock* rs, const char* sock);
+    int (*accept)(struct rex_sock* rs, struct rex_sock* new);
+    int (*connect)(struct rex_sock* rs, const char* peer);
+    int (*send)(struct rex_sock* rs, struct rex_iov* iov, int niov);
+    int (*recv)(struct rex_sock* rs, struct rex_iov* iov, int niov);
+    int (*setopt)(struct rex_sock* rs, int opt, void* optval, int optlen);
+    int (*getopt)(struct rex_sock* rs, int opt, void* optval, int* optlen);
+    struct list_head item;
 };
 
-struct rex_vfptr *get_rex_vfptr (int un_family);
+struct rex_vfptr* get_rex_vfptr(int un_family);
 
 #endif

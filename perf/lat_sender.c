@@ -8,60 +8,68 @@
 #include <utils/thread.h>
 
 static int argc;
-static char **argv;
+static char** argv;
 
-int task_main (void *args)
-{
-	int i;
-	int j;
-	int conns = 1;
-	int eid;
-	int size;
-	int rts;
-	char *ubuf;
-	int64_t st, lt;
+int task_main(void* args) {
+    int i;
+    int j;
+    int conns = 1;
+    int eid;
+    int size;
+    int rts;
+    char* ubuf;
+    int64_t st, lt;
 
-	if (argc < 5) {
-		printf ("usage: lat_sender <connect-to> <msg-size> <roundtrips> <threads>\n");
-		return 0;
-	}
+    if (argc < 5) {
+        printf("usage: lat_sender <connect-to> <msg-size> <roundtrips> <threads>\n");
+        return 0;
+    }
 
-	size = atoi (argv[2]);
-	rts = atoi (argv[3]);
-	conns = atoi (argv[4]);
-	BUG_ON ((eid = sp_endpoint (SP_REQREP, SP_REQ)) < 0);
-	for (i = 0; i < conns; i++)
-		BUG_ON (sp_connect (eid, argv[1]) < 0);
+    size = atoi(argv[2]);
+    rts = atoi(argv[3]);
+    conns = atoi(argv[4]);
+    BUG_ON((eid = sp_endpoint(SP_REQREP, SP_REQ)) < 0);
 
-	st = gettimeofus ();
-	for (i = 0; i < rts; i++) {
-		for (j = 0; j < conns; j++)
-			BUG_ON (sp_send (eid, ualloc (size)) != 0);
-		for (j = 0; j < conns; j++) {
-			BUG_ON (sp_recv (eid, &ubuf) != 0);
-			ufree (ubuf);
-		}
-	}
-	lt = gettimeofus ();
+    for (i = 0; i < conns; i++) {
+        BUG_ON(sp_connect(eid, argv[1]) < 0);
+    }
 
-	printf ("message size: %d [B]\n", size);
-	printf ("roundtrip count: %d\n", rts * conns);
-	printf ("average latency: %.3f [us]\n", (double)(lt - st) / (rts * conns * 2));
-	sp_close (eid);
-	return 0;
+    st = gettimeofus();
+
+    for (i = 0; i < rts; i++) {
+        for (j = 0; j < conns; j++) {
+            BUG_ON(sp_send(eid, ualloc(size)) != 0);
+        }
+
+        for (j = 0; j < conns; j++) {
+            BUG_ON(sp_recv(eid, &ubuf) != 0);
+            ufree(ubuf);
+        }
+    }
+
+    lt = gettimeofus();
+
+    printf("message size: %d [B]\n", size);
+    printf("roundtrip count: %d\n", rts * conns);
+    printf("average latency: %.3f [us]\n", (double)(lt - st) / (rts * conns * 2));
+    sp_close(eid);
+    return 0;
 }
 
-int main (int _argc, char **_argv)
-{
-	int i;
-	thread_t childs[1];
+int main(int _argc, char** _argv) {
+    int i;
+    thread_t childs[1];
 
-	argc = _argc;
-	argv = _argv;
-	
-	for (i = 0; i < NELEM (childs, thread_t); i++)
-		thread_start (&childs[i], task_main, 0);
-	for (i = 0; i < NELEM (childs, thread_t); i++)
-		thread_stop (&childs[i]);
-	return 0;
+    argc = _argc;
+    argv = _argv;
+
+    for (i = 0; i < NELEM(childs); i++) {
+        thread_start(&childs[i], task_main, 0);
+    }
+
+    for (i = 0; i < NELEM(childs); i++) {
+        thread_stop(&childs[i]);
+    }
+
+    return 0;
 }

@@ -25,89 +25,106 @@
 #include <string.h>
 #include "mstats_base.h"
 
-const char *stat_type_token[MST_NUM] = {
-	"now",
-	"last",
-	"min",
-	"max",
-	"avg",
+const char* stat_type_token[MST_NUM] = {
+    "now",
+    "last",
+    "min",
+    "max",
+    "avg",
 };
 
 
-const char *stat_level_token[MSL_NUM] = {
-	"total",
-	"second",
-	"minute",
-	"hour",
-	"day",
+const char* stat_level_token[MSL_NUM] = {
+    "total",
+    "second",
+    "minute",
+    "hour",
+    "day",
 };
 
-static void trigger_one_key_stat (struct mstats_base *ms, i64 nowtime)
-{
-	int sl, key;
-	i64 min_val, max_val, avg_val, all_val;
+static void trigger_one_key_stat(struct mstats_base* ms, i64 nowtime) {
+    int sl, key;
+    i64 min_val, max_val, avg_val, all_val;
 
-	min_val = max_val = avg_val = all_val = 0;
-	for (sl = MSL_S; sl < MSL_NUM; sl++) {
-		if (nowtime - ms->timestamp[sl] <= ms->level[sl])
-			continue;
-		ms->trigger_counter[sl]++;
-		ms->timestamp[sl] = nowtime;
-		for (key = 0; key < ms->kr; key++) {
-			all_val = ms->keys[MST_NOW][sl][key];
-			min_val = ms->keys[MST_MIN][sl][key];
-			max_val = ms->keys[MST_MAX][sl][key];
-			avg_val = ms->keys[MST_AVG][sl][key];
-			if (ms->f[sl] && all_val > ms->thres[sl][key])
-				ms->f[sl] (ms, sl, key, ms->thres[sl][key], all_val, min_val, max_val, avg_val);
-			ms->keys[MST_LAST][sl][key] = all_val;
-			ms->keys[MST_NOW][sl][key] = 0;
-		}
-	}
+    min_val = max_val = avg_val = all_val = 0;
+
+    for (sl = MSL_S; sl < MSL_NUM; sl++) {
+        if (nowtime - ms->timestamp[sl] <= ms->level[sl]) {
+            continue;
+        }
+
+        ms->trigger_counter[sl]++;
+        ms->timestamp[sl] = nowtime;
+
+        for (key = 0; key < ms->kr; key++) {
+            all_val = ms->keys[MST_NOW][sl][key];
+            min_val = ms->keys[MST_MIN][sl][key];
+            max_val = ms->keys[MST_MAX][sl][key];
+            avg_val = ms->keys[MST_AVG][sl][key];
+
+            if (ms->f[sl] && all_val > ms->thres[sl][key]) {
+                ms->f[sl](ms, sl, key, ms->thres[sl][key], all_val, min_val, max_val, avg_val);
+            }
+
+            ms->keys[MST_LAST][sl][key] = all_val;
+            ms->keys[MST_NOW][sl][key] = 0;
+        }
+    }
 }
 
-void mstats_base_emit (struct mstats_base *ms, i64 timestamp)
-{
-	trigger_one_key_stat (ms, timestamp);
+void mstats_base_emit(struct mstats_base* ms, i64 timestamp) {
+    trigger_one_key_stat(ms, timestamp);
 }
 
 
 
-int mstats_base_parse (const char *str, const char *key, int *tr, int *v)
-{
-	char *pos = NULL, *newstr = NULL;
+int mstats_base_parse(const char* str, const char* key, int* tr, int* v) {
+    char* pos = NULL, *newstr = NULL;
 
-	if (! (pos = (char *) strstr (str, key)) || pos + strlen (key) + 4 > str + strlen (str))
-		return -1;
-	pos += strlen (key) + 1;
-	switch (pos[0]) {
-	case 's':
-		*tr = MSL_S;
-		break;
-	case 'm':
-		*tr = MSL_M;
-		break;
-	case 'h':
-		*tr = MSL_H;
-		break;
-	case 'd':
-		*tr = MSL_D;
-		break;
-	default:
-		return -1;
-	}
-	pos += 2;
-	newstr = strdup (pos);
-	pos = newstr;
-	while (pos < newstr + strlen (newstr)) {
-		if (pos[0] == ';') {
-			pos[0] = '\0';
-			break;
-		}
-		pos++;
-	}
-	if ((*v = atoi (newstr)) <= 0)
-		*v = 1;
-	free (newstr);
-	return 0;
+    if (!(pos = (char*) strstr(str, key)) || pos + strlen(key) + 4 > str + strlen(str)) {
+        return -1;
+    }
+
+    pos += strlen(key) + 1;
+
+    switch (pos[0]) {
+    case 's':
+        *tr = MSL_S;
+        break;
+
+    case 'm':
+        *tr = MSL_M;
+        break;
+
+    case 'h':
+        *tr = MSL_H;
+        break;
+
+    case 'd':
+        *tr = MSL_D;
+        break;
+
+    default:
+        return -1;
+    }
+
+    pos += 2;
+    newstr = strdup(pos);
+    pos = newstr;
+
+    while (pos < newstr + strlen(newstr)) {
+        if (pos[0] == ';') {
+            pos[0] = '\0';
+            break;
+        }
+
+        pos++;
+    }
+
+    if ((*v = atoi(newstr)) <= 0) {
+        *v = 1;
+    }
+
+    free(newstr);
+    return 0;
 }

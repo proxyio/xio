@@ -26,14 +26,14 @@
 #include "../sockbase.h"
 
 struct inproc_sock {
-	struct sockbase base;
-	atomic_t ref;
+    struct sockbase base;
+    atomic_t ref;
 
-	/* the listener_head's entry of inproc-listener */
-	struct str_rbe lhentry;
+    /* the listener_head's entry of inproc-listener */
+    struct str_rbe lhentry;
 
-	/* For inproc-connector and inproc-accepter */
-	struct sockbase *peer;
+    /* For inproc-connector and inproc-accepter */
+    struct sockbase* peer;
 };
 
 extern struct sockbase_vfptr inproc_listener_vfptr;

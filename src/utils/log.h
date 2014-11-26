@@ -32,20 +32,20 @@
 #include <inttypes.h>
 
 enum {
-	DEBUGL   =   1,
-	INFOL,
-	NOTICEL,
-	WARNL,
-	ERRORL,
-	FATALL,
+    DEBUGL   =   1,
+    INFOL,
+    NOTICEL,
+    WARNL,
+    ERRORL,
+    FATALL,
 };
 
 
-#define LLOG(lvs, lv, fmt, ...) do {					\
-        if (lvs && lvs <= lv) {							\
-            fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),	\
-            basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__);	\
-        }								\
+#define LLOG(lvs, lv, fmt, ...) do {                    \
+        if (lvs && lvs <= lv) {                         \
+            fprintf(stdout, "%d %s:%d %s "#fmt"\n", (i32)gettid(),  \
+            basename(__FILE__), __LINE__, __func__, ##__VA_ARGS__); \
+        }                               \
     } while(0)
 
 #define LOG_DEBUG(lvs, fmt, ...)   LLOG(lvs, DEBUGL,  fmt, ##__VA_ARGS__)

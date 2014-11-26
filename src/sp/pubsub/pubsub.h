@@ -26,16 +26,16 @@
 #include <sp/sp_hdr.h>
 
 struct pubsub_tgtd {
-	struct tgtd tg;
-	struct msgbuf_head ls_head;   /* local storage */
+    struct tgtd tg;
+    struct msgbuf_head ls_head;   /* local storage */
 };
 
-static inline void pubsub_tgtd_free(struct pubsub_tgtd *ps_tg) {
-	mem_free (ps_tg, sizeof (struct pubsub_tgtd) );
+static inline void pubsub_tgtd_free(struct pubsub_tgtd* ps_tg) {
+    mem_free(ps_tg, sizeof(struct pubsub_tgtd));
 }
 
-static inline struct pubsub_tgtd *get_pubsub_tgtd (struct tgtd *tg) {
-	return cont_of (tg, struct pubsub_tgtd, tg);
+static inline struct pubsub_tgtd* get_pubsub_tgtd(struct tgtd* tg) {
+    return cont_of(tg, struct pubsub_tgtd, tg);
 }
 
 #endif

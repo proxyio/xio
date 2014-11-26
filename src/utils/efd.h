@@ -24,24 +24,24 @@
 #define _H_PROXYIO_EVENTFD_
 
 struct efd {
-	int r;
-	int w;
-	int64_t unsignal_size;
+    int r;
+    int w;
+    int64_t unsignal_size;
 };
 
-void efd_init (struct efd *self);
+void efd_init(struct efd* self);
 
-void efd_destroy (struct efd *self);
+void efd_destroy(struct efd* self);
 
-int efd_signal_s (struct efd *self);
+int efd_signal_s(struct efd* self);
 
-int efd_signal (struct efd *self, int signo);
+int efd_signal(struct efd* self, int signo);
 
-int efd_unsignal_s (struct efd *self);
+int efd_unsignal_s(struct efd* self);
 
-int efd_unsignal (struct efd *self);
+int efd_unsignal(struct efd* self);
 
-int efd_unsignal2 (struct efd *self, int *sigset, int size);
+int efd_unsignal2(struct efd* self, int* sigset, int size);
 
 
 

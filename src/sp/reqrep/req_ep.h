@@ -31,52 +31,52 @@ struct req_tgtd;
 struct loadbalance_vfptr;
 
 struct reqep {
-	struct epbase base;
-	struct repep *peer;
-	struct loadbalance_vfptr *lbs;
+    struct epbase base;
+    struct repep* peer;
+    struct loadbalance_vfptr* lbs;
 };
 
 #define peer_repep(qep) (cont_of(qep, struct reqep, base))->peer
 
-extern int epbase_proxyto (struct epbase *repep, struct epbase *reqep);
+extern int epbase_proxyto(struct epbase* repep, struct epbase* reqep);
 
 
 struct loadbalance_vfptr {
-	int type;
-	struct loadbalance_vfptr *(*new) (struct reqep *reqep, ...);
-	void (*free) (struct loadbalance_vfptr *lbs);
-	void (*add) (struct loadbalance_vfptr *lbs, struct req_tgtd *tg);
-	void (*rm) (struct loadbalance_vfptr *lbs, struct req_tgtd *tg);
-	struct req_tgtd * (*select) (struct loadbalance_vfptr *lbs, char *ubuf);
+    int type;
+    struct loadbalance_vfptr* (*new)(struct reqep* reqep, ...);
+    void (*free)(struct loadbalance_vfptr* lbs);
+    void (*add)(struct loadbalance_vfptr* lbs, struct req_tgtd* tg);
+    void (*rm)(struct loadbalance_vfptr* lbs, struct req_tgtd* tg);
+    struct req_tgtd* (*select)(struct loadbalance_vfptr* lbs, char* ubuf);
 };
 
 struct rrbin_entry {
-	int origin_weight;
-	int current_weight;
-	struct list_head item;
+    int origin_weight;
+    int current_weight;
+    struct list_head item;
 };
 
 struct ulhash_entry {
-	int idx;
+    int idx;
 };
 
 
 struct req_tgtd {
-	struct tgtd tg;
-	uuid_t uuid;                  /* global unique id for distributed system */
-	struct msgbuf_head ls_head;   /* local storage */
-	union {
-		struct rrbin_entry rrbin;
-		struct ulhash_entry ulhash;
-	} lbs_ent;
+    struct tgtd tg;
+    uuid_t uuid;                  /* global unique id for distributed system */
+    struct msgbuf_head ls_head;   /* local storage */
+    union {
+        struct rrbin_entry rrbin;
+        struct ulhash_entry ulhash;
+    } lbs_ent;
 };
 
-static inline struct req_tgtd *get_req_tgtd (struct tgtd *tg) {
-	return cont_of (tg, struct req_tgtd, tg);
+static inline struct req_tgtd* get_req_tgtd(struct tgtd* tg) {
+    return cont_of(tg, struct req_tgtd, tg);
 }
 
-extern struct loadbalance_vfptr *rrbin_vfptr;
-extern struct loadbalance_vfptr *ulhash_vfptr;
-extern struct loadbalance_vfptr *conhash_vfptr;
+extern struct loadbalance_vfptr* rrbin_vfptr;
+extern struct loadbalance_vfptr* ulhash_vfptr;
+extern struct loadbalance_vfptr* conhash_vfptr;
 
 #endif

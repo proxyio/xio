@@ -3,6 +3,6 @@
 
 #include <inttypes.h>
 
-uint16_t crc16 (const char *buf, uint32_t len);
+uint16_t crc16(const char* buf, uint32_t len);
 
 #endif

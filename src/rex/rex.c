@@ -27,6 +27,6 @@
 #if defined MS_WINDOWS
 # include "rex_win.c"
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) \
-	|| defined(__NetBSD__) || defined(linux)
+    || defined(__NetBSD__) || defined(linux)
 # include "rex_posix.c"
 #endif

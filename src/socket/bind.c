@@ -28,28 +28,28 @@
 #include <utils/taskpool.h>
 #include "sockbase.h"
 
-int xsocket (int pf, int socktype)
-{
-	int fd = xalloc (pf, socktype);
-	return fd;
+int xsocket(int pf, int socktype) {
+    int fd = xalloc(pf, socktype);
+    return fd;
 }
 
-int xbind (int fd, const char *addr)
-{
-	int rc;
-	struct sockbase *sb = xget (fd);
+int xbind(int fd, const char* addr) {
+    int rc;
+    struct sockbase* sb = xget(fd);
 
-	if (!sb) {
-		errno = EBADF;
-		return -1;
-	}
-	if (strlen (addr) >= PATH_MAX) {
-		xput (fd);
-		errno = EINVAL;
-		return -1;
-	}
-	BUG_ON (!sb->vfptr);
-	rc = sb->vfptr->bind (sb, addr);
-	xput (fd);
-	return rc;
+    if (!sb) {
+        errno = EBADF;
+        return -1;
+    }
+
+    if (strlen(addr) >= PATH_MAX) {
+        xput(fd);
+        errno = EINVAL;
+        return -1;
+    }
+
+    BUG_ON(!sb->vfptr);
+    rc = sb->vfptr->bind(sb, addr);
+    xput(fd);
+    return rc;
 }
